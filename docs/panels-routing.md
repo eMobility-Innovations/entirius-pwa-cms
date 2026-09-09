@@ -21,6 +21,7 @@ Font Awesome icon name rendered via `FontAwesomeIcon`.
 | `agreements` | Agreements | `/agreements/list` | `file-contract` |
 | `emails` | Emails | `/emails` | `at` |
 | `faq` | FAQ | `/faq/groups` | `circle-question` |
+| `reviews` | Reviews | `/reviews/queue` | `star` |
 | `pricing` | Pricing | `/pricing/prices` | `money-bill-wave` |
 | `stock` | Stock | `/stock/manage` | `warehouse` |
 | `translation` | Translation | `/translation-jobs` | `language` |
@@ -49,6 +50,7 @@ path prefix and lazy-loaded (`() => import(...)`). Grouped by panel:
 | `/checkout-orders/...` | OrderList, OrderDetail |
 | `/emails/...` | EmailsDashboard, EmailChannelEdit, EmailLangConfigEdit, EmailTemplateList/Edit |
 | `/faq/...` | GroupList/Edit, ItemList/Edit |
+| `/reviews/...` | ReviewQueue, ReviewDetail, ReviewProducts |
 | `/pricing/...` | PriceList/Detail, TaxClassList/Detail, ChannelList/Detail |
 | `/stock/...` | WarehouseStockTable |
 | `/translation-jobs` | TranslationDashboard |

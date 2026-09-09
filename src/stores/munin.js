@@ -27,6 +27,8 @@ const MODULE_TO_PANEL = {
   enrichment: "enricher",
   pim_translator: "translation",
   contentdb_translator: "translation",
+  reviews: "reviews",
+  reviews_translator: "translation",
 };
 
 // Env fallback: parse VUE_APP_PANELS the same way access.js used to

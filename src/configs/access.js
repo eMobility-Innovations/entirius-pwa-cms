@@ -135,6 +135,15 @@ const accesses = {
       access: ["admin"],
     },
     {
+      name: "Reviews",
+      idx: "reviews",
+      icon: "star",
+      root: "/reviews/queue",
+      labelKey: "panels.reviews",
+      descriptionKey: "panels.reviews_desc",
+      access: ["admin"],
+    },
+    {
       name: "Pricing",
       idx: "pricing",
       icon: "money-bill-wave",

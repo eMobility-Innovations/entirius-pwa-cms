@@ -54,9 +54,9 @@
       <template #cell-source="{ row }">
         <span
           class="tj-source-badge"
-          :class="row._source === 'pim' ? 'tj-source-badge--pim' : 'tj-source-badge--content'"
+          :class="`tj-source-badge--${row._source}`"
         >
-          {{ row._source === "pim" ? $t("translation.pim") : $t("translation.content") }}
+          {{ $t(`translation.${row._source}`) }}
         </span>
       </template>
 
@@ -192,6 +192,7 @@ export default {
     entityType(row) {
       if (row.metadata?.entity_type) return row.metadata.entity_type;
       if (row.entity_type) return row.entity_type;
+      if (row._source === "reviews") return "review";
       return row._source === "pim" ? "product" : "page";
     },
     targetLang(row) {
@@ -310,6 +311,11 @@ export default {
 .tj-source-badge--content {
   background: var(--c-positive-100);
   color: var(--c-positive-300);
+}
+
+.tj-source-badge--reviews {
+  background: var(--c-warning-100);
+  color: var(--c-warning-300);
 }
 
 /* Progress bar */

@@ -42,7 +42,9 @@
     "promo_list": "Promotions",
     "pricefighter_gap_table": "Gap Table",
     "pricefighter_strategies": "Strategies",
-    "pricefighter_history": "History"
+    "pricefighter_history": "History",
+    "reviews_queue": "Moderation queue",
+    "reviews_products": "Reviewed products"
   },
   "login": {
     "welcome": "Welcome!",
@@ -460,6 +462,7 @@
     "save": "Save",
     "delete": "Delete",
     "cancel": "Cancel",
+    "translations": "Translations",
     "edit": "Edit",
     "close": "Close",
     "dismiss": "Dismiss",
@@ -544,7 +547,9 @@
     "promo": "Promotions",
     "promo_desc": "Discount rules and promotion management",
     "pricefighter": "PriceFighter",
-    "pricefighter_desc": "Competitive pricing -- gap analysis, strategies, batch apply"
+    "pricefighter_desc": "Competitive pricing -- gap analysis, strategies, batch apply",
+    "reviews": "Reviews",
+    "reviews_desc": "Customer reviews -- moderation queue, translations, merchant replies, photos"
   },
   "stock": {
     "manage": "Stocks",
@@ -1794,7 +1799,8 @@
     "stats_pending": "Pending",
     "stats_running": "Running",
     "stats_completed": "Completed",
-    "stats_failed": "Failed"
+    "stats_failed": "Failed",
+    "reviews": "Reviews"
   },
   "wysiwyg": {
     "faq_add": "Add FAQ tooltip",
@@ -2972,5 +2978,112 @@
     "no_snapshot": "No decision snapshot recorded.",
     "active": "Active",
     "search_category": "Search category..."
+  },
+  "reviews": {
+    "queue": "Moderation queue",
+    "products": "Products",
+    "detail": "Review",
+    "title": "Reviews",
+    "col": {
+      "created": "Submitted",
+      "product": "Product",
+      "author": "Author",
+      "title": "Title",
+      "rate": "Rating",
+      "status": "Status",
+      "channel": "Channel",
+      "actions": "",
+      "sku": "SKU",
+      "name": "Name",
+      "parent": "Configurable",
+      "reviews": "Reviews",
+      "avg": "Avg. rating",
+      "magento": "Magento ID"
+    },
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "not_accepted": "Rejected",
+      "archived": "Archived",
+      "all": "All"
+    },
+    "filters": "Filters",
+    "all_channels": "All channels",
+    "search_placeholder": "Search title, text, author or SKU",
+    "matching": "{count} reviews",
+    "empty": "No reviews",
+    "empty_message": "Nothing matches the current filters.",
+    "no_products": "No products",
+    "approve": "Approve",
+    "reject": "Reject",
+    "archive": "Archive",
+    "requeue": "Back to queue",
+    "reject_reason": "Reject reason",
+    "reject_reason_placeholder": "Why is this review rejected? (optional)",
+    "bulk": {
+      "approve": "Approve selected",
+      "reject": "Reject selected",
+      "archive": "Archive selected",
+      "done": "{success} done, {invalid_transition} skipped, {not_found} not found"
+    },
+    "toast": {
+      "approved": "Review approved",
+      "rejected": "Review rejected",
+      "archived": "Review archived",
+      "requeued": "Review sent back to the queue",
+      "saved": "Review saved",
+      "deleted": "Review deleted",
+      "reply_saved": "Reply saved",
+      "reply_deleted": "Reply deleted",
+      "translations_saved": "Translations saved",
+      "translation_requested": "Translation requested — jobs: {jobs}",
+      "image_updated": "Photo updated",
+      "image_deleted": "Photo deleted"
+    },
+    "section": {
+      "review": "Review",
+      "author": "Author",
+      "ratings": "Ratings",
+      "translations": "Translations",
+      "reply": "Merchant reply",
+      "images": "Photos",
+      "consents": "Consents",
+      "audit": "Moderation"
+    },
+    "field": {
+      "name": "Author name",
+      "title": "Title",
+      "detail": "Text",
+      "source": "Source",
+      "language": "Language",
+      "customer": "Customer",
+      "customer_email": "E-mail",
+      "channel": "Channel",
+      "sku": "SKU",
+      "reply": "Reply text",
+      "reply_published": "Visible on the storefront",
+      "reviewed_by": "Reviewed by",
+      "reviewed_at": "Reviewed at",
+      "reject_reason": "Reject reason"
+    },
+    "anonymous": "Anonymous",
+    "no_translations": "No translations yet",
+    "translations": "Translations",
+    "translate_ai": "Translate with AI",
+    "translate_target": "Target language",
+    "translate_prompt_title": "Translate the review?",
+    "translate_prompt_text": "The review has been accepted. Pick the languages the AI should translate it into.",
+    "translate_prompt_skip": "Skip",
+    "origin": {
+      "manual": "manual",
+      "ai": "AI"
+    },
+    "no_reply": "No reply yet",
+    "save_reply": "Save reply",
+    "delete_reply": "Delete reply",
+    "no_images": "No photos",
+    "no_consents": "No consents recorded",
+    "confirm_delete_title": "Delete review?",
+    "confirm_delete": "The review, its ratings, translations, reply and photos will be removed permanently."
   }
 }

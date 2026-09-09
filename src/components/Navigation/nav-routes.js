@@ -183,6 +183,20 @@ export function buildNavRoutes() {
       app: ["emails"],
     },
     {
+      route: "/reviews/queue",
+      labelKey: "nav.reviews_queue",
+      icon: "star",
+      query: {},
+      app: ["reviews"],
+    },
+    {
+      route: "/reviews/products",
+      labelKey: "nav.reviews_products",
+      icon: "boxes-stacked",
+      query: {},
+      app: ["reviews"],
+    },
+    {
       route: "/faq/groups",
       labelKey: "nav.faq_groups",
       icon: "circle-question",

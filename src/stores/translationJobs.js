@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import {
   GET_PimTranslationJobs,
   GET_ContentTranslationJobs,
+  GET_ReviewsTranslationJobs,
 } from "@/api/translationJobs";
 
 export const useTranslationJobsStore = defineStore("translationJobs", () => {
@@ -32,9 +33,10 @@ export const useTranslationJobsStore = defineStore("translationJobs", () => {
   async function fetchJobs(channelIdx) {
     loading.value = true;
     try {
-      const [pimRes, contentRes] = await Promise.allSettled([
+      const [pimRes, contentRes, reviewsRes] = await Promise.allSettled([
         GET_PimTranslationJobs(channelIdx, { page_size: 50 }),
         GET_ContentTranslationJobs(channelIdx, { page_size: 50 }),
+        GET_ReviewsTranslationJobs(channelIdx, { page_size: 50 }),
       ]);
 
       const pimJobs =
@@ -50,7 +52,14 @@ export const useTranslationJobsStore = defineStore("translationJobs", () => {
             )
           : [];
 
-      jobs.value = [...pimJobs, ...contentJobs].sort(
+      const reviewJobs =
+        reviewsRes.status === "fulfilled"
+          ? (reviewsRes.value.data?.results || reviewsRes.value.data || []).map(
+              (j) => ({ ...j, _source: "reviews" })
+            )
+          : [];
+
+      jobs.value = [...pimJobs, ...contentJobs, ...reviewJobs].sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at)
       );
     } finally {

@@ -681,6 +681,54 @@ const routes = [
 
   // FAQ panel
   {
+    path: "/reviews",
+    component: () =>
+      import(/* webpackChunkName: "reviews" */ "../views/Reviews/index.vue"),
+    meta: {
+      requiresAuth: true,
+      panel: "reviews",
+    },
+    children: [
+      {
+        path: "",
+        redirect: "/reviews/queue",
+      },
+      {
+        path: "queue",
+        name: "ReviewsQueue",
+        component: () =>
+          import(/* webpackChunkName: "reviews" */ "../views/Reviews/ReviewQueue.vue"),
+        meta: {
+          requiresAuth: true,
+          titleKey: "reviews.queue",
+          panel: "reviews",
+        },
+      },
+      {
+        path: "products",
+        name: "ReviewsProducts",
+        component: () =>
+          import(/* webpackChunkName: "reviews" */ "../views/Reviews/ReviewProducts.vue"),
+        meta: {
+          requiresAuth: true,
+          titleKey: "reviews.products",
+          panel: "reviews",
+        },
+      },
+      {
+        path: ":id",
+        name: "ReviewDetail",
+        component: () =>
+          import(/* webpackChunkName: "reviews" */ "../views/Reviews/ReviewDetail.vue"),
+        meta: {
+          requiresAuth: true,
+          titleKey: "reviews.detail",
+          panel: "reviews",
+        },
+      },
+    ],
+  },
+  {
     path: "/faq",
     component: () =>
       import(/* webpackChunkName: "faq" */ "../views/Faq/index.vue"),

@@ -3,7 +3,7 @@
     :visible="visible"
     mode="focused"
     width="28rem"
-    :title="`Translations — ${title}`"
+    :title="`${$t('common.translations')} — ${title}`"
     @close="onCancel"
   >
     <div v-if="visible" class="translations-drawer">
@@ -35,12 +35,12 @@
       </div>
       <div class="translations-drawer__footer">
         <BasicButton
-          text="Cancel"
+          :text="$t('common.cancel')"
           class="bg-basic-200 t-basic-600"
           @click="onCancel"
         />
         <BasicButton
-          text="Save"
+          :text="$t('common.save')"
           class="bg-support-400 t-basic-100"
           @click="onSave"
         />

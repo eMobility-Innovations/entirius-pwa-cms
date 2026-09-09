@@ -42,7 +42,9 @@
     "promo_list": "Promocje",
     "pricefighter_gap_table": "Tabela luk cenowych",
     "pricefighter_strategies": "Strategie",
-    "pricefighter_history": "Historia"
+    "pricefighter_history": "Historia",
+    "reviews_queue": "Kolejka moderacji",
+    "reviews_products": "Oceniane produkty"
   },
   "login": {
     "welcome": "Witaj!",
@@ -460,6 +462,7 @@
     "save": "Zapisz",
     "delete": "Usuń",
     "cancel": "Anuluj",
+    "translations": "Tłumaczenia",
     "edit": "Edytuj",
     "close": "Zamknij",
     "dismiss": "Zamknij",
@@ -544,7 +547,9 @@
     "promo": "Promocje",
     "promo_desc": "Kampanie promocyjne i zarządzanie rabatami",
     "pricefighter": "PriceFighter",
-    "pricefighter_desc": "Konkurencyjne ceny -- analiza luk, strategie, wsadowe zastosowanie"
+    "pricefighter_desc": "Konkurencyjne ceny -- analiza luk, strategie, wsadowe zastosowanie",
+    "reviews": "Opinie",
+    "reviews_desc": "Opinie klientów -- kolejka moderacji, tłumaczenia, odpowiedzi sklepu, zdjęcia"
   },
   "stock": {
     "manage": "Stany",
@@ -1793,7 +1798,8 @@
     "stats_pending": "Oczekujące",
     "stats_running": "W trakcie",
     "stats_completed": "Zakończone",
-    "stats_failed": "Nieudane"
+    "stats_failed": "Nieudane",
+    "reviews": "Opinie"
   },
   "wysiwyg": {
     "faq_add": "Dodaj FAQ tooltip",
@@ -2971,5 +2977,112 @@
     "no_snapshot": "Brak zapisanego snapshotu decyzji.",
     "active": "Aktywna",
     "search_category": "Szukaj kategorii..."
+  },
+  "reviews": {
+    "queue": "Kolejka moderacji",
+    "products": "Produkty",
+    "detail": "Opinia",
+    "title": "Opinie",
+    "col": {
+      "created": "Dodano",
+      "product": "Produkt",
+      "author": "Autor",
+      "title": "Tytuł",
+      "rate": "Ocena",
+      "status": "Status",
+      "channel": "Kanał",
+      "actions": "",
+      "sku": "SKU",
+      "name": "Nazwa",
+      "parent": "Configurable",
+      "reviews": "Opinie",
+      "avg": "Śr. ocena",
+      "magento": "ID Magento"
+    },
+    "status": {
+      "pending": "Oczekuje",
+      "accepted": "Zaakceptowana",
+      "not_accepted": "Odrzucona",
+      "archived": "Zarchiwizowana",
+      "all": "Wszystkie"
+    },
+    "filters": "Filtry",
+    "all_channels": "Wszystkie kanały",
+    "search_placeholder": "Szukaj po tytule, treści, autorze lub SKU",
+    "matching": "{count} opinii",
+    "empty": "Brak opinii",
+    "empty_message": "Żadna opinia nie pasuje do filtrów.",
+    "no_products": "Brak produktów",
+    "approve": "Akceptuj",
+    "reject": "Odrzuć",
+    "archive": "Archiwizuj",
+    "requeue": "Wróć do kolejki",
+    "reject_reason": "Powód odrzucenia",
+    "reject_reason_placeholder": "Dlaczego opinia jest odrzucona? (opcjonalnie)",
+    "bulk": {
+      "approve": "Akceptuj zaznaczone",
+      "reject": "Odrzuć zaznaczone",
+      "archive": "Archiwizuj zaznaczone",
+      "done": "{success} wykonano, {invalid_transition} pominięto, {not_found} nie znaleziono"
+    },
+    "toast": {
+      "approved": "Opinia zaakceptowana",
+      "rejected": "Opinia odrzucona",
+      "archived": "Opinia zarchiwizowana",
+      "requeued": "Opinia wróciła do kolejki",
+      "saved": "Opinia zapisana",
+      "deleted": "Opinia usunięta",
+      "reply_saved": "Odpowiedź zapisana",
+      "reply_deleted": "Odpowiedź usunięta",
+      "translations_saved": "Tłumaczenia zapisane",
+      "translation_requested": "Zlecono tłumaczenie — zadania: {jobs}",
+      "image_updated": "Zdjęcie zaktualizowane",
+      "image_deleted": "Zdjęcie usunięte"
+    },
+    "section": {
+      "review": "Opinia",
+      "author": "Autor",
+      "ratings": "Oceny",
+      "translations": "Tłumaczenia",
+      "reply": "Odpowiedź sklepu",
+      "images": "Zdjęcia",
+      "consents": "Zgody",
+      "audit": "Moderacja"
+    },
+    "field": {
+      "name": "Imię autora",
+      "title": "Tytuł",
+      "detail": "Treść",
+      "source": "Źródło",
+      "language": "Język",
+      "customer": "Klient",
+      "customer_email": "E-mail",
+      "channel": "Kanał",
+      "sku": "SKU",
+      "reply": "Treść odpowiedzi",
+      "reply_published": "Widoczna w sklepie",
+      "reviewed_by": "Moderował",
+      "reviewed_at": "Data moderacji",
+      "reject_reason": "Powód odrzucenia"
+    },
+    "anonymous": "Anonim",
+    "no_translations": "Brak tłumaczeń",
+    "translations": "Tłumaczenia",
+    "translate_ai": "Przetłumacz przez AI",
+    "translate_target": "Język docelowy",
+    "translate_prompt_title": "Przetłumaczyć opinię?",
+    "translate_prompt_text": "Opinia została zaakceptowana. Wybierz języki, na które AI ma przetłumaczyć jej treść.",
+    "translate_prompt_skip": "Pomiń",
+    "origin": {
+      "manual": "ręczne",
+      "ai": "AI"
+    },
+    "no_reply": "Brak odpowiedzi",
+    "save_reply": "Zapisz odpowiedź",
+    "delete_reply": "Usuń odpowiedź",
+    "no_images": "Brak zdjęć",
+    "no_consents": "Brak zapisanych zgód",
+    "confirm_delete_title": "Usunąć opinię?",
+    "confirm_delete": "Opinia, jej oceny, tłumaczenia, odpowiedź i zdjęcia zostaną trwale usunięte."
   }
 }

@@ -23,6 +23,7 @@ const PANEL_PAGES = [
   { name: 'PIM Features', path: '/pim/features' },
   { name: 'Suppliers', path: '/suppliers/list' },
   { name: 'Supplier Review', path: '/suppliers/review' },
+  { name: 'Reviews Queue', path: '/reviews/queue' },
 ];
 
 test.describe('Dev Validation Sweep', () => {
