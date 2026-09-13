@@ -44,4 +44,13 @@ describe("router meta.module guard", () => {
 
     expect(router.currentRoute.value.path).toBe("/promo/voucher/5");
   });
+
+  it("resolves the SSO callback without a session or panel check", async () => {
+    mockIsPanelEnabled.mockReturnValue(false);
+
+    await router.push("/sso/callback?code=c&state=s");
+
+    expect(router.currentRoute.value.path).toBe("/sso/callback");
+    expect(mockIsPanelEnabled).not.toHaveBeenCalled();
+  });
 });

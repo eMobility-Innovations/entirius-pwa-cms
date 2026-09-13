@@ -1134,6 +1134,15 @@ const routes = [
 
   // Password reset (from email link — no auth required)
   {
+    path: "/sso/callback",
+    name: "SsoCallback",
+    component: () =>
+      import(/* webpackChunkName: "auth" */ "../views/SsoCallback/SsoCallback.vue"),
+    meta: {
+      requiresAuth: false,
+    },
+  },
+  {
     path: "/password-reset",
     name: "PasswordReset",
     component: () =>

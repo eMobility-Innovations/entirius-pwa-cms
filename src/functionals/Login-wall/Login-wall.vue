@@ -79,6 +79,18 @@
         class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
       />
 
+      <template v-if="ssoEnabled">
+        <p class="auth-card__divider fs-200 t-basic-500 mt-300 mb-300">
+          {{ $t("login.sso_or") }}
+        </p>
+        <BasicButton
+          data-testid="sso-login"
+          :text="$t('login.sso_submit')"
+          @click="startSsoLogin"
+          class="bg-basic-100 b-support-400 jc-ct t-support-400 w-100 br-50"
+        />
+      </template>
+
       <button class="auth-card__link mt-300" @click="showForgotPassword = true">
         {{ $t("login.forgot_password") }}
       </button>
@@ -93,6 +105,12 @@ const username = process.env.VUE_APP_USERNAME;
 const password = process.env.VUE_APP_PASSWORD;
 
 import { POST_Login, POST_PasswordReset } from "../../api/contentDB/api";
+import {
+  POST_SsoLoginUrl,
+  SSO_STATE_KEY,
+  isSsoEnabled,
+  ssoRedirectUri,
+} from "@/api/sso/api";
 import { useNotifyStore } from "@/stores/notify";
 import { useLoginSession, consumeReturnRoute } from "@/composables/useLoginSession";
 import { extractApiMessage } from "@/composables/useFormErrors";
@@ -112,6 +130,11 @@ export default {
       resetEmail: "",
       resetEmailSent: false,
     };
+  },
+  computed: {
+    ssoEnabled() {
+      return isSsoEnabled();
+    },
   },
   mounted() {
     if (localStorage.getItem("session_expired") === "1") {
@@ -148,6 +171,19 @@ export default {
         );
         this.notify.spawnNotification({
           title,
+          type: "negative",
+          timeout: "2500",
+        });
+      }
+    },
+    async startSsoLogin() {
+      try {
+        const { data } = await POST_SsoLoginUrl({ redirectUri: ssoRedirectUri() });
+        sessionStorage.setItem(SSO_STATE_KEY, data.state);
+        window.location.assign(data.authorization_url);
+      } catch (error) {
+        this.notify.spawnNotification({
+          title: extractApiMessage(error, this.$t("login.sso_failed")),
           type: "negative",
           timeout: "2500",
         });

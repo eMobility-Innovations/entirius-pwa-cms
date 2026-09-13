@@ -59,7 +59,13 @@
     "send_reset_link": "Send reset link",
     "reset_email_sent": "If an account exists with this email, a reset link has been sent. Check your inbox.",
     "back_to_login": "Back to login",
-    "enter_email": "Please enter your email address"
+    "enter_email": "Please enter your email address",
+    "sso_or": "or",
+    "sso_submit": "Log in with SSO",
+    "sso_in_progress": "Signing you in…",
+    "sso_failed": "SSO login failed",
+    "sso_state_mismatch": "This sign-in link is invalid or has already been used. Start the login again.",
+    "sso_provider_error": "The identity provider refused the login ({error})."
   },
   "app": {
     "expand_sidebar": "Expand sidebar",

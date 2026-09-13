@@ -47,6 +47,13 @@ const ENV_VARS = [
     required: false,
     label: 'Panels',
     description: 'Fallback panel IDs (comma-separated). Primary source: Munin API'
+  },
+  {
+    key: 'VUE_APP_SSO_API_BASE',
+    value: process.env.VUE_APP_SSO_API_BASE,
+    required: false,
+    label: 'SSO API base',
+    description: 'Path of the backend SSO endpoints; set to show "Log in with SSO" (docs/sso-login.md)'
   }
 ]
 

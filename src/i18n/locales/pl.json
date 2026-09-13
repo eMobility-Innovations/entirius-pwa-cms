@@ -59,7 +59,13 @@
     "send_reset_link": "Wyślij link",
     "reset_email_sent": "Jeśli konto z tym adresem istnieje, link do resetowania został wysłany. Sprawdź skrzynkę.",
     "back_to_login": "Powrót do logowania",
-    "enter_email": "Podaj adres e-mail"
+    "enter_email": "Podaj adres e-mail",
+    "sso_or": "lub",
+    "sso_submit": "Zaloguj przez SSO",
+    "sso_in_progress": "Trwa logowanie…",
+    "sso_failed": "Logowanie SSO nie powiodło się",
+    "sso_state_mismatch": "Ten link logowania jest nieprawidłowy albo został już użyty. Zacznij logowanie od nowa.",
+    "sso_provider_error": "Dostawca tożsamości odrzucił logowanie ({error})."
   },
   "app": {
     "expand_sidebar": "Rozwiń panel",

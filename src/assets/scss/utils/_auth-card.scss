@@ -25,6 +25,19 @@
   }
 }
 
+.auth-card__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--c-basic-300);
+  }
+}
+
 .auth-card__banner {
   padding: 10px 14px;
   border-radius: 6px;
