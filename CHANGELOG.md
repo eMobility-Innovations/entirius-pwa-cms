@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Optional SSO login** (login wall + `/sso/callback`): with
+  `VUE_APP_SSO_API_BASE` set, the login wall offers "Log in with SSO". The CMS
+  asks the backend for the provider's authorization URL, keeps the one-time
+  `state` in `sessionStorage`, and on return exchanges the code for the same
+  token pair the password login returns. Refresh and logout are unchanged. The
+  CMS knows no identity provider, only two backend endpoints; contract in
+  `docs/sso-login.md`. Unset, nothing changes.
+
+### Changed
+
+- **Post-login session setup is shared** (`src/composables/useLoginSession.js`):
+  password and SSO login run the same code after the token call.
+
 ## [2.1.0] (2026-09-01)
 
 ### Added

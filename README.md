@@ -66,6 +66,7 @@ VUE_APP_DEBUG=false
 VUE_APP_LANG=EN
 VUE_APP_USERNAME=your-username
 VUE_APP_PASSWORD=your-password
+VUE_APP_SSO_API_BASE=
 ```
 
 ### Environment Variables Reference
@@ -78,6 +79,7 @@ VUE_APP_PASSWORD=your-password
 | `VUE_APP_LANG`     | No       | `EN`    | Language (EN or PL)                        |
 | `VUE_APP_USERNAME` | No       | --      | Dev auto-login username                    |
 | `VUE_APP_PASSWORD` | No       | --      | Dev auto-login password                    |
+| `VUE_APP_SSO_API_BASE` | No   | --      | Path of the backend SSO endpoints. Set it to show "Log in with SSO"; see `docs/sso-login.md` |
 | `VUE_APP_PANELS`   | No       | --      | Fallback panel IDs when the backend module registry is unavailable. See `docs/panels-routing.md` for the full 15-panel registry and gating model |
 
 If required variables are missing, the app shows a "Configuration Required" screen listing what needs to be set. Build output also prints warnings in the terminal.

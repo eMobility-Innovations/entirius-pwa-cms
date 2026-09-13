@@ -57,6 +57,7 @@ path prefix and lazy-loaded (`() => import(...)`). Grouped by panel:
 | `/enrichment/...` | EnrichmentReview, EnrichmentSpawnRules List/Edit, EnrichmentTasks |
 | `/promo/...` | PromoList/Edit, VoucherDetail |
 | `/change-password`, `/password-reset` | ChangePassword (authenticated), PasswordReset (unauthenticated, from email link) |
+| `/sso/callback` | SsoCallback (unauthenticated, return leg of the optional SSO login; `docs/sso-login.md`) |
 
 Details for every child route are in `src/router/index.js` — this table maps
 prefixes to view components, not individual paths.

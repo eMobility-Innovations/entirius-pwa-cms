@@ -47,7 +47,7 @@ src/
 ├── api/          # one client per backend service, built by createClient.js
 │                 # (contentDB, pim, munin, suppliers, promo, voucher, orders, …)
 ├── boots/        # 39 global UI components, registered in register-elems.js
-├── composables/  # 9 shared Composition API helpers (useFormErrors, …)
+├── composables/  # 12 shared Composition API helpers (useFormErrors, useLoginSession, …)
 ├── configs/      # access.js — panel registry (idx, icon, root); builder/ controllers
 ├── functionals/  # builder UI kit (Handy-kit), Login-wall, Confirmation-modal
 ├── i18n/         # hand-rolled $t over en.json/pl.json (no vue-i18n, no $tc)
@@ -72,6 +72,7 @@ tests/            # unit/ (Vitest) + e2e/ (Playwright) + helpers/
 | `VUE_APP_LANG` | No | UI language (`EN`/`PL`) |
 | `VUE_APP_DEBUG` | No | debug logging |
 | `VUE_APP_USERNAME` / `VUE_APP_PASSWORD` | No | dev auto-login |
+| `VUE_APP_SSO_API_BASE` | No | path of the backend SSO endpoints; set = "Log in with SSO" button + `/sso/callback` route (`docs/sso-login.md`) |
 
 ## Reference Docs
 
@@ -83,6 +84,7 @@ tests/            # unit/ (Vitest) + e2e/ (Playwright) + helpers/
 | `docs/config-system.md` | `__client/` file map, variant system, env validation |
 | `docs/supplier-bridges.md` | PIM ↔ Suppliers integration patterns and dashboards |
 | `docs/testing.md` | test commands, suite table, writing unit/e2e tests |
+| `docs/sso-login.md` | optional SSO login: backend endpoint contract, callback flow, state handling |
 | `docs/gotchas.md` | repo-specific traps (read before touching configs/i18n/panels) |
 | `docs/navigation-editor.md` | operator guide: navigation editor |
 | `docs/rich-content-building.md` | operator guide: rich content building |

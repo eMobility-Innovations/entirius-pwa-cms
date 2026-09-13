@@ -66,7 +66,7 @@ Backs panel/module gating (see `docs/panels-routing.md` for the full model).
 
 ## Composables
 
-Located in `src/composables/` (9 total). Opt-in for new code; existing
+Located in `src/composables/` (12 total). Opt-in for new code; existing
 components keep using stores directly via the `setup()` return pattern.
 
 - **`useEntityFetch`** — factories for async-search inputs:
@@ -79,6 +79,11 @@ components keep using stores directly via the `setup()` return pattern.
 - **`useHandyKitSubscriber`** — watches `handy.triggerListener` to bind
   Handy-kit payloads onto component data (`instance`/`flat`/`custom`/`mixed`
   bind modes). Returns `{ setupSubscriber, open_Handykit }`.
+- **`useLoginSession`** — turns a token pair into a CMS session (cookies,
+  content permissions, profile + preferences, user, munin modules). Every
+  login method calls `completeLogin({ access, refresh, customer_id })`;
+  `consumeReturnRoute()` returns and forgets the route a session-expired
+  logout stored.
 - **`useLoader`** — thin wrapper over `useLoaderStore`. Returns `{ loading,
   handyLoading, start, finish, handyStart, handyFinish }`.
 - **`useNotify`** — notification shortcuts over `useNotifyStore`: `{ success,
