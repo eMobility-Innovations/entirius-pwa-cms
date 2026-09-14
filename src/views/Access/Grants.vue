@@ -1,139 +1,211 @@
 <template>
-  <div class="access-grants">
-    <h1>{{ $t("access.grants") }}</h1>
-
-    <form v-if="canWrite" class="access-grants__form" @submit.prevent="submit">
-      <select v-model="form.role" data-test="role">
-        <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
-      </select>
-
-      <select v-model="form.granteeKind" data-test="kind">
-        <option value="user">{{ $t("access.person") }}</option>
-        <option value="group">{{ $t("access.group") }}</option>
-      </select>
-
-      <!-- A person is identified by their KEYCLOAK username, which is what the matrix keys
-           on. It differs from the CMS username for anyone whose name collided with a local
-           account, so it is never typed from memory — it is picked from the directory. -->
-      <input
-        v-if="form.granteeKind === 'user'"
-        v-model="userQuery"
-        :placeholder="$t('access.search_people')"
-        data-test="user-search"
-      />
-      <ul v-if="form.granteeKind === 'user'">
-        <li v-for="u in userResults" :key="u.kc_username">
-          <button type="button" @click="form.kcUsername = u.kc_username">
-            {{ u.kc_username }} — {{ u.first_name }} {{ u.last_name }}
-          </button>
-        </li>
-      </ul>
-
-      <!-- A group is picked by NAME and submitted as a name. The server resolves it to
-           grp-<lldap_uuid> once, at write time, so the grant survives a rename. -->
-      <select v-if="form.granteeKind === 'group'" v-model="form.groupName" data-test="group">
-        <option v-for="g in groups" :key="g.name" :value="g.name" :disabled="!g.grantable">
-          {{ g.name }}{{ g.grantable ? "" : ` — ${$t("access.not_grantable")}` }}
-        </option>
-      </select>
-
-      <button type="submit" data-test="grant">{{ $t("access.grant") }}</button>
-    </form>
-
-    <p v-if="error" class="access-grants__error" data-test="error">{{ error }}</p>
-
-    <table>
-      <tbody>
-        <tr v-for="g in grants" :key="g.id">
-          <td>{{ g.role }}</td>
-          <td>
-            <span v-if="g.grantee_type === 'group'">
-              {{ g.group_name || g.grantee }}
-              <em v-if="!g.name_resolved">{{ $t("access.unresolved_group") }}</em>
-            </span>
-            <span v-else>{{ g.grantee }}</span>
-          </td>
-          <td>{{ g.granted_by }}</td>
-          <td>
-            <button v-if="canWrite" :data-test="`revoke-${g.id}`" @click="revoke(g.id)">
-              {{ $t("access.revoke") }}
+  <section aria-labelledby="assignments-title">
+    <h2 id="assignments-title">Role assignments</h2>
+    <p v-if="loading" role="status">Loading role assignments…</p>
+    <p v-if="error" class="access-error" role="alert" data-test="error">
+      {{ error }}
+    </p>
+    <p v-if="directoryError" class="access-error" role="status">
+      {{ directoryError }}
+    </p>
+    <div class="access-role-grid">
+      <article
+        v-for="role in roles"
+        :key="role"
+        class="access-card"
+        :class="`access-role--${role}`"
+      >
+        <h3>{{ role }}</h3>
+        <div class="access-chips">
+          <span
+            v-for="g in grants.filter((g) => g.role === role)"
+            :key="g.id"
+            class="access-chip"
+            :class="`access-chip--${g.grantee_type}`"
+          >
+            {{
+              g.grantee_type === "group"
+                ? g.group_name || g.grantee_label || g.grantee
+                : g.grantee
+            }}
+            <em v-if="g.grantee_type === 'group' && !g.name_resolved">{{
+              $t("access.unresolved_group")
+            }}</em>
+            <button
+              v-if="canWrite"
+              :disabled="busy"
+              :data-test="`revoke-${g.id}`"
+              :aria-label="`Remove ${g.group_name || g.grantee} from ${role}`"
+              @click="revoke(g.id)"
+            >
+              ×
             </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+          </span>
+          <span
+            v-if="!loading && !error && !grants.some((g) => g.role === role)"
+            class="access-muted"
+            >nobody</span
+          >
+        </div>
+        <template v-if="canWrite">
+          <form
+            v-if="adding?.role === role"
+            class="access-inline"
+            @submit.prevent="submit"
+          >
+            <input
+              v-model="newGrantee"
+              :list="
+                adding.type === 'group' ? 'access-groups' : 'access-grant-users'
+              "
+              :aria-label="
+                adding.type === 'group' ? 'Keycloak group' : 'Keycloak username'
+              "
+              :placeholder="
+                adding.type === 'group' ? 'Keycloak group' : 'Keycloak username'
+              "
+              @input="searchUsers"
+              @keydown.esc="adding = null"
+            />
+            <button :disabled="busy || !newGrantee.trim()">Add</button>
+            <button type="button" @click="adding = null">Cancel</button>
+          </form>
+          <div v-else class="access-inline">
+            <button
+              :disabled="busy || !!directoryError"
+              :data-test="`add-group-${role}`"
+              @click="startAdding(role, 'group')"
+            >
+              + group
+            </button>
+            <button
+              :disabled="busy"
+              :data-test="`add-user-${role}`"
+              @click="startAdding(role, 'user')"
+            >
+              + user
+            </button>
+          </div>
+        </template>
+      </article>
+    </div>
+    <datalist id="access-groups">
+      <option
+        v-for="g in groups.filter((g) => g.grantable)"
+        :key="g.name"
+        :value="g.name"
+      />
+    </datalist>
+    <datalist id="access-grant-users">
+      <option
+        v-for="u in userResults"
+        :key="u.kc_username"
+        :value="u.kc_username"
+      >
+        {{ u.first_name }} {{ u.last_name }}
+      </option>
+    </datalist>
+  </section>
 </template>
-
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, onMounted, inject, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useAccessMatrixStore } from "@/stores/accessMatrix";
-import { GET_Grants, POST_Grant, DELETE_Grant, GET_Groups, GET_Users } from "@/api/access/api";
-
-const store = useAccessMatrixStore();
-const { canWrite, catalog } = storeToRefs(store);
-
-const grants = ref([]);
-const groups = ref([]);
-const userResults = ref([]);
-const userQuery = ref("");
-const error = ref("");
-const form = reactive({ role: "USER", granteeKind: "user", kcUsername: "", groupName: "" });
-const roles = computed(() => catalog.value?.roles || ["SYSADMIN", "ADMIN", "USER"]);
-
+import {
+  GET_Grants,
+  POST_Grant,
+  DELETE_Grant,
+  GET_Groups,
+  GET_Users,
+} from "@/api/access/api";
+import { errorMessage } from "./helpers";
+const emit = defineEmits(["changed"]);
+const { canWrite } = storeToRefs(useAccessMatrixStore());
+const roles = ["SYSADMIN", "ADMIN", "USER"];
+const grants = ref([]),
+  groups = ref([]),
+  userResults = ref([]);
+const error = ref(""),
+  directoryError = ref(""),
+  loading = ref(true),
+  busy = ref(false);
+const adding = ref(null),
+  newGrantee = ref("");
 async function load() {
-  grants.value = (await GET_Grants()).data;
+  loading.value = true;
+  const results = await Promise.allSettled([GET_Grants(), GET_Groups()]);
+  if (results[0].status === "fulfilled") grants.value = results[0].value.data;
+  else error.value = errorMessage(results[0].reason);
+  directoryError.value =
+    results[1].status === "rejected"
+      ? `The group directory is unavailable. ${errorMessage(results[1].reason)}`
+      : "";
+  groups.value = results[1].status === "fulfilled" ? results[1].value.data : [];
+  loading.value = false;
+}
+let searchVersion = 0;
+async function searchUsers() {
+  if (adding.value?.type !== "user") return;
+  const version = ++searchVersion;
   try {
-    groups.value = (await GET_Groups()).data;
-  } catch (e) {
-    // A 503 here means the directory is down, NOT that there are no groups. Saying so
-    // stops somebody concluding the group does not exist and granting by name instead.
-    groups.value = [];
-    error.value = e?.error?.message || "access.directory_unavailable";
+    const { data } = await GET_Users(newGrantee.value);
+    if (version === searchVersion) userResults.value = data;
+  } catch {
+    if (version === searchVersion)
+      error.value = "The user directory is unavailable.";
   }
 }
-
-watch(userQuery, async (q) => {
-  if (!q || q.length < 2) {
-    userResults.value = [];
+function startAdding(role, type) {
+  adding.value = { role, type };
+  newGrantee.value = "";
+  searchUsers();
+}
+async function mutate(action) {
+  if (!canWrite.value || busy.value) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    await action();
+    adding.value = null;
+    await load();
+    emit("changed");
+  } catch (e) {
+    error.value = errorMessage(e);
+  } finally {
+    busy.value = false;
+  }
+}
+async function createGrant({ role, granteeKind, kcUsername, groupName }) {
+  if (granteeKind === "group" && directoryError.value) return;
+  return mutate(() =>
+    POST_Grant(
+      granteeKind === "group"
+        ? { role, group_name: groupName }
+        : { role, user: kcUsername }
+    )
+  );
+}
+function submit() {
+  const name = newGrantee.value.trim();
+  if (!name) return;
+  if (
+    adding.value.type === "group" &&
+    !groups.value.some((g) => g.name === name && g.grantable)
+  ) {
+    error.value = "Choose a grantable group from the directory.";
     return;
   }
-  try {
-    userResults.value = (await GET_Users(q)).data;
-  } catch {
-    userResults.value = [];
-  }
-});
-
-async function createGrant({ role, granteeKind, kcUsername, groupName }) {
-  const payload =
-    granteeKind === "group" ? { role, group_name: groupName } : { role, user: kcUsername };
-  await POST_Grant(payload);
-  await load();
+  return createGrant({
+    role: adding.value.role,
+    granteeKind: adding.value.type,
+    groupName: name,
+    kcUsername: name,
+  });
 }
-
-async function submit() {
-  error.value = "";
-  try {
-    await createGrant({ ...form });
-  } catch (e) {
-    error.value = e?.error?.message || String(e);
-  }
+function revoke(id) {
+  return mutate(() => DELETE_Grant(id));
 }
-
-async function revoke(id) {
-  error.value = "";
-  try {
-    await DELETE_Grant(id);
-    await load();
-  } catch (e) {
-    // The refusal that matters: removing the last way in. The message names the host
-    // command, and it must reach the screen verbatim.
-    error.value = e?.error?.message || String(e);
-  }
-}
-
+watch(inject("grantRevision", ref(0)), load);
 onMounted(load);
 defineExpose({ createGrant, revoke });
 </script>
