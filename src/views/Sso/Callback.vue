@@ -1,0 +1,205 @@
+<template>
+  <div
+    class="auth-card fs-300 p-400 t-basic-700 br-50 bg-basic-100 b-basic-300 shadow-down"
+  >
+    <template v-if="error">
+      <p class="fs-700 fw-600 txt-center mb-50">
+        {{ $t("login.sso_error_title") }}
+      </p>
+      <div class="auth-card__banner auth-card__banner--error mb-400">
+        <p class="fs-300 fw-500" data-test="sso-error-message">
+          {{ errorMessage }}
+        </p>
+        <p
+          v-if="debugId"
+          class="fs-200 t-basic-600 mt-100"
+          data-test="sso-debug-id"
+        >
+          {{ $t("login.sso_reference", { id: debugId }) }}
+        </p>
+      </div>
+      <BasicButton
+        :text="$t('login.back_to_login')"
+        @click="goToLogin"
+        class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
+      />
+    </template>
+
+    <template v-else>
+      <p class="fs-700 fw-600 txt-center mb-50" data-test="sso-progress">
+        {{ $t("login.sso_signing_in") }}
+      </p>
+    </template>
+  </div>
+</template>
+
+<script>
+import { POST_SsoCallback } from "@/api/sso/api";
+import { SSO_STATE_KEY, ssoRedirectUri } from "@/configs/sso";
+import { GET_User, GET_UserDetails } from "@/api/contentDB/api";
+import { useUserStore } from "@/stores/user";
+import { useMuninStore } from "@/stores/munin";
+import { extractApiMessage } from "@/composables/useFormErrors";
+
+// Matches the password path: the access token is short-lived and the store refreshes it.
+const TOKEN_LIFETIME_MS = 15 * 60 * 1000;
+
+export default {
+  name: "SsoCallback",
+  setup() {
+    const userStore = useUserStore();
+    const munin = useMuninStore();
+    return { userStore, munin };
+  },
+  data() {
+    return {
+      error: false,
+      errorMessage: "",
+      debugId: "",
+    };
+  },
+  mounted() {
+    this.completeLogin();
+  },
+  methods: {
+    /** Read `state` back out of session storage, consuming it either way. */
+    takeStashedState() {
+      try {
+        const stashed = window.sessionStorage.getItem(SSO_STATE_KEY);
+        window.sessionStorage.removeItem(SSO_STATE_KEY);
+        return stashed;
+      } catch {
+        // Private-mode browsers throw on sessionStorage. Treat it as "nothing stashed".
+        return null;
+      }
+    },
+
+    /** Where the session expired, if the app recorded it. Never worth failing a login over. */
+    takeReturnRoute() {
+      try {
+        const route = window.localStorage.getItem("cms_return_route");
+        if (route) window.localStorage.removeItem("cms_return_route");
+        return route;
+      } catch {
+        return null;
+      }
+    },
+
+    fail(message, debugId = "") {
+      this.error = true;
+      this.errorMessage = message;
+      this.debugId = debugId;
+    },
+
+    async completeLogin() {
+      const code = this.$route.query.code || "";
+      const state = this.$route.query.state || "";
+      const stashedState = this.takeStashedState();
+
+      if (!code || !state) {
+        this.fail(this.$t("login.sso_error_no_code"));
+        return;
+      }
+
+      // Login CSRF: the provider will happily redirect a code that this browser never
+      // asked for. The backend consumes `state` single-use as well; this is the half a
+      // reviewer looks for on the client.
+      if (!stashedState || stashedState !== state) {
+        this.fail(this.$t("login.sso_error_state"));
+        return;
+      }
+
+      let payload;
+      try {
+        const { data } = await POST_SsoCallback({
+          code,
+          state,
+          redirect_uri: ssoRedirectUri(),
+        });
+        payload = data;
+      } catch (err) {
+        this.fail(
+          extractApiMessage(err, this.$t("login.sso_error_generic")),
+          err?.response?.data?.debug_id || err?.debug_id || ""
+        );
+        return;
+      }
+
+      // ---------------------------------------------------------------------------
+      // The SUCCESS body is FLAT — { access, refresh, customer_id, token_type } — while
+      // the password path's body is enveloped as { data, meta }. Destructuring
+      // `payload.data` here would yield three undefineds, write empty cookies and leave
+      // the user logged out on an HTTP 200 with nothing in any log. Hence the flat read
+      // AND the explicit check below: no tokens means failure, never a blank session.
+      // ---------------------------------------------------------------------------
+      const { access, refresh, customer_id = null } = payload || {};
+
+      if (!access || !refresh) {
+        this.fail(this.$t("login.sso_error_no_tokens"));
+        return;
+      }
+
+      this.userStore.setAuth({
+        token: access,
+        refresh,
+        customer_id,
+        expiryDate: new Date(Date.now() + TOKEN_LIFETIME_MS),
+      });
+
+      await this.hydrateUser(customer_id);
+
+      const returnRoute = this.takeReturnRoute();
+      this.$router.replace(returnRoute && returnRoute !== "/" ? returnRoute : "/");
+    },
+
+    /**
+     * Fill the same store the password path fills. Every call is optional: a lean stack
+     * without ContentDB 404s here, and losing the profile must not undo a valid login.
+     */
+    async hydrateUser(customerId) {
+      let permissions = [];
+      try {
+        const { data: userData } = await GET_User({});
+        permissions = userData?.data || [];
+      } catch (e) {
+        console.warn("content-permissions unavailable (contentdb not installed)", e);
+      }
+
+      let profile = {};
+      try {
+        const { data: userDetailsResponse } = await GET_UserDetails({
+          uid: customerId,
+        });
+        profile = userDetailsResponse?.data || {};
+      } catch (e) {
+        console.warn("Profile endpoint unavailable — using defaults", e);
+      }
+
+      this.userStore.loadPreferences(profile.extra ?? null);
+
+      const layoutExtenders = ["header", "footer"];
+      this.userStore.setUser({
+        username: profile.username || "",
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        email: profile.email || "",
+        permissions: permissions.map((p) => ({
+          ...p,
+          _for: layoutExtenders.includes(p.slug) ? "layout-extender" : "content",
+          _limit: layoutExtenders.includes(p.slug) ? 1 : null,
+        })),
+      });
+
+      try {
+        await this.munin.fetchModules();
+      } catch (e) {
+        console.warn("Module list unavailable", e);
+      }
+    },
+
+    goToLogin() {
+      this.$router.replace("/");
+    },
+  },
+};
+</script>

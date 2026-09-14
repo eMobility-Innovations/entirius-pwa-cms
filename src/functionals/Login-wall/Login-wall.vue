@@ -79,6 +79,14 @@
         class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
       />
 
+      <BasicButton
+        v-if="ssoEnabled"
+        data-test="sso-login"
+        :text="$t('login.sso_submit')"
+        @click="ssoLogin"
+        class="bg-basic-200 b-basic-300 jc-ct t-basic-700 w-100 br-50 mt-300"
+      />
+
       <button class="auth-card__link mt-300" @click="showForgotPassword = true">
         {{ $t("login.forgot_password") }}
       </button>
@@ -102,6 +110,8 @@ import { useNotifyStore } from "@/stores/notify";
 import { useUserStore } from "@/stores/user";
 import { useMuninStore } from "@/stores/munin";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { POST_SsoLoginUrl } from "@/api/sso/api";
+import { SSO_STATE_KEY, isSsoEnabled, ssoRedirectUri } from "@/configs/sso";
 export default {
   setup() {
     const notify = useNotifyStore();
@@ -120,6 +130,11 @@ export default {
       resetEmailSent: false,
     };
   },
+  computed: {
+    ssoEnabled() {
+      return isSsoEnabled();
+    },
+  },
   mounted() {
     if (localStorage.getItem("session_expired") === "1") {
       this.sessionExpired = true;
@@ -127,6 +142,42 @@ export default {
     }
   },
   methods: {
+    /**
+     * Hand off to the identity provider. The response is FLAT —
+     * { authorization_url, state } — not the { data, meta } envelope the password path
+     * returns, so it is read one level up. `state` is parked in session storage and
+     * compared when the provider redirects back: that comparison is what makes a code
+     * this browser never asked for unusable.
+     */
+    async ssoLogin() {
+      try {
+        const { data } = await POST_SsoLoginUrl({
+          redirect_uri: ssoRedirectUri(),
+        });
+        const { authorization_url, state } = data || {};
+
+        if (!authorization_url || !state) {
+          throw new Error("sso-login-url-incomplete");
+        }
+
+        try {
+          sessionStorage.setItem(SSO_STATE_KEY, state);
+        } catch {
+          // Private-mode browsers refuse session storage; without the stash the
+          // callback cannot verify state, so stop here rather than start a login
+          // that is guaranteed to be rejected on return.
+          throw new Error("sso-state-unstorable");
+        }
+
+        window.location.assign(authorization_url);
+      } catch (error) {
+        this.notify.spawnNotification({
+          title: extractApiMessage(error, this.$t("login.sso_error_generic")),
+          type: "negative",
+          timeout: "2500",
+        });
+      }
+    },
     async login() {
       this.sessionExpired = false;
       try {
