@@ -37,6 +37,18 @@ const envPanelSet = new Set(
     .filter(Boolean)
 );
 
+// THE ACCESS PANEL ENABLES ITSELF, because Munin will never report it and there must not
+// be a SECOND variable to remember. It is not a Munin module — it has no entry in
+// MODULE_TO_PANEL and never will — so without this line a deployment that sets
+// VUE_APP_ACCESS_PANEL_ENABLED=true gets the routes, the bundle and the API, and then
+// HeaderControls silently filters the entry out because `access` is absent from
+// VUE_APP_PANELS and VUE_APP_HIDE_DISABLED_PANELS defaults to true. Measured on a real
+// host: CMS_PANELS=pages,pim,stock,pricing,suppliers,emails,enricher — no `access`.
+// One flag, one meaning: turning the panel on shows the panel.
+if (String(process.env.VUE_APP_ACCESS_PANEL_ENABLED || "false").toLowerCase() === "true") {
+  envPanelSet.add("access");
+}
+
 // Env fallback for individual module keys (e.g. VUE_APP_MODULES=checkout,vouchers)
 const ENV_MODULES_RAW = process.env.VUE_APP_MODULES || "";
 const envModuleSet = new Set(
