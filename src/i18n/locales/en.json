@@ -3004,6 +3004,14 @@
     "directory_unavailable": "The directory could not be reached, so the list is not shown. This is not the same as there being no groups.",
     "declared": "Declared machine accounts",
     "unclassified_staff": "Staff nobody classified",
-    "no_grant": "You hold no grant. Ask a SYSADMIN to give you one."
+    "no_grant": "You hold no grant. Ask a SYSADMIN to give you one.",
+    "when": "When",
+    "who": "Who",
+    "what": "What",
+    "target": "Target",
+    "role": "Role",
+    "via": "Made with",
+    "service_accounts_cli": "A service account is created on the host with manage.py escaccess_service_account, because it also creates a Django user.",
+    "unclassified_staff_why": "These are staff accounts that are neither linked to SSO nor marked as machines, so nothing tells a consumer what they are."
   }
 }

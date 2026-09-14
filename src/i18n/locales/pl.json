@@ -3003,6 +3003,14 @@
     "directory_unavailable": "Nie udało się połączyć z katalogiem, więc lista nie jest pokazana. To nie to samo co brak grup.",
     "declared": "Zadeklarowane konta maszynowe",
     "unclassified_staff": "Pracownicy, których nikt nie sklasyfikował",
-    "no_grant": "Nie masz żadnego nadania. Poproś o nie administratora SYSADMIN."
+    "no_grant": "Nie masz żadnego nadania. Poproś o nie administratora SYSADMIN.",
+    "when": "Kiedy",
+    "who": "Kto",
+    "what": "Co",
+    "target": "Cel",
+    "role": "Rola",
+    "via": "Wykonane przez",
+    "service_accounts_cli": "Konto serwisowe tworzy się na hoście poleceniem manage.py escaccess_service_account, ponieważ tworzy ono także użytkownika Django.",
+    "unclassified_staff_why": "To konta pracownicze, które nie są ani powiązane z SSO, ani oznaczone jako maszynowe, więc nic nie mówi odbiorcy, czym są."
   }
 }
