@@ -37,8 +37,14 @@ export const ACCESS_ROUTE_ROOT = "/access/grants";
  * It is `page:access` and not a role name, because permissions are per-user overridable —
  * somebody may hold the page without the role, or the role without the page.
  *
- * Absent, not disabled: VUE_APP_HIDE_DISABLED_PANELS is unset on these hosts, so a
- * "disabled" panel still renders as a visible greyed tile.
+ * Absent, not disabled — and the reason is NOT the hide-disabled flag. MEASURED on
+ * CT228 2026-09-14: CMS_HIDE_DISABLED_PANELS=true, so that host DOES hide disabled
+ * panels. It would still not have hidden this one, because PR #5 puts `access` into the
+ * env panel set, so `isPanelEnabled("access")` is true for every user on a host running
+ * the panel and HIDE_DISABLED never reaches it. Marking the entry disabled hides it from
+ * nobody; it has to leave the list. On a host that leaves the variable unset (default
+ * false) a disabled panel is drawn as a visible greyed tile anyway — so removal is the
+ * only thing that works on both.
  */
 export function isAccessPanelVisibleFor(panelIdx, accessStore) {
   if (panelIdx !== ACCESS_PANEL_IDX) return true;

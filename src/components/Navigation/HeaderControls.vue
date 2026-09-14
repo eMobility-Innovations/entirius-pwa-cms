@@ -194,8 +194,10 @@ export default {
     },
     panels() {
       // The access entry is removed OUTRIGHT for somebody without page:access, before
-      // isEnabled is even considered — HIDE_DISABLED is unset on these hosts, so a merely
-      // disabled panel is still drawn as a visible tile.
+      // isEnabled is even considered. Marking it disabled would hide it from nobody:
+      // `isPanelEnabled("access")` is true for EVERY user on a host running the panel, so
+      // HIDE_DISABLED never reaches it — measured true on CT228, unset elsewhere, and the
+      // entry survives either way.
       const all = panels
         .filter((p) => isAccessPanelVisibleFor(p.idx, this.accessMatrix))
         .map((p) => ({
