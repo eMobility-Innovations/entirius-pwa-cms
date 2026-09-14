@@ -59,7 +59,15 @@
     "send_reset_link": "Wyślij link",
     "reset_email_sent": "Jeśli konto z tym adresem istnieje, link do resetowania został wysłany. Sprawdź skrzynkę.",
     "back_to_login": "Powrót do logowania",
-    "enter_email": "Podaj adres e-mail"
+    "enter_email": "Podaj adres e-mail",
+    "sso_submit": "Zaloguj przez SSO",
+    "sso_signing_in": "Logowanie…",
+    "sso_error_title": "Logowanie nie powiodło się",
+    "sso_error_no_code": "Dostawca tożsamości nie zwrócił kodu logowania. Spróbuj ponownie ze strony logowania.",
+    "sso_error_state": "Nie udało się zweryfikować tego logowania. Spróbuj ponownie ze strony logowania.",
+    "sso_error_no_tokens": "Serwer przyjął logowanie, ale nie zwrócił sesji. Skontaktuj się z administratorem.",
+    "sso_error_generic": "Logowanie SSO nie powiodło się. Skontaktuj się z administratorem.",
+    "sso_reference": "Numer referencyjny: {id}"
   },
   "app": {
     "expand_sidebar": "Rozwiń panel",

@@ -59,7 +59,15 @@
     "send_reset_link": "Send reset link",
     "reset_email_sent": "If an account exists with this email, a reset link has been sent. Check your inbox.",
     "back_to_login": "Back to login",
-    "enter_email": "Please enter your email address"
+    "enter_email": "Please enter your email address",
+    "sso_submit": "Log in with SSO",
+    "sso_signing_in": "Signing you in…",
+    "sso_error_title": "Sign-in failed",
+    "sso_error_no_code": "The identity provider did not return a sign-in code. Start again from the login page.",
+    "sso_error_state": "This sign-in could not be verified. Start again from the login page.",
+    "sso_error_no_tokens": "The server accepted the sign-in but returned no session. Contact an administrator.",
+    "sso_error_generic": "Single sign-on failed. Contact an administrator.",
+    "sso_reference": "Reference: {id}"
   },
   "app": {
     "expand_sidebar": "Expand sidebar",
