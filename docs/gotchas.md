@@ -30,6 +30,12 @@ Repo-specific traps. Read before touching configs, i18n, or panels.
   `src/boots/Icons/fa-icons.js` (both the `import {}` statement AND the
   `library.add()` call). Missing imports fail silently — no console error,
   the icon just doesn't render.
+- A page that fills the viewport has to set its own `overflow-y: auto`.
+  `App.vue` renders the route inside `.app-content-col.ov-h.router-container`,
+  within a `.layout` that is `overflow: hidden; height: 100%`, and hands the
+  route `class="h-100"`. The shell clips on purpose and every page scrolls
+  itself, so a full-height root with no overflow of its own lays out past the
+  fold and anything below it cannot be reached.
 - `PimField.vue` (`views/Pim/components/`) is a legacy alias for the
   `FormField` boot component — use `<FormField>` directly in new code.
 - Project i18n is a hand-rolled reactive `state.lang` (no vue-i18n). Only
