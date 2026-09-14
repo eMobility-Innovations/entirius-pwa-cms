@@ -1,0 +1,258 @@
+.access-panel {
+  padding: 24px;
+  color: var(--c-basic-800);
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--c-basic-300);
+    padding-bottom: 12px;
+  }
+  nav a {
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    color: var(--c-basic-700);
+    text-decoration: none;
+  }
+  nav a:hover,
+  nav .router-link-active {
+    background: var(--c-support-100);
+    color: var(--c-primary-200);
+  }
+  h1 {
+    margin-bottom: 20px;
+  }
+  h2 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c-basic-600);
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  p {
+    line-height: 1.6;
+  }
+  button {
+    border: 1px solid var(--c-basic-400);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    background: var(--c-basic-100);
+    color: var(--c-basic-800);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) {
+    border-color: var(--c-primary-100);
+    color: var(--c-primary-100);
+    background: var(--c-basic-200);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--c-primary-100);
+    outline-offset: 2px;
+  }
+  input:not([type="checkbox"]) {
+    min-width: 100px;
+    width: 210px;
+    max-width: 100%;
+    border: 1px solid var(--c-basic-400);
+    border-radius: var(--radius-sm);
+    background: var(--c-basic-100);
+    color: var(--c-basic-800);
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 13px;
+  }
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--c-primary-100);
+    cursor: pointer;
+  }
+  input[type="checkbox"]:disabled {
+    cursor: default;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th,
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--c-basic-300);
+    text-align: left;
+  }
+  thead {
+    background: var(--c-basic-200);
+    color: var(--c-basic-600);
+  }
+  [data-test="no-grant"],
+  .hint {
+    padding: 20px;
+    background: var(--c-basic-200);
+    border: 1px solid var(--c-basic-300);
+    border-radius: var(--radius-sm);
+  }
+  .access-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .access-banner {
+    margin: 0;
+    border: 1px solid var(--c-basic-300);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    background: var(--c-basic-200);
+    color: var(--c-basic-700);
+    font-size: 13px;
+  }
+  .access-role-grid,
+  .access-unassigned-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .access-unassigned-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .access-card {
+    padding: 16px;
+    border: 1px solid var(--c-basic-300);
+    border-radius: var(--radius-sm);
+    background: var(--c-basic-100);
+    min-width: 0;
+  }
+  .access-role--SYSADMIN {
+    border-color: var(--c-negative-200);
+    background: var(--c-negative-100);
+  }
+  .access-role--ADMIN {
+    border-color: var(--c-informative-200);
+    background: var(--c-informative-100);
+  }
+  .access-role--USER {
+    border-color: var(--c-positive-200);
+    background: var(--c-positive-100);
+  }
+  .access-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    margin-bottom: 14px;
+  }
+  .access-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--c-informative-200);
+    border-radius: 20px;
+    padding: 3px 8px;
+    font-size: 12px;
+    background: var(--c-basic-100);
+    overflow-wrap: anywhere;
+  }
+  .access-chip--user {
+    border-color: var(--c-positive-300);
+  }
+  .access-chip button {
+    padding: 0 4px;
+    border: 0;
+    background: transparent;
+    font-size: 16px;
+  }
+  .access-inline {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .access-muted,
+  small {
+    color: var(--c-basic-600);
+    font-size: 12px;
+  }
+  .access-error {
+    color: var(--c-negative-300);
+    font-size: 13px;
+    margin: 10px 0;
+  }
+  .access-table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--c-basic-300);
+    border-radius: var(--radius-sm);
+  }
+  .access-matrix {
+    th:first-child {
+      min-width: 160px;
+      position: sticky;
+      left: 0;
+      background: var(--c-basic-200);
+      z-index: 1;
+    }
+    td {
+      text-align: center;
+    }
+    th:last-child {
+      min-width: 150px;
+    }
+    small {
+      display: block;
+      margin-top: 4px;
+      font-weight: normal;
+    }
+  }
+  .access-vertical {
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+    font-weight: 500;
+    padding: 6px 0;
+  }
+  .access-add-override {
+    margin-top: 12px;
+  }
+  .access-unassigned-list {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .access-unassigned-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--c-basic-300);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 1000px) {
+    .access-role-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 700px) {
+    padding: 14px;
+    .access-unassigned-grid {
+      grid-template-columns: 1fr;
+    }
+    .access-unassigned-row {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+}

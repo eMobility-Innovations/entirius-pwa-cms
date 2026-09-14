@@ -23,3 +23,4 @@ export const GET_Audit = () => accessApi.get(`${base()}/audit/`);
 export const GET_Groups = () => accessApi.get(`${base()}/groups/`);
 export const GET_Users = (q) => accessApi.get(`${base()}/users/`, { params: { q } });
 export const GET_ServiceAccounts = () => accessApi.get(`${base()}/service-accounts/`);
+export const GET_Unassigned = () => accessApi.get(`${base()}/unassigned/`);
