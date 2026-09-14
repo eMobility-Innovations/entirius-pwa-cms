@@ -44,6 +44,17 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 // Matches the password path: the access token is short-lived and the store refreshes it.
 const TOKEN_LIFETIME_MS = 15 * 60 * 1000;
 
+/**
+ * Whether an exchange started by THIS page load is still running.
+ *
+ * Module scope, deliberately: the thing it has to survive is a remount, which destroys
+ * the component instance and builds a new one. App.vue renders a <router-view> in its
+ * unauthenticated branch and another inside the authenticated layout, so setAuth() flips
+ * `isAuth` and this component is recreated on the same route while the first instance is
+ * still awaiting hydrateUser(). Instance state cannot see across that; this can.
+ */
+let signInInFlight = false;
+
 export default {
   name: "SsoCallback",
   setup() {
@@ -96,6 +107,28 @@ export default {
     },
 
     async completeLogin() {
+      // A SECOND MOUNT IS NOT A FAILED SIGN-IN. The moment the exchange succeeds,
+      // setAuth() flips App.vue from its unauthenticated branch to the authenticated
+      // layout — both render a <router-view> — so this component is destroyed and mounted
+      // again on the same route. That remount used to call takeStashedState(), which is
+      // single-use BY DESIGN, find nothing, and report the login-CSRF refusal over a
+      // login that had just worked: the user saw "this sign-in could not be verified"
+      // flash and then landed on the home page.
+      //
+      // The flash was the smaller half. fail() also calls blockAutoLogin(), so a
+      // SUCCESSFUL sign-in left `sso_autologin_blocked` set for the rest of the browser
+      // session — the very flag that stops an SSO-ONLY login wall starting a login by
+      // itself when the token later expires.
+      //
+      // Whoever began the exchange owns the navigation, so a remount gets out of the way
+      // rather than racing it to a different route. Somebody who opens this route by hand
+      // while already signed in has no such instance running, and IS sent home — leaving
+      // them on "signing in" for ever would only be a different bug.
+      if (this.userStore.isAuth) {
+        if (!signInInFlight) this.$router.replace("/");
+        return;
+      }
+
       const code = this.$route.query.code || "";
       const state = this.$route.query.state || "";
       const stashedState = this.takeStashedState();
@@ -113,6 +146,16 @@ export default {
         return;
       }
 
+      signInInFlight = true;
+      try {
+        await this.exchangeAndEnter(code, state);
+      } finally {
+        signInInFlight = false;
+      }
+    },
+
+    /** The exchange itself, from code to a filled store and a navigation. */
+    async exchangeAndEnter(code, state) {
       let payload;
       try {
         const { data } = await POST_SsoCallback({

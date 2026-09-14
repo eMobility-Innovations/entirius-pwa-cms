@@ -64,7 +64,14 @@ beforeEach(() => {
   canRead = false;
 });
 afterEach(() => {
-  process.env.VUE_APP_ACCESS_PANEL_ENABLED = originalFlag;
+  // `process.env.X = undefined` writes the STRING "undefined", which is not the same as
+  // the variable being absent — and these specs share a worker with the one that asserts
+  // the flag-off case, so putting the value back WRONG fails a different file. Delete
+  // when it was absent; restore only a real value. resetModules keeps the next file from
+  // inheriting a module graph built under this file's flag.
+  if (originalFlag === undefined) delete process.env.VUE_APP_ACCESS_PANEL_ENABLED;
+  else process.env.VUE_APP_ACCESS_PANEL_ENABLED = originalFlag;
+  vi.resetModules();
 });
 
 const idxOf = (wrapper) => wrapper.vm.panels.map((p) => p.idx);
