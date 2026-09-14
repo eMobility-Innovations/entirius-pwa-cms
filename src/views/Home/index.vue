@@ -38,6 +38,8 @@
 <script>
 import { useUserStore } from "@/stores/user";
 import { useMuninStore } from "@/stores/munin";
+import { useAccessMatrixStore } from "@/stores/accessMatrix";
+import { isAccessPanelEnabled, isAccessPanelVisibleFor } from "@/configs/accessMatrix";
 import { panels as panelRegistry } from "../../configs/access";
 
 const HIDE_DISABLED = (process.env.VUE_APP_HIDE_DISABLED_PANELS || "").toUpperCase() === "TRUE";
@@ -46,14 +48,22 @@ export default {
   setup() {
     const userStore = useUserStore();
     const munin = useMuninStore();
-    return { userStore, munin };
+    // The matrix is asked who this is here, because this is where the answer is spent.
+    // With the panel flag OFF the store is never even constructed: `access` is not in the
+    // registry, so there is nothing to gate, and a deployment without this overlay keeps
+    // exactly the component it had — no new store, no request, no pinia dependency.
+    const accessMatrix = isAccessPanelEnabled() ? useAccessMatrixStore() : null;
+    accessMatrix?.ensureLoaded();
+    return { userStore, munin, accessMatrix };
   },
   computed: {
     panels() {
-      const all = panelRegistry.map(p => ({
-        ...p,
-        isEnabled: this.munin.isPanelEnabled(p.idx),
-      }));
+      const all = panelRegistry
+        .filter(p => isAccessPanelVisibleFor(p.idx, this.accessMatrix))
+        .map(p => ({
+          ...p,
+          isEnabled: this.munin.isPanelEnabled(p.idx),
+        }));
       return HIDE_DISABLED ? all.filter(p => p.isEnabled) : all;
     },
     user() {
