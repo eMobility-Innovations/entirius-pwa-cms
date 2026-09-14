@@ -1,4 +1,16 @@
 .access-panel {
+  // THE PAGE SCROLLS ITSELF. App.vue puts every panel inside
+  // `.app-content-col.ov-h.router-container` — overflow:hidden — within a `.layout` that is
+  // `overflow: hidden; height: 100%`, and hands the route `class="h-100"`. So the layout
+  // deliberately clips and each page owns its own scrolling. Without this the access page
+  // renders at full height and is simply CUT OFF: measured in a browser on pim-test, the
+  // Unassigned section could not be reached at all.
+  //
+  // This is what the fleet reference does too — github-access-manager's Access.jsx root is
+  // `flex h-full flex-col gap-5 overflow-auto`. The port kept the flex column and dropped
+  // the overflow.
+  height: 100%;
+  overflow-y: auto;
   padding: 24px;
   color: var(--c-basic-800);
   nav {
