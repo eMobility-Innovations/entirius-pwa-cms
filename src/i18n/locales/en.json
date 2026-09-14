@@ -553,7 +553,9 @@
     "promo": "Promotions",
     "promo_desc": "Discount rules and promotion management",
     "pricefighter": "PriceFighter",
-    "pricefighter_desc": "Competitive pricing -- gap analysis, strategies, batch apply"
+    "pricefighter_desc": "Competitive pricing -- gap analysis, strategies, batch apply",
+    "access": "Access",
+    "access_desc": "Who may see and change what"
   },
   "stock": {
     "manage": "Stocks",
@@ -2981,5 +2983,35 @@
     "no_snapshot": "No decision snapshot recorded.",
     "active": "Active",
     "search_category": "Search category..."
+  },
+  "access": {
+    "title": "Access",
+    "grants": "Grants",
+    "roles": "Roles",
+    "users": "People",
+    "audit": "History",
+    "service_accounts": "Service accounts",
+    "person": "Person",
+    "group": "Group",
+    "grant": "Grant",
+    "revoke": "Revoke",
+    "save": "Save",
+    "reset_to_defaults": "Reset to defaults",
+    "override_replaces": "A saved set REPLACES the level below it — it is not added to it.",
+    "search_people": "Search people…",
+    "not_grantable": "not synced, cannot be granted",
+    "unresolved_group": "this group is no longer in the directory",
+    "directory_unavailable": "The directory could not be reached, so the list is not shown. This is not the same as there being no groups.",
+    "declared": "Declared machine accounts",
+    "unclassified_staff": "Staff nobody classified",
+    "no_grant": "You hold no grant. Ask a SYSADMIN to give you one.",
+    "when": "When",
+    "who": "Who",
+    "what": "What",
+    "target": "Target",
+    "role": "Role",
+    "via": "Made with",
+    "service_accounts_cli": "A service account is created on the host with manage.py escaccess_service_account, because it also creates a Django user.",
+    "unclassified_staff_why": "These are staff accounts that are neither linked to SSO nor marked as machines, so nothing tells a consumer what they are."
   }
 }

@@ -223,6 +223,22 @@ const grantAccess = (obj, role = "user", builderTypes) => {
   return result;
 };
 
+// The access-matrix panel is an OPTIONAL overlay: with its flag off the entry is never
+// added, so a deployment without the backend never renders a button that leads nowhere.
+// Read here rather than imported from configs/accessMatrix so this file keeps its single
+// responsibility — it is a config table, not a consumer of the panel's module.
+if (String(process.env.VUE_APP_ACCESS_PANEL_ENABLED || "false").toLowerCase() === "true") {
+  accesses.apps.push({
+    name: "Access",
+    idx: "access",
+    icon: "user-shield",
+    root: "/access/grants",
+    labelKey: "panels.access",
+    descriptionKey: "panels.access_desc",
+    access: ["admin"],
+  });
+}
+
 export const panels = accesses.apps;
 
 export const User = class {

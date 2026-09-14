@@ -553,7 +553,9 @@
     "promo": "Promocje",
     "promo_desc": "Kampanie promocyjne i zarządzanie rabatami",
     "pricefighter": "PriceFighter",
-    "pricefighter_desc": "Konkurencyjne ceny -- analiza luk, strategie, wsadowe zastosowanie"
+    "pricefighter_desc": "Konkurencyjne ceny -- analiza luk, strategie, wsadowe zastosowanie",
+    "access": "Dostęp",
+    "access_desc": "Kto może co widzieć i zmieniać"
   },
   "stock": {
     "manage": "Stany",
@@ -2980,5 +2982,35 @@
     "no_snapshot": "Brak zapisanego snapshotu decyzji.",
     "active": "Aktywna",
     "search_category": "Szukaj kategorii..."
+  },
+  "access": {
+    "title": "Dostęp",
+    "grants": "Nadania",
+    "roles": "Role",
+    "users": "Osoby",
+    "audit": "Historia",
+    "service_accounts": "Konta serwisowe",
+    "person": "Osoba",
+    "group": "Grupa",
+    "grant": "Nadaj",
+    "revoke": "Odbierz",
+    "save": "Zapisz",
+    "reset_to_defaults": "Przywróć wartości domyślne",
+    "override_replaces": "Zapisany zestaw ZASTĘPUJE poziom niższy — nie jest do niego dodawany.",
+    "search_people": "Szukaj osób…",
+    "not_grantable": "niezsynchronizowana, nie można nadać",
+    "unresolved_group": "tej grupy nie ma już w katalogu",
+    "directory_unavailable": "Nie udało się połączyć z katalogiem, więc lista nie jest pokazana. To nie to samo co brak grup.",
+    "declared": "Zadeklarowane konta maszynowe",
+    "unclassified_staff": "Pracownicy, których nikt nie sklasyfikował",
+    "no_grant": "Nie masz żadnego nadania. Poproś o nie administratora SYSADMIN.",
+    "when": "Kiedy",
+    "who": "Kto",
+    "what": "Co",
+    "target": "Cel",
+    "role": "Rola",
+    "via": "Wykonane przez",
+    "service_accounts_cli": "Konto serwisowe tworzy się na hoście poleceniem manage.py escaccess_service_account, ponieważ tworzy ono także użytkownika Django.",
+    "unclassified_staff_why": "To konta pracownicze, które nie są ani powiązane z SSO, ani oznaczone jako maszynowe, więc nic nie mówi odbiorcy, czym są."
   }
 }
