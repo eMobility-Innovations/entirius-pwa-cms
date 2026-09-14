@@ -35,7 +35,7 @@
 
 <script>
 import { POST_SsoCallback } from "@/api/sso/api";
-import { SSO_STATE_KEY, ssoRedirectUri } from "@/configs/sso";
+import { SSO_STATE_KEY, blockAutoLogin, ssoRedirectUri } from "@/configs/sso";
 import { GET_User, GET_UserDetails } from "@/api/contentDB/api";
 import { useUserStore } from "@/stores/user";
 import { useMuninStore } from "@/stores/munin";
@@ -86,6 +86,10 @@ export default {
     },
 
     fail(message, debugId = "") {
+      // In SSO-only mode the login wall starts a login by itself. Without this, going
+      // back to it after a refusal would immediately start the SAME failing login again
+      // and the user would never see why. Cleared when they deliberately retry.
+      blockAutoLogin();
       this.error = true;
       this.errorMessage = message;
       this.debugId = debugId;

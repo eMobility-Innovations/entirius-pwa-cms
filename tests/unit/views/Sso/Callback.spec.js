@@ -232,3 +232,38 @@ describe("SSO callback — the backend refuses", () => {
     expect(wrapper.find('[data-test="sso-debug-id"]').exists()).toBe(false);
   });
 });
+
+describe("SSO callback — the redirect-loop guard", () => {
+  it("blocks the login wall's automatic login after ANY failure", async () => {
+    // In SSO-only mode the wall starts a login on mount. A refused callback that sends
+    // the user back there without this flag is an infinite redirect, and the reason for
+    // the refusal never stays on screen long enough to read.
+    postCallback.mockRejectedValueOnce({
+      response: { status: 403, data: { message: "No access.", debug_id: "d1" } },
+    });
+
+    mountCallback();
+    await flushPromises();
+
+    expect(window.sessionStorage.getItem("sso_autologin_blocked")).toBe("1");
+  });
+
+  it("blocks it for a bad state too, before anything is sent", async () => {
+    mountCallback({ code: "c", state: "not-the-stashed-one" });
+    await flushPromises();
+
+    expect(postCallback).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem("sso_autologin_blocked")).toBe("1");
+  });
+
+  it("does NOT block after a success", async () => {
+    postCallback.mockResolvedValueOnce({
+      data: { access: "a", refresh: "r", customer_id: "c" },
+    });
+
+    mountCallback();
+    await flushPromises();
+
+    expect(window.sessionStorage.getItem("sso_autologin_blocked")).toBe(null);
+  });
+});

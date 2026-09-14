@@ -2,8 +2,12 @@
  * The flag itself. Every other SSO guard hangs off isSsoEnabled(), so its edges matter:
  * only the exact string "true" may arm the feature.
  */
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import {
+  allowAutoLogin,
+  blockAutoLogin,
+  isAutoLoginBlocked,
+  isSsoOnly,
   isSsoEnabled,
   ssoLoginUrlPath,
   ssoCallbackPath,
@@ -54,5 +58,60 @@ describe("configs/sso", () => {
     // Exact-match registered with the provider — it may not drift per deployment.
     expect(ssoRedirectUri()).toBe(`${window.location.origin}${SSO_CALLBACK_ROUTE}`);
     expect(SSO_CALLBACK_ROUTE).toBe("/sso/callback");
+  });
+});
+
+describe("configs/sso — SSO-only", () => {
+  it("is off by default", () => {
+    vi.stubEnv("VUE_APP_SSO_ENABLED", "true");
+    vi.stubEnv("VUE_APP_SSO_ONLY", undefined);
+    expect(isSsoOnly()).toBe(false);
+  });
+
+  it("is on when both flags say so", () => {
+    vi.stubEnv("VUE_APP_SSO_ENABLED", "true");
+    vi.stubEnv("VUE_APP_SSO_ONLY", "true");
+    expect(isSsoOnly()).toBe(true);
+  });
+
+  it("REFUSES to be on while SSO itself is off", () => {
+    // Otherwise a single typo renders a login wall with no password form and no working
+    // SSO — a deployment locked out of itself.
+    vi.stubEnv("VUE_APP_SSO_ENABLED", "false");
+    vi.stubEnv("VUE_APP_SSO_ONLY", "true");
+    expect(isSsoOnly()).toBe(false);
+  });
+});
+
+describe("the auto-login block", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it("does not block a first attempt", () => {
+    expect(isAutoLoginBlocked()).toBe(false);
+  });
+
+  it("blocks after a failure, and clears on a deliberate retry", () => {
+    blockAutoLogin();
+    expect(isAutoLoginBlocked()).toBe(true);
+    allowAutoLogin();
+    expect(isAutoLoginBlocked()).toBe(false);
+  });
+
+  it("blocks when session storage cannot be read at all", () => {
+    // A browser that cannot stash `state` cannot complete the callback either, so an
+    // automatic login there is a guaranteed loop. Unreadable storage must FAIL CLOSED.
+    const original = Object.getOwnPropertyDescriptor(window, "sessionStorage");
+    Object.defineProperty(window, "sessionStorage", {
+      configurable: true,
+      get() {
+        throw new Error("SecurityError");
+      },
+    });
+
+    expect(isAutoLoginBlocked()).toBe(true);
+
+    Object.defineProperty(window, "sessionStorage", original);
   });
 });

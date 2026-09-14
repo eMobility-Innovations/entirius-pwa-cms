@@ -67,7 +67,8 @@
     "sso_error_state": "Nie udało się zweryfikować tego logowania. Spróbuj ponownie ze strony logowania.",
     "sso_error_no_tokens": "Serwer przyjął logowanie, ale nie zwrócił sesji. Skontaktuj się z administratorem.",
     "sso_error_generic": "Logowanie SSO nie powiodło się. Skontaktuj się z administratorem.",
-    "sso_reference": "Numer referencyjny: {id}"
+    "sso_reference": "Numer referencyjny: {id}",
+    "sso_only_subtitle": "Zaloguj się kontem organizacji"
   },
   "app": {
     "expand_sidebar": "Rozwiń panel",
