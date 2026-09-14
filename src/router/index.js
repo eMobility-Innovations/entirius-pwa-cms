@@ -4,6 +4,7 @@ import { useUserStore } from "@/stores/user";
 import { useMuninStore } from "@/stores/munin";
 import { panels } from "@/configs/access";
 import { ssoRoutes } from "./sso-routes";
+import { accessRoutes } from "./access-routes";
 
 import Home from "../views/Home/index.vue";
 import rv_builds from "../views/Builder/index.vue";
@@ -1155,6 +1156,7 @@ const routes = [
   // Optional OIDC SSO. Empty unless VUE_APP_SSO_ENABLED is "true", so with the flag off
   // the callback path is not a route at all.
   ...ssoRoutes(),
+  ...accessRoutes(),
 ];
 
 const router = createRouter({
