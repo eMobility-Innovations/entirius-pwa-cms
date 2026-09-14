@@ -1,6 +1,6 @@
 <template>
   <section aria-labelledby="unassigned-title">
-    <h2 id="unassigned-title">Unassigned</h2>
+    <h2 id="unassigned-title">{{ $t("access.unassigned") }}</h2>
     <p v-if="note" role="status" class="access-muted">{{ note }}</p>
     <p v-if="error" role="alert" class="access-error">{{ error }}</p>
     <div class="access-unassigned-grid">
@@ -12,8 +12,8 @@
         <h3>
           {{
             type === "user"
-              ? "Keycloak users with no explicit role"
-              : "Keycloak groups with no role"
+              ? $t("access.unassigned_users")
+              : $t("access.unassigned_groups")
           }}
           ({{ items[type].length }})
         </h3>
@@ -29,7 +29,7 @@
                 v-for="role in roles"
                 :key="role"
                 :disabled="busy || (type === 'group' && !!directoryError)"
-                :aria-label="`Grant ${role} to ${name}`"
+                :aria-label="$t('access.grant_to', { role, name })"
                 @click="assign(type, name, role)"
               >
                 {{ role }}
@@ -40,7 +40,7 @@
             {{ directoryError }}
           </p>
           <p v-else-if="!items[type].length" class="access-muted">
-            {{ loading ? "Loading…" : "none" }}
+            {{ loading ? $t("access.loading") : $t("access.none") }}
           </p>
         </div>
       </article>
@@ -52,6 +52,7 @@ import { ref, computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useAccessMatrixStore } from "@/stores/accessMatrix";
 import { GET_Unassigned, GET_Groups, POST_Grant } from "@/api/access/api";
+import { t } from "@/i18n";
 import { errorMessage } from "./helpers";
 const emit = defineEmits(["changed"]);
 const { canWrite } = storeToRefs(useAccessMatrixStore());
@@ -76,12 +77,12 @@ async function load() {
     data.value = { users: [], groups: [] };
     note.value =
       results[0].reason?.response?.status === 404
-        ? "Unassigned lists are not available on this backend yet."
-        : "Unassigned lists are unavailable. Please try again later.";
+        ? t("access.unassigned_unsupported")
+        : t("access.unassigned_unavailable");
   }
   directoryError.value =
     results[1].status === "rejected"
-      ? "The group directory is unavailable."
+      ? t("access.directory_unavailable")
       : "";
   grantable.value =
     results[1].status === "fulfilled"
@@ -92,7 +93,7 @@ async function load() {
 async function assign(type, name, role) {
   if (!canWrite.value || busy.value) return;
   if (type === "group" && !grantable.value.includes(name)) {
-    error.value = "This group is not currently grantable.";
+    error.value = t("access.not_grantable");
     return;
   }
   busy.value = true;

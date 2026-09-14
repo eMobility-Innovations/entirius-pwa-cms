@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { createRouter, createMemoryHistory } from "vue-router";
@@ -6,6 +6,9 @@ import { accessApi } from "@/api/access/client";
 import { useAccessMatrixStore } from "@/stores/accessMatrix";
 import Overview from "@/views/Access/AccessOverview.vue";
 import Shell from "@/views/Access/index.vue";
+import { setLang, t } from "@/i18n";
+
+afterEach(() => setLang("EN"));
 
 vi.mock("@/api/access/client", () => ({
   accessApi: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -23,6 +26,7 @@ const catalog = {
   },
 };
 beforeEach(() => {
+  setLang("EN");
   setActivePinia(createPinia());
   vi.clearAllMocks();
   groupsError = null;
@@ -91,21 +95,21 @@ async function render(write = true) {
   store.me = (await accessApi.get("/api/escaccess/v2/me/")).data;
   if (!write) store.me.permissions = ["page:access"];
   store.catalog = structuredClone(catalog);
-  const wrapper = mount(Overview);
+  const wrapper = mount(Overview, { global: { mocks: { $t: t } } });
   await flushPromises();
   return wrapper;
 }
 const row = (w, scope, name) => w.get(`[data-test="row-${scope}-${name}"]`);
 
 describe("fleet access overview", () => {
-  it("orders the banner, role cards, combined permission matrix and unassigned lists", async () => {
+  it.each([
+    ["EN", ["Grants", "Permission matrix", "Unassigned"]],
+    ["PL", ["Nadania", "Macierz uprawnień", "Bez przypisanej roli"]],
+  ])("orders and translates the overview sections in %s", async (lang, headings) => {
+    setLang(lang);
     const w = await render();
-    expect(w.findAll("h2").map((h) => h.text())).toEqual([
-      "Role assignments",
-      "Permission matrix",
-      "Unassigned",
-    ]);
-    expect(w.text()).toContain("nothing ticked is kept as genuinely empty");
+    expect(w.findAll("h2").map((h) => h.text())).toEqual(headings);
+    expect(w.text()).toContain(t("access.empty_override"));
     expect(w.findAll(".access-role-grid h3").map((h) => h.text())).toEqual([
       "SYSADMIN",
       "ADMIN",
@@ -116,8 +120,8 @@ describe("fleet access overview", () => {
       catalog.pages.concat(catalog.features)
     );
     expect(w.findAll('[data-test^="save-"]')).toHaveLength(0);
-    expect(row(w, "role", "USER").text()).toContain("default");
-    expect(row(w, "user", "alice").text()).toContain("user override");
+    expect(row(w, "role", "USER").text()).toContain(t("access.default"));
+    expect(row(w, "user", "alice").text()).toContain(t("access.user_override"));
   });
   it.each([
     ["role", "USER", "roles"],
@@ -223,7 +227,7 @@ describe("fleet access overview", () => {
   it("reports a 503 directory failure and disables group writes", async () => {
     groupsError = { response: { status: 503 } };
     const w = await render();
-    expect(w.text()).toContain("The group directory is unavailable.");
+    expect(w.text()).toContain(t("access.directory_unavailable"));
     expect(w.get('[data-test="add-group-USER"]').element.disabled).toBe(true);
     expect(w.get('[aria-label="Grant USER to buyers"]').element.disabled).toBe(
       true

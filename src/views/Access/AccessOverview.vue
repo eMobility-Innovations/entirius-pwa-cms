@@ -1,11 +1,9 @@
 <template>
   <div class="access-overview">
     <p class="access-banner">
-      Anyone with a Keycloak account can sign in and gets
-      <strong>USER</strong> — a read-only view. Roles below grant more. A role
-      or user override <strong>replaces</strong> the default set rather than
-      adding to it, and an override saved with nothing ticked is kept as
-      genuinely empty.
+      {{ $t("access.default_access") }}
+      <strong>{{ $t("access.override_replaces") }}</strong>
+      {{ $t("access.empty_override") }}
     </p>
     <Grants @changed="unassigned?.load()" />
     <RoleMatrix :include-users="true" />

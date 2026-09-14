@@ -1,8 +1,10 @@
+import { t } from "@/i18n";
+
 export function errorMessage(error) {
   return (
     error?.response?.data?.detail ||
     error?.error?.message ||
     error?.message ||
-    "Unable to update the access model. Please try again."
+    t("access.update_failed")
   );
 }

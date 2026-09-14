@@ -1,7 +1,7 @@
 <template>
   <section aria-labelledby="assignments-title">
-    <h2 id="assignments-title">Role assignments</h2>
-    <p v-if="loading" role="status">Loading role assignments…</p>
+    <h2 id="assignments-title">{{ $t("access.grants") }}</h2>
+    <p v-if="loading" role="status">{{ $t("access.loading_grants") }}</p>
     <p v-if="error" class="access-error" role="alert" data-test="error">
       {{ error }}
     </p>
@@ -35,7 +35,12 @@
               v-if="canWrite"
               :disabled="busy"
               :data-test="`revoke-${g.id}`"
-              :aria-label="`Remove ${g.group_name || g.grantee} from ${role}`"
+              :aria-label="
+                $t('access.remove_grant', {
+                  name: g.group_name || g.grantee,
+                  role,
+                })
+              "
               @click="revoke(g.id)"
             >
               ×
@@ -44,7 +49,7 @@
           <span
             v-if="!loading && !error && !grants.some((g) => g.role === role)"
             class="access-muted"
-            >nobody</span
+            >{{ $t("access.nobody") }}</span
           >
         </div>
         <template v-if="canWrite">
@@ -59,16 +64,24 @@
                 adding.type === 'group' ? 'access-groups' : 'access-grant-users'
               "
               :aria-label="
-                adding.type === 'group' ? 'Keycloak group' : 'Keycloak username'
+                adding.type === 'group'
+                  ? $t('access.group')
+                  : $t('access.keycloak_username')
               "
               :placeholder="
-                adding.type === 'group' ? 'Keycloak group' : 'Keycloak username'
+                adding.type === 'group'
+                  ? $t('access.group')
+                  : $t('access.keycloak_username')
               "
               @input="searchUsers"
               @keydown.esc="adding = null"
             />
-            <button :disabled="busy || !newGrantee.trim()">Add</button>
-            <button type="button" @click="adding = null">Cancel</button>
+            <button :disabled="busy || !newGrantee.trim()">
+              {{ $t("common.add") }}
+            </button>
+            <button type="button" @click="adding = null">
+              {{ $t("common.cancel") }}
+            </button>
           </form>
           <div v-else class="access-inline">
             <button
@@ -76,14 +89,14 @@
               :data-test="`add-group-${role}`"
               @click="startAdding(role, 'group')"
             >
-              + group
+              + {{ $t("access.group") }}
             </button>
             <button
               :disabled="busy"
               :data-test="`add-user-${role}`"
               @click="startAdding(role, 'user')"
             >
-              + user
+              + {{ $t("access.person") }}
             </button>
           </div>
         </template>
@@ -118,6 +131,7 @@ import {
   GET_Groups,
   GET_Users,
 } from "@/api/access/api";
+import { t } from "@/i18n";
 import { errorMessage } from "./helpers";
 const emit = defineEmits(["changed"]);
 const { canWrite } = storeToRefs(useAccessMatrixStore());
@@ -138,7 +152,7 @@ async function load() {
   else error.value = errorMessage(results[0].reason);
   directoryError.value =
     results[1].status === "rejected"
-      ? `The group directory is unavailable. ${errorMessage(results[1].reason)}`
+      ? `${t("access.directory_unavailable")} ${errorMessage(results[1].reason)}`
       : "";
   groups.value = results[1].status === "fulfilled" ? results[1].value.data : [];
   loading.value = false;
@@ -152,7 +166,7 @@ async function searchUsers() {
     if (version === searchVersion) userResults.value = data;
   } catch {
     if (version === searchVersion)
-      error.value = "The user directory is unavailable.";
+      error.value = t("access.directory_unavailable");
   }
 }
 function startAdding(role, type) {
@@ -192,7 +206,7 @@ function submit() {
     adding.value.type === "group" &&
     !groups.value.some((g) => g.name === name && g.grantable)
   ) {
-    error.value = "Choose a grantable group from the directory.";
+    error.value = t("access.choose_grantable_group");
     return;
   }
   return createGrant({

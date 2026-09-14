@@ -1,7 +1,7 @@
 <template>
   <section aria-labelledby="matrix-title">
-    <h2 id="matrix-title">Permission matrix</h2>
-    <p v-if="loading" role="status">Loading permissions…</p>
+    <h2 id="matrix-title">{{ $t("access.permission_matrix") }}</h2>
+    <p v-if="loading" role="status">{{ $t("access.loading_permissions") }}</p>
     <p v-if="error" class="access-error" role="alert" data-test="error">
       {{ error }}
     </p>
@@ -9,11 +9,13 @@
       <table class="access-matrix">
         <thead>
           <tr>
-            <th scope="col">Subject</th>
+            <th scope="col">{{ $t("access.target") }}</th>
             <th v-for="p in allPermissions" :key="p" scope="col">
               <span class="access-vertical">{{ p }}</span>
             </th>
-            <th scope="col"><span class="access-muted">Actions</span></th>
+            <th scope="col">
+              <span class="access-muted">{{ $t("access.actions") }}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -26,10 +28,10 @@
               {{ row.name
               }}<small>{{
                 row.scope === "user"
-                  ? "user override"
+                  ? $t("access.user_override")
                   : hasOverride(row)
-                  ? "customised"
-                  : "default"
+                  ? $t("access.customised")
+                  : $t("access.default")
               }}</small>
             </th>
             <td v-for="p in allPermissions" :key="p">
@@ -49,7 +51,7 @@
                   :disabled="busy === row.id"
                   @click="saveRow(row)"
                 >
-                  Save
+                  {{ $t("access.save") }}
                 </button>
                 <button
                   v-if="hasOverride(row)"
@@ -57,7 +59,7 @@
                   :disabled="busy === row.id"
                   @click="resetRow(row)"
                 >
-                  Reset
+                  {{ $t("access.reset_to_defaults") }}
                 </button>
               </div>
             </td>
@@ -73,8 +75,8 @@
       <input
         v-model="userQuery"
         list="access-override-users"
-        aria-label="Keycloak username for override"
-        placeholder="Keycloak username"
+        :aria-label="$t('access.override_username')"
+        :placeholder="$t('access.keycloak_username')"
         @input="searchUsers"
       />
       <datalist id="access-override-users">
@@ -87,7 +89,7 @@
         </option>
       </datalist>
       <button :disabled="!userQuery.trim() || loading">
-        + add user override
+        + {{ $t("access.add_user_override") }}
       </button>
     </form>
   </section>
@@ -105,6 +107,7 @@ import {
   PUT_UserOverride,
   DELETE_UserOverride,
 } from "@/api/access/api";
+import { t } from "@/i18n";
 import { errorMessage } from "./helpers";
 const props = defineProps({ includeUsers: Boolean, userOnly: Boolean });
 const store = useAccessMatrixStore();
@@ -221,8 +224,7 @@ async function resetRow(row) {
       try {
         catalog.value = (await GET_Catalog()).data;
       } catch {
-        error.value =
-          "Override reset. Reload the page to refresh the effective defaults.";
+        error.value = t("access.override_reset_reload");
       }
     } else
       stored.value.users = stored.value.users.filter(
@@ -251,7 +253,7 @@ async function searchUsers() {
     if (version === searchVersion) userResults.value = data;
   } catch {
     if (version === searchVersion)
-      error.value = "The user directory is unavailable.";
+      error.value = t("access.directory_unavailable");
   }
 }
 const defaultScope = () => (props.userOnly ? "user" : "role");
