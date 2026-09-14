@@ -117,8 +117,11 @@
             </button>
           </div>
 
-          <!-- Change password -->
+          <!-- Change password. Hidden when the identity provider owns the credential:
+               these accounts have no local password, so the form cannot succeed. -->
           <button
+            v-if="!ssoOnly"
+            data-test="change-password"
             class="hc-dropdown-item"
             tabindex="0"
             @click="goToChangePassword"
@@ -155,6 +158,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { useMuninStore } from "@/stores/munin";
 import { panels } from "../../configs/access";
 import { POST_Logout } from "../../api/contentDB/api";
+import { isSsoOnly } from "@/configs/sso";
 
 const HIDE_DISABLED = (process.env.VUE_APP_HIDE_DISABLED_PANELS || "").toUpperCase() === "TRUE";
 
@@ -177,6 +181,9 @@ export default {
     };
   },
   computed: {
+    ssoOnly() {
+      return isSsoOnly();
+    },
     panels() {
       const all = panels.map((p) => ({
         ...p,

@@ -24,6 +24,19 @@ export function isSsoEnabled() {
   return String(process.env.VUE_APP_SSO_ENABLED || "false").toLowerCase() === "true";
 }
 
+/**
+ * SSO is the ONLY way in: the password form is not rendered and the login wall goes
+ * straight to the provider without waiting for a click.
+ *
+ * Interlocked with the main flag on purpose. "SSO only" while SSO is off would render a
+ * login wall with no password form AND no working SSO — a deployment locked out of itself
+ * by a single typo in an environment variable.
+ */
+export function isSsoOnly() {
+  if (!isSsoEnabled()) return false;
+  return String(process.env.VUE_APP_SSO_ONLY || "false").toLowerCase() === "true";
+}
+
 /** Backend endpoint that returns the provider's authorization URL and a state token. */
 export function ssoLoginUrlPath() {
   return process.env.VUE_APP_SSO_LOGIN_URL_PATH || DEFAULT_LOGIN_URL_PATH;
@@ -41,3 +54,47 @@ export function ssoRedirectUri() {
 
 /** Where `state` is parked between leaving for the provider and coming back. */
 export const SSO_STATE_KEY = "sso_state";
+
+/**
+ * Set when an SSO attempt has just failed, and read before starting an automatic one.
+ *
+ * Without it, SSO-only mode is a redirect loop: the callback fails, sends the user back to
+ * the login wall, and the login wall immediately sends them to the provider again — for
+ * ever, with the error never on screen long enough to read. A refused login must land on a
+ * page that STAYS, explains itself, and offers a deliberate retry.
+ */
+export const SSO_AUTOLOGIN_BLOCKED_KEY = "sso_autologin_blocked";
+
+/** Remember that an automatic login must not be started again until the user asks. */
+export function blockAutoLogin() {
+  try {
+    window.sessionStorage.setItem(SSO_AUTOLOGIN_BLOCKED_KEY, "1");
+  } catch {
+    // Private-mode browsers refuse session storage. See isAutoLoginBlocked for why that
+    // is treated as "blocked" rather than "go ahead".
+  }
+}
+
+/**
+ * True when an automatic login must not start.
+ *
+ * A browser that cannot read session storage also cannot stash `state`, so an automatic
+ * login there is guaranteed to fail on return — and would loop. Unreadable storage
+ * therefore blocks, and the user gets the button instead.
+ */
+export function isAutoLoginBlocked() {
+  try {
+    return window.sessionStorage.getItem(SSO_AUTOLOGIN_BLOCKED_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+/** Clear the block — the user has deliberately asked to try again. */
+export function allowAutoLogin() {
+  try {
+    window.sessionStorage.removeItem(SSO_AUTOLOGIN_BLOCKED_KEY);
+  } catch {
+    // Nothing to clear if storage is unavailable.
+  }
+}

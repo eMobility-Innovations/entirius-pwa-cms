@@ -67,7 +67,8 @@
     "sso_error_state": "This sign-in could not be verified. Start again from the login page.",
     "sso_error_no_tokens": "The server accepted the sign-in but returned no session. Contact an administrator.",
     "sso_error_generic": "Single sign-on failed. Contact an administrator.",
-    "sso_reference": "Reference: {id}"
+    "sso_reference": "Reference: {id}",
+    "sso_only_subtitle": "Sign in with your organisation account"
   },
   "app": {
     "expand_sidebar": "Expand sidebar",

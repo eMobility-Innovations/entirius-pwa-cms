@@ -169,3 +169,87 @@ describe("login wall with SSO on", () => {
     );
   });
 });
+
+describe("login wall in SSO-only mode", () => {
+  beforeEach(() => {
+    vi.stubEnv("VUE_APP_SSO_ENABLED", "true");
+    vi.stubEnv("VUE_APP_SSO_ONLY", "true");
+  });
+
+  const loginUrlOk = () =>
+    postSsoLoginUrl.mockResolvedValueOnce({
+      data: { authorization_url: "https://auth.example.com/auth", state: "abc" },
+    });
+
+  it("renders no password form at all", async () => {
+    loginUrlOk();
+
+    const wrapper = mount(LoginWall);
+    await flushPromises();
+
+    expect(wrapper.findAll("basic-input-stub").length).toBe(0);
+    expect(buttonLabels(wrapper)).toEqual(["login.sso_submit"]);
+    expect(wrapper.text()).not.toContain("login.forgot_password");
+  });
+
+  it("goes straight to the provider without a click", async () => {
+    loginUrlOk();
+
+    mount(LoginWall);
+    await flushPromises();
+
+    expect(postSsoLoginUrl).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith("https://auth.example.com/auth");
+  });
+
+  it("does NOT start automatically after a failed attempt", async () => {
+    // THE loop guard. The callback bounces a refused login back here; without the block
+    // this mount would send the user straight back to the provider, for ever, and the
+    // error would never stay on screen long enough to read.
+    window.sessionStorage.setItem("sso_autologin_blocked", "1");
+
+    const wrapper = mount(LoginWall);
+    await flushPromises();
+
+    expect(postSsoLoginUrl).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+    // and the user is left a deliberate way back in
+    expect(wrapper.find('[data-test="sso-login"]').exists()).toBe(true);
+  });
+
+  it("blocks the next automatic attempt when this one fails", async () => {
+    postSsoLoginUrl.mockRejectedValueOnce(new Error("Network Error"));
+
+    mount(LoginWall);
+    await flushPromises();
+
+    expect(window.sessionStorage.getItem("sso_autologin_blocked")).toBe("1");
+    expect(spawnNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("a deliberate click clears the block and tries again", async () => {
+    window.sessionStorage.setItem("sso_autologin_blocked", "1");
+    const wrapper = mount(LoginWall);
+    await flushPromises();
+    loginUrlOk();
+
+    await wrapper.vm.ssoLogin();
+
+    expect(assign).toHaveBeenCalledWith("https://auth.example.com/auth");
+    expect(window.sessionStorage.getItem("sso_autologin_blocked")).toBe(null);
+  });
+});
+
+describe("login wall with SSO on but not SSO-only", () => {
+  it("keeps the password form and does NOT redirect on its own", async () => {
+    vi.stubEnv("VUE_APP_SSO_ENABLED", "true");
+    vi.stubEnv("VUE_APP_SSO_ONLY", "false");
+
+    const wrapper = mount(LoginWall);
+    await flushPromises();
+
+    expect(wrapper.findAll("basic-input-stub").length).toBe(2);
+    expect(postSsoLoginUrl).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+  });
+});
