@@ -156,6 +156,8 @@
 import { useUserStore } from "@/stores/user";
 import { useNotifyStore } from "@/stores/notify";
 import { useMuninStore } from "@/stores/munin";
+import { useAccessMatrixStore } from "@/stores/accessMatrix";
+import { isAccessPanelEnabled, isAccessPanelVisibleFor } from "@/configs/accessMatrix";
 import { panels } from "../../configs/access";
 import { POST_Logout } from "../../api/contentDB/api";
 import { isSsoOnly } from "@/configs/sso";
@@ -167,7 +169,13 @@ export default {
     const userStore = useUserStore();
     const notify = useNotifyStore();
     const munin = useMuninStore();
-    return { userStore, notify, munin };
+    // The matrix is asked who this is here, because this is where the answer is spent.
+    // With the panel flag OFF the store is never even constructed: `access` is not in the
+    // registry, so there is nothing to gate, and a deployment without this overlay keeps
+    // exactly the component it had — no new store, no request, no pinia dependency.
+    const accessMatrix = isAccessPanelEnabled() ? useAccessMatrixStore() : null;
+    accessMatrix?.ensureLoaded();
+    return { userStore, notify, munin, accessMatrix };
   },
   data() {
     return {
@@ -185,10 +193,15 @@ export default {
       return isSsoOnly();
     },
     panels() {
-      const all = panels.map((p) => ({
-        ...p,
-        isEnabled: this.munin.isPanelEnabled(p.idx),
-      }));
+      // The access entry is removed OUTRIGHT for somebody without page:access, before
+      // isEnabled is even considered — HIDE_DISABLED is unset on these hosts, so a merely
+      // disabled panel is still drawn as a visible tile.
+      const all = panels
+        .filter((p) => isAccessPanelVisibleFor(p.idx, this.accessMatrix))
+        .map((p) => ({
+          ...p,
+          isEnabled: this.munin.isPanelEnabled(p.idx),
+        }));
       return HIDE_DISABLED ? all.filter((p) => p.isEnabled) : all;
     },
     user() {
