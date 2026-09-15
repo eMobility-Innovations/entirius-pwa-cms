@@ -7,6 +7,11 @@ repos:
         language: system
         always_run: true
         pass_filenames: false
+      - id: no-ai-attribution
+        name: no AI attribution in the commit message
+        entry: bash scripts/hooks/no-ai-attribution.sh
+        language: system
+        stages: [commit-msg]
       - id: gitleaks-config-untracked
         name: .gitleaks.toml must stay gitignored
         entry: bash -c '! git ls-files --error-unmatch .gitleaks.toml 2>/dev/null || { echo ".gitleaks.toml is tracked - add it to .gitignore"; exit 1; }'
