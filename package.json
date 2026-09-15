@@ -36,7 +36,8 @@
     "test:unit:watch": "vitest",
     "test:pim-bridge": "playwright test tests/e2e/12-pim-suppliers-bridge.spec.js",
     "test:lookup": "playwright test tests/e2e/13-lookup-dropzone.spec.js",
-    "test:scroll": "playwright test --config=playwright.layout.config.js"
+    "test:scroll": "playwright test --config=playwright.layout.config.js",
+    "test:hooks": "bash tests/hooks/no-ai-attribution.test.sh"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.3.0",
