@@ -3,22 +3,38 @@ repos:
     hooks:
       - id: require-canonical-gitleaks-config
         name: require canonical .gitleaks.toml (forbidden-names)
-        entry: bash -c 'grep -q "forbidden-names" .gitleaks.toml 2>/dev/null || { echo "Missing or non-canonical .gitleaks.toml - symlink the config per the internal secret-scanning standard"; exit 1; }'
+        # The org config is UNTRACKED here by contract (see gitleaks-config-untracked
+        # below), so its absence can never be fixed inside this repo. This PLACES it,
+        # as a symlink to the one copy in claude-code-policy, and says so loudly when
+        # it cannot. The standard: docs/standards/secret-scanning.md in that repo.
+        #
+        # It used to be `grep -q "forbidden-names" .gitleaks.toml || exit 1`, which,
+        # with always_run, could only ever FAIL — no machine had the file and no repo
+        # was allowed to carry it. It blocked every commit here the moment anybody ran
+        # `pre-commit install`, and the workaround people reached for (a direct
+        # .git/hooks/commit-msg) skipped pre-commit and switched off gitleaks too.
+        entry: |
+          bash -c 'E="${CLAUDE_POLICY_RUNTIME:-$HOME/.claude/policy-runtime}/bin/gitleaks-config-ensure.sh"; [ -x "$E" ] || E="$HOME/Projects/claude-code-policy/bin/gitleaks-config-ensure.sh"; [ -x "$E" ] && exec "$E"; { echo "  SKIPPED - the canonical .gitleaks.toml could not be placed because claude-code-policy is not on this machine."; echo "  The commit is ALLOWED and gitleaks still runs, on its default rules."; echo "  Re-arm - clone eMobility-Innovations/claude-code-policy and run its ./install.sh"; } >&2'
         language: system
         always_run: true
         pass_filenames: false
+
       - id: no-ai-attribution
         name: no AI attribution in the commit message
         entry: bash scripts/hooks/no-ai-attribution.sh
         language: system
         stages: [commit-msg]
+
       - id: gitleaks-config-untracked
         name: .gitleaks.toml must stay gitignored
-        entry: bash -c '! git ls-files --error-unmatch .gitleaks.toml 2>/dev/null || { echo ".gitleaks.toml is tracked - add it to .gitignore"; exit 1; }'
+        entry: |
+          bash -c '! git ls-files --error-unmatch .gitleaks.toml 2>/dev/null || { echo ".gitleaks.toml is tracked - add it to .gitignore"; exit 1; }'
         language: system
         always_run: true
         pass_filenames: false
 
+  # Keep this equal to the version .github/workflows/ci.yml installs, or CI and the
+  # developers who feed it report different findings.
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.0
     hooks:
