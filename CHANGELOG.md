@@ -64,7 +64,17 @@ All notable changes to this project will be documented in this file.
 ### Removed
 
 - The dead role filter of `src/configs/access.js` (`grantAccess`, `routes`, `builderTypes`, the `access` arrays).
+
+### Fixed
+
+- Dates and the date picker follow the UI language: order and promotion dates, the page list's "updated" column and
+  the calendar's month and weekday names were Polish (or a mix) in the English UI. `formatDate` formats in the
+  locale of the UI language (`uiLocale()` in `src/i18n`), no longer in the browser's.
+
 ### Changed
+
+- Visual harness: `CMS_LANG` (default `PL`) and `CMS_LOCALE` (default `pl-PL`) select the pinned UI language and the
+  browser locale; unset, every committed baseline is unchanged. `lang.spec.js` (`@lang`) proves the mode that is set.
 
 - Text fields show focus on the field itself: an accent border and a soft 2 px glow instead of a 2 px outline at a
   2 px offset; the sign-in screen's 8 px halo is gone. Buttons, tabs and links keep the outline.

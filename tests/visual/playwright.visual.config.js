@@ -30,7 +30,7 @@ module.exports = defineConfig({
     baseURL: process.env.CMS_BASE_URL || "http://localhost:8180",
     headless: true,
     deviceScaleFactor: 1,
-    locale: "pl-PL",
+    locale: process.env.CMS_LOCALE || "pl-PL", // the default is repeated in support/state.js (LOCALE)
     timezoneId: "Europe/Warsaw",
     reducedMotion: "reduce",
     actionTimeout: 10000,

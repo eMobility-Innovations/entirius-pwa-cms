@@ -145,7 +145,9 @@ Use `waitForLoadState('networkidle')` not `waitForTimeout`. Prefer
 CMS (the zeno stack, `CMS_BASE_URL`, default `http://localhost:8180`, API `CMS_API_URL`, default
 `http://localhost:8100`), logs in as `CMS_USER` / `CMS_PASSWORD` (default `admin` / `admin123`) and never starts a
 server. Config: `tests/visual/playwright.visual.config.js` (projects `desktop` 1680×1168 and `mobile` 393×852,
-DPR 1, `pl-PL`, `Europe/Warsaw`, one worker).
+DPR 1, `Europe/Warsaw`, one worker). `CMS_LANG` (default `PL`) is the UI language the harness pins and `CMS_LOCALE`
+(default `pl-PL`) the browser locale; the committed baselines are the defaults, and `CMS_LANG=EN CMS_LOCALE=en-GB`
+runs the same harness in English (`lang.spec.js`, `@lang`, proves the mode that is set).
 
 | Layer | Spec (tag) | Question | Mode |
 |---|---|---|---|
@@ -192,7 +194,7 @@ dark on every screen and viewport, light only on the rows of Figma frames S1, S4
 when the seed has no such row. Take and check baselines on a fresh `make seed` with no BDD run since: BDD adds rows.
 
 **Deterministic state** (`support/state.js`): a login at most 3 minutes old (the access JWT lives 300 s; the CMS
-refreshes before the `expiryDate` it set at login, which the frozen clock `2026-09-26T10:00:00+02:00` never reaches), theme, language `PL`
+refreshes before the `expiryDate` it set at login, which the frozen clock `2026-09-26T10:00:00+02:00` never reaches), theme, language `CMS_LANG` (default `PL`)
 and sidebar pinned through `localStorage` on every page load (the profile GET is rewritten too, so the shared profile never
 leaks in at login), transitions, animations and the caret off, notification and config-health polls answered with
 fixed bodies. A screen is captured only once its data has rendered: after `networkidle` — and after 500 ms with no request

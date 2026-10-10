@@ -11,8 +11,11 @@ const AUTH_MAX_AGE_MS = 3 * 60 * 1000;
 const API_URL = process.env.CMS_API_URL || "http://localhost:8100";
 const THEME_VALUES = { dark: "dark", light: "default" };
 const READ_METHODS = ["GET", "HEAD", "OPTIONS"];
+// The UI language the harness pins and the browser locale; unset = Polish, the language of the committed baselines.
+const LANG = (process.env.CMS_LANG || "PL").toUpperCase();
+const LOCALE = process.env.CMS_LOCALE || "pl-PL";
 const LOGIN_BUTTON = 'button:has-text("Zaloguj"), button:has-text("Log in")';
-const LOGIN_PREFS = { cms_theme: "dark", cms_lang: "PL", cms_sidebar_collapsed: "false" };
+const LOGIN_PREFS = { cms_theme: "dark", cms_lang: LANG, cms_sidebar_collapsed: "false" };
 const PROBES = path.join(__dirname, "probes.browser.js");
 const FREEZE_CSS =
   "*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}";
@@ -110,7 +113,7 @@ async function submitLogin(page) {
 
 async function login(browser, baseURL) {
   if (auth.state && Date.now() - auth.at < AUTH_MAX_AGE_MS) return auth.state;
-  const context = await browser.newContext({ baseURL, locale: "pl-PL" });
+  const context = await browser.newContext({ baseURL, locale: LOCALE });
   try {
     const startedAt = Date.now();
     await stubWrites(context);
@@ -137,7 +140,7 @@ async function profileRoute(route, prefs) {
 
 // Returns which fixed-body stubs answered; a badge whose stub was never hit gets masked.
 async function prepareContext(context, { theme, collapsed = false }) {
-  const prefs = { cms_theme: THEME_VALUES[theme], cms_lang: "PL", cms_sidebar_collapsed: String(collapsed) };
+  const prefs = { cms_theme: THEME_VALUES[theme], cms_lang: LANG, cms_sidebar_collapsed: String(collapsed) };
   const stubs = { notifications: false, health: false };
   await context.addInitScript((values) => {
     for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value);
@@ -243,7 +246,7 @@ async function scrollToTiles(page) {
   await page.evaluate(() => {
     const header = document.querySelector(".section-header-row");
     const tiles = [...document.querySelectorAll("*")].find(
-      (el) => el.children.length === 0 && /Kafelki \(1\//.test(el.textContent)
+      (el) => el.children.length === 0 && /(Kafelki|Tiles) \(1\//.test(el.textContent)
     );
     if (!header || !tiles) throw new Error("scrolled: anchor not found");
     let box = header.parentElement;
@@ -329,6 +332,8 @@ module.exports = {
   test,
   expect: base.expect,
   THEME_VALUES,
+  LANG,
+  LOCALE,
   prepareContext,
   openScreen,
   openPinned,
