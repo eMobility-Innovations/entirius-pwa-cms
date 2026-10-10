@@ -58,6 +58,8 @@ All notable changes to this project will be documented in this file.
   theme at 1280 × 800, as a page or an element crop with optional numbered callouts (`guide`, `goto`, `shot` in
   `tests/docs/support/capture.js`, one spec per guide, `docs/testing.md` § Docs captures). The visual harness exports
   `pinPreferences` and its read-only waits for it; its behaviour is unchanged.
+- Docs capture specs for five CMS guides (`sign-in`, `products`, `content-pages`, `blog-posts`, `navigation`):
+  23 screenshots, each list shot guarded against rows the seed did not create, every created record deleted again.
 
 ### Security
 

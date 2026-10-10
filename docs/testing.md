@@ -325,6 +325,7 @@ worker. Images are written to `<DOCS_SCREENS_OUT>/<guide>/NN-slug.png`; without 
 | `tests/docs/support/capture.js` | the helpers below and, in its header comment, the rules of a guide spec |
 | `tests/docs/guides/<guide>.spec.js` | one spec per guide; the file name is the guide name, the image folder and the docs page slug |
 | `tests/docs/guides/self-test.spec.js` | `@self-test`: proves the helpers on the home screen (a page shot, a header crop with a callout) |
+| `tests/docs/guides/helpers.js` | what the guide specs share: the demo-row guard of a list shot (`assertSeedRows`, on the cell that names a row) and the wait for a toast to go (`toastGone`) |
 
 ```bash
 make docs-screens GUIDE=<name>   # from the entirius-zeno harness: one guide, into a docs checkout
@@ -371,5 +372,24 @@ flips. A capture changes the database it runs on.
   names what each run leaves behind, and fails with `INFRA: <guide> needs a fresh make seed` when its start state is
   gone.
 - Never click the theme toggle or the language switch: both PATCH the shared admin profile.
+
+**Guides.** Full shots are 1280 × 800, crops are one element plus padding. Each guide can be run again on the same
+database.
+
+| Guide | Shots | Writes |
+|---|---|---|
+| `sign-in` | `01-login`, `02-home`, `03-sidebar-group` (crop), `04-user-menu` (crop) | nothing: the user menu is opened and closed |
+| `products` | `01-product-list`, `02-create-form` (crop), `03-product-created`, `04-edit-name` (crop) | creates the product `DOCS-CHAIR-01` (`Docs Lounge Chair`) in the default channel and deletes it at the end; the SKU record stays and the next run reuses it |
+| `content-pages` | `01-content-list`, `02-new-page`, `03-new-section`, `04-page-draft`, `05-page-sections` | creates the static page `Docs Spring Lookbook` as a draft and deletes it at the end; nothing is published |
+| `blog-posts` | `01-authors-list`, `02-author-detail`, `03-post-authors` (crop), `04-author-picker`, `05-publish-actions` (crop) | nothing: the author picker is opened and closed |
+| `navigation` | `01-navigation-list`, `02-header-editor`, `03-add-item` (crop), `04-footer-editor`, `05-publish-actions` (crop) | nothing: the add-item dialog is filled and closed without adding |
+
+A list shot is guarded: when the product list (searched for `ENT-`), the static pages, the authors or the navigation
+list shows a row the seed did not create, the spec fails with `INFRA: <list> shows rows outside the seed (run make
+seed)`. `products` and `content-pages` start by deleting what a failed run left behind.
+
+The product create form asks for the required name in a rich-text field and saves its markup, so the new product
+opens with markup in its title. `products` therefore types the name again on the product page (`04-edit-name`), saves,
+and takes `03-product-created` after that save.
 
 Test artefacts (traces of a failed run) go to `tests/docs/test-results/`, which is gitignored.
