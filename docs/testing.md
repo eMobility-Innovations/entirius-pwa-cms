@@ -325,7 +325,8 @@ worker. Images are written to `<DOCS_SCREENS_OUT>/<guide>/NN-slug.png`; without 
 | `tests/docs/support/capture.js` | the helpers below and, in its header comment, the rules of a guide spec |
 | `tests/docs/guides/<guide>.spec.js` | one spec per guide; the file name is the guide name, the image folder and the docs page slug |
 | `tests/docs/guides/self-test.spec.js` | `@self-test`: proves the helpers on the home screen (a page shot, a header crop with a callout) |
-| `tests/docs/guides/helpers.js` | what the guide specs share: the demo-row guard of a list shot (`assertSeedRows`, on the cell that names a row) and the wait for a toast to go (`toastGone`) |
+| `tests/docs/guides/helpers.js` | what the guide specs share: the demo-row guard of a list shot (`assertSeedRows`, on the cell that names a row), the wait for a toast to go (`toastGone`) and an API call as the signed-in user (`api`), for the state a guide cannot click together |
+| `tests/docs/support/mail.js` | `appendMail(eml, { user, folder })`: places a raw mail in the sandbox mailbox of the dev stack with IMAP APPEND (`GREENMAIL_IMAP_PORT`, default 3243) |
 
 ```bash
 make docs-screens GUIDE=<name>   # from the entirius-zeno harness: one guide, into a docs checkout
@@ -374,7 +375,7 @@ flips. A capture changes the database it runs on.
 - Never click the theme toggle or the language switch: both PATCH the shared admin profile.
 
 **Guides.** Full shots are 1280 × 800, crops are one element plus padding. Each guide can be run again on the same
-database.
+database, except the ones whose row says it needs a fresh seed.
 
 | Guide | Shots | Writes |
 |---|---|---|
@@ -388,6 +389,8 @@ database.
 | `media` | `01-gallery`, `02-upload-dialog` (crop), `03-uploaded-photo` (crop) | uploads a copy of the first gallery image with the alt text `Docs sample photo` and deletes it at the end |
 | `duplicates` | `01-find`, `02-find-results`, `03-duplicates`, `04-merge-dialog` (crop) | nothing: the merge dialog is opened and cancelled, a merge is never confirmed. Needs a fresh seed: the duplicate group it shows is gone once it is merged |
 | `orders` | `01-orders`, `02-order-detail`, `03-order-delivery` (crop) | one guest order per run, with an email address of its own, placed on the storefront (`STOREFRONT_URL`, default `http://localhost:3100`), and one unit of that product's stock; orders cannot be deleted. Needs the storefront |
+| `leads` | `01-import`, `02-pipeline`, `03-inbox-drafts`, `04-review`, `05-thread-sent`, `06-inbox-replies`, `07-thread-reply` | imports the company Harbour Furniture (`harbour-furniture.test`) from a one-row CSV, drafts a mail to its contact, sends it and appends the contact's reply to the sandbox mailbox: one company, one thread, one sent mail and one reply stay, and the drafts that waited for review are skipped. The send policy is opened for the run and restored. Needs a fresh seed (it stops when the company exists) and the mail sandbox (`make mail`) |
+| `translations` | `01-translate-store-button` (crop), `02-translate-dialog` (crop), `03-translation-jobs` | translates the products of the PIM channel from English into the first other language of the channel: one finished job and the translations it wrote stay. Needs a fresh seed (it stops when the job list holds a finished job) and an AI toolbox that translates for the channel |
 
 A list shot is guarded: when the product list (searched for `ENT-`), the static pages, the authors, the navigation
 list, the attribute sets or the attributes show a row the seed did not create, or the first gallery page a photo of
@@ -402,5 +405,11 @@ The order list sends its search text as an email filter, once per page load, so 
 `orders` therefore places each run's order with a plus-addressed email of its own (`alex.reader+<run>@example.com`)
 and searches for that. On the Find product page a name alone gives similar matches; `duplicates` searches the EAN a
 seeded product and a seeded supplier offer share, which gives the exact-match group.
+
+`leads` uses the development-only test endpoints of the leads and communicator modules for what a button cannot do
+in a capture: the upload is answered by `test/import-now/` (the dev stack shares no import folder between the service
+and its worker), the draft comes from `test/communicate/` with the seeded `followup` template, the mail leaves through
+the channel clock and one send run, and one poll reads the reply. The import accepts a domain only under a public
+suffix or `.test`. Neither spec waits for the text of a mail or of a translation.
 
 Test artefacts (traces of a failed run) go to `tests/docs/test-results/`, which is gitignored.

@@ -62,6 +62,9 @@ All notable changes to this project will be documented in this file.
   23 screenshots, each list shot guarded against rows the seed did not create, every created record deleted again.
 - Docs capture specs for five more CMS guides (`attributes`, `categories`, `media`, `duplicates`, `orders`):
   19 screenshots. `duplicates` never confirms a merge; `orders` places one guest order on the storefront per run.
+- Docs captures: the `leads` guide (a CSV import to an answered mail, seven shots) and the `translations` guide
+  (Translate Store, its estimate and the job list, three shots), with an IMAP append helper for the mail sandbox
+  (`docs/testing.md`).
 
 ### Security
 
