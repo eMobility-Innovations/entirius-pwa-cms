@@ -94,6 +94,7 @@ Fixture data: `tests/fixtures/`.
 | — | `12-pim-product-links.spec.js` | PIM product deep links |
 | — | `13-pim-quality.spec.js`, `14-pim-quality-rules.spec.js`, `15-pim-quality-rules-offcompat.spec.js` | PIM quality/gap rules, soft-compat with older backends |
 | — | `16-error-feedback.spec.js` | API error surface in the UI |
+| — | `18-ai-toolbox-state.spec.js` | The translate dialog's hint and Estimate, and the header warning, per AI toolbox state (health answer replaced, read-only) |
 | — | `access-users.spec.js` | Admin, viewer, editor and customer see what their roles allow; the gate refuses the viewer's write; one toast per refusal burst (seeded users, read-only) |
 | — | `access-secret.spec.js` | A new token's value never leaves SecretReveal (writes: one application and one token, revoked and deactivated in cleanup — the API deletes neither, so each run leaves an inactive `e2e-secret-<run>` application until the next `make seed`, and ApplicationList reads one token list per application) |
 | — | `access-staff-create.spec.js` | New staff member: `accessadmin` creates a Viewer with a generated password shown once, which signs the account in read-only; `manager` sees no Access panel (writes: one `e2e-staff-<run>` account per run until the next `make seed`) |
