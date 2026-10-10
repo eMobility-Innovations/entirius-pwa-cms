@@ -12,6 +12,8 @@ vi.mock("@/api/munin/api", () => api);
 import { useConfigHealthStore } from "@/stores/configHealth";
 import ConfigHealthButton from "@/components/ConfigHealth/ConfigHealthButton.vue";
 import ConfigBanner from "@/components/ConfigHealth/ConfigBanner.vue";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
+import { useMuninStore } from "@/stores/munin";
 import { textTokens } from "@/utils/configHealth";
 
 const SMTP = {
@@ -256,5 +258,104 @@ describe("configuration health", () => {
     const banners = wrapper.findAll('[data-testid="config-banner"]');
     expect(banners).toHaveLength(1);
     expect(banners[0].text()).toContain("AI Toolbox is not responding");
+  });
+  const TOOLBOX = { code: "toolbox.status", module: "utils", state: "disabled", severity: "", scope: "" };
+  const toolboxRow = (state) => ({ ...TOOLBOX, state, fix_url: "https://docs.test/toolbox" });
+  const mountHint = () => mount(AiToolboxHint, { global: { stubs: { RouterLink } } });
+  const hint = (wrapper) => wrapper.find('[data-testid="ai-toolbox-hint"]');
+
+  it("a switched-off toolbox is a passing row: no icon, no count, named \"switched off\" in the panel", async () => {
+    api.GET_ConfigHealth.mockReturnValue(health([TOOLBOX]));
+    const store = useConfigHealthStore();
+    await store.poll();
+    expect(store.failing).toEqual([]);
+    expect(store.passing).toHaveLength(1);
+    expect(store.stateOf("toolbox.status")).toBe("disabled");
+    store.panelOpen = true;
+    const wrapper = mountButton();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="config-health-button"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="config-health-ok"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="config-health-switched-off"]').text()).toBe("config_health.switched_off");
+  });
+
+  it("a configured row carries no \"switched off\" mark", async () => {
+    api.GET_ConfigHealth.mockReturnValue(health(GREEN));
+    const store = useConfigHealthStore();
+    await store.poll();
+    store.panelOpen = true;
+    const wrapper = mountButton();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="config-health-switched-off"]').exists()).toBe(false);
+  });
+
+  it("a switched-off toolbox polled again never flashes \"fixed\"", async () => {
+    api.GET_ConfigHealth.mockReturnValue(health([TOOLBOX]));
+    const store = useConfigHealthStore();
+    await store.poll();
+    await store.poll();
+    expect(store.justFixed).toBe(false);
+  });
+
+  it.each([
+    ["", true],
+    ["configured", true],
+    ["unreachable", true],
+    ["disabled", false],
+    ["unconfigured", false],
+  ])("health state %j: aiUsable is %s", async (state, usable) => {
+    api.GET_ConfigHealth.mockReturnValue(health(state ? [{ ...TOOLBOX, state }] : [SMTP]));
+    const store = useConfigHealthStore();
+    await store.poll();
+    expect(store.aiState).toBe(state);
+    expect(store.aiUsable).toBe(usable);
+  });
+
+  it("without health rows the public registry decides: platform.toolbox.state disabled blocks AI", async () => {
+    api.GET_Modules.mockResolvedValue({ data: { platform: { toolbox: { state: "disabled" } }, modules: {} } });
+    await useMuninStore().fetchModules();
+    const store = useConfigHealthStore();
+    expect(store.checks).toEqual([]);
+    expect(store.aiState).toBe("disabled");
+    expect(store.aiUsable).toBe(false);
+    const wrapper = mountHint();
+    expect(hint(wrapper).attributes("data-state")).toBe("disabled");
+    expect(wrapper.find(".ai-hint__fix").exists()).toBe(false);
+  });
+
+  it("the health row wins over the registry", async () => {
+    api.GET_Modules.mockResolvedValue({ data: { platform: { toolbox: { state: "disabled" } }, modules: {} } });
+    await useMuninStore().fetchModules();
+    api.GET_ConfigHealth.mockReturnValue(health([{ ...TOOLBOX, state: "configured" }]));
+    const store = useConfigHealthStore();
+    await store.poll();
+    expect(store.aiState).toBe("configured");
+  });
+
+  it.each(["", "configured"])("the hint renders nothing for state %j", async (state) => {
+    api.GET_ConfigHealth.mockReturnValue(health(state ? [{ ...TOOLBOX, state }] : []));
+    await useConfigHealthStore().poll();
+    expect(hint(mountHint()).exists()).toBe(false);
+  });
+
+  it.each([
+    ["disabled", false],
+    ["unconfigured", true],
+    ["unreachable", true],
+  ])("the hint for %s: its own text and state, fix link %s", async (state, linked) => {
+    api.GET_ConfigHealth.mockReturnValue(health([toolboxRow(state)]));
+    await useConfigHealthStore().poll();
+    const wrapper = mountHint();
+    expect(hint(wrapper).attributes("data-state")).toBe(state);
+    expect(hint(wrapper).classes()).toContain(`ai-hint--${state}`);
+    expect(hint(wrapper).text()).toContain(`config_health.checks.toolbox_status.${state}`);
+    expect(wrapper.find(".ai-hint__fix").exists()).toBe(linked);
+    if (linked) expect(wrapper.get(".ai-hint__fix").attributes("href")).toBe("https://docs.test/toolbox");
+  });
+
+  it("an internal fix url of the hint is a router link", async () => {
+    api.GET_ConfigHealth.mockReturnValue(health([{ ...toolboxRow("unconfigured"), fix_url: "/leads/settings" }]));
+    await useConfigHealthStore().poll();
+    expect(mountHint().get(".ai-hint__fix").attributes("data-to")).toBe("/leads/settings");
   });
 });

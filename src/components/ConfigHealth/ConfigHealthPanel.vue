@@ -63,6 +63,9 @@
         <FontAwesomeIcon :icon="$icons.success" class="cfg-grid__tick" />{{
           checkName(row.code)
         }}
+        <span v-if="row.state === 'disabled'" class="cfg-grid__state" data-testid="config-health-switched-off">{{
+          $t("config_health.switched_off")
+        }}</span>
       </li>
     </ul>
 
@@ -194,6 +197,10 @@ const checkedAgo = computed(() => {
 .cfg-grid__tick {
   margin-right: var(--space-1);
   color: var(--positive);
+}
+.cfg-grid__state {
+  margin-left: var(--space-1);
+  color: var(--text-secondary);
 }
 .cfg-panel__foot {
   display: flex;

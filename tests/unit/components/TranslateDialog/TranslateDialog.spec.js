@@ -2,6 +2,7 @@
 // hands it to the caller's estimateFn / submitFn; these specs pin those calls and how each estimate reads.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 
 const spawnNotification = vi.fn();
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification }) }));
@@ -9,6 +10,7 @@ vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification }
 import TranslateDialog from "@/components/TranslateDialog/index.vue";
 import RealBasicSelect from "@/boots/BasicSelect/index.vue";
 import { t } from "@/i18n";
+import { useConfigHealthStore } from "@/stores/configHealth";
 import { DescribedFormField, FIELD_DESCRIPTION } from "../../helpers/describedFormField";
 
 const BasicModal = { name: "BasicModal", props: ["open", "actions", "title"], template: "<div v-if='open'><slot /></div>" };
@@ -41,7 +43,30 @@ async function estimateThenConfirm(wrapper) {
   await flushPromises();
 }
 
-beforeEach(() => spawnNotification.mockClear());
+beforeEach(() => {
+  setActivePinia(createPinia());
+  spawnNotification.mockClear();
+});
+
+describe("TranslateDialog — AI toolbox state", () => {
+  const toolbox = (state) => (useConfigHealthStore().checks = [{ code: "toolbox.status", state, scope: "" }]);
+
+  it.each(["disabled", "unconfigured"])("%s: the hint shows and Estimate stays off with the languages picked", async (state) => {
+    toolbox(state);
+    const { wrapper } = build("product");
+    await pickTargets(wrapper, ["en"]);
+    expect(wrapper.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe(state);
+    expect(action(wrapper, "estimate").disabled).toBe(true);
+  });
+
+  it("unreachable: the hint warns and Estimate stays available", async () => {
+    toolbox("unreachable");
+    const { wrapper } = build("product");
+    await pickTargets(wrapper, ["en"]);
+    expect(wrapper.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe("unreachable");
+    expect(action(wrapper, "estimate").disabled).toBe(false);
+  });
+});
 
 describe("TranslateDialog — product scope", () => {
   it("estimates, then submits the same request with the estimate", async () => {

@@ -10,7 +10,7 @@
         {{ scheduledLabel }}
       </p>
 
-      <ConfigBanner code="toolbox.status" />
+      <AiToolboxHint />
       <ConfigBanner code="communicator.smtp" />
 
       <div v-if="failedVersion" class="review__failed flex-column gap-4" role="alert" data-testid="review-failed">
@@ -108,6 +108,7 @@ import { useSwipe } from "@/composables/useSwipe";
 import { companyIdFromSubjectRef } from "@/utils/subjectRef";
 import { sendStateSentence } from "@/utils/leadsLabels";
 import { sendState } from "@/utils/leadsTime";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import ConfigBanner from "@/components/ConfigHealth/ConfigBanner.vue";
 import { useConfigHealthStore } from "@/stores/configHealth";
 import IntelCard from "./IntelCard.vue";
@@ -143,7 +144,7 @@ const companyId = computed(() => companyIdFromSubjectRef(message.value?.thread?.
 const companyName = computed(
   () => message.value?.render_context?.company_name || message.value?.thread?.recipient_name || ""
 );
-const aiDisabled = computed(() => configHealth.stateOf("toolbox.status") === "unconfigured");
+const aiDisabled = computed(() => !configHealth.aiUsable);
 const failedActions = computed(() => [
   { key: "back", label: t("leads.review.cancel"), role: "secondary", testid: "failed-back", onClick: () => (failedVersion.value = null) },
   { key: "retry", label: t("leads.review.retry"), role: "primary", testid: "failed-retry", onClick: retryRewrite },

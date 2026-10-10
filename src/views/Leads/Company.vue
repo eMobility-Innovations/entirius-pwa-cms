@@ -11,6 +11,7 @@
     <p v-if="loadError" class="t-negative m-0" role="alert" data-testid="company-load-error">{{ loadError }}</p>
     <Loader v-else-if="!company" block />
     <template v-else>
+      <AiToolboxHint />
       <header class="company__head flex ai-fe wrap gap-5">
         <div class="company__name flex-column gap-1">
           <h2 class="fs-500 fw-600 m-0" data-testid="thread-company">{{ company.name }}</h2>
@@ -61,6 +62,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { useIsDesktop } from "@/composables/useIsDesktop";
 import { useLeadTypesStore } from "@/stores/leadTypes";
 import { useNotifyStore } from "@/stores/notify";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import CompanyActions from "./CompanyActions.vue";
 import Thread from "./Thread.vue";
 import ContactsTab from "./tabs/ContactsTab.vue";

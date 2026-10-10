@@ -3676,6 +3676,7 @@
     "check_again": "Check again",
     "checked_now": "Checked just now",
     "checked_ago": "Checked {minutes} min ago",
+    "switched_off": "switched off",
     "names": {
       "toolbox_status": "AI toolbox",
       "email_smtp": "Email SMTP entries",
@@ -3685,6 +3686,7 @@
     },
     "checks": {
       "toolbox_status": {
+        "disabled": "AI features are switched off on this instance",
         "unconfigured": "AI features are available with the Entirius AI Toolbox",
         "unreachable": "AI Toolbox is not responding — try again later"
       },

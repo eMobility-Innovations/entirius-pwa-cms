@@ -11,7 +11,8 @@
         {{ $t("leads.thread.company_unavailable") }}
       </p>
       <p v-if="desktopHint" class="t-muted m-0" data-testid="thread-desktop-hint">{{ $t("leads.thread.desktop_hint") }}</p>
-      <ConfigBanner v-if="company" code="toolbox.status" />
+      <!-- the phone card only: the desktop card shows the hint once, above its tabs -->
+      <AiToolboxHint v-if="company && desktopHint" />
       <IntelCard v-if="company && munin.isModuleEnabled('siteintel')" :context="company" />
       <p v-if="mailMissing" class="t-muted m-0" role="status" data-testid="thread-mail-missing">
         {{ $t("leads.thread.mail_unavailable") }}
@@ -74,7 +75,7 @@ import { activityText } from "@/utils/leadsLabels";
 import { threadSubject, waitingOf } from "@/utils/leadsThread";
 import { formatTime } from "@/utils/leadsTime";
 import PageLayout from "@/boots/PageLayout/index.vue";
-import ConfigBanner from "@/components/ConfigHealth/ConfigBanner.vue";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import EarlierThreads from "./EarlierThreads.vue";
 import IntelCard from "./IntelCard.vue";
 import ThreadTimeline from "./ThreadTimeline.vue";

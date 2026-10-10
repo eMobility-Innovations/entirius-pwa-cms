@@ -34,6 +34,7 @@
       data-testid="communicate-modal"
     >
       <div class="flex-column gap-4">
+        <AiToolboxHint />
         <FormField :label="$t('leads.communicate.template')">
           <BasicSelect v-model="templateKey" :options="templateOptions" data-testid="communicate-template" />
         </FormField>
@@ -53,6 +54,7 @@ import { t } from "@/i18n";
 import { PATCH_Company, POST_Communicate, POST_CreateCustomer, POST_RequestAudit } from "@/api/leads/api";
 import { GET_Templates } from "@/api/communicator/api";
 import { GET_LatestAudit, POST_AuditRerun } from "@/api/siteintel/api";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { useMuninStore } from "@/stores/munin";
 import { useNotifyStore } from "@/stores/notify";

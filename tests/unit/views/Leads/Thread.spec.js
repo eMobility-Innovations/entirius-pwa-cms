@@ -36,6 +36,7 @@ vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification }
 vi.mock("vue-router", () => ({ useRoute: () => ({ params: { id: "42" } }), useRouter: () => ({}) }));
 
 import Thread from "@/views/Leads/Thread.vue";
+import { useConfigHealthStore } from "@/stores/configHealth";
 import BasicButton from "@/boots/BasicButton/index.vue";
 
 const stubs = { Loader: true, ConfigBanner: true, BasicButton };
@@ -54,6 +55,15 @@ beforeEach(() => {
 });
 
 describe("Leads Thread", () => {
+  it("the phone card renders the AI toolbox hint with the company; the desktop timeline tab leaves it to the card", async () => {
+    useConfigHealthStore().checks = [{ code: "toolbox.status", state: "disabled", severity: "", scope: "" }];
+    const phone = mountThread({ desktopHint: true });
+    const tab = mountThread();
+    await flushPromises();
+    expect(phone.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe("disabled");
+    expect(tab.find('[data-testid="ai-toolbox-hint"]').exists()).toBe(false);
+  });
+
   it("renders only the newest thread under its subject header", async () => {
     const wrapper = mountThread();
     await flushPromises();
