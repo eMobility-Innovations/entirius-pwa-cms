@@ -138,15 +138,21 @@ async function profileRoute(route, prefs) {
   return route.fulfill({ response, json: body });
 }
 
-// Returns which fixed-body stubs answered; a badge whose stub was never hit gets masked.
-async function prepareContext(context, { theme, collapsed = false }) {
-  const prefs = { cms_theme: THEME_VALUES[theme], cms_lang: LANG, cms_sidebar_collapsed: String(collapsed) };
-  const stubs = { notifications: false, health: false };
+// Theme, language and sidebar on every page load: `localStorage` plus the rewritten profile GET. Every profile write
+// is answered `{}`, so the admin profile the stack shares never flips.
+async function pinPreferences(context, { theme, lang, collapsed = false }) {
+  const prefs = { cms_theme: THEME_VALUES[theme], cms_lang: lang, cms_sidebar_collapsed: String(collapsed) };
   await context.addInitScript((values) => {
     for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value);
   }, prefs);
-  await stubWrites(context);
   await context.route(isProfile, (route) => profileRoute(route, prefs));
+}
+
+// Returns which fixed-body stubs answered; a badge whose stub was never hit gets masked.
+async function prepareContext(context, { theme, collapsed = false }) {
+  const stubs = { notifications: false, health: false };
+  await stubWrites(context);
+  await pinPreferences(context, { theme, lang: LANG, collapsed });
   await context.route(isNotifications("/notifications/"), (route) => route.fulfill(json({ count: 0, results: [] })));
   await context.route(isNotifications("/notifications/unread-count/"), (route) => {
     stubs.notifications = true;
@@ -334,7 +340,15 @@ module.exports = {
   THEME_VALUES,
   LANG,
   LOCALE,
+  API_URL,
+  isHealth,
+  isNotifications,
+  pinPreferences,
   prepareContext,
+  idle,
+  settle,
+  waitForData,
+  assertLanded,
   openScreen,
   openPinned,
   PROBES,
