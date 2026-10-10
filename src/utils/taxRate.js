@@ -1,11 +1,10 @@
-import { getLang } from "@/i18n";
+import { uiLocale } from "@/i18n";
 
 // PriceManager stores a tax rate as a decimal fraction with 4 places ("0.2300" = 23 %);
 // the CMS shows and takes percent. Both directions round to 2 percent decimals.
-const LOCALES = { PL: "pl-PL", EN: "en-GB" };
 
 // The Intl locale of the UI language (formats.js reads its decimal separator from it).
-export const numberLocale = () => LOCALES[getLang()] || LOCALES.EN;
+export const numberLocale = uiLocale;
 
 const round2 = (n) => Math.round(n * 100) / 100;
 

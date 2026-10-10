@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { defineComponent, h, nextTick, ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { ICONS } from "@/boots/Icons/icons";
@@ -14,6 +14,9 @@ import ColorInput from "@/boots/ColorInput/index.vue";
 import BasicDatePicker from "@/boots/BasicDatePicker/index.vue";
 import BasicWysiwyg from "@/boots/BasicWysiwyg/index.vue";
 import { hintsOn } from "@/composables/fieldHints";
+import { setLang } from "@/i18n";
+import { Polish } from "flatpickr/dist/l10n/pl.js";
+import { english } from "flatpickr/dist/l10n/default.js";
 
 const flatpickrInstance = { destroy: vi.fn(), setDate: vi.fn(), input: { value: "" } };
 const flatpickr = vi.fn(() => flatpickrInstance);
@@ -430,6 +433,18 @@ describe("SegmentedControl and ColorInput", () => {
 
 describe("BasicDatePicker", () => {
   const mountPicker = (props = {}) => mount(BasicDatePicker, { props, global: GLOBAL });
+  afterEach(() => setLang("EN"));
+
+  it.each([
+    ["PL", Polish],
+    ["EN", english],
+  ])("opens the calendar in the UI language (%s), read at every open", async (lang, locale) => {
+    const wrapper = mountPicker();
+    setLang(lang);
+    await wrapper.find("button").trigger("click");
+    expect(flatpickr.mock.calls.at(-1)[1].locale).toBe(locale);
+    wrapper.unmount();
+  });
 
   it("mounts its flatpickr instance only while open, destroyed on close and on unmount", async () => {
     flatpickr.mockClear();

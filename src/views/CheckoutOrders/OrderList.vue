@@ -79,6 +79,7 @@
 import { GET_Orders } from "@/api/orders/api";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { formatDate } from "@/utils/format";
 
 const STATUS_VARIANTS = {
   UNPAID: "warning",
@@ -269,14 +270,7 @@ export default {
       return t !== k ? t : s;
     },
     formatDate(d) {
-      if (!d) return "-";
-      return new Date(d).toLocaleDateString("pl-PL", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return d ? formatDate(d) : "-";
     },
   },
 };

@@ -102,6 +102,7 @@
 import { GET_Order } from "@/api/orders/api";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { formatDate } from "@/utils/format";
 
 const STATUS_VARIANTS = {
   UNPAID: "warning", NEW: "warning", CONFIRMED: "positive", HOLDED: "info",
@@ -172,10 +173,7 @@ export default {
       const t = this.$t(key);
       return t !== key ? t : status;
     },
-    formatDate(dateStr) {
-      if (!dateStr) return "-";
-      return new Date(dateStr).toLocaleDateString("pl-PL", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-    },
+    formatDate(dateStr) { return dateStr ? formatDate(dateStr) : "-"; },
     formatTax(rate) {
       if (!rate) return "-";
       const n = parseFloat(rate);
