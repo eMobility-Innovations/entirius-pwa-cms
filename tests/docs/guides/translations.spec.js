@@ -27,8 +27,8 @@ const DIALOG = '[role="dialog"]:visible';
 const ESTIMATE = '[data-testid="translate-dialog-estimate-step"]';
 const JOBS = ".tj-dashboard";
 
-const isExecute = (response) =>
-  /\/bulk\/translate\/$/.test(response.url()) && response.request().postDataJSON()?.dry_run === false;
+const isTranslate = (dryRun) => (response) =>
+  /\/bulk\/translate\/$/.test(response.url()) && response.request().postDataJSON()?.dry_run === dryRun;
 
 async function assertFreshSeed(page) {
   await goto(page, "/translation-jobs", { ready: JOBS });
@@ -48,9 +48,19 @@ async function fillDialog(page) {
   await expect(dialog.getByLabel(FORCE)).not.toBeChecked();
 }
 
+// The dialog shows a failed estimate as a toast and stays on its first step: the answer itself is checked, so a
+// refused estimate fails here with the reason the service gave.
+async function estimate(page) {
+  const estimated = page.waitForResponse(isTranslate(true));
+  await page.getByTestId("translate-dialog-estimate").click();
+  const response = await estimated;
+  if (!response.ok()) throw new Error(`estimate failed: ${response.status()} ${await response.text()}`);
+  await page.locator(`${ESTIMATE} ${ROWS}`).first().waitFor();
+}
+
 // The job the dialog created, read from its own answer: the path of the job and the channel it belongs to.
 async function confirm(page) {
-  const executed = page.waitForResponse(isExecute);
+  const executed = page.waitForResponse(isTranslate(false));
   await page.getByTestId("translate-dialog-confirm").click();
   const response = await executed;
   const [jobId] = (await response.json()).job_ids;
@@ -79,8 +89,7 @@ test("translations", async ({ page }) => {
   await test.step("The dialog with its cost estimate", async () => {
     await page.click(BUTTON);
     await fillDialog(page);
-    await page.getByTestId("translate-dialog-estimate").click();
-    await page.locator(`${ESTIMATE} ${ROWS}`).first().waitFor();
+    await estimate(page);
     await shot(page, "02-translate-dialog", { element: DIALOG, callouts: [{ target: ESTIMATE, label: "1" }] });
   });
 
