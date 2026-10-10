@@ -136,8 +136,8 @@ gate in-view with `isModuleEnabled` — never map them in `MODULE_TO_PANEL`. Eve
 channel from `src/stores/leadsChannel.js` (`VUE_APP_LEADS_CHANNEL`, default `default-europe`), never
 `VUE_APP_CHANNEL`. Review has no detail endpoint: the view finds the draft in `review/?status=review_required`.
 The thread view opens the newest thread of `leads.Company:<id>` (closed or not); older threads sit behind one "Earlier threads" expander (first `threads/` page, more pages on demand, a row's detail loads with the row so its subject and recipient are readable collapsed) that badges an undecided opt-out; a reply that landed before our newest mail expands that section and opens its thread. A reply that sits in an older thread is marked ("The reply is in this thread") and scrolled into view on arrival (the bell carries only `subject_ref`). A waiting bubble shows no clock of its own: it states `sendState(next_slot)` like the Inbox (`src/utils/leadsTime.js`); a reply's quoted history (from its first `>` line) folds behind a toggle. `/leads/inbox` is one list of every conversation of the channel — one row per `subject_ref` (a company, or any other ref), never one per technical thread (`conversations/`: the newest thread's row, state/draft/waiting/reply from any of its threads, `thread_count > 1` as a quiet "N threads" hint; 20 per page, a 30 s poll like the bell) behind four `FilterChip`s whose counts come with the list (`counts`): All · Drafts · Waiting · Replies — Drafts is the default while drafts wait. A row keeps one layout and one marker (`InboxRow.vue`; the chip decides it for a conversation in several states): a draft opens Review (the row's draft, even from an older thread, "To:" its own recipient), a waiting mail shows a clock + `sendState(next_slot)` and Send now while `canSendNow`, a reply its first own line. Other rows open the company card, and a conversation without a company opens its newest thread at `/leads/conversations/:id`. The bell falls back to that view for an unmapped `subject_ref`. The empty Drafts filter keeps the old empty state ("N scheduled, <state>", `inbox-empty`), and the chip bar is `inbox-summary` — both are the emporium `InboxPage` contract. Activity messages are service strings — `activityText` (`src/utils/leadsLabels.js`) turns the known shapes into sentences. Config problems of the screen
-(toolbox, outgoing SMTP) show as `ConfigBanner code="…"` (`src/components/ConfigHealth/`), fed by the munin `health/`
-store `configHealth` — see "Configuration health". `data-testid`s are the contract of the
+(outgoing SMTP) show as `ConfigBanner code="…"` and the AI toolbox state as `AiToolboxHint` (`src/components/ConfigHealth/`),
+both fed by the store `configHealth` — see "Configuration health". `data-testid`s are the contract of the
 emporium page objects (`src/entirius_tests/cms_pages/`) — rename both together.
 
 Desktop screens (≥ 1024 px; below that `DesktopOnly.vue` shows "Open on a desktop"): `/leads/board` (stage columns,
@@ -178,6 +178,17 @@ panel (green grid on demand). Text lives once in `config_health.checks.<code wit
 read by panel and `ConfigBanner`; an unknown code falls back to the backend `title`. `fix_url` starting with `/` is a
 router link, anything else opens in a new tab. Probe failures (rows with `probe: true`, from "Check again") stay
 until the next "Check again" — a plain poll never repeats a probe. Needs django-munin with `health/` (the release
-after 2.1.0): against 2.1.0 the poll 404s quietly and Review no longer disables AI actions without a toolbox —
-release munin first. The new munin still sends the deprecated `platform.toolbox_status` (removed in 3.0.0), so an
-older CMS keeps working against it.
+after 2.1.0): against 2.1.0 the poll 404s quietly. The new munin still sends the deprecated
+`platform.toolbox_status` (removed in 3.0.0), so an older CMS keeps working against it.
+
+A row in state `disabled` (the AI toolbox switched off on purpose) is healthy and visible: it sits in the passing
+list as "switched off", never shows the header icon, never counts and never flashes "fixed" (`QUIET_STATES`).
+
+AI actions follow one value, `configHealth.aiState`: the `toolbox.status` health row first; without one (health is
+read only with `munin.config`, or it is unavailable) the public registry's `platform.toolbox.state`, which
+`munin.fetchModules` keeps in `munin.platform`; `""` when neither reports it (an older munin). `aiUsable` is false
+for `disabled` and `unconfigured`: Review's Rewrite, the translate dialog's Estimate, and an AI template's model list
+and test generate are off; `unreachable` leaves them on, since the toolbox may answer again. `AiToolboxHint` (no
+props) is the one place for the hint, with one text per state in `config_health.checks.toolbox_status.<state>`:
+Review, the company card and thread, the Communicate dialog, an AI template and the translate dialog. A new AI
+action reads `aiUsable` and renders the hint, never its own state check or text.

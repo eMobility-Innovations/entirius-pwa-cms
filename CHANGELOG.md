@@ -47,6 +47,14 @@ All notable changes to this project will be documented in this file.
   `access-secret.spec.js` (a new token's value is in no console message, web storage, cookie, URL, page HTML or later
   API response). Visual capture ids for six Access screens (baselines not approved yet).
 
+- AI actions follow the AI toolbox state from one place (`configHealth.aiState` / `aiUsable`): a toolbox switched
+  off on purpose (`disabled`) is a calm state, listed as "switched off" in the configuration-health panel with no
+  header warning; `disabled` and `unconfigured` turn off Rewrite in Review, Estimate in the translate dialog and an AI
+  template's model list and test generate; `unreachable` keeps them on and warns. One shared hint per state
+  (`AiToolboxHint`) on Review, the company card and thread, the Communicate dialog, an AI template and the translate
+  dialog. A user who cannot read configuration health gets the state from the public module registry
+  (`platform.toolbox.state`); against a django-munin without it nothing changes.
+
 ### Security
 
 - With `VUE_APP_DEBUG` on, the API client no longer logs the body of a request flagged `sensitive` or of its response
