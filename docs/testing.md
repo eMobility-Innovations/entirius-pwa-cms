@@ -309,3 +309,67 @@ deliberately differs from Figma (KD01–KD22) and how each layer treats it.
 picker excepted), no view-local class family, no `detail-*` form class, no removed part, no page-frame leftover, no
 raw `<h1>`, no local modal file and no view-local boot copy. `npm run lint:ui` (every rule an error) and `@ux` (no
 `high` finding, empty allow-list) guard that ground in this repo.
+
+## Docs captures
+
+`tests/docs/` is a separate Playwright project that takes the documentation screenshots: a page or an element crop,
+with optional numbered callouts, from the live, seeded stack. It runs against an already running CMS (`CMS_BASE_URL`,
+default `http://localhost:8180`, API `CMS_API_URL`, default `http://localhost:8100`) in English and the dark theme at
+one viewport, 1280 × 800 (the width where the full desktop layout starts), DPR 1, `en-GB`, `Europe/Warsaw`, one
+worker. Images are written to `<DOCS_SCREENS_OUT>/<guide>/NN-slug.png`; without `DOCS_SCREENS_OUT` a spec fails with
+`INFRA: DOCS_SCREENS_OUT is not set`.
+
+| File | Holds |
+|---|---|
+| `tests/docs/playwright.docs.config.js` | the project: viewport, locale, colour scheme, one `chromium` project, the `list` reporter |
+| `tests/docs/support/capture.js` | the helpers below and, in its header comment, the rules of a guide spec |
+| `tests/docs/guides/<guide>.spec.js` | one spec per guide; the file name is the guide name, the image folder and the docs page slug |
+| `tests/docs/guides/self-test.spec.js` | `@self-test`: proves the helpers on the home screen (a page shot, a header crop with a callout) |
+
+```bash
+make docs-screens GUIDE=<name>   # from the entirius-zeno harness: one guide, into a docs checkout
+make docs-screens                # every guide (the self-test stays out)
+DOCS_SCREENS_OUT=/tmp/docs-shots npx playwright test -c tests/docs/playwright.docs.config.js tests/docs/guides/self-test.spec.js
+```
+
+`make docs-screens` (entirius-zeno) checks that the dev CMS answers, sets the three variables and writes into
+`DOCS_SCREENS_REPO` (a docs checkout) under `src/assets/screens/`; `DOCS_SCREENS_OUT` overrides the folder.
+
+**Helpers** (`tests/docs/support/capture.js`):
+
+- `test`, `expect`: `@playwright/test` with a fresh context per test, pinned to English, the dark theme and an open
+  sidebar through `pinPreferences` of the visual harness (`tests/visual/support/state.js`). Option `signedIn`
+  (default `true`) logs in through the login form as `CMS_USER` / `CMS_PASSWORD` (default `admin` / `admin123`);
+  `test.use({ signedIn: false })` leaves the login screen up.
+- `guide(name)` → `{ shot }`, bound to `<DOCS_SCREENS_OUT>/<name>/`; the folder is created on the first shot.
+- `goto(page, route, { ready, noAuth = false })`: opens the route and waits like the visual harness does (no request
+  in flight, the route reached, fonts and images loaded, no loader visible, and `ready` visible when it is given: a
+  selector only the loaded state has). `noAuth` expects the login screen.
+- `shot(page, name, { element, padding = 16, callouts = [] })` → the file path. `name` is `NN-slug` (two digits,
+  then lower-case words joined by hyphens) and unique within the guide. Without `element` the shot is the viewport;
+  with it, the first match is scrolled into view and cropped with `padding` on each side, clamped to the viewport.
+  An element taller than the viewport throws.
+- A callout is `{ target, label }` (`label` `"1"`–`"9"`): a ring around the target with a numbered disc on its
+  top-right corner, drawn as a `[data-docs-callout]` layer for the shot only. A target outside the shot throws.
+
+**What differs from the visual harness.** A capture run writes to the API for real, so a guide can show the state
+after a save, and it keeps the real clock: live records carry server times, and the CMS refreshes its own token. Only
+the notification polls (answered empty) and the configuration-health GET (answered with no checks) are stubbed, since
+the warnings of a dev stack belong to no guide; profile writes are answered `{}`, so the shared admin profile never
+flips. A capture changes the database it runs on.
+
+**Rules of a guide spec:**
+
+- Steps are `test.step(title)`.
+- Selectors come from the existing e2e specs or `data-testid` / `data-fid`, never from Polish text.
+- A list shot shows only seeded demo rows (the product list: type `ENT-` into its search field, the prefix of every
+  demo SKU).
+- A spec that creates a record names it `Docs …` and deletes it in the same spec, through the UI.
+- A spec that edits a seeded record restores the original value before it ends, so a guide can be re-run on the same
+  database.
+- A spec that cannot restore (a record the UI cannot delete, an irreversible action) says so in its header comment,
+  names what each run leaves behind, and fails with `INFRA: <guide> needs a fresh make seed` when its start state is
+  gone.
+- Never click the theme toggle or the language switch: both PATCH the shared admin profile.
+
+Test artefacts (traces of a failed run) go to `tests/docs/test-results/`, which is gitignored.

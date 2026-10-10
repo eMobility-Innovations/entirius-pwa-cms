@@ -54,6 +54,10 @@ All notable changes to this project will be documented in this file.
   (`AiToolboxHint`) on Review, the company card and thread, the Communicate dialog, an AI template and the translate
   dialog. A user who cannot read configuration health gets the state from the public module registry
   (`platform.toolbox.state`); against a django-munin without it nothing changes.
+- Docs capture project `tests/docs/`: documentation screenshots from the live, seeded stack in English and the dark
+  theme at 1280 × 800, as a page or an element crop with optional numbered callouts (`guide`, `goto`, `shot` in
+  `tests/docs/support/capture.js`, one spec per guide, `docs/testing.md` § Docs captures). The visual harness exports
+  `pinPreferences` and its read-only waits for it; its behaviour is unchanged.
 
 ### Security
 
