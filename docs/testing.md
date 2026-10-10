@@ -383,13 +383,24 @@ database.
 | `content-pages` | `01-content-list`, `02-new-page`, `03-new-section`, `04-page-draft`, `05-page-sections` | creates the static page `Docs Spring Lookbook` as a draft and deletes it at the end; nothing is published |
 | `blog-posts` | `01-authors-list`, `02-author-detail`, `03-post-authors` (crop), `04-author-picker`, `05-publish-actions` (crop) | nothing: the author picker is opened and closed |
 | `navigation` | `01-navigation-list`, `02-header-editor`, `03-add-item` (crop), `04-footer-editor`, `05-publish-actions` (crop) | nothing: the add-item dialog is filled and closed without adding |
+| `attributes` | `01-attribute-sets`, `02-attribute-set`, `03-attributes`, `04-new-attribute`, `05-attribute-options` (crop) | creates the select attribute `docs_finish` with the option `docs-matte` and deletes the attribute at the end |
+| `categories` | `01-category-tree`, `02-new-category`, `03-category-detail`, `04-category-in-tree` (crop) | creates the category `docs-reading-chairs` under Chairs and deletes it at the end |
+| `media` | `01-gallery`, `02-upload-dialog` (crop), `03-uploaded-photo` (crop) | uploads a copy of the first gallery image with the alt text `Docs sample photo` and deletes it at the end |
+| `duplicates` | `01-find`, `02-find-results`, `03-duplicates`, `04-merge-dialog` (crop) | nothing: the merge dialog is opened and cancelled, a merge is never confirmed. Needs a fresh seed: the duplicate group it shows is gone once it is merged |
+| `orders` | `01-orders`, `02-order-detail`, `03-order-delivery` (crop) | one guest order per run, with an email address of its own, placed on the storefront (`STOREFRONT_URL`, default `http://localhost:3100`), and one unit of that product's stock; orders cannot be deleted. Needs the storefront |
 
-A list shot is guarded: when the product list (searched for `ENT-`), the static pages, the authors or the navigation
-list shows a row the seed did not create, the spec fails with `INFRA: <list> shows rows outside the seed (run make
-seed)`. `products` and `content-pages` start by deleting what a failed run left behind.
+A list shot is guarded: when the product list (searched for `ENT-`), the static pages, the authors, the navigation
+list, the attribute sets or the attributes show a row the seed did not create, or the first gallery page a photo of
+the e2e upload (alt text `test-…`), the spec fails with `INFRA: <list> shows rows outside the seed (run make seed)`.
+`products`, `content-pages`, `attributes`, `categories` and `media` start by deleting what a failed run left behind.
 
 The product create form asks for the required name in a rich-text field and saves its markup, so the new product
 opens with markup in its title. `products` therefore types the name again on the product page (`04-edit-name`), saves,
 and takes `03-product-created` after that save.
+
+The order list sends its search text as an email filter, once per page load, so an order ID typed there finds nothing.
+`orders` therefore places each run's order with a plus-addressed email of its own (`alex.reader+<run>@example.com`)
+and searches for that. On the Find product page a name alone gives similar matches; `duplicates` searches the EAN a
+seeded product and a seeded supplier offer share, which gives the exact-match group.
 
 Test artefacts (traces of a failed run) go to `tests/docs/test-results/`, which is gitignored.

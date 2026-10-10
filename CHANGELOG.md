@@ -60,6 +60,8 @@ All notable changes to this project will be documented in this file.
   `pinPreferences` and its read-only waits for it; its behaviour is unchanged.
 - Docs capture specs for five CMS guides (`sign-in`, `products`, `content-pages`, `blog-posts`, `navigation`):
   23 screenshots, each list shot guarded against rows the seed did not create, every created record deleted again.
+- Docs capture specs for five more CMS guides (`attributes`, `categories`, `media`, `duplicates`, `orders`):
+  19 screenshots. `duplicates` never confirms a merge; `orders` places one guest order on the storefront per run.
 
 ### Security
 

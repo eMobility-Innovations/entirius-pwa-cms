@@ -33,4 +33,7 @@ async function toastGone(page) {
   await expect(toast).toHaveCount(0, { timeout: 10000 });
 }
 
-module.exports = { ROWS, assertSeedRows, toastGone };
+/** A button of the page header (Save, Delete), by its label. */
+const headerButton = (page, name) => page.locator(".page-header").getByRole("button", { name, exact: true });
+
+module.exports = { ROWS, assertSeedRows, toastGone, headerButton };
