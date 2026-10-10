@@ -8,6 +8,9 @@ const { ROWS, api } = require("./helpers");
 // A translation cannot be taken back: every run leaves one finished job and the product translations it wrote in
 // the first other language of the channel. With a finished job already in the list the spec fails with
 // `INFRA: translations needs a fresh make seed`.
+//
+// The capture needs a translator client with a provider key configured in the toolbox for the channel; without one
+// it stops at Estimate cost with the service's answer.
 const { shot } = guide("translations");
 
 const SOURCE_LANGUAGE = "Source language"; // translate_dialog.source_language
