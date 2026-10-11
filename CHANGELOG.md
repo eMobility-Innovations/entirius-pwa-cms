@@ -71,6 +71,10 @@ All notable changes to this project will be documented in this file.
 - With `VUE_APP_DEBUG` on, the API client no longer logs the body of a request flagged `sensitive` or of its response
   (`[redacted]`); every access token call carries the flag, so a created or rotated token's value never reaches the
   console.
+- Stored HTML is cleaned where it is rendered: the page builder's rich-text previews and the legal texts of the
+  Agreements panel go through `sanitizeHtml` (`src/utils/sanitizeHtml.js`, DOMPurify with the allowlist of the
+  rich-text editor), so markup saved through the API cannot run script in a staff session. A unit test fails on a
+  `v-html` that skips the helper.
 
 ### Removed
 

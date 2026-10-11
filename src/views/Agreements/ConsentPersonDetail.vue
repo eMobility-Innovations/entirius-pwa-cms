@@ -164,7 +164,7 @@
       <div
         v-else
         class="legal-text-preview"
-        v-html="consentTextModal.data.text_html"
+        v-html="sanitizeHtml(consentTextModal.data.text_html)"
       />
     </BasicModal>
   </PageLayout>
@@ -175,6 +175,7 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { GET_PersonDetail, GET_ConsentText } from "@/api/agreements/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 export default {
   name: "ConsentPersonDetail",
@@ -275,6 +276,7 @@ export default {
     this.fetchPersonDetail();
   },
   methods: {
+    sanitizeHtml,
     formatDate(dateStr) {
       if (!dateStr) return "---";
       return new Date(dateStr).toLocaleString();
