@@ -75,6 +75,8 @@ All notable changes to this project will be documented in this file.
   Agreements panel go through `sanitizeHtml` (`src/utils/sanitizeHtml.js`, DOMPurify with the allowlist of the
   rich-text editor), so markup saved through the API cannot run script in a staff session. A unit test fails on a
   `v-html` that skips the helper.
+- The session cookies (access and refresh token included) are set with `SameSite=Strict`, and with `Secure` when the
+  CMS is served over https.
 
 ### Removed
 

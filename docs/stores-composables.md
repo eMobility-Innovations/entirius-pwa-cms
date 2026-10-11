@@ -58,7 +58,7 @@ All 12 stores (`src/stores/`) use composition (setup) syntax with `defineStore`.
   `src/composables/fieldHints.js`), preferences. `loadPreferences(extra)` applies the hints choice only from a real
   profile: `extra` an object (one without `cms_hints` → hints on); `extra` null means the profile call failed and
   the stored choice stands. `useLoginSession` hands `{}` for a profile without `extra`. `clearAuth()` sets hints on
-  and removes `cms_hints` from localStorage. Cookie persistence via `universal-cookie`.
+  and removes `cms_hints` from localStorage. Cookie persistence via `universal-cookie`. Every session cookie is `SameSite=Strict`, and `Secure` on an https page.
 
 ### `useMuninStore` API
 

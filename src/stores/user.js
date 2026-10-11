@@ -12,7 +12,13 @@ import { hintsOn } from '@/composables/fieldHints'
 const LOGOUT_BUDGET_MS = 6000
 
 const cookies = new Cookies()
-const COOKIE_OPTS = { path: '/', maxAge: 7 * 24 * 60 * 60 }
+// Never sent on a request from another site; on an https page never over plain http (local http development works).
+const cookieOpts = () => ({
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60,
+  sameSite: 'strict',
+  secure: window.location.protocol === 'https:',
+})
 
 let sessionTimer = null
 
@@ -42,7 +48,7 @@ export const useUserStore = defineStore('user', () => {
 
   function setUser({ username = '', first_name = '', last_name = '', email = '', permissions = [] }) {
     user.value = new User({ username, first_name, last_name, email, buildTypes: permissions })
-    cookies.set('user', user.value, COOKIE_OPTS)
+    cookies.set('user', user.value, cookieOpts())
   }
 
   // A token refresh carries no customer id (absent or null): the current one stays (the store's, else the cookie's),
@@ -54,10 +60,10 @@ export const useUserStore = defineStore('user', () => {
     customer_id.value = cid
     expiryDate.value = exp
 
-    cookies.set('token', t, COOKIE_OPTS)
-    cookies.set('refresh', r, COOKIE_OPTS)
-    if (cid != null) cookies.set('customer_id', cid, COOKIE_OPTS)
-    cookies.set('expiryDate', exp, COOKIE_OPTS)
+    cookies.set('token', t, cookieOpts())
+    cookies.set('refresh', r, cookieOpts())
+    if (cid != null) cookies.set('customer_id', cid, cookieOpts())
+    cookies.set('expiryDate', exp, cookieOpts())
 
     startSessionMonitor()
   }
@@ -65,7 +71,7 @@ export const useUserStore = defineStore('user', () => {
   // The login flow calls this last: the app leaves the login wall only with the user already in the store.
   function markAuthenticated() {
     isAuth.value = true
-    cookies.set('isAuth', true, COOKIE_OPTS)
+    cookies.set('isAuth', true, cookieOpts())
   }
 
   function clearAuth() {
