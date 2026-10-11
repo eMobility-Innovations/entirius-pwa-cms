@@ -73,3 +73,22 @@ bundle, and the pair is for the dev server only (`.env.development.local`). It s
 1. Add to `ENV_VARS` in `src/utils/env-check.js`
 2. Add to `REQUIRED_ENV` in `vue.config.js`
 3. Add to `.env.example`
+
+## Builder Controllers
+
+Vue components that handle configuration UI:
+
+- **InputFieldController** - Text inputs
+- **GroupFieldsController** - Repeatable field groups
+- **ButtonsController** - Button configuration
+- **ImagesController** - Image selection/upload
+
+Located in: `src/configs/builder/components/`
+
+## In-app Documentation
+
+Additional documentation available in the app:
+
+- Navigate to the `/pages/doc` route after login (`/doc` and `/docs` redirect there)
+- Config system: `src/views/Docs/config_docs.md`
+- Props system: `src/views/Docs/props_docs.md`

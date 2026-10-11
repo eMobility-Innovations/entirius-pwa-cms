@@ -136,7 +136,7 @@ carry `sensitive`, so `VUE_APP_DEBUG` logs `[redacted]` for them. The token list
 | Visual | capture ids `access-roles-list`, `access-role-builtin`, `access-staff-list`, `access-audit`, `access-applications-list`, `access-application-detail` (`needsData`: a fresh seed has no application, the row skips) |
 
 The e2e specs need the seeded staff users of the test package (viewer, editor, manager, accessadmin; names and passwords: the test
-package's `scripts/seed-access.py` and README § Key settings), overridable as `ACCESS_<KIND>_USERNAME` /
+package's `scripts/seed-access.py` and `docs/configuration.md` § Key settings), overridable as `ACCESS_<KIND>_USERNAME` /
 `ACCESS_<KIND>_PASSWORD` (`VIEWER`, `EDITOR`, `MANAGER`, `ADMIN`). The zeno seed gives no non-staff account a Customer row on the channel,
 so the real-customer case runs only when the run names one (`ACCESS_CUSTOMER_USERNAME` = its email,
 `ACCESS_CUSTOMER_PASSWORD`) and then fails when that login fails on `VUE_APP_CHANNEL`; without it the case skips with
