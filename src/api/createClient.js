@@ -178,8 +178,9 @@ function attachTokenRefresh(client) {
   )
 }
 
-// A request flagged `sensitive` (the access token calls: a create or rotate answer holds a raw token) never has its
-// body in the debug log, the request's or the response's.
+// A request flagged `sensitive` (the login call: a password and the answered token pair; the access token calls: a
+// create or rotate answer holds a raw token) never has its body in the debug log, the request's or the response's.
+// The token refresh and the logout go through plain `axios`, which no debug interceptor sees.
 const REDACTED = '[redacted]'
 const debugBody = (config, data) => (config?.sensitive ? REDACTED : data)
 

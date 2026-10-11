@@ -83,6 +83,8 @@ All notable changes to this project will be documented in this file.
 - A production build ships no source maps and fails when `VUE_APP_USERNAME` or `VUE_APP_PASSWORD` is set; the login
   wall and the runtime env check read the pair in development only (before, debug mode prefilled it in production
   too). Keep the pair in `.env.development.local`.
+- With `VUE_APP_DEBUG` on, the login call is logged as `[redacted]`: neither the password nor the answered token
+  pair reaches the console.
 
 ### Removed
 
