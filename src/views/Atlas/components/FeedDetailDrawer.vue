@@ -120,9 +120,9 @@
               <span v-if="p.ean">EAN: {{ p.ean }}</span>
               <a
                 v-if="p.url"
-                :href="p.url"
+                :href="safeHref(p.url)"
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 class="t-accent"
               >
                 {{ $t("atlas.feeds.detail.preview_open_source") }}
@@ -138,6 +138,7 @@
 <script>
 import { POST_FeedTest } from "@/api/atlas/api";
 import { formatCost } from "@/utils/format";
+import { safeHref } from "@/utils/safeHref";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 const SYNC_STATUS_VARIANTS = {
@@ -192,6 +193,7 @@ export default {
   },
   methods: {
     formatCost,
+    safeHref,
     syncStatusVariant(value) {
       return SYNC_STATUS_VARIANTS[value] || "neutral";
     },

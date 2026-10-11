@@ -15,9 +15,9 @@
           <div>
             <a
               v-if="current.subject_url"
-              :href="current.subject_url"
+              :href="safeHref(current.subject_url)"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               class="focus-mode__subject fs-400 fw-600 t-accent"
               >{{ current.subject_label || current.subject_ref }}</a
             >
@@ -88,6 +88,7 @@
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { safeHref } from "@/utils/safeHref";
 import DiffRenderer from "./DiffRenderer.vue";
 import ProductPreviewCard from "./ProductPreviewCard.vue";
 import { POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
@@ -182,6 +183,7 @@ export default {
     window.removeEventListener("keydown", this.onKey);
   },
   methods: {
+    safeHref,
     onKey(e) {
       // Never hijack keys while the operator is typing a reject reason.
       const tag = (e.target?.tagName || "").toLowerCase();

@@ -11,9 +11,9 @@
     <span>{{ checkText(row) }}</span>
     <a
       v-if="row.fix_url && !isInternalFix(row.fix_url)"
-      :href="row.fix_url"
+      :href="safeHref(row.fix_url)"
       target="_blank"
-      rel="noopener"
+      rel="noopener noreferrer"
       class="config-banner__fix"
     >
       {{ $t("config_health.fix") }}
@@ -31,6 +31,7 @@
 import { computed } from "vue";
 import { useConfigHealthStore } from "@/stores/configHealth";
 import { checkText, isInternalFix } from "@/utils/configHealth";
+import { safeHref } from "@/utils/safeHref";
 
 // The failing rows of one check on the screen that depends on it — same text as the header panel.
 const props = defineProps({ code: { type: String, required: true } });

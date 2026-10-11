@@ -77,6 +77,9 @@ All notable changes to this project will be documented in this file.
   `v-html` that skips the helper.
 - The session cookies (access and refresh token included) are set with `SameSite=Strict`, and with `Secure` when the
   CMS is served over https.
+- A URL from the server (a supplier's product or image page, a meeting link, an enrichment subject, a
+  configuration-health fix link, a product video) is bound to `href` only as http, https or mailto (`safeHref`,
+  `src/utils/safeHref.js`); every link that opens a new tab carries `rel="noopener noreferrer"`.
 
 ### Removed
 

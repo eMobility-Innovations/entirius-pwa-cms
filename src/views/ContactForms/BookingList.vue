@@ -85,7 +85,7 @@
         <template #cell-meet_link="{ value }">
           <a
             v-if="value"
-            :href="value"
+            :href="safeHref(value)"
             target="_blank"
             rel="noopener noreferrer"
             class="cf-list__meet-link"
@@ -114,6 +114,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { GET_Bookings } from "@/api/contactForms/api";
+import { safeHref } from "@/utils/safeHref";
 import {
   LEAD_STATUSES,
   leadStatusLabel,
@@ -212,6 +213,7 @@ export default {
     this.fetchBookings();
   },
   methods: {
+    safeHref,
     leadStatusLabel,
     leadStatusVariant,
     formatDateTime(iso) {

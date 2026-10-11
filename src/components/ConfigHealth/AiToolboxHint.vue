@@ -10,9 +10,9 @@
     <span>{{ $t(`config_health.checks.toolbox_status.${state}`) }}</span>
     <a
       v-if="fixUrl && !isInternalFix(fixUrl)"
-      :href="fixUrl"
+      :href="safeHref(fixUrl)"
       target="_blank"
-      rel="noopener"
+      rel="noopener noreferrer"
       class="ai-hint__fix"
     >
       {{ $t("config_health.fix") }}
@@ -25,6 +25,7 @@
 import { computed } from "vue";
 import { useConfigHealthStore } from "@/stores/configHealth";
 import { isInternalFix } from "@/utils/configHealth";
+import { safeHref } from "@/utils/safeHref";
 
 // The one hint of the AI toolbox state, the same on every screen with an AI action: switched off on purpose
 // (`disabled`, calm), not set up (`unconfigured`), not answering (`unreachable`). Nothing while the toolbox works.
