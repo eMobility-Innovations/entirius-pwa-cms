@@ -64,9 +64,15 @@ VUE_APP_CHANNEL=your-channel-name
 VUE_APP_PANELS=pages,pim,points
 VUE_APP_DEBUG=false
 VUE_APP_LANG=EN
+VUE_APP_SSO_API_BASE=
+```
+
+The dev auto-login pair goes into `.env.development.local` (the dev server only), never into `.env`: every
+`VUE_APP_*` value is compiled into the bundle, and a production build refuses to start with either set.
+
+```bash
 VUE_APP_USERNAME=your-username
 VUE_APP_PASSWORD=your-password
-VUE_APP_SSO_API_BASE=
 ```
 
 ### Environment Variables Reference
@@ -77,8 +83,8 @@ VUE_APP_SSO_API_BASE=
 | `VUE_APP_CHANNEL`  | Yes      | --      | Active sales channel                       |
 | `VUE_APP_DEBUG`    | No       | `false` | Enable API debug logging                   |
 | `VUE_APP_LANG`     | No       | `EN`    | Language (EN or PL)                        |
-| `VUE_APP_USERNAME` | No       | --      | Dev auto-login username                    |
-| `VUE_APP_PASSWORD` | No       | --      | Dev auto-login password                    |
+| `VUE_APP_USERNAME` | No       | --      | Dev auto-login username (development only; a production build fails when set) |
+| `VUE_APP_PASSWORD` | No       | --      | Dev auto-login password (development only; a production build fails when set) |
 | `VUE_APP_SSO_API_BASE` | No   | --      | Path of the backend SSO endpoints. Set it to show "Log in with SSO"; see `docs/sso-login.md` |
 | `VUE_APP_PANELS`   | No       | --      | Fallback panel IDs when the backend module registry is unavailable. See `docs/panels-routing.md` for the full 15-panel registry and gating model |
 

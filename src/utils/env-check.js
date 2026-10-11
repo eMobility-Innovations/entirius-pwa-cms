@@ -1,3 +1,24 @@
+// Read in development only: a production bundle never carries them (the build refuses to start with either set).
+const DEV_LOGIN_VARS =
+  process.env.NODE_ENV === 'development'
+    ? [
+        {
+          key: 'VUE_APP_USERNAME',
+          value: process.env.VUE_APP_USERNAME,
+          required: false,
+          label: 'Username',
+          description: 'Dev auto-login username'
+        },
+        {
+          key: 'VUE_APP_PASSWORD',
+          value: process.env.VUE_APP_PASSWORD,
+          required: false,
+          label: 'Password',
+          description: 'Dev auto-login password'
+        }
+      ]
+    : []
+
 const ENV_VARS = [
   {
     key: 'VUE_APP_API_URL',
@@ -27,20 +48,7 @@ const ENV_VARS = [
     label: 'Language',
     description: 'Interface language (EN or PL)'
   },
-  {
-    key: 'VUE_APP_USERNAME',
-    value: process.env.VUE_APP_USERNAME,
-    required: false,
-    label: 'Username',
-    description: 'Dev auto-login username'
-  },
-  {
-    key: 'VUE_APP_PASSWORD',
-    value: process.env.VUE_APP_PASSWORD,
-    required: false,
-    label: 'Password',
-    description: 'Dev auto-login password'
-  },
+  ...DEV_LOGIN_VARS,
   {
     key: 'VUE_APP_PANELS',
     value: process.env.VUE_APP_PANELS,

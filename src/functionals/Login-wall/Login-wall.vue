@@ -46,10 +46,10 @@
 </template>
 
 <script>
-const debugMode = process.env.VUE_APP_DEBUG == "true" ? true : false;
+// The dev auto-login pair is read in development only; a production build refuses to start with either set.
 const environment = process.env.NODE_ENV === "development";
-const username = process.env.VUE_APP_USERNAME;
-const password = process.env.VUE_APP_PASSWORD;
+const username = environment ? process.env.VUE_APP_USERNAME : "";
+const password = environment ? process.env.VUE_APP_PASSWORD : "";
 
 import { POST_Login, POST_PasswordReset } from "../../api/contentDB/api";
 import {
@@ -74,8 +74,8 @@ export default {
   },
   data() {
     return {
-      username: environment || debugMode ? username : "",
-      password: environment || debugMode ? password : "",
+      username,
+      password,
       signingIn: false,
       sessionExpired: false,
       showForgotPassword: false,

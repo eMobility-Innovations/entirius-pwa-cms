@@ -80,6 +80,9 @@ All notable changes to this project will be documented in this file.
 - A URL from the server (a supplier's product or image page, a meeting link, an enrichment subject, a
   configuration-health fix link, a product video) is bound to `href` only as http, https or mailto (`safeHref`,
   `src/utils/safeHref.js`); every link that opens a new tab carries `rel="noopener noreferrer"`.
+- A production build ships no source maps and fails when `VUE_APP_USERNAME` or `VUE_APP_PASSWORD` is set; the login
+  wall and the runtime env check read the pair in development only (before, debug mode prefilled it in production
+  too). Keep the pair in `.env.development.local`.
 
 ### Removed
 

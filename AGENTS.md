@@ -75,7 +75,7 @@ tests/            # unit/ (Vitest) + e2e/ (Playwright) + helpers/
 | `VUE_APP_CLIENT` | No | alternate `__client/` config directory |
 | `VUE_APP_LANG` | No | UI language (`EN`/`PL`) |
 | `VUE_APP_DEBUG` | No | debug logging |
-| `VUE_APP_USERNAME` / `VUE_APP_PASSWORD` | No | dev auto-login |
+| `VUE_APP_USERNAME` / `VUE_APP_PASSWORD` | No | dev auto-login, read in development only (`.env.development.local`); a production build fails with either set |
 | `VUE_APP_SSO_API_BASE` | No | path of the backend SSO endpoints; set = "Log in with SSO" button + `/sso/callback` route (`docs/sso-login.md`) |
 
 ## Reference Docs
