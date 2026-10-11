@@ -33,9 +33,17 @@ describe("sanitizeHtml", () => {
     expect(sanitizeHtml('<math><mtext><img src=x onerror=alert(1)></mtext></math>')).not.toContain("onerror");
   });
 
-  it("drops a style that loads a url and keeps the editor's own styles", () => {
+  it("keeps only the editor's own styles: nothing that loads a url or lays content over the CMS", () => {
     expect(sanitizeHtml('<p style="background:url(https://x.test/a.png)">a</p>')).toBe("<p>a</p>");
-    expect(sanitizeHtml('<p style="background:u\\72l(https://x.test/a.png)">a</p>')).toBe("<p>a</p>");
+    expect(sanitizeHtml('<p style="background-color:u\\72l(https://x.test/a.png)">a</p>')).toBe("<p>a</p>");
+    expect(sanitizeHtml(`<p style="background-image:image-set('https://x.test/a.png' 1x)">a</p>`)).toBe("<p>a</p>");
+    expect(sanitizeHtml('<a href="https://x.test" style="position:fixed;inset:0;z-index:99999;color:red">a</a>')).toBe(
+      '<a href="https://x.test" style="color:red">a</a>'
+    );
+    expect(sanitizeHtml('<p class="modal-overlay">a</p>')).toBe("<p>a</p>");
+    expect(sanitizeHtml('<table><tbody><tr><td style="min-width: 75px; width: 20%">a</td></tr></tbody></table>')).toContain(
+      'style="min-width: 75px; width: 20%"'
+    );
     expect(sanitizeHtml('<p style="text-align: center">a</p>')).toBe('<p style="text-align: center">a</p>');
     expect(sanitizeHtml('<span style="color: rgb(255, 0, 0)">a</span>')).toBe('<span style="color: rgb(255, 0, 0)">a</span>');
   });

@@ -8,24 +8,36 @@ const TAGS = [
   "table", "thead", "tbody", "tfoot", "tr", "th", "td", "colgroup", "col",
 ];
 const ATTRS = [
-  "href", "target", "rel", "src", "alt", "title", "width", "height", "class", "style",
+  "href", "target", "rel", "src", "alt", "title", "width", "height", "style",
   "colspan", "rowspan", "colwidth", "data-color", "data-faq-tooltip",
 ];
 // http, https, mailto, or no scheme at all (a path or an anchor).
 const URI = /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i;
 const SCHEME = /^\s*[a-z][a-z0-9+.-]*:/i;
 const HTTP = /^\s*https?:/i;
-// A style may not load anything: no url(), no @import, no expression(), no escape or comment that could hide one.
-const STYLE_LOADS = /url\s*\(|expression\s*\(|@import|\\|\/\*/i;
+// The editor styles alignment, colours and table column widths. Nothing else stays: no position or size that could
+// lay stored content over the CMS, and no value that could load anything (a url needs a character outside the set).
+const STYLE_PROPS = ["text-align", "color", "background-color", "width", "min-width"];
+const STYLE_VALUE = /^[\w\s#.,%()-]+$/;
 
 const CONFIG = { ALLOWED_TAGS: TAGS, ALLOWED_ATTR: ATTRS, ALLOWED_URI_REGEXP: URI, ALLOW_DATA_ATTR: false };
 
 const purifier = DOMPurify(window);
 
+function editorStyle(style) {
+  const kept = style.split(";").filter((declaration) => {
+    const [prop, value = ""] = declaration.split(/:(.*)/s);
+    return STYLE_PROPS.includes(prop.trim().toLowerCase()) && STYLE_VALUE.test(value.trim());
+  });
+  return kept.map((declaration) => declaration.trim()).join("; ");
+}
+
 purifier.addHook("uponSanitizeAttribute", (node, data) => {
   const { attrName, attrValue } = data;
   if (attrName === "src" && SCHEME.test(attrValue) && !HTTP.test(attrValue)) data.keepAttr = false;
-  if (attrName === "style" && STYLE_LOADS.test(attrValue)) data.keepAttr = false;
+  if (attrName !== "style") return;
+  data.attrValue = editorStyle(attrValue);
+  data.keepAttr = data.attrValue !== "";
 });
 
 purifier.addHook("afterSanitizeAttributes", (node) => {
