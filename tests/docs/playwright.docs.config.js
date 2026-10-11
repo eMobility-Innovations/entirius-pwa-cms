@@ -1,5 +1,6 @@
 const path = require("path");
 const { defineConfig } = require("@playwright/test");
+const { loopbackUrl } = require("../helpers/loopback");
 
 /**
  * Docs captures (docs/testing.md → "Docs captures"): documentation screenshots from the live, seeded stack.
@@ -15,7 +16,7 @@ module.exports = defineConfig({
   retries: 0,
   reporter: [["list"]],
   use: {
-    baseURL: process.env.CMS_BASE_URL || "http://localhost:8180",
+    baseURL: loopbackUrl("CMS_BASE_URL", "http://localhost:8180"),
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1,
     locale: "en-GB",

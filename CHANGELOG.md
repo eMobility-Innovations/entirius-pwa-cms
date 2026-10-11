@@ -85,6 +85,8 @@ All notable changes to this project will be documented in this file.
   too). Keep the pair in `.env.development.local`.
 - With `VUE_APP_DEBUG` on, the login call is logged as `[redacted]`: neither the password nor the answered token
   pair reaches the console.
+- The visual and docs capture projects refuse a `CMS_BASE_URL` or `CMS_API_URL` that is not a loopback host unless
+  `CMS_ALLOW_REMOTE=1` is set: they log in with real credentials and the docs captures write (`docs/testing.md`).
 
 ### Removed
 

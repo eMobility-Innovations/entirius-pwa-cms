@@ -10,6 +10,7 @@ const {
   isHealth,
   isNotifications,
 } = require("../../visual/support/state");
+const { loopbackUrl } = require("../../helpers/loopback");
 
 // Documentation screenshots from the live, seeded stack: English, dark theme, the viewport of the config. Unlike the
 // visual harness, a capture run writes for real (an "after save" state has to exist) and keeps the real clock (live
@@ -28,6 +29,9 @@ const {
 //   comment, names what each run leaves behind, and fails with `INFRA: <guide> needs a fresh make seed` when its
 //   start state is gone.
 // - Never click the theme toggle or the language switch.
+
+// A capture run signs in and writes: checked here too, for a spec run with another config.
+loopbackUrl("CMS_BASE_URL", "http://localhost:8180");
 
 const LOGIN_BUTTON = 'button:has-text("Log in")';
 const SHOT_NAME = /^\d{2}-[a-z0-9]+(-[a-z0-9]+)*$/;

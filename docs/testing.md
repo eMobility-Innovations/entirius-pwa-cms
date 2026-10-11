@@ -146,7 +146,9 @@ Use `waitForLoadState('networkidle')` not `waitForTimeout`. Prefer
 `tests/visual/` proves what a redesign change did to the CMS, in four layers plus the catalogue layers. It runs against an already running
 CMS (the zeno stack, `CMS_BASE_URL`, default `http://localhost:8180`, API `CMS_API_URL`, default
 `http://localhost:8100`), logs in as `CMS_USER` / `CMS_PASSWORD` (default `admin` / `admin123`) and never starts a
-server. Config: `tests/visual/playwright.visual.config.js` (projects `desktop` 1680×1168 and `mobile` 393×852,
+server. Both URLs must be loopback (`localhost`, `127.0.0.1`, `[::1]`): any other host fails with `INFRA: … points
+at <host>` unless `CMS_ALLOW_REMOTE=1` is set, since the harness types a real password into that host
+(`tests/helpers/loopback.js`; the docs captures below follow the same rule). Config: `tests/visual/playwright.visual.config.js` (projects `desktop` 1680×1168 and `mobile` 393×852,
 DPR 1, `Europe/Warsaw`, one worker). `CMS_LANG` (default `PL`) is the UI language the harness pins and `CMS_LOCALE`
 (default `pl-PL`) the browser locale; the committed baselines are the defaults, and `CMS_LANG=EN CMS_LOCALE=en-GB`
 runs the same harness in English (`lang.spec.js`, `@lang`, proves the mode that is set).
@@ -319,7 +321,8 @@ with optional numbered callouts, from the live, seeded stack. It runs against an
 default `http://localhost:8180`, API `CMS_API_URL`, default `http://localhost:8100`) in English and the dark theme at
 one viewport, 1280 × 800 (the width where the full desktop layout starts), DPR 1, `en-GB`, `Europe/Warsaw`, one
 worker. Images are written to `<DOCS_SCREENS_OUT>/<guide>/NN-slug.png`; without `DOCS_SCREENS_OUT` a spec fails with
-`INFRA: DOCS_SCREENS_OUT is not set`.
+`INFRA: DOCS_SCREENS_OUT is not set`. A capture run logs in and writes records, so a `CMS_BASE_URL` or `CMS_API_URL`
+that is not loopback is refused unless `CMS_ALLOW_REMOTE=1` is set.
 
 | File | Holds |
 |---|---|

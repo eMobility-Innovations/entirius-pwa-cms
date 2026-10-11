@@ -1,6 +1,7 @@
 const path = require("path");
 const base = require("@playwright/test");
 const { freeze: FREEZE, screens } = require("../capture-spec.json");
+const { loopbackUrl } = require("../../helpers/loopback");
 
 // Deterministic state recipe (roadmap r04 tech-notes §2). The zeno stack is shared: this module never clicks
 // the theme toggle or the language switch, and every write the page tries is answered by a stub.
@@ -8,7 +9,7 @@ const { freeze: FREEZE, screens } = require("../capture-spec.json");
 const AUTH_MAX_AGE_MS = 3 * 60 * 1000;
 // The CMS refreshes before the `expiryDate` it set at login (real time + token lifetime). The frozen clock lies
 // before it, so no refresh comes due, and the CMS caps the timer below the setTimeout overflow.
-const API_URL = process.env.CMS_API_URL || "http://localhost:8100";
+const API_URL = loopbackUrl("CMS_API_URL", "http://localhost:8100");
 const THEME_VALUES = { dark: "dark", light: "default" };
 const READ_METHODS = ["GET", "HEAD", "OPTIONS"];
 // The UI language the harness pins and the browser locale; unset = Polish, the language of the committed baselines.
