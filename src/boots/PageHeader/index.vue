@@ -9,7 +9,13 @@
       <Breadcrumbs v-if="trail.length" class="page-header__crumbs" :items="trail" />
       <div class="page-header__title-row flex ai-ct gap-5" data-fid="page-title">
         <IconButton v-if="backTo" icon="back" :label="$t('common.back')" @click="goBack" />
-        <h1 class="page-header__title page-title" :class="{ 'page-header__title--after-back': backTo }">{{ title }}</h1>
+        <h1
+          class="page-header__title page-title"
+          :class="{ 'page-header__title--after-back': backTo }"
+          :title="title"
+        >
+          {{ title }}
+        </h1>
         <div v-if="$slots.meta" class="page-header__meta flex ai-ct gap-2">
           <ReadonlyOff><slot name="meta" /></ReadonlyOff>
         </div>
@@ -89,12 +95,29 @@ function goBack() {
   margin-bottom: var(--space-6);
 }
 
-.page-header__title {
-  min-width: 0;
-  overflow-wrap: anywhere;
+// Chips that do not fit beside the whole title wrap under it: the title never shrinks for them.
+.page-header__title-row {
+  flex-wrap: wrap;
 }
 
-// The chips keep their width; the title gives way and wraps (on a phone the chips wrap under it instead).
+// One line at every width: a title longer than its row ends with an ellipsis (the full text is its `title`). The
+// block padding keeps descenders inside the clipped box without moving the line.
+.page-header__title {
+  min-width: 0;
+  max-width: 100%;
+  margin-block: -0.15em;
+  padding-block: 0.15em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// It stays on the back arrow's line: its width leaves room for the arrow and the gap.
+.page-header__title--after-back {
+  max-width: calc(100% - var(--elem-height) - var(--space-5));
+}
+
+// The chips keep their width.
 .page-header__meta {
   flex: none;
 }
@@ -116,19 +139,9 @@ function goBack() {
 }
 
 @include max-tablet {
-  // Chips that do not fit beside the whole title wrap under it: the title never shrinks for them.
-  .page-header__title-row {
-    flex-wrap: wrap;
-  }
-
   // A roomy PageLayout sets the larger phone title.
   .page-header__title {
     font-size: var(--page-header-title-size, var(--fs-500));
-  }
-
-  // It stays on the back arrow's line: its width leaves room for the arrow and the gap.
-  .page-header__title--after-back {
-    max-width: calc(100% - var(--elem-height) - var(--space-5));
   }
 
   // A sticky box cannot leave its parent: the header gives up its box, so the head pins against the scroll body

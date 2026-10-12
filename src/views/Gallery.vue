@@ -767,7 +767,7 @@ export default {
   }
 }
 
-// R4: the grid is a container, so it keeps its border. MediaTile owns the tile size (188 × 276, 150 × 240 on a phone).
+// R4: the grid is a container, so it keeps its border. MediaTile owns the tile size (188 wide, 150 on a phone, a square image).
 // Fixed tracks (plan 29): 4 columns on a wide screen, 2 below it (4 × 188 overflows beside the sidebar up to 1279 px;
 // no Figma frame there); a phone narrower than 393 px shrinks the tiles instead of scrolling sideways.
 .gallery__grid {

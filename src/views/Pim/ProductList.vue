@@ -862,6 +862,11 @@ export default {
   margin-right: var(--space-4);
 }
 
+// A select shows its label above the box only once it has one to show: the boxes share a baseline, not a centre.
+.product-list__filter-group:has(.product-list__filter-dropdown) {
+  align-items: flex-end;
+}
+
 .product-list__filter-dropdown {
   min-width: 140px;
   max-width: 200px;
