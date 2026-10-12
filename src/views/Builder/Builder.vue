@@ -1942,6 +1942,14 @@ export default {
     z-index: 2;
   }
 }
+// The document name is long and the crumb above already reads it in full: the H1 keeps one line beside the actions.
+.builder-wrap :deep(.page-header__title) {
+  @include min-tablet {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
 .builder-advanced-row {
   flex-wrap: wrap;
 }
