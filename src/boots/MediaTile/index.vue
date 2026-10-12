@@ -31,7 +31,8 @@
 </template>
 
 <script setup>
-// An image tile of a media grid (Figma S9/S10: 188 × 276 desktop, 150 × 240 below tablet). No `src` = the image
+// An image tile of a media grid: 188 wide (150 below tablet) around a square image; the footer adds its own height.
+// Figma S9/S10 drew it 188 × 276 — the portrait image read too tall in a grid. No `src` = the image
 // placeholder. `selected` draws the accent border. The `actions` slot takes IconButtons (`sm`), the `overlay` slot
 // value chips (`Tag`) over the bottom of the image; both show on hover, keyboard focus inside the tile, when selected
 // and always on a touch screen (no hover there). Hidden actions are `visibility: hidden` (no invisible clickable
@@ -53,7 +54,6 @@ defineProps({
 .media-tile {
   box-sizing: border-box;
   width: 188px;
-  height: 276px;
   margin: 0;
   gap: var(--space-2);
   padding: var(--space-2);
@@ -64,13 +64,11 @@ defineProps({
   @include max-tablet {
     width: 150px;
     max-width: 100%;
-    height: 240px;
   }
 
   &__image {
     position: relative;
-    flex: 1;
-    min-height: 0;
+    aspect-ratio: 1;
     overflow: hidden;
     border-radius: var(--radius-base);
     background: var(--surface-sunken);

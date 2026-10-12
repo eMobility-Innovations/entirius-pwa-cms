@@ -277,7 +277,7 @@ Catalogue: `#overlays` (`#basic-modal`, `#confirm-dialog`, `#secret-reveal`, `#s
   `description`, `locked` + `lockedText` (opacity .5, lock, not focusable, no click), emits `click`; `surface-card`
   gradient, `--radius-3xl`, padding and gap 20 px, a plain 24 px icon, title and description 12 px apart; root class
   `panel-card` (e2e hook). The page sets `data-fid="panel-card"` on the one card Figma measures (Home: the first).
-- **`MediaTile`** — media grid tile, 188 × 276 (150 × 240 below tablet), `surface-raised`: `src` (none = image
+- **`MediaTile`** — media grid tile, 188 wide (150 below tablet) with a square image, `surface-raised`: `src` (none = image
   placeholder; `video` = a play badge over the image and the video icon as the placeholder; the image fills the box, `object-fit: cover`), `alt`, `caption` (truncated, full text in `title`), `selected` (accent
   border), `actions` slot (IconButtons `sm`), `overlay` slot (value chips, `Tag`, over the bottom of the image).
   Actions and overlay show on hover, keyboard focus inside the tile, when selected and always on a touch screen;
