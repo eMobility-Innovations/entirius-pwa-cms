@@ -23,7 +23,8 @@ const accounts = `/api/accounts/v1/${_CHANNEL ?? ''}`;
 export const POST_Login = async ({ username = null, password = null }) => {
   const url = `${accounts}/customer/tokens/`;
 
-  return api.post(url, { email: username, password });
+  // `sensitive`: the password and the answered token pair stay out of the debug log (createClient).
+  return api.post(url, { email: username, password }, { sensitive: true });
 };
 //
 //

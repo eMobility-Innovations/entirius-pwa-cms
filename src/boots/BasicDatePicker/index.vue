@@ -43,6 +43,8 @@ const DEFAULT_CONFIG = {
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import flatpickr from "flatpickr";
 import { Polish } from "flatpickr/dist/l10n/pl.js";
+import { english } from "flatpickr/dist/l10n/default.js";
+import { getLang } from "@/i18n";
 import { ICONS } from "@/boots/Icons/icons";
 import { useControlAttrs } from "@/boots/FormField/useControlAttrs";
 
@@ -69,7 +71,8 @@ function onChange(dates, dateString) {
 
 async function open() {
   visible.value = true;
-  instance = flatpickr(pickerEl.value, { ...props.config, defaultDate: current.value, locale: Polish, onChange });
+  const locale = getLang() === "PL" ? Polish : english;
+  instance = flatpickr(pickerEl.value, { ...props.config, defaultDate: current.value, locale, onChange });
   if (!props.fixed) return;
   await nextTick();
   place();

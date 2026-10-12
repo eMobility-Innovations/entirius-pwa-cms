@@ -8,6 +8,7 @@
     @update:open="(value) => !value && close()"
   >
     <div v-if="step === 'config'" class="flex-column gap-4" data-testid="translate-dialog-config">
+      <AiToolboxHint />
       <p v-if="summary" class="t-muted fs-200">{{ summary }}</p>
       <FormField :label="t('translate_dialog.source_language')">
         <BasicSelect v-model="form.source" :options="languages" :placeholder="t('translate_dialog.select_language')" />
@@ -59,7 +60,9 @@
 // The `languages` slot sits under the target languages (Pim: add a language to the channel).
 import { computed, reactive, ref, useId, watch } from "vue";
 import { t } from "@/i18n";
+import { useConfigHealthStore } from "@/stores/configHealth";
 import { useNotifyStore } from "@/stores/notify";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { SCOPES, STORE_TYPES, estimateRows, draftRows } from "./estimate";
 
@@ -77,6 +80,7 @@ const props = defineProps({
 const emit = defineEmits(["update:open", "translated"]);
 
 const notify = useNotifyStore();
+const configHealth = useConfigHealthStore();
 // The "no languages" note says why the list is empty: content, linked to the select (never a hideable hint).
 const noLanguagesId = useId();
 const step = ref("config");
@@ -118,7 +122,8 @@ const footerActions = computed(() => {
   }
   return [
     { key: "cancel", label: t("common.cancel"), role: "secondary", onClick: close },
-    { key: "estimate", label: t("translate_dialog.estimate"), role: "primary", disabled: !canEstimate.value,
+    { key: "estimate", label: t("translate_dialog.estimate"), role: "primary",
+      disabled: !canEstimate.value || !configHealth.aiUsable,
       loading: estimating.value, testid: "translate-dialog-estimate", onClick: fetchEstimate },
   ];
 });

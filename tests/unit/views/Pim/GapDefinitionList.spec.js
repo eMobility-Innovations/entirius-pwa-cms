@@ -19,7 +19,7 @@ vi.mock("@/stores/notify", () => ({
 vi.mock("@/composables/useSearchDebounce", () => ({
   useSearchDebounce: () => ({ search: "", debouncedFetch: () => {} }),
 }));
-vi.mock("@/i18n", () => ({ getLang: () => "en" }));
+vi.mock("@/i18n", () => ({ getLang: () => "en", uiLocale: () => "en-GB" }));
 
 import GapDefinitionList from "@/views/Pim/GapDefinitionList.vue";
 

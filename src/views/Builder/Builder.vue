@@ -469,7 +469,7 @@
                           >
                             <div
                               v-if="type === 'wysiwyg'"
-                              v-html="sections[s_uid][prop]"
+                              v-html="sanitizeHtml(sections[s_uid][prop])"
                               class="wysiwyg-container-preview lc-3 fs-300 t-body"
                             ></div>
                             <template v-else>
@@ -810,7 +810,7 @@
                                     </p>
                                     <p
                                       v-if="type === 'wysiwyg'"
-                                      v-html="tiles[t_uid][prop]"
+                                      v-html="sanitizeHtml(tiles[t_uid][prop])"
                                       class="lc-3 fs-200"
                                     ></p>
                                     <ImagesControllPreview
@@ -924,6 +924,7 @@ import RenameModal from "@/functionals/Rename-modal/index.vue";
 import HomeVariantSwitcher from "@/views/Builder/HomeVariantSwitcher.vue";
 import { pluralKey } from "@/utils/plural";
 import { usePageReadonly } from "@/composables/useReadonly";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 export default {
   components: {
@@ -1089,6 +1090,7 @@ export default {
     };
   },
   methods: {
+    sanitizeHtml,
     // The author fields (EntitySearchPicker): the picker adds one author to a list, the Tags above it remove and
     // reorder; an author already in either list is not offered again.
     async searchAuthors(search) {

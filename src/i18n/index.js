@@ -3,6 +3,7 @@ import en from "./locales/en.json";
 import pl from "./locales/pl.json";
 
 const messages = { EN: en, PL: pl };
+const INTL_LOCALES = { EN: "en-GB", PL: "pl-PL" };
 
 const state = reactive({ lang: (process.env.VUE_APP_LANG || "EN").toUpperCase() });
 
@@ -17,6 +18,11 @@ export function setLang(l) {
 
 export function getLang() {
   return state.lang;
+}
+
+// The Intl locale of the UI language: dates and numbers follow the language switch, never the browser locale.
+export function uiLocale() {
+  return INTL_LOCALES[state.lang] || INTL_LOCALES.EN;
 }
 
 function resolve(obj, key) {

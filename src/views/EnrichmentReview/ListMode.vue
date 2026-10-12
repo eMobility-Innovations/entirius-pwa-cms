@@ -67,9 +67,9 @@
         </BasicButton>
         <a
           v-else-if="row.subject_url"
-          :href="row.subject_url"
+          :href="safeHref(row.subject_url)"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           class="list-mode__link t-accent"
           :data-testid="`enrichment-subject-${row.id}`"
           @click.stop
@@ -149,6 +149,7 @@
 
 <script>
 import { formatDate } from "@/utils/format";
+import { safeHref } from "@/utils/safeHref";
 import DiffRenderer from "./DiffRenderer.vue";
 
 const STATUS_VARIANTS = {
@@ -254,6 +255,7 @@ export default {
   },
   methods: {
     formatDate,
+    safeHref,
     statusVariant(value) {
       return STATUS_VARIANTS[value] || "neutral";
     },

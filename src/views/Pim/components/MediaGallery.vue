@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch, nextTick } from "vue";
 import { t } from "@/i18n";
 import { useNotifyStore } from "@/stores/notify";
+import { safeHref } from "@/utils/safeHref";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import draggable from "vuedraggable";
 import { useReadonly } from "@/composables/useReadonly";
@@ -534,6 +535,7 @@ watch(
             <a
               :href="selectedItem.imageUrl"
               target="_blank"
+              rel="noopener noreferrer"
               class="t-accent fs-200 mt-2"
             >
               {{ selectedItem.altText || selectedItem.imageUrl }}
@@ -553,8 +555,9 @@ watch(
                 class="t-muted fs-700"
               />
               <a
-                :href="selectedItem.videoUrl"
+                :href="safeHref(selectedItem.videoUrl)"
                 target="_blank"
+                rel="noopener noreferrer"
                 class="t-accent fs-200 mt-2"
               >
                 {{ selectedItem.videoUrl }}

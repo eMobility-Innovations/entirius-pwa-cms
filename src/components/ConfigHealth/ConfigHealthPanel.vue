@@ -44,9 +44,9 @@
       </router-link>
       <a
         v-else-if="row.fix_url"
-        :href="row.fix_url"
+        :href="safeHref(row.fix_url)"
         target="_blank"
-        rel="noopener"
+        rel="noopener noreferrer"
         class="cfg-row__fix"
         data-testid="config-health-fix"
       >
@@ -63,6 +63,9 @@
         <FontAwesomeIcon :icon="$icons.success" class="cfg-grid__tick" />{{
           checkName(row.code)
         }}
+        <span v-if="row.state === 'disabled'" class="cfg-grid__state" data-testid="config-health-switched-off">{{
+          $t("config_health.switched_off")
+        }}</span>
       </li>
     </ul>
 
@@ -85,6 +88,7 @@ import { computed } from "vue";
 import { t } from "@/i18n";
 import { useConfigHealthStore } from "@/stores/configHealth";
 import { checkName, checkText, isInternalFix, textTokens } from "@/utils/configHealth";
+import { safeHref } from "@/utils/safeHref";
 
 // The configuration-health panel (BasicMenu `panel` mode in ConfigHealthButton: the menu anchors it, names it and
 // closes it on Esc; `sheet`: a wide popover on desktop, a bottom sheet on a phone). `close` asks the menu to close: the
@@ -194,6 +198,10 @@ const checkedAgo = computed(() => {
 .cfg-grid__tick {
   margin-right: var(--space-1);
   color: var(--positive);
+}
+.cfg-grid__state {
+  margin-left: var(--space-1);
+  color: var(--text-secondary);
 }
 .cfg-panel__foot {
   display: flex;

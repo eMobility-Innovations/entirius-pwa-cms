@@ -36,3 +36,6 @@ __client
 /playwright/.cache/
 tests/visual/.report/
 tests/visual/test-results/
+
+# Docs captures
+tests/docs/test-results/

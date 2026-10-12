@@ -35,9 +35,9 @@
       </BasicButton>
       <a
         v-if="product?.url"
-        :href="product.url"
+        :href="safeHref(product.url)"
         target="_blank"
-        rel="noopener"
+        rel="noopener noreferrer"
         class="review-product__link inline-flex ai-ct gap-1 fs-200 t-accent"
         data-testid="product-card-supplier-url"
       >
@@ -59,6 +59,7 @@
 
 <script>
 import { formatCost } from "@/utils/format";
+import { safeHref } from "@/utils/safeHref";
 
 export default {
   name: "ProductCard",
@@ -66,7 +67,7 @@ export default {
     product: { type: Object, default: null },
   },
   emits: ["show-raw", "show-gallery"],
-  methods: { formatCost },
+  methods: { formatCost, safeHref },
   computed: {
     images() {
       return Array.isArray(this.product?.image_urls) ? this.product.image_urls : [];

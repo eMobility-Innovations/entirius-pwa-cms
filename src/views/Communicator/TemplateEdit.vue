@@ -9,6 +9,7 @@
     </template>
     <form v-if="loaded" :id="FORM_ID" class="template-form flex-column gap-4" @submit.prevent="save">
       <BasicCard :title="$t('communicator.template.title')" gap>
+        <AiToolboxHint v-if="form.kind === 'ai_prompt'" />
         <div class="form-grid">
           <FormField :label="$t('communicator.template.kind')">
             <BasicSelect v-model="form.kind" :options="kindOptions" data-testid="template-kind" />
@@ -21,7 +22,7 @@
             <BasicSelect v-model="form.audience" :options="audienceOptions" data-testid="template-audience" />
           </FormField>
           <FormField :label="$t('communicator.template.model')">
-            <BasicSelect v-model="form.model" :options="modelOptions" data-testid="template-model" />
+            <BasicSelect v-model="form.model" :options="modelOptions" :disabled="!configHealth.aiUsable" data-testid="template-model" />
           </FormField>
           <FormField class="form-grid__wide" :label="$t('communicator.template.subject')">
             <BasicInput v-model="form.subject" :maxlength="255" data-testid="template-subject" />
@@ -56,7 +57,9 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
 import { t } from "@/i18n";
 import { GET_Models, GET_Template, PUT_Template } from "@/api/communicator/api";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { useConfigHealthStore } from "@/stores/configHealth";
 import { useLeadTypesStore } from "@/stores/leadTypes";
 import { useMuninStore } from "@/stores/munin";
 import { useNotifyStore } from "@/stores/notify";
@@ -69,6 +72,7 @@ const FIELDS = ["key", "kind", "language", "audience", "subject", "body", "model
 const route = useRoute();
 const notify = useNotifyStore();
 const leadTypes = useLeadTypesStore();
+const configHealth = useConfigHealthStore();
 // A communicator before template audiences sends none and refuses the field (extra="forbid") — then it is never shown.
 const supportsAudience = ref(false);
 const hasLeads = computed(() => supportsAudience.value && useMuninStore().isModuleEnabled("leads"));
@@ -112,9 +116,11 @@ const schemaError = computed(() => parseSchema(schemaText.value).error || "");
 // schema does not parse. Save sits in the header, outside the form, and submits it through the native `form`
 // attribute: the required fields are checked first, and Enter in a field saves (the form's default button).
 const FORM_ID = "template-edit-form";
+// A static template renders without the toolbox; an AI one cannot be test-generated while the toolbox is off.
+const testBlocked = computed(() => form.kind === "ai_prompt" && !configHealth.aiUsable);
 const headerActions = computed(() => [
   { key: "versions", label: t("communicator.template.versions"), role: "secondary", testid: "template-versions", onClick: () => (drawer.value = "versions") },
-  { key: "test", label: t("communicator.template.test_generate"), role: "secondary", testid: "template-test-generate", onClick: () => (drawer.value = "test") },
+  { key: "test", label: t("communicator.template.test_generate"), role: "secondary", testid: "template-test-generate", disabled: testBlocked.value, onClick: () => (drawer.value = "test") },
   { key: "save", label: t("communicator.template.save"), role: "primary", testid: "template-save", disabled: Boolean(schemaError.value), loading: saving.value, form: FORM_ID },
 ]);
 
@@ -134,7 +140,10 @@ async function save() {
 }
 
 onMounted(async () => {
-  const [tpl, modelRes] = await Promise.all([GET_Template(templateId.value), GET_Models().catch(() => ({ data: { results: [] } }))]);
+  const noModels = { data: { results: [] } };
+  // The model list comes from the toolbox: no request while it is off or not set up.
+  const modelsRequest = configHealth.aiUsable ? GET_Models().catch(() => noModels) : noModels;
+  const [tpl, modelRes] = await Promise.all([GET_Template(templateId.value), modelsRequest]);
   supportsAudience.value = "audience" in tpl.data;
   FIELDS.filter((field) => field in tpl.data).forEach((field) => (form[field] = tpl.data[field]));
   if (hasLeads.value) leadTypes.load();

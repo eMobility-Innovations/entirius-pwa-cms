@@ -80,8 +80,7 @@
           </template>
 
           <template #cell-updated_at="{ value }">
-            {{ new Date(value).toLocaleDateString("en") }}
-            {{ new Date(value).toLocaleTimeString("pl") }}
+            {{ formatDate(value) }}
           </template>
 
           <template #cell-status="{ row }">
@@ -182,6 +181,7 @@ const section_options = (value, look_for = null) => {
 
 import TranslateDialog from "@/components/TranslateDialog/index.vue";
 import { contentTranslateFns } from "./translateFns";
+import { formatDate } from "@/utils/format";
 export default {
   setup() {
     const loader = useLoaderStore();
@@ -288,6 +288,7 @@ export default {
     },
   },
   methods: {
+    formatDate,
     setLanguage(value) {
       if (value.toLowerCase() === this.language) return;
       this.$router.replace({ query: { lg: value.toLowerCase() } }).catch(() => {});

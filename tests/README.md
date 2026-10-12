@@ -115,7 +115,8 @@ VUE_APP_USERNAME=admin
 VUE_APP_PASSWORD=admin
 ```
 
-Tests will use default credentials if not set.
+Tests will use default credentials if not set. Never put the pair into `.env`: a production build (`npm run build`,
+so `npm test` too) fails when either is set, because every `VUE_APP_*` value is compiled into the bundle.
 
 ### Playwright Configuration
 
@@ -189,8 +190,12 @@ Add to your CI pipeline:
 - name: Install Playwright browsers
   run: npx playwright install --with-deps
 
-- name: Run tests
-  run: npm test
+- name: Build check
+  run: npm run test:build
+
+# The credentials go to the e2e step only: a production build fails when either is set.
+- name: Run e2e tests
+  run: npm run test:e2e
   env:
     VUE_APP_USERNAME: ${{ secrets.TEST_USERNAME }}
     VUE_APP_PASSWORD: ${{ secrets.TEST_PASSWORD }}

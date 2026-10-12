@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { GET_ConfigHealth, POST_ConfigHealthCheck } from "@/api/munin/api";
+import { useMuninStore } from "@/stores/munin";
 
 // Configuration health (django-munin `health/`): state, not events — nothing to mark read; a fixed config clears
 // on the next poll. A bad → good flip keeps `justFixed` for FIXED_MS so the header can say "fixed" before it hides.
@@ -8,8 +9,14 @@ import { GET_ConfigHealth, POST_ConfigHealthCheck } from "@/api/munin/api";
 // plain poll never repeats the probe and must not read its absence as "fixed".
 const POLL_MS = 30000;
 const FIXED_MS = 10000;
+// `disabled` = AI_TOOLBOX_ENABLED off on purpose: healthy, shown, never a warning.
+const QUIET_STATES = ["configured", "disabled"];
+// The toolbox states in which an AI action cannot work at all; `unreachable` may recover, so it only warns.
+const AI_BLOCKED_STATES = ["disabled", "unconfigured"];
+const TOOLBOX_CODE = "toolbox.status";
 
 export const useConfigHealthStore = defineStore("configHealth", () => {
+  const munin = useMuninStore();
   const checks = ref([]);
   const checkedAt = ref(null);
   const justFixed = ref(false);
@@ -23,10 +30,10 @@ export const useConfigHealthStore = defineStore("configHealth", () => {
   let session = 0;
 
   const failing = computed(() =>
-    checks.value.filter((row) => row.state !== "configured")
+    checks.value.filter((row) => !QUIET_STATES.includes(row.state))
   );
   const passing = computed(() =>
-    checks.value.filter((row) => row.state === "configured")
+    checks.value.filter((row) => QUIET_STATES.includes(row.state))
   );
 
   // "" = not reported (check absent on this backend), else the worst row's state for that code.
@@ -41,6 +48,13 @@ export const useConfigHealthStore = defineStore("configHealth", () => {
   function failingFor(code) {
     return failing.value.filter((row) => row.code === code);
   }
+
+  // The AI toolbox state every AI action follows: the health row first; without one (health is read only with
+  // `munin.config`, or it is unavailable) the public registry's `platform.toolbox.state`. "" = nobody reports it.
+  const aiState = computed(
+    () => stateOf(TOOLBOX_CODE) || munin.platform?.toolbox?.state || ""
+  );
+  const aiUsable = computed(() => !AI_BLOCKED_STATES.includes(aiState.value));
 
   function apply(data, fromProbe) {
     const wasFailing = failing.value.length > 0;
@@ -128,6 +142,8 @@ export const useConfigHealthStore = defineStore("configHealth", () => {
     passing,
     stateOf,
     failingFor,
+    aiState,
+    aiUsable,
     poll,
     recheck,
     start,

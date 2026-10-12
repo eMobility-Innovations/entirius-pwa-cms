@@ -1,6 +1,7 @@
 const path = require("path");
 const base = require("@playwright/test");
 const { freeze: FREEZE, screens } = require("../capture-spec.json");
+const { loopbackUrl } = require("../../helpers/loopback");
 
 // Deterministic state recipe (roadmap r04 tech-notes §2). The zeno stack is shared: this module never clicks
 // the theme toggle or the language switch, and every write the page tries is answered by a stub.
@@ -8,11 +9,14 @@ const { freeze: FREEZE, screens } = require("../capture-spec.json");
 const AUTH_MAX_AGE_MS = 3 * 60 * 1000;
 // The CMS refreshes before the `expiryDate` it set at login (real time + token lifetime). The frozen clock lies
 // before it, so no refresh comes due, and the CMS caps the timer below the setTimeout overflow.
-const API_URL = process.env.CMS_API_URL || "http://localhost:8100";
+const API_URL = loopbackUrl("CMS_API_URL", "http://localhost:8100");
 const THEME_VALUES = { dark: "dark", light: "default" };
 const READ_METHODS = ["GET", "HEAD", "OPTIONS"];
+// The UI language the harness pins and the browser locale; unset = Polish, the language of the committed baselines.
+const LANG = (process.env.CMS_LANG || "PL").toUpperCase();
+const LOCALE = process.env.CMS_LOCALE || "pl-PL";
 const LOGIN_BUTTON = 'button:has-text("Zaloguj"), button:has-text("Log in")';
-const LOGIN_PREFS = { cms_theme: "dark", cms_lang: "PL", cms_sidebar_collapsed: "false" };
+const LOGIN_PREFS = { cms_theme: "dark", cms_lang: LANG, cms_sidebar_collapsed: "false" };
 const PROBES = path.join(__dirname, "probes.browser.js");
 const FREEZE_CSS =
   "*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}";
@@ -110,7 +114,7 @@ async function submitLogin(page) {
 
 async function login(browser, baseURL) {
   if (auth.state && Date.now() - auth.at < AUTH_MAX_AGE_MS) return auth.state;
-  const context = await browser.newContext({ baseURL, locale: "pl-PL" });
+  const context = await browser.newContext({ baseURL, locale: LOCALE });
   try {
     const startedAt = Date.now();
     await stubWrites(context);
@@ -135,15 +139,21 @@ async function profileRoute(route, prefs) {
   return route.fulfill({ response, json: body });
 }
 
-// Returns which fixed-body stubs answered; a badge whose stub was never hit gets masked.
-async function prepareContext(context, { theme, collapsed = false }) {
-  const prefs = { cms_theme: THEME_VALUES[theme], cms_lang: "PL", cms_sidebar_collapsed: String(collapsed) };
-  const stubs = { notifications: false, health: false };
+// Theme, language and sidebar on every page load: `localStorage` plus the rewritten profile GET. Every profile write
+// is answered `{}`, so the admin profile the stack shares never flips.
+async function pinPreferences(context, { theme, lang, collapsed = false }) {
+  const prefs = { cms_theme: THEME_VALUES[theme], cms_lang: lang, cms_sidebar_collapsed: String(collapsed) };
   await context.addInitScript((values) => {
     for (const [key, value] of Object.entries(values)) localStorage.setItem(key, value);
   }, prefs);
-  await stubWrites(context);
   await context.route(isProfile, (route) => profileRoute(route, prefs));
+}
+
+// Returns which fixed-body stubs answered; a badge whose stub was never hit gets masked.
+async function prepareContext(context, { theme, collapsed = false }) {
+  const stubs = { notifications: false, health: false };
+  await stubWrites(context);
+  await pinPreferences(context, { theme, lang: LANG, collapsed });
   await context.route(isNotifications("/notifications/"), (route) => route.fulfill(json({ count: 0, results: [] })));
   await context.route(isNotifications("/notifications/unread-count/"), (route) => {
     stubs.notifications = true;
@@ -243,7 +253,7 @@ async function scrollToTiles(page) {
   await page.evaluate(() => {
     const header = document.querySelector(".section-header-row");
     const tiles = [...document.querySelectorAll("*")].find(
-      (el) => el.children.length === 0 && /Kafelki \(1\//.test(el.textContent)
+      (el) => el.children.length === 0 && /(Kafelki|Tiles) \(1\//.test(el.textContent)
     );
     if (!header || !tiles) throw new Error("scrolled: anchor not found");
     let box = header.parentElement;
@@ -329,7 +339,17 @@ module.exports = {
   test,
   expect: base.expect,
   THEME_VALUES,
+  LANG,
+  LOCALE,
+  API_URL,
+  isHealth,
+  isNotifications,
+  pinPreferences,
   prepareContext,
+  idle,
+  settle,
+  waitForData,
+  assertLanded,
   openScreen,
   openPinned,
   PROBES,

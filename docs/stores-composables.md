@@ -27,7 +27,7 @@ All 12 stores (`src/stores/`) use composition (setup) syntax with `defineStore`.
   `ensureLoaded()` (single-flight), `refresh()` (at most once per 5 s), `reset()`. Without the access module
   (munin) every `can` is true; installed but `me` failed (`error`) every `can` is false until a retry loads it. See
   `docs/panels-routing.md` § `meta.area`.
-- **`useConfigHealthStore`** (`configHealth.js`) — munin `health/` rows (`failing`, `passing`, `stateOf(code)`, `failingFor(code)`), 30 s poll, `recheck()` runs the probes. See AGENTS.md "Configuration health".
+- **`useConfigHealthStore`** (`configHealth.js`) — munin `health/` rows (`failing`, `passing`, `stateOf(code)`, `failingFor(code)`), 30 s poll, `recheck()` runs the probes; `aiState` / `aiUsable` = the AI toolbox state every AI action follows (health row, else the public registry). See AGENTS.md "Configuration health".
 - **`useNotifyStore`** (`notify.js`) — `spawnNotification({ title, msg, type,
   timeout })`. Types: `informative`, `positive`, `negative`, `warning`. Queues
   beyond 3 visible toasts (`MAX_VISIBLE`), pause/resume timers on hover.
@@ -58,7 +58,7 @@ All 12 stores (`src/stores/`) use composition (setup) syntax with `defineStore`.
   `src/composables/fieldHints.js`), preferences. `loadPreferences(extra)` applies the hints choice only from a real
   profile: `extra` an object (one without `cms_hints` → hints on); `extra` null means the profile call failed and
   the stored choice stands. `useLoginSession` hands `{}` for a profile without `extra`. `clearAuth()` sets hints on
-  and removes `cms_hints` from localStorage. Cookie persistence via `universal-cookie`.
+  and removes `cms_hints` from localStorage. Cookie persistence via `universal-cookie`. Every session cookie is `SameSite=Strict`, and `Secure` on an https page.
 
 ### `useMuninStore` API
 

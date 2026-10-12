@@ -35,6 +35,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { useRoute } from "vue-router";
 import Company from "@/views/Leads/Company.vue";
 import CompanyActions from "@/views/Leads/CompanyActions.vue";
+import { useConfigHealthStore } from "@/stores/configHealth";
 import { control, leadsFrame, setControl } from "./leadsFrame";
 
 const company = (kind = "open") => ({ id: 7, domain: "shop.test", do_not_contact: false, customer_uid: null, stage: { key: kind, kind }, contacts: [] });
@@ -49,7 +50,10 @@ const mountActions = (props) =>
 const has = (wrapper, id) => wrapper.find(`[data-testid="${id}"]`).exists();
 
 describe("Company card actions", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
 
   it.each([
     [true, "won", true],
@@ -142,6 +146,12 @@ describe("Company card header", () => {
     leads.GET_Company.mockResolvedValue({ data: { ...company(), name: "Shop", lead_type: "RETAILER", stage: { key: "new" } } });
     leads.GET_Stages.mockResolvedValue({ data: { results: [{ key: "new", label: "New" }, { key: "won", label: "Won" }] } });
     leads.GET_LeadTypes.mockResolvedValue({ data: { results: [{ code: "RETAILER", label: "Retailer", is_active: true }] } });
+  });
+
+  it("the loaded card opens with the AI toolbox hint", async () => {
+    useConfigHealthStore().checks = [{ code: "toolbox.status", state: "unconfigured", severity: "medium", scope: "" }];
+    const wrapper = await mountCard();
+    expect(wrapper.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe("unconfigured");
   });
 
   const mountCard = async () => {
@@ -319,10 +329,20 @@ describe("Leads Communicate dialog", () => {
   const submit = (wrapper) => wrapper.findComponent({ name: "BasicModal" }).props("actions").find((a) => a.key === "submit");
 
   beforeEach(() => {
+    setActivePinia(createPinia());
     vi.clearAllMocks();
     communicator.GET_Templates.mockResolvedValue({
       data: { results: [{ id: 1, key: "cold", language: "pl", is_active: true }, { id: 2, key: "old", language: "en", is_active: false }] },
     });
+  });
+
+  it("a switched-off toolbox is named in the dialog and Request draft stays available", async () => {
+    useConfigHealthStore().checks = [{ code: "toolbox.status", state: "disabled", severity: "", scope: "" }];
+    const wrapper = await openDialog();
+    expect(wrapper.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe("disabled");
+    control(wrapper, "communicate-template").vm.$emit("update:modelValue", "cold");
+    await wrapper.vm.$nextTick();
+    expect(submit(wrapper).disabled).toBe(false);
   });
 
   it("offers the active templates and the contacts that can get mail, the primary one picked", async () => {
