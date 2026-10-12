@@ -180,9 +180,10 @@ Traps:
   The primary fill is `bg-accent-fill t-on-accent-fill`.
 - **R9 Restyle before restructure.** A visual change keeps the structure and behaviour of a screen unless R1–R8
   require a change. Content-builder section blocks, tiles and `DataTable` internals change through tokens only.
-  The builder list mirrors the page on purpose: a tile card previews its tile (image across the card, title, text
-  excerpt), a short tile row fills the section width, and a `content_width` section block is inset while a
-  `full_width` one spans the column.
+  The builder list mirrors the page on purpose: a section block is a slim bar (type, tile count, uid, config,
+  actions) over a preview — the section title as a heading, its other content, then the tiles. A tile card previews
+  its tile (image across the card, title, text excerpt), a short tile row fills the section width, and a
+  `content_width` section block is inset while a `full_width` one spans the column.
 
 ## Page patterns
 
