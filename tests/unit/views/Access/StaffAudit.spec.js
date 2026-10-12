@@ -149,11 +149,17 @@ describe("AuditList", () => {
 
   it("filters reach the query and go back to the first page", async () => {
     const wrapper = await mountView(AuditList);
-    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({ page: 1, page_size: 50 });
+    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({ page: 1, page_size: 50, fold_bypass: true });
     wrapper.vm.changePage(3);
     wrapper.vm.setFilter("action", "grant.migrate");
     wrapper.vm.setFilter("actor", 7);
-    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({ page: 1, page_size: 50, action: "grant.migrate", actor: 7 });
+    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({
+      page: 1,
+      page_size: 50,
+      action: "grant.migrate",
+      actor: 7,
+      fold_bypass: true,
+    });
     expect(wrapper.vm.actorOptions).toEqual([{ label: "admin", value: 7 }]);
   });
 
@@ -164,14 +170,105 @@ describe("AuditList", () => {
     expect(wrapper.vm.actionLabel("custom.thing")).toBe("custom.thing");
   });
 
-  it("gate bypass rows fold by default and stay single when that action is the filter", async () => {
-    const day = new Date(2026, 9, 2, 12).toISOString();
-    const entries = [1, 2].map((id) => ({ id, actor_id: 7, action: "gate.bypass", created_at: day, detail: {} }));
-    api.GET_AccessAudit.mockResolvedValue({ data: { count: 2, results: entries } });
+  const FOLDED = {
+    id: 90,
+    actor_id: 7,
+    actor_label: "admin",
+    action: "gate.bypass",
+    created_at: "2026-10-02T15:00:00Z",
+    first_at: "2026-10-02T06:00:00Z",
+    last_at: "2026-10-02T15:00:00Z",
+    folded: 120,
+    detail: {},
+  };
+  const foldedPage = { data: { count: 61, results: [FOLDED] } };
+
+  it("asks the API to fold; the chip off or the bypass filter asks for raw rows from the first page", async () => {
     const wrapper = await mountView(AuditList);
-    expect(wrapper.vm.rows).toHaveLength(1);
+    wrapper.vm.changePage(2);
+    wrapper.vm.toggleFold();
+    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({ page: 1, page_size: 50 });
+    wrapper.vm.toggleFold();
+    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({ page: 1, page_size: 50, fold_bypass: true });
     wrapper.vm.setFilter("action", "gate.bypass");
+    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({ page: 1, page_size: 50, action: "gate.bypass" });
+  });
+
+  it("the pager counts the folded rows and a folded row reads as its count", async () => {
+    api.GET_AccessAudit.mockResolvedValue(foldedPage);
+    const wrapper = await mountView(AuditList);
+    expect(wrapper.vm.pages).toBe(2);
+    expect(wrapper.vm.rows).toHaveLength(1);
+    expect(wrapper.vm.isFolded(wrapper.vm.rows[0])).toBe(true);
+    expect(wrapper.vm.rows[0].target).toBe("120 requests");
+  });
+
+  it("expanding a folded row loads its requests by the row's bounds, once", async () => {
+    api.GET_AccessAudit.mockResolvedValue(foldedPage);
+    const wrapper = await mountView(AuditList);
+    const row = wrapper.vm.rows[0];
+    api.GET_AccessAudit.mockResolvedValue({ data: { count: 120, results: [{ id: 1, detail: { path: "/a" } }] } });
+    wrapper.vm.onExpandToggle({ row, expanded: true });
+    expect(wrapper.vm.requestsOf(row)).toEqual({ loading: true });
+    expect(api.GET_AccessAudit).toHaveBeenLastCalledWith({
+      page: 1,
+      page_size: 50,
+      action: "gate.bypass",
+      actor: 7,
+      from: "2026-10-02T06:00:00Z",
+      to: "2026-10-02T15:00:00Z",
+    });
     await flushPromises();
+    expect(wrapper.vm.requestsOf(row)).toEqual({ items: [{ path: "/a" }] });
+    const calls = api.GET_AccessAudit.mock.calls.length;
+    wrapper.vm.onExpandToggle({ row, expanded: false });
+    wrapper.vm.onExpandToggle({ row, expanded: true });
+    expect(api.GET_AccessAudit.mock.calls).toHaveLength(calls);
+  });
+
+  it("a failed load of the requests is an error state that a retry clears", async () => {
+    api.GET_AccessAudit.mockResolvedValue(foldedPage);
+    const wrapper = await mountView(AuditList);
+    const row = wrapper.vm.rows[0];
+    api.GET_AccessAudit.mockRejectedValueOnce(new Error("down"));
+    wrapper.vm.onExpandToggle({ row, expanded: true });
+    await flushPromises();
+    expect(wrapper.vm.requestsOf(row)).toEqual({ error: true });
+    expect(notify.spawnNotification).not.toHaveBeenCalled();
+    api.GET_AccessAudit.mockResolvedValue({ data: { count: 0, results: [] } });
+    await wrapper.vm.fetchRequests(row);
+    expect(wrapper.vm.requestsOf(row)).toEqual({ items: [] });
+  });
+
+  it("an expanded folded row shows the loader, then its requests with the showing line, or the error", async () => {
+    const expandRows = defineComponent({
+      props: { rows: Array },
+      setup: (props, ctx) => () => h("div", props.rows.map((row) => ctx.slots.expand({ row }))),
+    });
+    api.GET_AccessAudit.mockResolvedValue(foldedPage);
+    const wrapper = mount(AuditList, { global: { mocks: { $t: t }, stubs: { ...stubs, DataTable: expandRows } } });
+    await flushPromises();
+    const row = wrapper.vm.rows[0];
+    expect(wrapper.findComponent({ name: "Loader" }).exists()).toBe(true);
+    api.GET_AccessAudit.mockResolvedValue({ data: { count: 120, results: [{ id: 1, detail: { path: "/a" } }] } });
+    await wrapper.vm.fetchRequests(row);
+    await flushPromises();
+    expect(wrapper.find("pre").text()).toContain('"path": "/a"');
+    expect(wrapper.find('[data-testid="audit-requests-partial"]').text()).toBe("Showing 1 of 120 requests");
+    api.GET_AccessAudit.mockRejectedValueOnce(new Error("down"));
+    await wrapper.vm.fetchRequests(row);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="audit-requests-error"]').text()).toContain("Could not load the requests");
+  });
+
+  it("an access version without folding answers raw rows: shown unfolded, nothing loaded on expand", async () => {
+    const raw = [1, 2].map((id) => ({ id, actor_id: 7, action: "gate.bypass", created_at: FOLDED.created_at, detail: { id } }));
+    api.GET_AccessAudit.mockResolvedValue({ data: { count: 120, results: raw } });
+    const wrapper = await mountView(AuditList);
     expect(wrapper.vm.rows).toHaveLength(2);
+    expect(wrapper.vm.rows.some((row) => wrapper.vm.isFolded(row))).toBe(false);
+    expect(wrapper.vm.pages).toBe(3);
+    wrapper.vm.onExpandToggle({ row: wrapper.vm.rows[0], expanded: true });
+    expect(api.GET_AccessAudit).toHaveBeenCalledTimes(1);
   });
 });

@@ -3943,6 +3943,8 @@
       "target": "Target",
       "ip": "IP address",
       "requests": "{count} requests",
+      "requests_partial": "Showing {shown} of {count} requests",
+      "requests_error": "Could not load the requests",
       "actions": {
         "role": {
           "create": "Role created",

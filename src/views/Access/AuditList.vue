@@ -32,9 +32,9 @@
           </FormField>
           <FilterChip
             :label="$t('access.audit.group_bypass')"
-            :active="groupBypassRows"
+            :active="foldBypass"
             data-testid="audit-group-bypass"
-            @click="groupBypassRows = !groupBypassRows"
+            @click="toggleFold"
           />
         </MobileFilterPanel>
       </div>
@@ -51,13 +51,27 @@
       :empty-text="$t('access.audit.empty')"
       empty-size="md"
       expandable
+      @expand-toggle="onExpandToggle"
     >
       <template #cell-created_at="{ value }">{{ formatDate(value) }}</template>
       <template #cell-action="{ row }">
-        {{ actionLabel(row.action) }}<template v-if="row.grouped"> × {{ row.grouped.length }}</template>
+        {{ actionLabel(row.action) }}<template v-if="isFolded(row)"> × {{ row.folded }}</template>
       </template>
       <template #expand="{ row }">
-        <pre class="audit-list__detail fs-200 m-0">{{ JSON.stringify(row.detail, null, 2) }}</pre>
+        <pre v-if="!isFolded(row)" class="audit-list__detail fs-200 m-0">{{ JSON.stringify(row.detail, null, 2) }}</pre>
+        <Loader v-else-if="!requestsOf(row) || requestsOf(row).loading" block />
+        <div v-else-if="requestsOf(row).error" class="flex ai-ct gap-5" data-testid="audit-requests-error">
+          <span class="audit-list__error fs-200">{{ $t("access.audit.requests_error") }}</span>
+          <BasicButton variant="ghost" size="sm" @click="fetchRequests(row)">
+            {{ $t("access.retry") }}
+          </BasicButton>
+        </div>
+        <template v-else>
+          <pre class="audit-list__detail fs-200 m-0">{{ JSON.stringify({ requests: requestsOf(row).items }, null, 2) }}</pre>
+          <p v-if="row.folded > requestsOf(row).items.length" class="t-muted fs-200 m-0 pt-4" data-testid="audit-requests-partial">
+            {{ $t("access.audit.requests_partial", { shown: requestsOf(row).items.length, count: row.folded }) }}
+          </p>
+        </template>
       </template>
     </DataTable>
 
@@ -72,12 +86,14 @@ import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { formatDate } from "@/utils/format";
 import { GET_AccessAudit, GET_AccessAllStaff } from "@/api/access/api";
-import { AUDIT_ACTIONS, AUDIT_PAGE_SIZE, BYPASS, auditParams, groupBypass } from "./audit";
+import { AUDIT_ACTIONS, AUDIT_PAGE_SIZE, BYPASS, auditParams, foldedCount, foldedRequestsParams } from "./audit";
 
 // The access audit log (django-access), newest first. Labels, targets and details are what users typed or the server
-// stored — rendered as text only. A superuser's writes through the gate (`gate.bypass`, one per request) fold into
-// one row per actor and day unless that action is the filter or the chip is off. The actor filter offers every staff
-// account (all pages, searchable); an actor that is no staff account any more is not offered.
+// stored — rendered as text only. A superuser's writes through the gate (`gate.bypass`, one per request) are folded
+// by the API into one row per actor and day unless that action is the filter or the chip is off; the pager counts
+// the rows the API answers. A folded row loads its requests when it is expanded (the first page, by the row's own
+// bounds). The actor filter offers every staff account (all pages, searchable); an actor that is no staff account
+// any more is not offered.
 
 export default {
   name: "AccessAuditList",
@@ -92,7 +108,8 @@ export default {
       loading: false,
       staff: [],
       filters: { action: null, actor: null, from: "", to: "" },
-      groupBypassRows: true,
+      foldBypass: true,
+      requests: {},
     };
   },
   computed: {
@@ -106,9 +123,7 @@ export default {
       ];
     },
     rows() {
-      const grouping = this.groupBypassRows && this.filters.action !== BYPASS;
-      const rows = grouping ? groupBypass(this.entries) : this.entries;
-      return rows.map((row) => ({ ...row, target: this.targetLabel(row) }));
+      return this.entries.map((row) => ({ ...row, target: this.targetLabel(row) }));
     },
     pages() {
       return Math.ceil(this.count / AUDIT_PAGE_SIZE);
@@ -134,13 +149,37 @@ export default {
       return this.$t(key) === key ? action : this.$t(key);
     },
     targetLabel(row) {
-      if (row.grouped) return this.$t("access.audit.requests", { count: row.grouped.length });
+      if (this.isFolded(row)) return this.$t("access.audit.requests", { count: row.folded });
       return row.target_label || `${row.target_type} ${row.target_id}`;
     },
     setFilter(name, value) {
       this.filters[name] = value || (name === "from" || name === "to" ? "" : null);
       this.page = 1;
       this.fetchAudit();
+    },
+    isFolded(row) {
+      return foldedCount(row) > 1;
+    },
+    requestsOf(row) {
+      return this.requests[row.id];
+    },
+    toggleFold() {
+      this.foldBypass = !this.foldBypass;
+      this.page = 1;
+      this.fetchAudit();
+    },
+    onExpandToggle({ row, expanded }) {
+      if (expanded && this.isFolded(row) && !this.requestsOf(row)?.items) this.fetchRequests(row);
+    },
+    async fetchRequests(row) {
+      const requests = this.requests; // a list reload replaces it: a late answer never lands in the new list
+      requests[row.id] = { loading: true };
+      try {
+        const { data } = await GET_AccessAudit(foldedRequestsParams(row));
+        requests[row.id] = { items: (data.results || []).map((entry) => entry.detail) };
+      } catch {
+        requests[row.id] = { error: true };
+      }
     },
     changePage(page) {
       this.page = page;
@@ -149,8 +188,10 @@ export default {
     async fetchAudit() {
       this.loading = true;
       try {
-        const { data } = await GET_AccessAudit(auditParams({ page: this.page, ...this.filters }));
+        const fold = this.foldBypass && this.filters.action !== BYPASS;
+        const { data } = await GET_AccessAudit(auditParams({ page: this.page, ...this.filters, fold }));
         this.entries = data.results || [];
+        this.requests = {};
         this.count = data.count || 0;
       } catch (err) {
         this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
@@ -180,5 +221,9 @@ export default {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: var(--text-body);
+}
+
+.audit-list__error {
+  color: var(--negative);
 }
 </style>

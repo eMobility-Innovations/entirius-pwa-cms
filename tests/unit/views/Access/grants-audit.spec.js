@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { grantPayload, grantErrorMessage, roleLabel, roleOptions } from "@/views/Access/grants";
-import { AUDIT_PAGE_SIZE, auditParams, groupBypass } from "@/views/Access/audit";
+import { AUDIT_PAGE_SIZE, auditParams, foldedCount, foldedRequestsParams } from "@/views/Access/audit";
 
 // Access plan 21: grant payloads, the "via <group>" marker, the lockout sentence and the audit query.
 const t = (key, params) => (params ? `${key}::${JSON.stringify(params)}` : key);
@@ -52,19 +52,26 @@ describe("audit", () => {
     expect(auditParams({ action: null, actor: null, from: "", to: "" })).toEqual({ page: 1, page_size: AUDIT_PAGE_SIZE });
   });
 
-  it("gate bypasses fold into one row per actor and day; a lone one stays", () => {
-    const at = (day, hour) => new Date(2026, 9, day, hour).toISOString();
-    const bypass = (id, actor, created_at) => ({ id, actor_id: actor, action: "gate.bypass", created_at, detail: { id } });
-    const entries = [
-      bypass(1, 1, at(2, 15)),
-      { id: 2, actor_id: 1, action: "grant.create", created_at: at(2, 14), detail: {} },
-      bypass(3, 1, at(2, 10)),
-      bypass(4, 2, at(2, 9)),
-      bypass(5, 1, at(1, 9)),
-    ];
-    const rows = groupBypass(entries);
-    expect(rows.map((row) => row.grouped?.length ?? row.id)).toEqual([2, 2, 4, 5]);
-    expect(rows[0].detail).toEqual({ requests: [{ id: 1 }, { id: 3 }] });
-    expect(rows[0].created_at).toBe(at(2, 15));
+  it("folding is the API's: fold_bypass goes out only when asked for", () => {
+    expect(auditParams({ fold: true })).toEqual({ page: 1, page_size: AUDIT_PAGE_SIZE, fold_bypass: true });
+    expect(auditParams({ fold: false })).not.toHaveProperty("fold_bypass");
+  });
+
+  it("a row stands for its folded count; a row of an API without folding stands for itself", () => {
+    expect(foldedCount({ folded: 120 })).toBe(120);
+    expect(foldedCount({ id: 1, action: "gate.bypass" })).toBe(1);
+  });
+
+  it("the requests of a folded row are its actor's bypass entries between the row's bounds", () => {
+    const row = { id: 9, actor_id: 7, folded: 120, first_at: "2026-10-02T06:00:00Z", last_at: "2026-10-02T15:00:00Z" };
+    expect(foldedRequestsParams(row)).toEqual({
+      page: 1,
+      page_size: AUDIT_PAGE_SIZE,
+      action: "gate.bypass",
+      actor: 7,
+      from: "2026-10-02T06:00:00Z",
+      to: "2026-10-02T15:00:00Z",
+    });
+    expect(foldedRequestsParams({ ...row, actor_id: null })).not.toHaveProperty("actor");
   });
 });

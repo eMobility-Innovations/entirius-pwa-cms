@@ -103,7 +103,7 @@ Munin key `access`; every route needs `access.manage` (built-in Administrator, o
 | Staff | `/access/staff`, `/access/staff/:id` | staff accounts, direct grants, roles via groups (read-only); New staff member creates an account with one role, a generated password shown once in SecretReveal |
 | Groups | `/access/groups` | a role per group |
 | Applications | `/access/applications`, `/access/applications/new`, `/access/applications/:id` | machine clients and their tokens: new, rotate, set expiry, revoke |
-| Audit | `/access/audit` | the access audit log, filters by action, actor and date |
+| Audit | `/access/audit` | the access audit log, filters by action, actor and date; superuser access folded per actor and day by the API (`fold_bypass`), a folded row loads its requests when expanded |
 
 A revoke the server's lockout guard refuses reads "At least one person must keep access management".
 
