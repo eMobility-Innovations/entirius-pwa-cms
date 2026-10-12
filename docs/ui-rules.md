@@ -180,6 +180,14 @@ Traps:
   The primary fill is `bg-accent-fill t-on-accent-fill`.
 - **R9 Restyle before restructure.** A visual change keeps the structure and behaviour of a screen unless R1–R8
   require a change. Content-builder section blocks, tiles and `DataTable` internals change through tokens only.
+  The builder list mirrors the page on purpose: a section block has two zones that never mix — the section's own
+  (`surface-base`: type, tile count, uid, config and actions, then its title as a heading and its other content)
+  and the tiles tray (`surface-raised`) with bordered tile cards. A tile card previews its tile (image across the
+  card, title, text excerpt); a few tiles share the row, many scroll it. A section narrower than `full_width` is
+  inset. Types read by their `config_option` name, never the raw `core_type`. A click on a preview opens its edit
+  kit (the pencil stays the keyboard path). Order changes in place by the grip — tiles sideways in their row,
+  sections up and down with the trays folded while one is dragged; the order kit stays for keyboard and phone. A
+  new section goes in through the "+" between two sections, a new tile through the dashed card that ends the row.
 
 ## Page patterns
 
