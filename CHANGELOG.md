@@ -94,6 +94,11 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Access → Audit: with "Group superuser access by day" on, the list shows one row per actor and day for the whole
+  log and the pager counts those rows. The rows were folded in the browser, page by page, so a superuser with many
+  writes filled every page with one row. The list now asks the API to fold (`fold_bypass`); a folded row loads its
+  requests when expanded (the first 50, with a "Showing 50 of N" line). Against an access version without the
+  parameter the rows show unfolded.
 - Dates and the date picker follow the UI language: order and promotion dates, the page list's "updated" column and
   the calendar's month and weekday names were Polish (or a mix) in the English UI. `formatDate` formats in the
   locale of the UI language (`uiLocale()` in `src/i18n`), no longer in the browser's.

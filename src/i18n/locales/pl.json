@@ -3939,6 +3939,8 @@
       "target": "Obiekt",
       "ip": "Adres IP",
       "requests": "Żądania: {count}",
+      "requests_partial": "Pokazano {shown} z {count} żądań",
+      "requests_error": "Nie udało się wczytać żądań",
       "actions": {
         "role": {
           "create": "Utworzono rolę",

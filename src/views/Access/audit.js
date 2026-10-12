@@ -1,6 +1,6 @@
-// Audit log (django-access): the README's actions, the list query and the gate-bypass grouping. A superuser's write
-// through the gate leaves one `gate.bypass` row per request — numerous, so by default they fold into one row per
-// actor and day.
+// Audit log (django-access): the README's actions and the list queries. A superuser's write through the gate leaves
+// one `gate.bypass` row per request — numerous, so by default the API folds them into one row per actor and day
+// (`fold_bypass`), before paging. An access version without the parameter ignores it and answers raw rows.
 
 export const AUDIT_ACTIONS = [
   "role.create",
@@ -30,35 +30,22 @@ function dayBound(value, endOfDay) {
   return new Date(new Date(year, month - 1, day + 1).getTime() - 1).toISOString();
 }
 
-export function auditParams({ page = 1, action, actor, from, to }) {
+export function auditParams({ page = 1, action, actor, from, to, fold = false }) {
   const params = { page, page_size: AUDIT_PAGE_SIZE };
   if (action) params.action = action;
   if (actor) params.actor = actor;
   if (from) params.from = dayBound(from, false);
   if (to) params.to = dayBound(to, true);
+  if (fold) params.fold_bypass = true;
   return params;
 }
 
-const localDay = (iso) => new Date(iso).toLocaleDateString("sv-SE");
-const bypassKey = (entry) => `${entry.actor_id ?? entry.actor_label}|${localDay(entry.created_at)}`;
+// Entries a row stands for: `folded` of a folded row, 1 for an ordinary row and for a row of an API without folding.
+export const foldedCount = (row) => row.folded ?? 1;
 
-// Bypass rows of one actor and day become one row at the place of the newest (`grouped` = the entries); its detail
-// lists the requests. A lone bypass stays as it is.
-export function groupBypass(entries) {
-  const groups = new Map();
-  const rows = [];
-  for (const entry of entries) {
-    if (entry.action !== BYPASS) {
-      rows.push(entry);
-      continue;
-    }
-    const key = bypassKey(entry);
-    if (!groups.has(key)) {
-      groups.set(key, { ...entry, id: `bypass-${key}`, grouped: [], detail: { requests: [] } });
-      rows.push(groups.get(key));
-    }
-    groups.get(key).grouped.push(entry);
-    groups.get(key).detail.requests.push(entry.detail);
-  }
-  return rows.map((row) => (row.grouped?.length === 1 ? row.grouped[0] : row));
+// The first page of the bypass entries behind a folded row: its actor between the row's own bounds.
+export function foldedRequestsParams(row) {
+  const params = { page: 1, page_size: AUDIT_PAGE_SIZE, action: BYPASS, from: row.first_at, to: row.last_at };
+  if (row.actor_id) params.actor = row.actor_id;
+  return params;
 }
