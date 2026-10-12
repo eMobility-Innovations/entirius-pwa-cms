@@ -58,10 +58,14 @@ All notable changes to this project will be documented in this file.
 - The dead role filter of `src/configs/access.js` (`grantAccess`, `routes`, `builderTypes`, the `access` arrays).
 ### Changed
 
-- Page builder: a tile card previews its tile (image across the card, title, text excerpt) and a short tile row
-  fills the section width; `content_width` sections are inset, `full_width` ones span the column. A section shows
-  its title as a heading above its tiles, with its other content; the section type, tile count and uid are a slim
-  bar on top.
+- Page builder: the section list reads like the page. A tile card previews its tile (image across the card, title,
+  text excerpt) and a few tiles share the section width; sections narrower than `full_width` are inset. A section
+  keeps its own zone (type, tile count and uid as a slim bar, its title as a heading, its other content) above the
+  tiles tray. Section and tile types show the names of the type picker. A click on a preview opens its editor.
+  Tiles are reordered by dragging them in their row, sections by dragging them up and down (the order kit stays);
+  "+" between two sections adds a section there, a dashed card at the end of a row adds a tile. A section that
+  takes no tiles says so. The tile row is no longer a Swiper.
+- Content list: a search box narrows every document list by name (`name=` of the content API).
 - Text fields show focus on the field itself: an accent border and a soft 2 px glow instead of a 2 px outline at a
   2 px offset; the sign-in screen's 8 px halo is gone. Buttons, tabs and links keep the outline.
 
