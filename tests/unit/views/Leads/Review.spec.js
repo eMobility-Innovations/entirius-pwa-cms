@@ -254,7 +254,18 @@ describe("Leads Review", () => {
     await wrapper.get('[data-testid="review-more"]').trigger("click");
     expect(wrapper.get('[data-testid="review-rewrite"]').attributes("disabled")).toBeDefined();
     expect(wrapper.find('[data-testid="review-edit"]').exists()).toBe(true);
-    expect(wrapper.get('[data-code="toolbox.status"]').text()).toContain("Entirius AI Toolbox");
+    expect(wrapper.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe("unconfigured");
+  });
+
+  it.each([
+    ["disabled", true],
+    ["unreachable", false],
+  ])("toolbox %s: the hint shows and rewrite disabled is %s", async (state, blocked) => {
+    useConfigHealthStore().checks = [{ code: "toolbox.status", state, severity: "", scope: "" }];
+    const wrapper = await mountReview();
+    await wrapper.get('[data-testid="review-more"]').trigger("click");
+    expect(wrapper.get('[data-testid="review-rewrite"]').attributes("disabled") !== undefined).toBe(blocked);
+    expect(wrapper.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe(state);
   });
 
   it("a more-menu item runs its action: Edit opens the edit form", async () => {

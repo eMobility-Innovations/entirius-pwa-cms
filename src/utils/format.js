@@ -1,3 +1,5 @@
+import { uiLocale } from "@/i18n"
+
 /**
  * Format a money amount to 2 decimal places + optional currency suffix.
  *
@@ -17,11 +19,11 @@ export function formatCost(amount, currency = "") {
 }
 
 /**
- * Format an ISO datetime string into a compact locale-aware label.
+ * Format an ISO datetime string into a compact label in the locale of the UI language.
  *
  * Default: short date + short time. Backend serializes datetimes as ISO 8601 with timezone
- * (e.g. "2026-05-18T19:06:46Z"). This produces locale output like "18/05/2026, 21:06"
- * (en-GB style) or "18.05.2026, 21:06" (pl) without seconds — fits narrow table cells.
+ * (e.g. "2026-05-18T19:06:46Z"). This produces "18/05/2026, 21:06" (EN) or
+ * "18.05.2026, 21:06" (PL) without seconds — fits narrow table cells.
  *
  * @param {string|null|undefined} iso
  * @param {object} [opts] - extra Intl.DateTimeFormat options to override defaults
@@ -33,8 +35,18 @@ export function formatDate(iso, opts = {}) {
   if (Number.isNaN(d.getTime())) return ""
   const defaults = { dateStyle: "short", timeStyle: "short" }
   try {
-    return new Intl.DateTimeFormat(undefined, { ...defaults, ...opts }).format(d)
+    return new Intl.DateTimeFormat(uiLocale(), { ...defaults, ...opts }).format(d)
   } catch {
     return d.toLocaleString()
   }
+}
+
+/**
+ * Format an ISO date or datetime string as a short date ("18/05/2026" EN, "18.05.2026" PL).
+ *
+ * @param {string|null|undefined} iso
+ * @returns {string} "" for null/empty/invalid
+ */
+export function formatDay(iso) {
+  return formatDate(iso, { dateStyle: "short", timeStyle: undefined })
 }

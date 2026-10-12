@@ -19,6 +19,7 @@ vi.mock("vue-router", () => ({ useRoute: () => ({ params: { id: "3" } }) }));
 
 import TemplateEdit from "@/views/Communicator/TemplateEdit.vue";
 import TestGenerate from "@/views/Communicator/TestGenerate.vue";
+import { useConfigHealthStore } from "@/stores/configHealth";
 import { control, setControl } from "../Leads/leadsFrame";
 import { mountOptions } from "./communicatorFrame";
 
@@ -62,6 +63,34 @@ describe("Communicator TemplateEdit", () => {
   it("offers the models from GET models/", async () => {
     const wrapper = await mountEdit();
     expect(control(wrapper, "template-model").props("options").map((option) => option.label)).toEqual(["—", "fake-chat (fake)"]);
+  });
+
+  const headerAction = (wrapper, testid) => wrapper.get(`[data-testid="${testid}"]`);
+  const toolbox = (state) => (useConfigHealthStore().checks = [{ code: "toolbox.status", state, scope: "" }]);
+
+  it.each(["disabled", "unconfigured"])("toolbox %s: an AI template asks for no models and cannot be test-generated", async (state) => {
+    toolbox(state);
+    const wrapper = await mountEdit();
+    expect(api.GET_Models).not.toHaveBeenCalled();
+    expect(control(wrapper, "template-model").props("options")).toHaveLength(1);
+    expect(control(wrapper, "template-model").attributes("disabled")).toBeDefined();
+    expect(headerAction(wrapper, "template-test-generate").attributes("disabled")).toBeDefined();
+    expect(wrapper.get('[data-testid="ai-toolbox-hint"]').attributes("data-state")).toBe(state);
+  });
+
+  it("toolbox disabled: a static template keeps test generate and shows no hint", async () => {
+    toolbox("disabled");
+    api.GET_Template.mockResolvedValue({ data: { ...template, kind: "static" } });
+    const wrapper = await mountEdit();
+    expect(headerAction(wrapper, "template-test-generate").attributes("disabled")).toBeUndefined();
+    expect(wrapper.find('[data-testid="ai-toolbox-hint"]').exists()).toBe(false);
+  });
+
+  it("toolbox unreachable: the models are asked for and test generate stays available", async () => {
+    toolbox("unreachable");
+    const wrapper = await mountEdit();
+    expect(api.GET_Models).toHaveBeenCalledTimes(1);
+    expect(headerAction(wrapper, "template-test-generate").attributes("disabled")).toBeUndefined();
   });
 
   it("test generate shows the preview and never saves the template", async () => {

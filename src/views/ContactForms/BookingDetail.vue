@@ -57,7 +57,7 @@
                 <dd>
                   <a
                     v-if="booking.meet_link"
-                    :href="booking.meet_link"
+                    :href="safeHref(booking.meet_link)"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="cf-inline-link"
@@ -126,6 +126,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { GET_Booking } from "@/api/contactForms/api";
 import { leadStatusLabel, leadStatusVariant } from "./helpers/leadStatus";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { safeHref } from "@/utils/safeHref";
 
 export default {
   name: "BookingDetail",
@@ -153,6 +154,7 @@ export default {
     this.fetchBooking();
   },
   methods: {
+    safeHref,
     leadStatusLabel,
     leadStatusVariant,
     formatDateTime(iso) {

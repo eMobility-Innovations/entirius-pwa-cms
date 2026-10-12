@@ -433,7 +433,7 @@
                       </p>
                       <div
                         v-if="type === 'wysiwyg'"
-                        v-html="sections[s_uid][prop]"
+                        v-html="sanitizeHtml(sections[s_uid][prop])"
                         class="wysiwyg-container-preview lc-3 fs-200"
                       ></div>
                       <ImagesControllPreview
@@ -755,7 +755,7 @@
                               </p>
                               <p
                                 v-if="type === 'wysiwyg'"
-                                v-html="tiles[t_uid][prop]"
+                                v-html="sanitizeHtml(tiles[t_uid][prop])"
                                 class="lc-3 fs-200"
                               ></p>
                               <ImagesControllPreview
@@ -867,6 +867,7 @@ import HomeVariantSwitcher from "@/views/Builder/HomeVariantSwitcher.vue";
 import { pluralKey } from "@/utils/plural";
 import { useMediaQuery } from "@/composables/useMediaQuery";
 import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 export default {
   components: {
@@ -1030,6 +1031,7 @@ export default {
     };
   },
   methods: {
+    sanitizeHtml,
     // The author fields (EntitySearchPicker): the picker adds one author to a list, the Tags above it remove and
     // reorder; an author already in either list is not offered again.
     async searchAuthors(search) {

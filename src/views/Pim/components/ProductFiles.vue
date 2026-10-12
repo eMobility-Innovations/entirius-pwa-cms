@@ -512,7 +512,7 @@ onMounted(() => {
                 v-if="fileUrl(pf)"
                 :href="fileUrl(pf)"
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 class="product-files__name product-files__name--link t-body fs-300 fw-500"
               >
                 {{ fileName(pf) || "—" }}

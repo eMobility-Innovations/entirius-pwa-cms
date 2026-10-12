@@ -3,9 +3,17 @@ const webpack = require('webpack');
 
 const path = require('path');
 const fs = require('fs');
+const { DEV_ONLY_ENV, assertNoDevCredentials } = require('./scripts/build-env');
+
+assertNoDevCredentials(process.env);
 
 const REQUIRED_ENV = ['VUE_APP_API_URL', 'VUE_APP_CHANNEL', 'VUE_APP_PANELS'];
-const OPTIONAL_ENV = ['VUE_APP_DEBUG', 'VUE_APP_LANG', 'VUE_APP_USERNAME', 'VUE_APP_PASSWORD', 'VUE_APP_SSO_API_BASE'];
+const OPTIONAL_ENV = [
+  'VUE_APP_DEBUG',
+  'VUE_APP_LANG',
+  'VUE_APP_SSO_API_BASE',
+  ...(process.env.NODE_ENV === 'production' ? [] : DEV_ONLY_ENV),
+];
 
 const CLIENT_CONFIG_FILES = [
   'configs/__core_config.json',
@@ -78,6 +86,7 @@ class EnvCheckPlugin {
 
 module.exports = defineConfig({
   transpileDependencies: true,
+  productionSourceMap: false,
 
   css: {
     extract: {

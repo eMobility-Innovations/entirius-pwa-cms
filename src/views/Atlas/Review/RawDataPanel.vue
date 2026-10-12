@@ -54,7 +54,7 @@
         </h3>
         <ul class="raw-panel__images">
           <li v-for="(u, i) in imageUrls" :key="i">
-            <a :href="u" target="_blank" rel="noopener" class="raw-panel__image-link">
+            <a :href="safeHref(u)" target="_blank" rel="noopener noreferrer" class="raw-panel__image-link">
               {{ shortenUrl(u) }}
             </a>
           </li>
@@ -66,6 +66,7 @@
 
 <script>
 import { formatCost, formatDate } from "@/utils/format";
+import { safeHref } from "@/utils/safeHref";
 
 let nextId = 0;
 
@@ -114,6 +115,7 @@ export default {
     },
   },
   methods: {
+    safeHref,
     toggle(key) {
       this.expanded = { ...this.expanded, [key]: !this.expanded[key] };
     },

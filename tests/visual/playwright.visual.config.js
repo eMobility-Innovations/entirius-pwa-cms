@@ -1,6 +1,7 @@
 const path = require("path");
 const { defineConfig } = require("@playwright/test");
 const { REPORT_DIR } = require("./support/report");
+const { loopbackUrl } = require("../helpers/loopback");
 
 /**
  * Visual fidelity harness (docs/testing.md → "Visual fidelity harness").
@@ -27,10 +28,10 @@ module.exports = defineConfig({
     toHaveScreenshot: { threshold: 0.1, maxDiffPixels: 20 },
   },
   use: {
-    baseURL: process.env.CMS_BASE_URL || "http://localhost:8180",
+    baseURL: loopbackUrl("CMS_BASE_URL", "http://localhost:8180"),
     headless: true,
     deviceScaleFactor: 1,
-    locale: "pl-PL",
+    locale: process.env.CMS_LOCALE || "pl-PL", // the default is repeated in support/state.js (LOCALE)
     timezoneId: "Europe/Warsaw",
     reducedMotion: "reduce",
     actionTimeout: 10000,

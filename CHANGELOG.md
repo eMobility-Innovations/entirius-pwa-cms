@@ -47,16 +47,61 @@ All notable changes to this project will be documented in this file.
   `access-secret.spec.js` (a new token's value is in no console message, web storage, cookie, URL, page HTML or later
   API response). Visual capture ids for six Access screens (baselines not approved yet).
 
+- AI actions follow the AI toolbox state from one place (`configHealth.aiState` / `aiUsable`): a toolbox switched
+  off on purpose (`disabled`) is a calm state, listed as "switched off" in the configuration-health panel with no
+  header warning; `disabled` and `unconfigured` turn off Rewrite in Review, Estimate in the translate dialog and an AI
+  template's model list and test generate; `unreachable` keeps them on and warns. One shared hint per state
+  (`AiToolboxHint`) on Review, the company card and thread, the Communicate dialog, an AI template and the translate
+  dialog. A user who cannot read configuration health gets the state from the public module registry
+  (`platform.toolbox.state`); against a django-munin without it nothing changes.
+- Docs capture project `tests/docs/`: documentation screenshots from the live, seeded stack in English and the dark
+  theme at 1280 × 800, as a page or an element crop with optional numbered callouts (`guide`, `goto`, `shot` in
+  `tests/docs/support/capture.js`, one spec per guide, `docs/testing.md` § Docs captures). The visual harness exports
+  `pinPreferences` and its read-only waits for it; its behaviour is unchanged.
+- Docs capture specs for five CMS guides (`sign-in`, `products`, `content-pages`, `blog-posts`, `navigation`):
+  23 screenshots, each list shot guarded against rows the seed did not create, every created record deleted again.
+- Docs capture specs for five more CMS guides (`attributes`, `categories`, `media`, `duplicates`, `orders`):
+  19 screenshots. `duplicates` never confirms a merge; `orders` places one guest order on the storefront per run.
+- Docs captures: the `leads` guide (a CSV import to an answered mail, seven shots) and the `translations` guide
+  (Translate Store, its estimate and the job list, three shots), with an IMAP append helper for the mail sandbox
+  (`docs/testing.md`).
+
 ### Security
 
 - With `VUE_APP_DEBUG` on, the API client no longer logs the body of a request flagged `sensitive` or of its response
   (`[redacted]`); every access token call carries the flag, so a created or rotated token's value never reaches the
   console.
+- Stored HTML is cleaned where it is rendered: the page builder's rich-text previews and the legal texts of the
+  Agreements panel go through `sanitizeHtml` (`src/utils/sanitizeHtml.js`, DOMPurify with the allowlist of the
+  rich-text editor), so markup saved through the API cannot run script in a staff session. A unit test fails on a
+  `v-html` that skips the helper.
+- The session cookies (access and refresh token included) are set with `SameSite=Strict`, and with `Secure` when the
+  CMS is served over https.
+- A URL from the server (a supplier's product or image page, a meeting link, an enrichment subject, a
+  configuration-health fix link, a product video) is bound to `href` only as http, https or mailto (`safeHref`,
+  `src/utils/safeHref.js`); every link that opens a new tab carries `rel="noopener noreferrer"`.
+- A production build ships no source maps and fails when `VUE_APP_USERNAME` or `VUE_APP_PASSWORD` is set; the login
+  wall and the runtime env check read the pair in development only (before, debug mode prefilled it in production
+  too). Keep the pair in `.env.development.local`.
+- With `VUE_APP_DEBUG` on, the login call is logged as `[redacted]`: neither the password nor the answered token
+  pair reaches the console.
+- The visual and docs capture projects refuse a `CMS_BASE_URL` or `CMS_API_URL` that is not a loopback host unless
+  `CMS_ALLOW_REMOTE=1` is set: they log in with real credentials and the docs captures write (`docs/testing.md`).
 
 ### Removed
 
 - The dead role filter of `src/configs/access.js` (`grantAccess`, `routes`, `builderTypes`, the `access` arrays).
+
+### Fixed
+
+- Dates and the date picker follow the UI language: order and promotion dates, the page list's "updated" column and
+  the calendar's month and weekday names were Polish (or a mix) in the English UI. `formatDate` formats in the
+  locale of the UI language (`uiLocale()` in `src/i18n`), no longer in the browser's.
+
 ### Changed
+
+- Visual harness: `CMS_LANG` (default `PL`) and `CMS_LOCALE` (default `pl-PL`) select the pinned UI language and the
+  browser locale; unset, every committed baseline is unchanged. `lang.spec.js` (`@lang`) proves the mode that is set.
 
 - Text fields show focus on the field itself: an accent border and a soft 2 px glow instead of a 2 px outline at a
   2 px offset; the sign-in screen's 8 px halo is gone. Buttons, tabs and links keep the outline.

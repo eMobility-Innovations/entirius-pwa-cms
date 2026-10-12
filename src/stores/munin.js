@@ -56,6 +56,8 @@ export const useMuninStore = defineStore("munin", () => {
   const modules = ref([]);
   const loaded = ref(false);
   const loading = ref(false);
+  // The registry's public `platform` block (version, `toolbox.state`) — answered for every user, admin or not.
+  const platform = ref({});
 
   // Tracks the in-flight fetch so the router guard can await it
   let _fetchPromise = null;
@@ -96,6 +98,7 @@ export const useMuninStore = defineStore("munin", () => {
     try {
       const { data } = await GET_Modules();
       // API returns { platform, modules: { key: {…}, … } }
+      platform.value = data.platform || {};
       const modulesDict = data.modules || {};
       const parsed = Object.entries(modulesDict).map(([key, mod]) => ({
         key,
@@ -152,6 +155,7 @@ export const useMuninStore = defineStore("munin", () => {
 
   return {
     modules,
+    platform,
     loaded,
     healthAvailable,
     loading,

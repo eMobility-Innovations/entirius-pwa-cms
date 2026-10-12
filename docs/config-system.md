@@ -60,7 +60,10 @@ Variant strings must EXACTLY match `prop:value` format. Typos cause silent failu
 
 ## Environment Validation
 
-**Build-time:** `EnvCheckPlugin` in `vue.config.js` prints warnings for missing vars.
+**Build-time:** `EnvCheckPlugin` in `vue.config.js` prints warnings for missing vars. A production build fails when
+`VUE_APP_USERNAME` or `VUE_APP_PASSWORD` is set (`scripts/build-env.js`): every `VUE_APP_*` value is compiled into the
+bundle, and the pair is for the dev server only (`.env.development.local`). It ships no source maps
+(`productionSourceMap: false`).
 
 **Runtime:** `src/utils/env-check.js` validates at import. Exports `envStatus = { valid, errors[], warnings[] }`.
 
@@ -70,3 +73,22 @@ Variant strings must EXACTLY match `prop:value` format. Typos cause silent failu
 1. Add to `ENV_VARS` in `src/utils/env-check.js`
 2. Add to `REQUIRED_ENV` in `vue.config.js`
 3. Add to `.env.example`
+
+## Builder Controllers
+
+Vue components that handle configuration UI:
+
+- **InputFieldController** - Text inputs
+- **GroupFieldsController** - Repeatable field groups
+- **ButtonsController** - Button configuration
+- **ImagesController** - Image selection/upload
+
+Located in: `src/configs/builder/components/`
+
+## In-app Documentation
+
+Additional documentation available in the app:
+
+- Navigate to the `/pages/doc` route after login (`/doc` and `/docs` redirect there)
+- Config system: `src/views/Docs/config_docs.md`
+- Props system: `src/views/Docs/props_docs.md`
