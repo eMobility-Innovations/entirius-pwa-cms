@@ -349,7 +349,7 @@
           fallback-class="drag-ghost"
           ghost-class="section-item--ghost"
           class="section-list"
-          :class="{ 'section-list--dragging': dragging_sections }"
+          :class="{ 'section-list--dragging': dragging_sections, 'section-list--no-select': dragging_sections || dragging_tiles }"
           @start="dragging_sections = true"
           @end="dragging_sections = false"
         >
@@ -622,6 +622,8 @@
                         :model-value="tiles_order[s_uid] || []"
                         @update:model-value="tiles_order[s_uid] = $event"
                         :item-key="(uid) => uid"
+                        @start="dragging_tiles = true"
+                        @end="dragging_tiles = false"
                         handle=".tile-drag"
                         direction="horizontal"
                         :disabled="readonly"
@@ -1067,6 +1069,7 @@ export default {
       edited_tile_uid: null,
       section_tiles_details: null,
       dragging_sections: false,
+      dragging_tiles: false,
       // Where the next new section lands: an index from an inserter, null = the end (FAB, empty state).
       insert_section_at: null,
       //
@@ -2061,6 +2064,10 @@ export default {
     visibility: hidden;
   }
 }
+// A drag selects no text on its way (the PIM feature-set rows do the same).
+.section-list--no-select {
+  user-select: none;
+}
 .section-item--ghost,
 .tile-slot--ghost {
   opacity: 0.4;
@@ -2073,6 +2080,7 @@ export default {
   min-width: var(--space-8);
   min-height: var(--space-8);
   cursor: grab;
+  user-select: none;
   &:active {
     cursor: grabbing;
   }
