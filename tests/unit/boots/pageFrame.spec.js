@@ -34,6 +34,12 @@ describe("PageHeader", () => {
     expect(wrapper.find(".page-header__overline").text()).toBe("Home");
   });
 
+  it("keeps the full title on the <h1> for a title cut by the ellipsis", () => {
+    const wrapper = header({ title: "Sunday Morning, Pocket Size, Amber" });
+    expect(wrapper.find("h1").attributes("title")).toBe("Sunday Morning, Pocket Size, Amber");
+    expect(wrapper.find("h1").text()).toBe("Sunday Morning, Pocket Size, Amber");
+  });
+
   it("renders the description under the title row only when given", () => {
     expect(header().find(".page-header__description").exists()).toBe(false);
     const description = header({ description: "Who can sign in." }).find(".page-header__description");

@@ -94,6 +94,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Page titles stay on one line everywhere: a title longer than its row ends with an ellipsis and keeps the full
+  text in its `title` attribute, and the chips beside it wrap under it. A long product name used to break inside
+  words in a narrow column.
 - Dates and the date picker follow the UI language: order and promotion dates, the page list's "updated" column and
   the calendar's month and weekday names were Polish (or a mix) in the English UI. `formatDate` formats in the
   locale of the UI language (`uiLocale()` in `src/i18n`), no longer in the browser's.

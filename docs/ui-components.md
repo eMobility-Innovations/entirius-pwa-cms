@@ -319,9 +319,10 @@ Catalogue: `#display` (`#status-badge`, `#count-badge`, `#tag`, `#basic-tabs`, `
   title row — omitted = the crumbs the shell provides (none without a shell), `[]` = none; `back` (a route location
   pushed on click, or a handler) = a ghost `back` IconButton left of the H1, 20 px gap; `sticky` pins the head (crumbs,
   back, title, meta) under the app header on a phone, flush with it and full width, on the page background (`data-fid="sticky-header"`); the
-  actions row scrolls away. Slots `meta` (chips beside the title, they keep their width; on a phone they wrap under a title they do not fit beside) and `actions` (an
+  actions row scrolls away. Slots `meta` (chips beside the title, they keep their width and wrap under a title they do not fit beside) and `actions` (an
   ActionBar): in the title row on desktop while both fit, otherwise wrapped under it right-aligned, and always its own
-  row below 1024 px. A long title wraps inside itself.
+  row below 1024 px. The title stays on one line at every width: one longer than its row ends with an ellipsis and carries the full
+  text in its `title` attribute.
 - **Shell claim** — `src/composables/pageHeader.js`: `PAGE_HEADER_CLAIM` (injection key) and
   `usePageHeaderClaim()`. The shell (P4) provides `{ claim, release, crumbs }` and hides its fallback header while a
   claim is held; claims overlap during a route change, so the provider counts them. PageHeader claims on mount,
