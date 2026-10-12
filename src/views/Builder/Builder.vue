@@ -324,7 +324,7 @@
       />
     </div>
     <div class="grid grid-col-12 pb-30">
-      <div class="grid gap-10 gc-s-1 gc-e-13">
+      <div class="grid gc-s-1 gc-e-13">
         <EmptyState
           v-if="!loading && !sections_order.length"
           icon="add"
@@ -333,515 +333,569 @@
         >
           <BasicButton
             variant="secondary"
-            @click="$refs.newSectionSetter?.$el?.click()"
+            @click="insertSection(null)"
           >
             {{ $t('builder.new_section') }}
           </BasicButton>
         </EmptyState>
-        <div
-          class="section-block fs-300 grid b-subtle rounded ov-h"
-          :class="{ 'section-block--inset': sections[s_uid].width === 'content_width' }"
-          v-for="(s_uid, s_idx) in sections_order"
-          :key="s_idx"
+        <!-- Sections are reordered in place, by the grip; while one is dragged the tile trays fold away. -->
+        <draggable
+          v-if="sections_order.length"
+          v-model="sections_order"
+          :item-key="(uid) => uid"
+          handle=".section-drag"
+          :disabled="readonly"
+          :force-fallback="true"
+          fallback-class="drag-ghost"
+          ghost-class="section-item--ghost"
+          class="section-list"
+          :class="{ 'section-list--dragging': dragging_sections }"
+          @start="dragging_sections = true"
+          @end="dragging_sections = false"
         >
-          <div class="grid grid-col-4 t-secondary">
-            <div class="gc-s-1 gc-e-5 rounded bb-default">
-              <div class="pt-5 pb-5 pl-12 pr-12 bg-base">
-                <div class="section-header-row flex jc-sb">
-                  <div class="section-title-wrap">
-                    <p class="section-title fs-300 fw-600 t-secondary">
-                      {{ formatCoreType(sections[s_uid]["core_type"]) }}
-                      <span class="fs-200 t-muted fw-400 ml-2"
-                        >· {{ tileCountLabel(s_uid) }}</span
-                      >
-                      <span
-                        class="section-uid fs-200 t-muted fw-400 ml-1 pointer"
-                        role="button"
-                        tabindex="0"
-                        @click="copyToClipboard(s_uid)"
-                        @keydown.enter="copyToClipboard(s_uid)"
-                        @keydown.space.prevent="copyToClipboard(s_uid)"
-                        :title="s_uid"
-                        >· {{ s_uid.substring(0, 8) }}</span
-                      >
-                    </p>
-                    <!-- Two lines at most, so many props never push the header; the full text is the title. -->
-                    <p
-                      class="section-config fs-200 t-muted lc-2"
-                      data-testid="builder-section-config"
-                      :title="sectionConfigSummary(s_uid)"
-                    >
-                      {{ $t('builder.setted_config') }}: {{ sectionConfigSummary(s_uid) }}
-                    </p>
-                  </div>
-                  <div class="section-actions flex gap-1 as-s ai-ct" data-testid="builder-section-actions">
-                    <SubscriberSetter
-                      @onSet="edited_section_uid = s_uid"
-                      @on_AssetPass="set_section"
-                      :handyType="{
-                        id: 'configs-kit',
-                        label: $t('builder.section'),
-                      }"
-                      :options="{ config_type: 'section_configs' }"
-                      :defaults="{ ...sections[s_uid], __channels: channels }"
-                    >
-                      <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
-                    </SubscriberSetter>
-                    <IconButton
-                      variant="outline"
-                      icon="duplicate"
-                      :label="$t('common.copy')"
-                      @click="
-                        copy_elem({
-                          _to: [`sections_order`, 'sections'],
-                          _after: s_idx,
-                          copy: sections[s_uid],
-                        })
-                      "
-                    />
-                    <IconButton
-                      variant="danger"
-                      icon="delete"
-                      :label="$t('common.delete')"
-                      @click="
-                        () => {
-                          confirmation_modal = true;
-                          section_to_delete = s_uid;
-                        }
-                      "
-                    />
-                  </div>
-                </div>
-                <!-- The section's own content stays in the section zone, the tiles in the tray below: the title is a heading, rich text reads as text. -->
-                <p
-                  v-if="sections[s_uid].title"
-                  class="fs-600 fw-600 t-body mt-5"
-                  data-testid="builder-section-heading"
-                >
-                  {{ sections[s_uid].title }}
-                </p>
-                <template
-                  v-for="({ prop = null, type = null }, i) in core_properties"
-                  :key="i"
-                >
-                  <div
-                    v-if="prop !== 'title' && sections[s_uid][prop]"
-                    class="section-preview mt-5"
-                  >
-                    <div
-                      v-if="type === 'wysiwyg'"
-                      v-html="sections[s_uid][prop]"
-                      class="wysiwyg-container-preview lc-3 fs-300 t-body"
-                    ></div>
-                    <template v-else>
-                      <p class="t-muted fs-200 mb-1">
-                        {{ props_dictionary[prop] }}:
-                      </p>
-                      <p v-if="type === 'text'" class="fs-200">
-                        {{ sections[s_uid][prop] }}
-                      </p>
-                      <ImagesControllPreview
-                        v-if="type === 'images'"
-                        :value="sections[s_uid][prop]"
-                      />
-                      <GroupFieldsControllerPreview
-                        class="w-50 w-100-m"
-                        v-if="type === 'group-fields'"
-                        :value="sections[s_uid][prop]"
-                      />
-                      <div v-if="type === 'buttons'" class="flex wrap gap-1">
-                        <Tag
-                          v-for="(link, idx) in sections[s_uid][prop]"
-                          :key="idx"
-                          :label="link.link_label || link.link_url || '—'"
-                        />
-                      </div>
-                    </template>
-                  </div>
-                </template>
+          <template #item="{ element: s_uid, index: s_idx }">
+            <div class="section-item">
+              <div class="section-inserter flex jc-ct ai-ct">
+                <IconButton
+                  variant="outline"
+                  icon="add"
+                  size="sm"
+                  mutates
+                  :label="$t('builder.new_section')"
+                  :disabled="isSectionLimitReached"
+                  data-testid="builder-section-insert"
+                  @click="insertSection(s_idx)"
+                />
               </div>
-            </div>
-            <div class="gc-s-1 gc-e-5 bg-raised pt-5 pb-5 pl-12 pr-12">
               <div
-                class="t-body rounded"
-                v-if="
-                  sections[s_uid]['core_type'] !== 'section-slider' ||
-                  sections[s_uid]['slider_type'] === 'tiles'
-                "
+                class="section-block fs-300 grid b-subtle rounded ov-h"
+                :class="{ 'section-block--inset': sections[s_uid].width && sections[s_uid].width !== 'full_width' }"
               >
-                <template
-                  v-if="
-                    Boolean(
-                      section_options(sections[s_uid]['core_type']) ===
-                        'no_options' ||
-                        section_options(
-                          sections[s_uid]['core_type'],
-                          'max_tiles'
-                        ) > 0
-                    )
-                  "
-                >
-                  <div class="tiles-header flex jc-sb ai-ct">
-                    <p class="fs-300 fw-500">
-                      {{ $t("builder.tiles") }} ({{
-                        `${
-                          tiles_order && tiles_order[s_uid]
-                            ? tiles_order[s_uid].length
-                            : "0"
-                        }/${
-                          section_options(sections[s_uid]["core_type"]) ===
-                          "no_options"
-                            ? "~"
-                            : section_options(
-                                sections[s_uid]["core_type"],
-                                "max_tiles"
-                              )
-                        }`
-                      }})
-                    </p>
-                    <div class="flex gap-1 ai-ct">
-                      <SubscriberSetter
-                        @onSet="
-                          () => {
-                            edited_section_uid = s_uid;
-                          }
-                        "
-                        @on_AssetPass="set_tile"
-                        :handyType="{
-                          id: 'configs-kit',
-                          label: $t('builder.add_tile'),
-                        }"
-                        :options="{ config_type: 'tile_configs' }"
-                        :defaults="{
-                          doc_type: type,
-                          section_core_type: sections[s_uid]['core_type'],
-                          __channels: channels,
-                        }"
-                        :is_disabled="isTileLimitReached(s_uid)"
-                      >
-                        <IconButton
-                          variant="primary"
-                          icon="add"
-                          :label="$t('builder.add_tile')"
-                          :disabled="isTileLimitReached(s_uid)"
-                          :stop="false"
-                        />
-                      </SubscriberSetter>
-
-                      <SubscriberSetter
-                        v-if="tiles_order[s_uid] && tiles_order[s_uid].length"
-                        @on_AssetPass="tiles_order[s_uid] = $event"
-                        :handyType="{
-                          id: 'order-kit',
-                          label: $t('builder.manage_tile_order'),
-                        }"
-                        :options="{ config_type: 'tiles_configs' }"
-                        :defaults="{
-                          order: tiles_order[s_uid],
-                          inserts: tiles_order[s_uid].reduce((o, uid) => {
-                            const t = tiles[uid] || {};
-                            o[uid] = {
-                              title: t.title || null,
-                              core_type: t.core_type || null,
-                              sku: t.sku || null,
-                              product_sku: t.product_sku || null,
-                            };
-                            return o;
-                          }, {}),
-                        }"
-                      >
-                        <IconButton
-                          variant="outline"
-                          icon="reorder"
-                          :label="$t('builder.manage_tile_order')"
-                          :stop="false"
-                        />
-                      </SubscriberSetter>
-                      <IconButton
-                        v-if="tiles_order[s_uid] && tiles_order[s_uid].length"
-                        variant="outline"
-                        icon="preview"
-                        :label="$t('builder.preview')"
-                        :pressed="section_tiles_details === s_uid"
-                        @click="
-                          section_tiles_details &&
-                          section_tiles_details == s_uid
-                            ? (section_tiles_details = null)
-                            : (section_tiles_details = s_uid)
-                        "
-                      />
-                    </div>
-                  </div>
-                </template>
-              </div>
-              <div class="mt-5">
-                <div
-                  class="tile-swiper-wrap"
-                  v-if="
-                    tiles_order[s_uid] &&
-                    tiles_order[s_uid].length &&
-                    section_tiles_details !== s_uid
-                  "
-                >
-                  <BasicSwiper
-                    :key="`${tiles_order[s_uid].length}-${belowTablet}`"
-                    :uid_class="`tiles-slider-${s_uid}`"
-                    :options="{
-                      cssMode: belowTablet,
-                      slidesPerView: tileSlides(s_uid, 1.25),
-                      spaceBetween: 10,
-                      breakpoints: {
-                        480: {
-                          slidesPerView: tileSlides(s_uid, 2.15),
-                        },
-                        768: {
-                          slidesPerView: tileSlides(s_uid, 3.25),
-                        },
-                        1200: {
-                          slidesPerView: tileSlides(s_uid, 4.25),
-                        },
-                        1700: {
-                          slidesPerView: tileSlides(s_uid, 5.15),
-                        },
-                      },
-                    }"
-                  >
-                    <template
-                      v-for="(t_uid, index) in tiles_order[s_uid]"
-                      :key="t_uid"
-                    >
-                      <div v-if="tiles[t_uid] && tiles[t_uid].core_type" class="swiper-slide">
-                        <div class="tile-card bg-base b-subtle t-body rounded ov-h">
-                          <img
-                            v-if="tileFirstImage(t_uid)"
-                            :src="tileFirstImage(t_uid)"
-                            alt=""
-                            class="tile-card__img"
-                            @error="(e) => (e.target.style.display = 'none')"
-                          />
-                          <div class="tile-card__body flex-column gap-1 p-2">
-                            <p class="fs-200 t-muted lc-1">
-                              {{ formatCoreType(tiles[t_uid]["core_type"]) }}
-                            </p>
-                            <p
-                              v-if="tiles[t_uid].title"
-                              class="fs-300 t-body fw-600 lc-2"
+                <div class="grid grid-col-4 t-secondary">
+                  <div class="gc-s-1 gc-e-5 rounded bb-default">
+                    <div class="pt-5 pb-5 pl-12 pr-12 bg-base">
+                      <div class="section-header-row flex jc-sb">
+                        <span
+                          v-if="!readonly"
+                          class="section-drag t-muted"
+                          :title="$t('order.drag_to_reorder')"
+                        >
+                          <FontAwesomeIcon :icon="$icons.drag" />
+                        </span>
+                        <div class="section-title-wrap">
+                          <p class="section-title fs-300 fw-600 t-secondary">
+                            {{ typeLabel(sections[s_uid]["core_type"]) }}
+                            <span class="fs-200 t-muted fw-400 ml-2"
+                              >· {{ tileCountLabel(s_uid) }}</span
                             >
-                              {{ tiles[t_uid].title }}
-                            </p>
-                            <p
-                              v-else-if="
-                                tiles[t_uid].product_sku || tiles[t_uid].sku
-                              "
-                              class="fs-200 t-accent lc-1"
+                            <span
+                              class="section-uid fs-200 t-muted fw-400 ml-1 pointer"
+                              role="button"
+                              tabindex="0"
+                              @click="copyToClipboard(s_uid)"
+                              @keydown.enter="copyToClipboard(s_uid)"
+                              @keydown.space.prevent="copyToClipboard(s_uid)"
+                              :title="s_uid"
+                              >· {{ s_uid.substring(0, 8) }}</span
                             >
-                              SKU:
-                              {{ tiles[t_uid].product_sku || tiles[t_uid].sku }}
-                            </p>
-                            <p
-                              v-if="tileExcerpt(t_uid)"
-                              class="fs-200 t-secondary lc-3"
-                            >
-                              {{ tileExcerpt(t_uid) }}
-                            </p>
-
-                            <div class="tile-actions flex gap-1 jc-fe">
-                              <IconButton
-                                variant="outline"
-                                icon="duplicate"
-                                :label="$t('common.copy')"
-                                :disabled="isTileLimitReached(s_uid)"
-                                @click="
-                                  copy_elem({
-                                    _to: [`tiles_order:${s_uid}`, 'tiles'],
-                                    _after: index,
-                                    copy: tiles[t_uid],
-                                  })
-                                "
-                              />
-                              <SubscriberSetter
-                                @onSet="
-                                  () => {
-                                    edited_section_uid = s_uid;
-                                    edited_tile_uid = t_uid;
-                                  }
-                                "
-                                @on_AssetPass="set_tile"
-                                :handyType="{
-                                  id: 'configs-kit',
-                                  label: $t('builder.tile'),
-                                }"
-                                :options="{ config_type: 'tile_configs' }"
-                                :defaults="{
-                                  doc_type: type,
-                                  section_core_type: sections[s_uid]['core_type'],
-                                  ...tiles[t_uid],
-                                  __channels: channels,
-                                }"
-                              >
-                                <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
-                              </SubscriberSetter>
-                              <IconButton
-                                variant="danger"
-                                icon="delete"
-                                :label="$t('common.delete')"
-                                @click="
-                                  () => {
-                                    tile_confirmation_modal = true;
-                                    tile_to_delete = {
-                                      tile_uid: t_uid,
-                                      section_uid: s_uid,
-                                    };
-                                  }
-                                "
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </template>
-                  </BasicSwiper>
-                </div>
-                <div
-                  class="grid grid-col-4 gap-2 bg-raised"
-                  v-if="section_tiles_details === s_uid"
-                >
-                  <template
-                    v-for="(t_uid, index) in tiles_order[s_uid]"
-                    :key="t_uid"
-                  >
-                    <div v-if="tiles[t_uid] && tiles[t_uid].core_type">
-                      <div
-                        class="rounded p-2 bg-hover grid gap-2 b-default"
-                      >
-                        <div class="">
-                          <div class="mb-5">
-                            <div class="flex jc-sb ai-st">
-                              <div>
-                                <p class="fs-200 fw-500 t-secondary">
-                                  {{
-                                    formatCoreType(tiles[t_uid]["core_type"])
-                                  }}
-                                </p>
-                                <p
-                                  class="fs-200 t-muted pointer mt-1"
-                                  role="button"
-                                  tabindex="0"
-                                  @click="copyToClipboard(t_uid)"
-                                  @keydown.enter="copyToClipboard(t_uid)"
-                                  @keydown.space.prevent="copyToClipboard(t_uid)"
-                                  :title="t_uid"
-                                >
-                                  {{ t_uid.substring(0, 8) }}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <template
-                            v-for="(
-                              { prop = null, type = null }, i
-                            ) in core_properties"
+                          </p>
+                          <!-- Two lines at most, so many props never push the header; the full text is the title. -->
+                          <p
+                            class="section-config fs-200 t-muted lc-2"
+                            data-testid="builder-section-config"
+                            :title="sectionConfigSummary(s_uid)"
                           >
-                            <div
-                              v-if="tiles[t_uid][prop]"
-                              class="mb-2 fs-200"
-                            >
-                              <p
-                                class="t-muted fw-600 underline fs-200 mb-1"
-                              >
-                                {{ props_dictionary[prop] }}:
-                              </p>
-                              <p v-if="type === 'text'">
-                                {{ tiles[t_uid][prop] }}
-                              </p>
-                              <p
-                                v-if="type === 'wysiwyg'"
-                                v-html="tiles[t_uid][prop]"
-                                class="lc-3 fs-200"
-                              ></p>
-                              <ImagesControllPreview
-                                v-if="type === 'images'"
-                                :value="tiles[t_uid][prop]"
-                              />
-                              <GroupFieldsControllerPreview
-                                class=""
-                                v-if="type === 'group-fields'"
-                                :value="tiles[t_uid][prop]"
-                              />
-                              <div
-                                v-if="type === 'buttons'"
-                                class="flex wrap gap-1"
-                              >
-                                <Tag
-                                  v-for="(link, idx) in tiles[t_uid][prop]"
-                                  :key="idx"
-                                  :label="link.link_label || link.link_url || '—'"
-                                />
-                              </div>
-                            </div>
-                          </template>
+                            {{ $t('builder.setted_config') }}: {{ sectionConfigSummary(s_uid) }}
+                          </p>
                         </div>
-
-                        <div class="tile-actions flex jc-fe gap-1 as-fe">
+                        <div class="section-actions flex gap-1 as-s ai-ct" data-testid="builder-section-actions">
+                          <SubscriberSetter
+                            data-edit
+                            @onSet="edited_section_uid = s_uid"
+                            @on_AssetPass="set_section"
+                            :handyType="{
+                              id: 'configs-kit',
+                              label: $t('builder.section'),
+                            }"
+                            :options="{ config_type: 'section_configs' }"
+                            :defaults="{ ...sections[s_uid], __channels: channels }"
+                          >
+                            <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
+                          </SubscriberSetter>
                           <IconButton
                             variant="outline"
                             icon="duplicate"
                             :label="$t('common.copy')"
-                            :disabled="isTileLimitReached(s_uid)"
                             @click="
                               copy_elem({
-                                _to: [`tiles_order:${s_uid}`, 'tiles'],
-                                _after: index,
-                                copy: tiles[t_uid],
+                                _to: [`sections_order`, 'sections'],
+                                _after: s_idx,
+                                copy: sections[s_uid],
                               })
                             "
                           />
-                          <SubscriberSetter
-                            @onSet="
-                              () => {
-                                edited_section_uid = s_uid;
-                                edited_tile_uid = t_uid;
-                              }
-                            "
-                            @on_AssetPass="set_tile"
-                            :handyType="{
-                              id: 'configs-kit',
-                              label: $t('builder.tile'),
-                            }"
-                            :options="{ config_type: 'tile_configs' }"
-                            :defaults="{
-                              doc_type: type,
-                              section_core_type: sections[s_uid]['core_type'],
-                              ...tiles[t_uid],
-                              __channels: channels,
-                            }"
-                          >
-                            <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
-                          </SubscriberSetter>
                           <IconButton
                             variant="danger"
                             icon="delete"
                             :label="$t('common.delete')"
                             @click="
                               () => {
-                                tile_confirmation_modal = true;
-                                tile_to_delete = {
-                                  tile_uid: t_uid,
-                                  section_uid: s_uid,
-                                };
+                                confirmation_modal = true;
+                                section_to_delete = s_uid;
                               }
                             "
                           />
                         </div>
                       </div>
+                      <div
+                        class="section-preview-zone pointer"
+                        @click="clickIn($event, '.section-block', '[data-edit]')"
+                      >
+                        <!-- The section's own content stays in the section zone, the tiles in the tray below: the title is a heading, rich text reads as text. -->
+                        <p
+                          v-if="sections[s_uid].title"
+                          class="fs-600 fw-600 t-body mt-5"
+                          data-testid="builder-section-heading"
+                        >
+                          {{ sections[s_uid].title }}
+                        </p>
+                        <template
+                          v-for="({ prop = null, type = null }, i) in core_properties"
+                          :key="i"
+                        >
+                          <div
+                            v-if="prop !== 'title' && sections[s_uid][prop]"
+                            class="section-preview mt-5"
+                          >
+                            <div
+                              v-if="type === 'wysiwyg'"
+                              v-html="sections[s_uid][prop]"
+                              class="wysiwyg-container-preview lc-3 fs-300 t-body"
+                            ></div>
+                            <template v-else>
+                              <p class="t-muted fs-200 mb-1">
+                                {{ props_dictionary[prop] }}:
+                              </p>
+                              <p v-if="type === 'text'" class="fs-200">
+                                {{ sections[s_uid][prop] }}
+                              </p>
+                              <ImagesControllPreview
+                                v-if="type === 'images'"
+                                :value="sections[s_uid][prop]"
+                              />
+                              <GroupFieldsControllerPreview
+                                class="w-50 w-100-m"
+                                v-if="type === 'group-fields'"
+                                :value="sections[s_uid][prop]"
+                              />
+                              <div v-if="type === 'buttons'" class="flex wrap gap-1">
+                                <Tag
+                                  v-for="(link, idx) in sections[s_uid][prop]"
+                                  :key="idx"
+                                  :label="link.link_label || link.link_url || '—'"
+                                />
+                              </div>
+                            </template>
+                          </div>
+                        </template>
+                      </div>
                     </div>
-                  </template>
+                  </div>
+                  <div class="section-tray gc-s-1 gc-e-5 bg-raised pt-5 pb-5 pl-12 pr-12">
+                    <div
+                      class="t-body rounded"
+                      v-if="
+                        sections[s_uid]['core_type'] !== 'section-slider' ||
+                        sections[s_uid]['slider_type'] === 'tiles'
+                      "
+                    >
+                      <template
+                        v-if="
+                          Boolean(
+                            section_options(sections[s_uid]['core_type']) ===
+                              'no_options' ||
+                              section_options(
+                                sections[s_uid]['core_type'],
+                                'max_tiles'
+                              ) > 0
+                          )
+                        "
+                      >
+                        <div class="tiles-header flex jc-sb ai-ct">
+                          <p class="fs-300 fw-500">
+                            {{ $t("builder.tiles") }} ({{
+                              `${
+                                tiles_order && tiles_order[s_uid]
+                                  ? tiles_order[s_uid].length
+                                  : "0"
+                              }/${
+                                section_options(sections[s_uid]["core_type"]) ===
+                                "no_options"
+                                  ? "~"
+                                  : section_options(
+                                      sections[s_uid]["core_type"],
+                                      "max_tiles"
+                                    )
+                              }`
+                            }})
+                          </p>
+                          <div class="flex gap-1 ai-ct">
+                            <SubscriberSetter
+                              data-add-tile
+                              @onSet="
+                                () => {
+                                  edited_section_uid = s_uid;
+                                }
+                              "
+                              @on_AssetPass="set_tile"
+                              :handyType="{
+                                id: 'configs-kit',
+                                label: $t('builder.add_tile'),
+                              }"
+                              :options="{ config_type: 'tile_configs' }"
+                              :defaults="{
+                                doc_type: type,
+                                section_core_type: sections[s_uid]['core_type'],
+                                __channels: channels,
+                              }"
+                              :is_disabled="isTileLimitReached(s_uid)"
+                            >
+                              <IconButton
+                                variant="primary"
+                                icon="add"
+                                :label="$t('builder.add_tile')"
+                                :disabled="isTileLimitReached(s_uid)"
+                                :stop="false"
+                              />
+                            </SubscriberSetter>
+
+                            <SubscriberSetter
+                              v-if="tiles_order[s_uid] && tiles_order[s_uid].length"
+                              @on_AssetPass="tiles_order[s_uid] = $event"
+                              :handyType="{
+                                id: 'order-kit',
+                                label: $t('builder.manage_tile_order'),
+                              }"
+                              :options="{ config_type: 'tiles_configs' }"
+                              :defaults="{
+                                order: tiles_order[s_uid],
+                                inserts: tiles_order[s_uid].reduce((o, uid) => {
+                                  const t = tiles[uid] || {};
+                                  o[uid] = {
+                                    title: t.title || null,
+                                    core_type: t.core_type || null,
+                                    sku: t.sku || null,
+                                    product_sku: t.product_sku || null,
+                                  };
+                                  return o;
+                                }, {}),
+                              }"
+                            >
+                              <IconButton
+                                variant="outline"
+                                icon="reorder"
+                                :label="$t('builder.manage_tile_order')"
+                                :stop="false"
+                              />
+                            </SubscriberSetter>
+                            <IconButton
+                              v-if="tiles_order[s_uid] && tiles_order[s_uid].length"
+                              variant="outline"
+                              icon="preview"
+                              :label="$t('builder.preview')"
+                              :pressed="section_tiles_details === s_uid"
+                              @click="
+                                section_tiles_details &&
+                                section_tiles_details == s_uid
+                                  ? (section_tiles_details = null)
+                                  : (section_tiles_details = s_uid)
+                              "
+                            />
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                    <div class="mt-5">
+                      <!-- The tiles lie side by side as on the page and are reordered in place, by the grip. -->
+                      <draggable
+                        v-if="tilesAllowed(s_uid) && section_tiles_details !== s_uid"
+                        :model-value="tiles_order[s_uid] || []"
+                        @update:model-value="tiles_order[s_uid] = $event"
+                        :item-key="(uid) => uid"
+                        handle=".tile-drag"
+                        direction="horizontal"
+                        :disabled="readonly"
+                        :force-fallback="true"
+                        fallback-class="drag-ghost"
+                        ghost-class="tile-slot--ghost"
+                        class="tile-row"
+                        data-testid="builder-tile-row"
+                      >
+                        <template #item="{ element: t_uid, index }">
+                          <div class="tile-slot">
+                            <template v-if="tiles[t_uid] && tiles[t_uid].core_type">
+                              <div class="tile-card bg-base b-subtle t-body rounded ov-h">
+                                <div
+                                  class="tile-card__preview pointer"
+                                  @click="clickIn($event, '.tile-card', '[data-edit]')"
+                                >
+                                  <img
+                                    v-if="tileFirstImage(t_uid)"
+                                    :src="tileFirstImage(t_uid)"
+                                    alt=""
+                                    class="tile-card__img"
+                                    @error="(e) => (e.target.style.display = 'none')"
+                                  />
+                                  <div class="flex-column gap-1 p-2">
+                                    <p class="fs-200 t-muted lc-1">
+                                      {{ typeLabel(tiles[t_uid]["core_type"]) }}
+                                    </p>
+                                    <p
+                                      v-if="tiles[t_uid].title"
+                                      class="fs-300 t-body fw-600 lc-2"
+                                    >
+                                      {{ tiles[t_uid].title }}
+                                    </p>
+                                    <p
+                                      v-else-if="
+                                        tiles[t_uid].product_sku || tiles[t_uid].sku
+                                      "
+                                      class="fs-200 t-accent lc-1"
+                                    >
+                                      SKU:
+                                      {{ tiles[t_uid].product_sku || tiles[t_uid].sku }}
+                                    </p>
+                                    <p
+                                      v-if="tileExcerpt(t_uid)"
+                                      class="fs-200 t-secondary lc-3"
+                                    >
+                                      {{ tileExcerpt(t_uid) }}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div class="tile-actions flex gap-1 ai-ct pl-2 pr-2 pb-2">
+                                  <span
+                                    v-if="!readonly"
+                                    class="tile-drag t-muted"
+                                    :title="$t('order.drag_to_reorder')"
+                                  >
+                                    <FontAwesomeIcon :icon="$icons.drag" />
+                                  </span>
+                                  <IconButton
+                                    variant="outline"
+                                    icon="duplicate"
+                                    :label="$t('common.copy')"
+                                    :disabled="isTileLimitReached(s_uid)"
+                                    @click="
+                                      copy_elem({
+                                        _to: [`tiles_order:${s_uid}`, 'tiles'],
+                                        _after: index,
+                                        copy: tiles[t_uid],
+                                      })
+                                    "
+                                  />
+                                  <SubscriberSetter
+                                    data-edit
+                                    @onSet="
+                                      () => {
+                                        edited_section_uid = s_uid;
+                                        edited_tile_uid = t_uid;
+                                      }
+                                    "
+                                    @on_AssetPass="set_tile"
+                                    :handyType="{
+                                      id: 'configs-kit',
+                                      label: $t('builder.tile'),
+                                    }"
+                                    :options="{ config_type: 'tile_configs' }"
+                                    :defaults="{
+                                      doc_type: type,
+                                      section_core_type: sections[s_uid]['core_type'],
+                                      ...tiles[t_uid],
+                                      __channels: channels,
+                                    }"
+                                  >
+                                    <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
+                                  </SubscriberSetter>
+                                  <IconButton
+                                    variant="danger"
+                                    icon="delete"
+                                    :label="$t('common.delete')"
+                                    @click="
+                                      () => {
+                                        tile_confirmation_modal = true;
+                                        tile_to_delete = {
+                                          tile_uid: t_uid,
+                                          section_uid: s_uid,
+                                        };
+                                      }
+                                    "
+                                  />
+                                </div>
+                              </div>
+                            </template>
+                          </div>
+                        </template>
+                        <template #footer>
+                          <BasicButton
+                            v-if="!isTileLimitReached(s_uid)"
+                            variant="secondary"
+                            icon="add"
+                            class="tile-add"
+                            mutates
+                            data-testid="builder-tile-add"
+                            @click="clickIn($event, '.section-block', '[data-add-tile]')"
+                          >
+                            {{ $t("builder.add_tile") }}
+                          </BasicButton>
+                        </template>
+                      </draggable>
+                      <p v-else-if="!tilesAllowed(s_uid)" class="fs-200 t-muted">
+                        {{ $t("builder.no_tiles") }}
+                      </p>
+                      <div
+                        class="grid grid-col-4 gap-2 bg-raised"
+                        v-if="section_tiles_details === s_uid"
+                      >
+                        <template
+                          v-for="(t_uid, index) in tiles_order[s_uid]"
+                          :key="t_uid"
+                        >
+                          <div v-if="tiles[t_uid] && tiles[t_uid].core_type">
+                            <div
+                              class="rounded p-2 bg-hover grid gap-2 b-default"
+                            >
+                              <div class="">
+                                <div class="mb-5">
+                                  <div class="flex jc-sb ai-st">
+                                    <div>
+                                      <p class="fs-200 fw-500 t-secondary">
+                                        {{
+                                          formatCoreType(tiles[t_uid]["core_type"])
+                                        }}
+                                      </p>
+                                      <p
+                                        class="fs-200 t-muted pointer mt-1"
+                                        role="button"
+                                        tabindex="0"
+                                        @click="copyToClipboard(t_uid)"
+                                        @keydown.enter="copyToClipboard(t_uid)"
+                                        @keydown.space.prevent="copyToClipboard(t_uid)"
+                                        :title="t_uid"
+                                      >
+                                        {{ t_uid.substring(0, 8) }}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <template
+                                  v-for="(
+                                    { prop = null, type = null }, i
+                                  ) in core_properties"
+                                >
+                                  <div
+                                    v-if="tiles[t_uid][prop]"
+                                    class="mb-2 fs-200"
+                                  >
+                                    <p
+                                      class="t-muted fw-600 underline fs-200 mb-1"
+                                    >
+                                      {{ props_dictionary[prop] }}:
+                                    </p>
+                                    <p v-if="type === 'text'">
+                                      {{ tiles[t_uid][prop] }}
+                                    </p>
+                                    <p
+                                      v-if="type === 'wysiwyg'"
+                                      v-html="tiles[t_uid][prop]"
+                                      class="lc-3 fs-200"
+                                    ></p>
+                                    <ImagesControllPreview
+                                      v-if="type === 'images'"
+                                      :value="tiles[t_uid][prop]"
+                                    />
+                                    <GroupFieldsControllerPreview
+                                      class=""
+                                      v-if="type === 'group-fields'"
+                                      :value="tiles[t_uid][prop]"
+                                    />
+                                    <div
+                                      v-if="type === 'buttons'"
+                                      class="flex wrap gap-1"
+                                    >
+                                      <Tag
+                                        v-for="(link, idx) in tiles[t_uid][prop]"
+                                        :key="idx"
+                                        :label="link.link_label || link.link_url || '—'"
+                                      />
+                                    </div>
+                                  </div>
+                                </template>
+                              </div>
+
+                              <div class="tile-actions flex jc-fe gap-1 as-fe">
+                                <IconButton
+                                  variant="outline"
+                                  icon="duplicate"
+                                  :label="$t('common.copy')"
+                                  :disabled="isTileLimitReached(s_uid)"
+                                  @click="
+                                    copy_elem({
+                                      _to: [`tiles_order:${s_uid}`, 'tiles'],
+                                      _after: index,
+                                      copy: tiles[t_uid],
+                                    })
+                                  "
+                                />
+                                <SubscriberSetter
+                                  @onSet="
+                                    () => {
+                                      edited_section_uid = s_uid;
+                                      edited_tile_uid = t_uid;
+                                    }
+                                  "
+                                  @on_AssetPass="set_tile"
+                                  :handyType="{
+                                    id: 'configs-kit',
+                                    label: $t('builder.tile'),
+                                  }"
+                                  :options="{ config_type: 'tile_configs' }"
+                                  :defaults="{
+                                    doc_type: type,
+                                    section_core_type: sections[s_uid]['core_type'],
+                                    ...tiles[t_uid],
+                                    __channels: channels,
+                                  }"
+                                >
+                                  <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
+                                </SubscriberSetter>
+                                <IconButton
+                                  variant="danger"
+                                  icon="delete"
+                                  :label="$t('common.delete')"
+                                  @click="
+                                    () => {
+                                      tile_confirmation_modal = true;
+                                      tile_to_delete = {
+                                        tile_uid: t_uid,
+                                        section_uid: s_uid,
+                                      };
+                                    }
+                                  "
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </draggable>
       </div>
     </div>
   </PageLayout>
@@ -867,8 +921,7 @@ import GroupFieldsControllerPreview from "@/configs/builder/components/GroupFiel
 import RenameModal from "@/functionals/Rename-modal/index.vue";
 import HomeVariantSwitcher from "@/views/Builder/HomeVariantSwitcher.vue";
 import { pluralKey } from "@/utils/plural";
-import { useMediaQuery } from "@/composables/useMediaQuery";
-import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
+import { usePageReadonly } from "@/composables/useReadonly";
 
 export default {
   components: {
@@ -887,12 +940,10 @@ export default {
     const handy = useHandyStore();
     const unsaved = useUnsavedChanges();
     const contentDBChannel = useContentDBChannelStore();
-    // Below tablet the tile row scrolls natively (a real sideways scroller); wider screens keep Swiper's drag.
-    const belowTablet = useMediaQuery(MAX_TABLET_QUERY);
     // Publishing is its own area: a role that edits pages but does not publish keeps the draft only. UX only.
     const access = useAccessStore();
     const canPublish = computed(() => access.can(AREAS.CONTENT_PUBLISH, "write"));
-    return { notify, userStore, handy, ...unsaved, contentDBChannel, belowTablet, canPublish };
+    return { notify, userStore, handy, ...unsaved, contentDBChannel, canPublish, readonly: usePageReadonly() };
   },
   computed: {
     authorFields() {
@@ -967,7 +1018,7 @@ export default {
         {
           icon: "add",
           label: this.$t("builder.new_section"),
-          handler: () => this.$refs.newSectionSetter?.$el?.click(),
+          handler: () => this.insertSection(null),
           disabled: this.isSectionLimitReached,
         },
       ];
@@ -1015,6 +1066,9 @@ export default {
       edited_section_uid: null,
       edited_tile_uid: null,
       section_tiles_details: null,
+      dragging_sections: false,
+      // Where the next new section lands: an index from an inserter, null = the end (FAB, empty state).
+      insert_section_at: null,
       //
       advanced_options: false,
       authors: [],
@@ -1100,9 +1154,28 @@ export default {
         .parseFromString(tile[rich.prop], "text/html")
         .body.textContent.trim();
     },
-    // A row with fewer tiles than fit spreads them over the section width, as the storefront lays them out.
-    tileSlides(s_uid, fit) {
-      return Math.min(this.tiles_order[s_uid].length, fit);
+    // The editor's name of a section or tile type (the one the type picker shows), else the core_type read out.
+    typeLabel(coreType) {
+      return this.optionLabel(coreType) || this.formatCoreType(coreType);
+    },
+    optionLabel(value) {
+      const key = `config_option.${value}`;
+      const label = this.$t(key);
+      return label === key ? "" : label;
+    },
+    // A section's tiles are edited here unless its type takes none (a slider fed by a category, a 0 cap).
+    tilesAllowed(s_uid) {
+      const { core_type, slider_type } = this.sections[s_uid];
+      if (core_type === "section-slider" && slider_type !== "tiles") return false;
+      return this.section_options(core_type) === "no_options" || this.section_options(core_type, "max_tiles") > 0;
+    },
+    // A preview, an "add" card: the click goes to the control of its block that already does the job.
+    clickIn(event, scope, target) {
+      event.currentTarget.closest(scope)?.querySelector(target)?.click();
+    },
+    insertSection(index) {
+      this.insert_section_at = index;
+      this.$refs.newSectionSetter?.$el?.click();
     },
     async load_configs() {
       try {
@@ -1160,11 +1233,11 @@ export default {
       if (!this.core_config || !this.optional_config) return "—";
       return (
         [...this.core_config, ...this.optional_config]
-          .filter(({ prop }) => this.sections[s_uid]?.[prop])
-          .map(
-            ({ prop }) =>
-              `${this.props_dictionary[prop]}: ${this.sections[s_uid][prop]}`
-          )
+          .filter(({ prop }) => prop !== "core_type" && this.sections[s_uid]?.[prop])
+          .map(({ prop }) => {
+            const value = this.sections[s_uid][prop];
+            return `${this.props_dictionary[prop]}: ${this.optionLabel(value) || value}`;
+          })
           .join(" · ") || "—"
       );
     },
@@ -1184,6 +1257,7 @@ export default {
     set_section({ reset, ...section }) {
       if (reset) {
         this.edited_section_uid = null;
+        this.insert_section_at = null;
         return;
       }
 
@@ -1196,14 +1270,15 @@ export default {
 
       const _index = this.sections_order.indexOf(uid);
 
-      _index === -1
-        ? _sections_order.push(uid)
-        : _sections_order.splice(_index, 1, uid);
+      if (_index !== -1) _sections_order.splice(_index, 1, uid);
+      else if (this.insert_section_at === null) _sections_order.push(uid);
+      else _sections_order.splice(this.insert_section_at, 0, uid);
 
       this.sections = _sections;
       this.sections_order = _sections_order;
 
       this.edited_section_uid = null;
+      this.insert_section_at = null;
     },
     copy_elem({ _to = null, _after = null, copy = null }) {
       const uid = uuidv4();
@@ -1787,6 +1862,19 @@ export default {
   }
 }
 
+// The dragged clones (appended outside the scoped tree): a section travels as its folded bar, a tile as its card.
+.section-item.drag-ghost {
+  height: auto !important;
+  padding: 0;
+
+  .section-inserter {
+    display: none;
+  }
+}
+.tile-slot.drag-ghost {
+  padding: 0;
+}
+
 [data-theme="dark"] .wysiwyg-container-preview span[style*="color"] {
   color: var(--text-body) !important;
 }
@@ -1937,19 +2025,87 @@ export default {
 .section-config {
   overflow-wrap: anywhere;
 }
-// A content_width section sits inside the page column, a full_width one spans it: the list reads like the page.
+// A section narrower than full_width (container, content_width) sits inside the page column, a full_width one spans
+// it: the list reads like the page.
 .section-block--inset {
   @include min-tablet {
     margin-inline: var(--space-10);
   }
 }
-.tile-swiper-wrap :deep(.swiper-slide) {
-  height: auto;
+// The gap between two sections is where a new one goes in.
+.section-inserter {
+  height: var(--space-10);
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  &:hover,
+  &:focus-within {
+    opacity: 1;
+  }
+}
+.section-item:first-child .section-inserter {
+  height: var(--space-8);
+}
+.section-list--dragging {
+  .section-tray {
+    display: none;
+  }
+  .section-inserter {
+    visibility: hidden;
+  }
+}
+.section-item--ghost,
+.tile-slot--ghost {
+  opacity: 0.4;
+}
+.section-drag,
+.tile-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-8);
+  min-height: var(--space-8);
+  cursor: grab;
+  &:active {
+    cursor: grabbing;
+  }
+}
+.section-drag {
+  margin-left: calc(-1 * var(--space-8));
+}
+.section-title-wrap {
+  flex: 1;
+}
+.section-preview-zone:empty {
+  display: none;
+}
+.tile-row {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+// A few tiles share the row as on the page; many keep a readable width and the row scrolls.
+.tile-slot {
+  flex: 1 0 220px;
+  min-width: 0;
+  &:empty {
+    display: none;
+  }
+}
+.tile-add {
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-height: calc(var(--space-10) * 2);
+  border-style: dashed;
 }
 .tile-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+
+  &__preview {
+    flex: 1;
+  }
 
   &__img {
     display: block;
@@ -1958,12 +2114,8 @@ export default {
     max-height: 220px;
     object-fit: cover;
   }
-  &__body {
-    flex: 1;
-  }
-  .tile-actions {
-    margin-top: auto;
-    padding-top: var(--space-2);
+  .tile-drag {
+    margin-right: auto;
   }
 }
 @include max-tablet {
@@ -2004,17 +2156,9 @@ export default {
     flex-wrap: wrap;
     gap: var(--space-2);
   }
-  .tile-swiper-wrap {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-  .tile-swiper-wrap :deep(.swiper) {
-    max-width: 100%;
-  }
-  // cssMode (below tablet, as `belowTablet`): the tiles scroll natively; a thin bar shows that the row scrolls sideways.
-  .tile-swiper-wrap :deep(.swiper-wrapper) {
-    scrollbar-width: thin;
+  // A phone reorders sections in the order kit: a tall block is no thing to drag with a thumb.
+  .section-drag {
+    display: none;
   }
 }
 </style>

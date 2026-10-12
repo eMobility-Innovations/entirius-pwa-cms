@@ -59,7 +59,7 @@ test.describe('Content Builder Workflow', () => {
     await expect(page.getByText('Video URL')).toBeVisible();
   });
 
-  test('should display tiles in swiper slider', async ({ page }) => {
+  test('should display tiles as cards in the section row', async ({ page }) => {
     await login(page);
 
     await page.goto('/pages/content?lg=pl');
@@ -73,18 +73,17 @@ test.describe('Content Builder Workflow', () => {
     // Wait for builder to render
     await page.waitForTimeout(1000);
 
-    // Tiles are shown by default in a swiper slider (compact mode)
-    // Look for swiper slides containing tile data
-    const swiperSlides = page.locator('.swiper-slide');
-    const hasSlides = await swiperSlides.first().isVisible({ timeout: 5000 }).catch(() => false);
+    // Tiles are shown as preview cards in the section's tile row
+    const tileCards = page.locator('.tile-card');
+    const hasCards = await tileCards.first().isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (hasSlides) {
-      const slideCount = await swiperSlides.count();
-      expect(slideCount).toBeGreaterThan(0);
-      console.log(`Found ${slideCount} tile slides in swiper`);
+    if (hasCards) {
+      const cardCount = await tileCards.count();
+      expect(cardCount).toBeGreaterThan(0);
+      console.log(`Found ${cardCount} tile cards`);
     } else {
       // Section may have no tiles -- that is valid
-      console.log('No tile slides found -- section may have max_tiles: 0');
+      console.log('No tile cards found -- section may have max_tiles: 0');
     }
   });
 
