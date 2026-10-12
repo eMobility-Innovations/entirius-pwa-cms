@@ -339,7 +339,8 @@
           </BasicButton>
         </EmptyState>
         <div
-          class="fs-300 grid b-subtle rounded ov-h"
+          class="section-block fs-300 grid b-subtle rounded ov-h"
+          :class="{ 'section-block--inset': sections[s_uid].width === 'content_width' }"
           v-for="(s_uid, s_idx) in sections_order"
           :key="s_idx"
         >
@@ -353,23 +354,22 @@
                       <span class="fs-200 t-muted fw-400 ml-2"
                         >· {{ tileCountLabel(s_uid) }}</span
                       >
+                      <span
+                        class="section-uid fs-200 t-muted fw-400 ml-1 pointer"
+                        role="button"
+                        tabindex="0"
+                        @click="copyToClipboard(s_uid)"
+                        @keydown.enter="copyToClipboard(s_uid)"
+                        @keydown.space.prevent="copyToClipboard(s_uid)"
+                        :title="s_uid"
+                        >· {{ s_uid.substring(0, 8) }}</span
+                      >
                     </p>
                     <p
                       v-if="sections[s_uid].title"
                       class="fs-200 t-secondary lc-1"
                     >
                       {{ sections[s_uid].title }}
-                    </p>
-                    <p
-                      class="section-uid fs-200 t-muted pointer"
-                      role="button"
-                      tabindex="0"
-                      @click="copyToClipboard(s_uid)"
-                      @keydown.enter="copyToClipboard(s_uid)"
-                      @keydown.space.prevent="copyToClipboard(s_uid)"
-                      :title="s_uid"
-                    >
-                      {{ s_uid.substring(0, 8) }}
                     </p>
                     <!-- Two lines at most, so many props never push the header; the full text is the title. -->
                     <p
@@ -584,20 +584,20 @@
                     :uid_class="`tiles-slider-${s_uid}`"
                     :options="{
                       cssMode: belowTablet,
-                      slidesPerView: 1.25,
+                      slidesPerView: tileSlides(s_uid, 1.25),
                       spaceBetween: 10,
                       breakpoints: {
                         480: {
-                          slidesPerView: 2.15,
+                          slidesPerView: tileSlides(s_uid, 2.15),
                         },
                         768: {
-                          slidesPerView: 3.25,
+                          slidesPerView: tileSlides(s_uid, 3.25),
                         },
                         1200: {
-                          slidesPerView: 4.25,
+                          slidesPerView: tileSlides(s_uid, 4.25),
                         },
                         1700: {
-                          slidesPerView: 5.15,
+                          slidesPerView: tileSlides(s_uid, 5.15),
                         },
                       },
                     }"
@@ -607,16 +607,21 @@
                       :key="t_uid"
                     >
                       <div v-if="tiles[t_uid] && tiles[t_uid].core_type" class="swiper-slide">
-                        <div
-                          class="bg-hover t-body rounded pl-2 pr-2 pt-2 pb-2 ai-ct grid gap-1"
-                        >
-                          <div class="flex-column ai-fe">
-                            <p class="fs-200 t-body fw-600 txt-right lc-1">
+                        <div class="tile-card bg-hover t-body rounded ov-h">
+                          <img
+                            v-if="tileFirstImage(t_uid)"
+                            :src="tileFirstImage(t_uid)"
+                            alt=""
+                            class="tile-card__img"
+                            @error="(e) => (e.target.style.display = 'none')"
+                          />
+                          <div class="tile-card__body flex-column gap-1 p-2">
+                            <p class="fs-200 t-muted lc-1">
                               {{ formatCoreType(tiles[t_uid]["core_type"]) }}
                             </p>
                             <p
                               v-if="tiles[t_uid].title"
-                              class="fs-200 t-muted lc-1 txt-right"
+                              class="fs-300 t-body fw-600 lc-2"
                             >
                               {{ tiles[t_uid].title }}
                             </p>
@@ -624,76 +629,69 @@
                               v-else-if="
                                 tiles[t_uid].product_sku || tiles[t_uid].sku
                               "
-                              class="fs-200 t-accent lc-1 txt-right"
+                              class="fs-200 t-accent lc-1"
                             >
                               SKU:
                               {{ tiles[t_uid].product_sku || tiles[t_uid].sku }}
                             </p>
-                            <div
-                              v-if="tileFirstImage(t_uid)"
-                              class="tile-card-thumb mt-1"
+                            <p
+                              v-if="tileExcerpt(t_uid)"
+                              class="fs-200 t-secondary lc-3"
                             >
-                              <img
-                                :src="tileFirstImage(t_uid)"
-                                alt=""
-                                class="tile-card-thumb__img"
-                                @error="
-                                  (e) => (e.target.style.display = 'none')
+                              {{ tileExcerpt(t_uid) }}
+                            </p>
+
+                            <div class="tile-actions flex gap-1 jc-fe">
+                              <IconButton
+                                variant="outline"
+                                icon="duplicate"
+                                :label="$t('common.copy')"
+                                :disabled="isTileLimitReached(s_uid)"
+                                @click="
+                                  copy_elem({
+                                    _to: [`tiles_order:${s_uid}`, 'tiles'],
+                                    _after: index,
+                                    copy: tiles[t_uid],
+                                  })
+                                "
+                              />
+                              <SubscriberSetter
+                                @onSet="
+                                  () => {
+                                    edited_section_uid = s_uid;
+                                    edited_tile_uid = t_uid;
+                                  }
+                                "
+                                @on_AssetPass="set_tile"
+                                :handyType="{
+                                  id: 'configs-kit',
+                                  label: $t('builder.tile'),
+                                }"
+                                :options="{ config_type: 'tile_configs' }"
+                                :defaults="{
+                                  doc_type: type,
+                                  section_core_type: sections[s_uid]['core_type'],
+                                  ...tiles[t_uid],
+                                  __channels: channels,
+                                }"
+                              >
+                                <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
+                              </SubscriberSetter>
+                              <IconButton
+                                variant="danger"
+                                icon="delete"
+                                :label="$t('common.delete')"
+                                @click="
+                                  () => {
+                                    tile_confirmation_modal = true;
+                                    tile_to_delete = {
+                                      tile_uid: t_uid,
+                                      section_uid: s_uid,
+                                    };
+                                  }
                                 "
                               />
                             </div>
-                          </div>
-
-                          <div class="tile-actions flex gap-1 jc-fe mt-5">
-                            <IconButton
-                              variant="outline"
-                              icon="duplicate"
-                              :label="$t('common.copy')"
-                              :disabled="isTileLimitReached(s_uid)"
-                              @click="
-                                copy_elem({
-                                  _to: [`tiles_order:${s_uid}`, 'tiles'],
-                                  _after: index,
-                                  copy: tiles[t_uid],
-                                })
-                              "
-                            />
-                            <SubscriberSetter
-                              @onSet="
-                                () => {
-                                  edited_section_uid = s_uid;
-                                  edited_tile_uid = t_uid;
-                                }
-                              "
-                              @on_AssetPass="set_tile"
-                              :handyType="{
-                                id: 'configs-kit',
-                                label: $t('builder.tile'),
-                              }"
-                              :options="{ config_type: 'tile_configs' }"
-                              :defaults="{
-                                doc_type: type,
-                                section_core_type: sections[s_uid]['core_type'],
-                                ...tiles[t_uid],
-                                __channels: channels,
-                              }"
-                            >
-                              <IconButton variant="outline" icon="edit" :label="$t('common.edit')" :stop="false" />
-                            </SubscriberSetter>
-                            <IconButton
-                              variant="danger"
-                              icon="delete"
-                              :label="$t('common.delete')"
-                              @click="
-                                () => {
-                                  tile_confirmation_modal = true;
-                                  tile_to_delete = {
-                                    tile_uid: t_uid,
-                                    section_uid: s_uid,
-                                  };
-                                }
-                              "
-                            />
                           </div>
                         </div>
                       </div>
@@ -1086,6 +1084,21 @@ export default {
       return url.startsWith("http")
         ? url
         : (process.env.VUE_APP_API_URL || "") + url;
+    },
+    // Plain text of the tile's first rich-text prop: the card shows it without opening the editor.
+    tileExcerpt(t_uid) {
+      const tile = this.tiles[t_uid];
+      const rich = (this.core_properties || []).find(
+        ({ prop, type }) => type === "wysiwyg" && tile?.[prop]
+      );
+      if (!rich) return "";
+      return new DOMParser()
+        .parseFromString(tile[rich.prop], "text/html")
+        .body.textContent.trim();
+    },
+    // A row with fewer tiles than fit spreads them over the section width, as the storefront lays them out.
+    tileSlides(s_uid, fit) {
+      return Math.min(this.tiles_order[s_uid].length, fit);
     },
     async load_configs() {
       try {
@@ -1920,14 +1933,33 @@ export default {
 .section-config {
   overflow-wrap: anywhere;
 }
-.tile-card-thumb {
-  max-width: 100%;
+// A content_width section sits inside the page column, a full_width one spans it: the list reads like the page.
+.section-block--inset {
+  @include min-tablet {
+    margin-inline: var(--space-10);
+  }
+}
+.tile-swiper-wrap :deep(.swiper-slide) {
+  height: auto;
+}
+.tile-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
   &__img {
     display: block;
-    height: 40px;
-    max-width: 100%;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 220px;
     object-fit: cover;
-    border-radius: var(--radius-base);
+  }
+  &__body {
+    flex: 1;
+  }
+  .tile-actions {
+    margin-top: auto;
+    padding-top: var(--space-2);
   }
 }
 @include max-tablet {

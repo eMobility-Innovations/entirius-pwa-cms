@@ -58,6 +58,9 @@ All notable changes to this project will be documented in this file.
 - The dead role filter of `src/configs/access.js` (`grantAccess`, `routes`, `builderTypes`, the `access` arrays).
 ### Changed
 
+- Page builder: a tile card previews its tile (image across the card, title, text excerpt) and a short tile row
+  fills the section width; `content_width` sections are inset, `full_width` ones span the column. The section uid
+  sits next to the tile count.
 - Text fields show focus on the field itself: an accent border and a soft 2 px glow instead of a 2 px outline at a
   2 px offset; the sign-in screen's 8 px halo is gone. Buttons, tabs and links keep the outline.
 
