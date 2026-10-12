@@ -412,56 +412,56 @@
                     />
                   </div>
                 </div>
+                <!-- The section's own content stays in the section zone, the tiles in the tray below: the title is a heading, rich text reads as text. -->
+                <p
+                  v-if="sections[s_uid].title"
+                  class="fs-600 fw-600 t-body mt-5"
+                  data-testid="builder-section-heading"
+                >
+                  {{ sections[s_uid].title }}
+                </p>
+                <template
+                  v-for="({ prop = null, type = null }, i) in core_properties"
+                  :key="i"
+                >
+                  <div
+                    v-if="prop !== 'title' && sections[s_uid][prop]"
+                    class="section-preview mt-5"
+                  >
+                    <div
+                      v-if="type === 'wysiwyg'"
+                      v-html="sections[s_uid][prop]"
+                      class="wysiwyg-container-preview lc-3 fs-300 t-body"
+                    ></div>
+                    <template v-else>
+                      <p class="t-muted fs-200 mb-1">
+                        {{ props_dictionary[prop] }}:
+                      </p>
+                      <p v-if="type === 'text'" class="fs-200">
+                        {{ sections[s_uid][prop] }}
+                      </p>
+                      <ImagesControllPreview
+                        v-if="type === 'images'"
+                        :value="sections[s_uid][prop]"
+                      />
+                      <GroupFieldsControllerPreview
+                        class="w-50 w-100-m"
+                        v-if="type === 'group-fields'"
+                        :value="sections[s_uid][prop]"
+                      />
+                      <div v-if="type === 'buttons'" class="flex wrap gap-1">
+                        <Tag
+                          v-for="(link, idx) in sections[s_uid][prop]"
+                          :key="idx"
+                          :label="link.link_label || link.link_url || '—'"
+                        />
+                      </div>
+                    </template>
+                  </div>
+                </template>
               </div>
             </div>
             <div class="gc-s-1 gc-e-5 bg-raised pt-5 pb-5 pl-12 pr-12">
-              <!-- The section's own content, laid out as on the page: the title is a heading, rich text reads as text. -->
-              <p
-                v-if="sections[s_uid].title"
-                class="fs-600 fw-600 t-body mb-5"
-                data-testid="builder-section-heading"
-              >
-                {{ sections[s_uid].title }}
-              </p>
-              <template
-                v-for="({ prop = null, type = null }, i) in core_properties"
-                :key="i"
-              >
-                <div
-                  v-if="prop !== 'title' && sections[s_uid][prop]"
-                  class="section-preview mb-5"
-                >
-                  <div
-                    v-if="type === 'wysiwyg'"
-                    v-html="sections[s_uid][prop]"
-                    class="wysiwyg-container-preview lc-3 fs-300 t-body"
-                  ></div>
-                  <template v-else>
-                    <p class="t-muted fs-200 mb-1">
-                      {{ props_dictionary[prop] }}:
-                    </p>
-                    <p v-if="type === 'text'" class="fs-200">
-                      {{ sections[s_uid][prop] }}
-                    </p>
-                    <ImagesControllPreview
-                      v-if="type === 'images'"
-                      :value="sections[s_uid][prop]"
-                    />
-                    <GroupFieldsControllerPreview
-                      class="w-50 w-100-m"
-                      v-if="type === 'group-fields'"
-                      :value="sections[s_uid][prop]"
-                    />
-                    <div v-if="type === 'buttons'" class="flex wrap gap-1">
-                      <Tag
-                        v-for="(link, idx) in sections[s_uid][prop]"
-                        :key="idx"
-                        :label="link.link_label || link.link_url || '—'"
-                      />
-                    </div>
-                  </template>
-                </div>
-              </template>
               <div
                 class="t-body rounded"
                 v-if="
@@ -611,7 +611,7 @@
                       :key="t_uid"
                     >
                       <div v-if="tiles[t_uid] && tiles[t_uid].core_type" class="swiper-slide">
-                        <div class="tile-card bg-hover t-body rounded ov-h">
+                        <div class="tile-card bg-base b-subtle t-body rounded ov-h">
                           <img
                             v-if="tileFirstImage(t_uid)"
                             :src="tileFirstImage(t_uid)"
