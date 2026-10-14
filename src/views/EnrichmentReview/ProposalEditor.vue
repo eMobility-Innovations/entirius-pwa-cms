@@ -14,6 +14,14 @@
 
     <Loader v-if="loading" block />
     <EmptyState
+      v-else-if="loadFailed"
+      icon="empty"
+      size="md"
+      :title="$t('enrichment.editor.load_error')"
+      :message="$t('enrichment.editor.load_error_hint')"
+      data-testid="editor-load-error"
+    />
+    <EmptyState
       v-else-if="!proposal || shape !== 'text'"
       icon="empty"
       size="md"
@@ -88,7 +96,7 @@ import VariantPicker from "./VariantPicker.vue";
 import VersionTimeline from "./VersionTimeline.vue";
 import { useFieldLabels } from "./useFieldLabels";
 import { useProposalCorrection } from "./useProposalCorrection";
-import { revisable, textareaSelection, valueShape, valueText, withText } from "./correction";
+import { revisable, textareaSelection, uniqueFragment, valueShape, valueText, withText } from "./correction";
 import { isHtml, workerOf } from "./reviewLogic";
 
 // The full-screen editor of one long text proposal (`/enrichment/edit/:proposalId`): the text as it is stored (HTML
@@ -109,7 +117,7 @@ export default {
     return { proposal, draft, setProposal, ...correction, notify: useNotifyStore(), ...useFieldLabels() };
   },
   data() {
-    return { loading: true, task: null, view: "edit", selection: "", applying: false, drifted: null };
+    return { loading: true, loadFailed: false, task: null, view: "edit", selection: "", applying: false, drifted: null };
   },
   computed: {
     title() {
@@ -158,6 +166,12 @@ export default {
       ];
     },
   },
+  watch: {
+    // Every new version (a correction, a restore, a save) may no longer hold the selected fragment.
+    proposal() {
+      this.selection = "";
+    },
+  },
   mounted() {
     this.load();
   },
@@ -165,19 +179,31 @@ export default {
     valueText,
     sanitizeHtml,
     async load() {
+      await this.loadProposal();
+      this.loading = false;
+      if (this.proposal?.task_id != null) await this.loadTask(this.proposal.task_id);
+    },
+    // A 404 shows "gone"; any other failure says so and shows the load error.
+    async loadProposal() {
       try {
         const { data } = await GET_Proposal(this.$route.params.proposalId);
         this.setProposal(data);
         this.loadVersions();
-        if (data.task_id != null) this.task = (await GET_Task(data.task_id)).data;
+      } catch (err) {
+        if (err?.response?.status === 404) return;
+        this.loadFailed = true;
+        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
+      }
+    },
+    async loadTask(taskId) {
+      try {
+        this.task = (await GET_Task(taskId)).data;
       } catch {
-        // A missing proposal shows the empty state; a missing task only hides the template promotion.
-      } finally {
-        this.loading = false;
+        // A missing task only hides the template promotion.
       }
     },
     captureSelection(event) {
-      this.selection = textareaSelection(event.target);
+      this.selection = uniqueFragment(this.draft, textareaSelection(event.target));
     },
     // Manual edits become a version before the AI sees the text.
     async saveDraft() {

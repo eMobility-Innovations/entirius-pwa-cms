@@ -126,4 +126,47 @@ describe("ProposalEditor", () => {
     const video = await mountEditor({ ...PROPOSAL, target_kind: "video", proposed_value: { duration_s: 5 } });
     expect(video.find("textarea").exists()).toBe(false);
   });
+
+  it("a load failure other than 404 is reported, not shown as a gone proposal", async () => {
+    api.GET_Proposal.mockRejectedValue({ response: { status: 403, data: { detail: "No access" } } });
+    const w = mount(ProposalEditor, {
+      global: { stubs, mocks: { $route: { params: { proposalId: "9" }, query: {} }, $router: { push, back } } },
+    });
+    await flushPromises();
+    expect(w.find("[data-testid='editor-load-error']").exists()).toBe(true);
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: "negative" }));
+    api.GET_Proposal.mockRejectedValue({ response: { status: 404 } });
+    const gone = mount(ProposalEditor, {
+      global: { stubs, mocks: { $route: { params: { proposalId: "9" }, query: {} }, $router: { push, back } } },
+    });
+    await flushPromises();
+    expect(gone.find("[data-testid='editor-load-error']").exists()).toBe(false);
+    expect(notify).toHaveBeenCalledTimes(1);
+  });
+
+  it("a missing task only hides the template promotion", async () => {
+    api.GET_Proposal.mockResolvedValue({ data: PROPOSAL });
+    api.GET_ProposalRevisions.mockResolvedValue({ data: [] });
+    api.GET_Task.mockRejectedValue({ response: { status: 404 } });
+    const w = mount(ProposalEditor, {
+      global: { stubs, mocks: { $route: { params: { proposalId: "9" }, query: {} }, $router: { push, back } } },
+    });
+    await flushPromises();
+    expect(w.find("textarea").exists()).toBe(true);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("a fragment that occurs twice is no scope; a new version drops the selection", async () => {
+    const w = await mountEditor({ ...PROPOSAL, proposed_value: { text: "red sofa, red chair" } });
+    const textarea = w.find("textarea").element;
+    textarea.setSelectionRange(0, 3);
+    await w.find("textarea").trigger("mouseup");
+    expect(w.findComponent({ name: "CorrectionBar" }).props("selection")).toBe("");
+    textarea.setSelectionRange(4, 8);
+    await w.find("textarea").trigger("mouseup");
+    expect(w.findComponent({ name: "CorrectionBar" }).props("selection")).toBe("sofa");
+    w.vm.setProposal({ ...PROPOSAL, proposed_value: { text: "red couch" } });
+    await w.vm.$nextTick();
+    expect(w.findComponent({ name: "CorrectionBar" }).props("selection")).toBe("");
+  });
 });

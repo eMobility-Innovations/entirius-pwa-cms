@@ -2940,7 +2940,9 @@
       "view_preview": "Podgląd",
       "view_changes": "Zmiany",
       "save_version": "Zapisz wersję",
-      "no_text": "Ta propozycja nie ma tekstu do edycji"
+      "no_text": "Ta propozycja nie ma tekstu do edycji",
+      "load_error": "Nie udało się wczytać propozycji",
+      "load_error_hint": "Spróbuj ponownie za chwilę albo wróć do przeglądu."
     }
   },
   "promo": {

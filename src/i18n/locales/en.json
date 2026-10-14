@@ -2941,7 +2941,9 @@
       "view_preview": "Preview",
       "view_changes": "Changes",
       "save_version": "Save version",
-      "no_text": "This proposal has no text to edit"
+      "no_text": "This proposal has no text to edit",
+      "load_error": "Could not load this proposal",
+      "load_error_hint": "Try again in a moment, or go back to the review."
     }
   },
   "promo": {
