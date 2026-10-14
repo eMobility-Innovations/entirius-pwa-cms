@@ -203,10 +203,16 @@ function clear() {
   min-width: 0;
 }
 
-// The floating label: a compact line above the chosen value, never a second placeholder.
+// The floating label: a compact line above the chosen value, never a second placeholder. It hangs above the
+// control without taking layout height, so a select keeps the height of its siblings labelled or not.
 .basic-select__floating {
-  display: block;
-  margin-bottom: var(--space-1);
+  position: absolute;
+  bottom: calc(100% + var(--space-1));
+  left: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--text-muted);
   font-size: var(--fs-200);
   line-height: 1.25;
