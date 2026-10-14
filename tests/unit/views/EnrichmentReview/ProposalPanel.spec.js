@@ -70,6 +70,25 @@ describe("ProposalPanel", () => {
     expect(actions.every((a) => a.disabled)).toBe(true);
   });
 
+  it("a selection scopes the correction only when it occurs once in the proposed text", async () => {
+    const proposal = { ...meta, proposed_value: { text: "A red sofa" }, current_snapshot: { text: "A blue sofa" } };
+    const w = mount(ProposalPanel, { props: { proposal, product: PRODUCT }, global: { stubs } });
+    const select = (text) => {
+      const node = w.find("[data-testid='proposal-view']").element;
+      vi.spyOn(window, "getSelection").mockReturnValue({ anchorNode: node, toString: () => text });
+      return w.find("[data-testid='proposal-view']").trigger("mouseup");
+    };
+    const scope = () => w.findComponent({ name: "ProposalCorrection" }).props("selection");
+    await select("red sofa");
+    expect(scope()).toBe("red sofa");
+    await select("blue red sofa"); // crosses the removed word of the changes view
+    expect(scope()).toBe("");
+    await select("red");
+    await w.setProps({ proposal: { ...proposal, proposed_value: { text: "A red couch" } } });
+    expect(scope()).toBe("");
+    vi.restoreAllMocks();
+  });
+
   it("an applied proposal or a media one has no correction tools", () => {
     const applied = mount(ProposalPanel, { props: { proposal: { ...meta, status: "applied" }, product: PRODUCT }, global: { stubs } });
     expect(applied.findComponent({ name: "ProposalCorrection" }).exists()).toBe(false);

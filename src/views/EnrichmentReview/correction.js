@@ -77,3 +77,8 @@ export function textareaSelection(el) {
   if (!el || typeof el.selectionStart !== "number") return "";
   return el.value.slice(el.selectionStart, el.selectionEnd).trim();
 }
+
+/** `fragment` when it occurs exactly once in `text` (a selection scope the API accepts), else "". */
+export function uniqueFragment(text, fragment) {
+  return fragment && text.split(fragment).length === 2 ? fragment : "";
+}

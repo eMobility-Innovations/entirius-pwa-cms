@@ -58,7 +58,7 @@ import { PATCH_Proposal } from "@/api/enrichment/api";
 import DiffRenderer from "./DiffRenderer.vue";
 import LengthCounter from "./LengthCounter.vue";
 import ProposalCorrection from "./ProposalCorrection.vue";
-import { revisable } from "./correction";
+import { revisable, uniqueFragment, valueText } from "./correction";
 import { useFieldLabels } from "./useFieldLabels";
 import { editableText, isHtml, plainText, sourceText, textRules, translationSource, workerOf } from "./reviewLogic";
 
@@ -167,6 +167,10 @@ export default {
       this.editing = false;
       this.selection = "";
     },
+    // A new version may no longer hold the selected fragment.
+    "proposal.proposed_value"() {
+      this.selection = "";
+    },
   },
   methods: {
     sanitizeHtml,
@@ -180,11 +184,14 @@ export default {
         if (key === this.productKey) this.loaded = null;
       }
     },
-    // The text the operator selected in the change view: the scope a correction can be narrowed to.
+    // The text the operator selected in the change view narrows a correction — only when it occurs exactly once in
+    // the stored proposed text (contract A3 § 1). A selection over removed words or rendered HTML does not; the
+    // full-screen editor selects in the source.
     captureSelection() {
       const selection = window.getSelection?.();
       const inside = selection?.anchorNode && this.$refs.view?.contains(selection.anchorNode);
-      this.selection = inside ? selection.toString().trim() : "";
+      const fragment = inside ? selection.toString().trim() : "";
+      this.selection = uniqueFragment(valueText(this.proposal.proposed_value), fragment);
     },
     startEdit() {
       this.draft = editableText(this.proposal);
