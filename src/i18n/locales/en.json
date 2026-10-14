@@ -2634,7 +2634,12 @@
       "col_rule": "Rule",
       "col_status": "Status",
       "col_progress": "Progress",
-      "col_created": "Created"
+      "col_created": "Created",
+      "single": "Task #{id}",
+      "counts": {
+        "proposed": "Proposed",
+        "failed": "Failed"
+      }
     },
     "task_status": {
       "open": "Open",
@@ -2696,7 +2701,8 @@
       "confidence_min": "Min. confidence",
       "modes": {
         "list": "List",
-        "focus": "Focus"
+        "focus": "Focus",
+        "product": "Products"
       },
       "col": {
         "subject": "Subject",
@@ -2708,7 +2714,8 @@
         "confidence": "Confidence",
         "source": "Source",
         "batch": "Batch",
-        "age": "Age"
+        "age": "Age",
+        "product": "Product"
       },
       "bulk": {
         "matching": "{count} proposals match this filter",
@@ -2732,8 +2739,32 @@
         "bulk_accepted": "{count} proposals applied.",
         "bulk_rejected": "{count} proposals rejected.",
         "bulk_undone": "{count} proposals reverted.",
-        "bulk_undo_blocked": "{count} proposals were changed since apply and left untouched."
-      }
+        "bulk_undo_blocked": "{count} proposals were changed since apply and left untouched.",
+        "edited": "Proposal updated."
+      },
+      "source_value": "Source ({language})",
+      "edit_label": "Proposed text",
+      "apply": "Apply",
+      "new_text": "New text",
+      "view_changes": "Changes",
+      "view_before": "Before",
+      "view_after": "After",
+      "view_split": "Side by side",
+      "show_more": "Show more",
+      "show_less": "Show less",
+      "length": "{count} / {target} characters",
+      "kind": {
+        "video": "Product video",
+        "picture": "Product picture"
+      },
+      "search_preview": "In search results",
+      "change_new": "New",
+      "change_changed": "Changed",
+      "duration": "{seconds} s",
+      "open": "Open",
+      "more_columns": "More columns",
+      "fewer_columns": "Fewer columns",
+      "length_short": "{count} chars"
     },
     "status": {
       "pending": "Pending",
@@ -2770,6 +2801,77 @@
       "submit": "Spawn",
       "toast_success": "{count} enrichment task(s) created.",
       "toast_partial": "Created {ok} of {total} tasks before an error."
+    },
+    "ai": {
+      "menu": "AI",
+      "title": "Run AI task",
+      "worker": "Worker",
+      "no_workers": "No AI workers configured",
+      "run": "Run",
+      "prompt_placeholder": "Extra instructions for this run (optional)",
+      "summary": "One task over {count} product(s) in channel {channel}.",
+      "created": "Task #{id} created. Proposals appear in the review as the worker finishes products.",
+      "open_task": "Open the task",
+      "params": {
+        "prompt": "Instructions",
+        "source_language": "Source language",
+        "target_languages": "Target languages",
+        "languages": "Languages"
+      },
+      "results_title": "AI for {sku}",
+      "recent_tasks": "Recent tasks",
+      "results_empty": "No AI proposals waiting for this product",
+      "results_running": "The task runs in the background — its proposals appear here when it finishes.",
+      "started": "AI task started. It runs in the background — follow it under AI results.",
+      "task_done": "AI task finished: {count} proposal(s) ready for review.",
+      "task_failed": "AI task #{id} failed.",
+      "applied_reload": "Proposal applied. The product shows it after the next reload.",
+      "applied_conflict": "Proposal applied, but you have unsaved edits in the same field. Saving now overwrites the AI value.",
+      "tasks_idle": "Nothing running or waiting for review.",
+      "history": "History ({count})",
+      "task_filter": "Show this task's proposals",
+      "to_review": "To review",
+      "apply_all": "Apply all ({count})",
+      "filtered": "Proposals of: {worker}",
+      "show_all": "Show all",
+      "filtered_empty": "This task has nothing left to review",
+      "applied_some": "{count} applied; {drifted} changed in the meantime — review them again.",
+      "outcome": {
+        "running": "Working on it…",
+        "review_one": "1 proposal to review",
+        "review_few": "{count} proposals to review",
+        "review_many": "{count} proposals to review",
+        "applied": "Applied",
+        "rejected": "Rejected",
+        "replaced": "Replaced by a newer run",
+        "nothing": "Nothing to do — no proposals",
+        "cancelled": "Cancelled",
+        "failed": "Failed: {reason}",
+        "partly_failed": "{count} failed: {reason}"
+      },
+      "error": {
+        "translate_PROVIDER_NOT_CONFIGURED": "Translator not configured on the AI toolbox",
+        "PROVIDER_NOT_CONFIGURED": "AI provider not configured on the AI toolbox",
+        "AI_TOOLBOX_DISABLED": "The AI toolbox is switched off",
+        "AI_TOOLBOX_NOT_CONFIGURED": "The AI toolbox is not configured",
+        "MODEL_NOT_ALLOWED": "The worker's model is not allowed on the AI toolbox",
+        "UPSTREAM_RATE_LIMITED": "The AI provider is rate limited — try again later",
+        "RATE_LIMIT_EXCEEDED": "Too many AI requests — try again later",
+        "UPSTREAM_TIMEOUT": "The AI provider did not answer in time",
+        "TIMEOUT": "Took too long and was stopped",
+        "INTERNAL_ERROR": "Unexpected error (ref. {id})",
+        "unknown": "AI toolbox error {code}",
+        "NOT_RECORDED": "reason not recorded"
+      },
+      "trigger": "AI / Enricher",
+      "trigger_pending": "{count} to review",
+      "trigger_failed": "last run failed",
+      "run_title": "Run AI"
+    },
+    "video": {
+      "download": "Download video",
+      "failed": "Video failed to load",
+      "loading": "Loading video…"
     }
   },
   "promo": {

@@ -20,5 +20,6 @@ read only with `munin.config`, or it is unavailable) the public registry's `plat
 for `disabled` and `unconfigured`: Review's Rewrite, the translate dialog's Estimate, and an AI template's model list
 and test generate are off; `unreachable` leaves them on, since the toolbox may answer again. `AiToolboxHint` (no
 props) is the one place for the hint, with one text per state in `config_health.checks.toolbox_status.<state>`:
-Review, the company card and thread, the Communicate dialog, an AI template and the translate dialog. A new AI
+Review, the company card and thread, the Communicate dialog, an AI template, the translate dialog and the PIM "AI"
+menu (product detail, list selection — `useAiWorkers`, dormant without the `enrichment` module). A new AI
 action reads `aiUsable` and renders the hint, never its own state check or text.

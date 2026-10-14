@@ -68,6 +68,7 @@ export const ICONS = Object.freeze({
   categories: "folder-tree",
   variants: "diagram-next",
   enrich: "wand-magic-sparkles",
+  running: "circle-notch",
   tag: "tag",
   home: "house",
   author: "user-pen",

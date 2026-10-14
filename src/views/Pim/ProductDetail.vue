@@ -10,6 +10,16 @@
             <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
             <BasicSwitch v-model="form.is_enabled" :label="$t('pim.enabled')" />
             <ActionBar>
+              <ProductAiResults
+                v-if="aiEnabled"
+                ref="aiResults"
+                :sku="product.sku"
+                :product="product"
+                :workers="aiWorkers"
+                :usable="aiUsable"
+                @applied="onAiApplied"
+                @run="openAiTask"
+              />
               <BasicMenu :items="moreMenuItems" :label="$t('pim.more_actions')" placement="bottom-end" @select="onMoreSelect">
                 <template #trigger>
                   <IconButton icon="more" variant="outline" :label="$t('pim.more_actions')" data-testid="pim-product-more" />
@@ -45,7 +55,7 @@
     <template v-else-if="!loading">
       <div class="product-layout">
         <div class="product-layout__media">
-          <MediaGallery :channel-idx="channelIdx" :sku="product.sku" />
+          <MediaGallery :key="mediaKey" :channel-idx="channelIdx" :sku="product.sku" />
         </div>
 
         <div class="product-layout__content">
@@ -274,6 +284,17 @@
       @close="showSpawnDialog = false"
     />
 
+    <RunAiTaskDialog
+      v-if="aiEnabled"
+      :open="aiDialogOpen"
+      :workers="aiWorkers"
+      :initial-worker="aiWorker"
+      :skus="product.sku ? [product.sku] : []"
+      background
+      @created="(task) => $refs.aiResults?.track(task)"
+      @close="aiDialogOpen = false"
+    />
+
     <!-- Translations drawer -->
     <TranslationsDrawer
       :visible="!!translatingField"
@@ -366,6 +387,7 @@ import CopyTranslationsDialog from "./components/CopyTranslationsDialog.vue";
 import AddToChannelDialog from "./components/AddToChannelDialog.vue";
 import PimChannelSelect from "./components/PimChannelSelect.vue";
 import ProductT9nField from "./components/ProductT9nField.vue";
+import { useAiWorkers } from "./components/enrichment/useAiWorkers";
 import {
   GET_Product,
   PATCH_Product,
@@ -391,6 +413,8 @@ const MORE_DIALOGS = { channels: "showAddToChannelDialog", copy: "showCopyDialog
 const WYSIWYG = { is: "BasicWysiwyg", attrs: { variant: "lite" } };
 const TEXTAREA = { is: "BasicTextarea", attrs: { rows: 3 } };
 const INPUT = { is: "BasicInput", attrs: {} };
+// Enrichment target kinds the media gallery shows (an applied one reloads the gallery, not the form).
+const MEDIA_KINDS = ["picture", "video"];
 // The tabs that embed another panel's screen work on that panel's area: shown only when it is readable, read-only by
 // it alone (not by the product's `pim.products`).
 const EMBEDDED_AREAS = { pricing: AREAS.PRICEMANAGER_PRICES, stock: AREAS.QMS_STOCK, supplier: AREAS.ATLAS_PRODUCTS };
@@ -413,6 +437,8 @@ export default {
     SupplierTab: defineAsyncComponent(() => import("./components/SupplierTab.vue")),
     QualityTab: defineAsyncComponent(() => import("./components/QualityTab.vue")),
     SpawnDialog: defineAsyncComponent(() => import("./components/enrichment/SpawnDialog.vue")),
+    RunAiTaskDialog: defineAsyncComponent(() => import("./components/enrichment/RunAiTaskDialog.vue")),
+    ProductAiResults: defineAsyncComponent(() => import("./components/enrichment/ProductAiResults.vue")),
     ProductLinks: defineAsyncComponent(() => import("./components/ProductLinks.vue")),
   },
   beforeRouteLeave(to, from, next) {
@@ -424,12 +450,13 @@ export default {
     const pimChannel = usePimChannelStore();
     const munin = useMuninStore();
     const unsaved = useUnsavedChanges();
+    const { workers: aiWorkers, enabled: aiEnabled, usable: aiUsable } = useAiWorkers();
     const formErrors = useFormErrors();
     const access = useAccessStore();
     // Deleting a SKU is its own permission (access plan 09b): an Editor edits but does not delete. UX only.
     const canDeleteProduct = computed(() => access.can(AREAS.PIM_PRODUCT_DELETE, "write"));
     const canReadTab = (tab) => access.can(EMBEDDED_AREAS[tab]);
-    return { loader, notify, pimChannel, munin, formErrors, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
+    return { loader, notify, pimChannel, munin, formErrors, aiWorkers, aiEnabled, aiUsable, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
   },
   data() {
     return {
@@ -443,6 +470,9 @@ export default {
       showCopyDialog: false,
       showAddToChannelDialog: false,
       showSpawnDialog: false,
+      aiDialogOpen: false,
+      aiWorker: "",
+      mediaKey: 0,
       translatingField: null,
       overriddenLangsMap: {},
       featureSetOptions: [],
@@ -659,6 +689,46 @@ export default {
         inheritedValue: inheritedValues[field]?.[this.defaultLang] || "",
       };
     },
+    openAiTask(workerKey) {
+      this.aiWorker = workerKey;
+      this.aiDialogOpen = true;
+    },
+    // An AI proposal was written to PIM: show it without losing unsaved edits. A clean form reloads; a dirty one
+    // takes only the written field and language, unless the operator edited that very value (then it warns).
+    async onAiApplied(proposal) {
+      const loc = proposal.target_locator || {};
+      if (loc.channel && loc.channel !== this.channelIdx) return;
+      if (MEDIA_KINDS.includes(proposal.target_kind)) {
+        this.mediaKey += 1;
+        return;
+      }
+      try {
+        const { data } = await GET_Product(this.channelIdx, this.product.sku);
+        if (!this.isDirty) {
+          this.product = data;
+          return this.resetForm();
+        }
+        this.mergeAppliedField(data, `${loc.feature_idx}_t9n`, loc.language);
+      } catch {
+        this.notify.spawnNotification({ type: "informative", msg: this.$t("enrichment.ai.applied_reload") });
+      }
+    },
+    mergeAppliedField(fresh, key, lang) {
+      if (!(key in this.form) || !lang) {
+        this.notify.spawnNotification({ type: "informative", msg: this.$t("enrichment.ai.applied_reload") });
+        return;
+      }
+      const value = fresh[key]?.[lang] || "";
+      const original = this.formFromProduct();
+      const untouched = this.form[key][lang] === original[key][lang];
+      original[key][lang] = value;
+      this.product = { ...this.product, [key]: { ...this.product[key], [lang]: value } };
+      if (untouched) this.form[key][lang] = value;
+      else this.notify.spawnNotification({ type: "warning", msg: this.$t("enrichment.ai.applied_conflict") });
+      this.snapshot(original);
+      // The snapshot covers the form only: unsaved attribute or category edits keep the page dirty.
+      if (this.changedAttributes || this.changedCategoryIdxs) this.$nextTick(() => (this.isDirty = true));
+    },
     onMoreSelect({ key }) {
       if (INHERIT_FLAGS.includes(key)) {
         this.toggleInheritanceFlag(key);
@@ -732,6 +802,12 @@ export default {
           map[attr.feature_idx] = [...attr.overridden_langs];
       }
       this.overriddenLangsMap = map;
+      this.form = this.formFromProduct();
+      this.snapshot(this.form);
+      this.track(this.form);
+    },
+    // The editable form of `this.product`: its plain fields and every t9n field filled for each channel language.
+    formFromProduct() {
       const t9nKeys = [
         "name_t9n",
         "description_t9n",
@@ -751,7 +827,7 @@ export default {
         }
         t9nData[key] = src;
       }
-      this.form = {
+      return {
         visibility: this.product.visibility,
         is_enabled: this.product.is_enabled,
         feature_set_idx: this.product.feature_set_idx || null,
@@ -763,8 +839,6 @@ export default {
         og_image: this.product.og_image || "",
         ...t9nData,
       };
-      this.snapshot(this.form);
-      this.track(this.form);
     },
     async toggleInheritanceFlag(flag) {
       const newVal = !this.product[flag];

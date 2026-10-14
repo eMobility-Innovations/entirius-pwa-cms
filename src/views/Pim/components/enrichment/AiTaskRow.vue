@@ -1,0 +1,191 @@
+<template>
+  <li class="ai-task" :class="{ 'ai-task--selected': selected }" :data-testid="`ai-task-${task.id}`">
+    <div
+      class="ai-task__select"
+      role="button"
+      tabindex="0"
+      :aria-pressed="String(selected)"
+      :title="$t('enrichment.ai.task_filter')"
+      @click="$emit('select', task.id)"
+      @keydown.enter.prevent="$emit('select', task.id)"
+      @keydown.space.prevent="$emit('select', task.id)"
+    >
+      <span v-if="outcome.state === 'review'" class="ai-task__review" aria-hidden="true" data-testid="ai-task-review">
+        {{ outcome.count > 99 ? "99+" : outcome.count }}
+      </span>
+      <span v-else class="ai-task__icon" :class="`ai-task__icon--${look.tone}`" aria-hidden="true">
+        <FontAwesomeIcon :icon="$icons[look.icon]" :spin="outcome.state === 'running'" />
+      </span>
+      <span class="ai-task__main flex-column gap-1">
+        <span class="flex ai-ct flex-wrap gap-2">
+          <span class="ai-task__label">{{ worker?.label || task.type }}</span>
+          <Tag v-for="lang in languages" :key="lang" :label="lang.toUpperCase()" />
+        </span>
+        <span class="ai-task__outcome" :class="`ai-task__outcome--${look.tone}`" data-testid="ai-task-outcome">
+          {{ outcomeText }}
+        </span>
+      </span>
+      <span class="ai-task__time fs-200 t-muted">{{ relative }}</span>
+    </div>
+    <router-link class="ai-task__id fs-200 t-muted" :to="taskLink" :aria-label="$t('enrichment.tasks.single', { id: task.id })">
+      #{{ task.id }}
+    </router-link>
+  </li>
+</template>
+
+<script>
+import { formatRelative } from "@/utils/format";
+import { pluralKey } from "@/utils/plural";
+import { taskLanguages, taskOutcome } from "./productAi";
+
+const LOOK = {
+  running: { icon: "running", tone: "accent" },
+  review: { icon: "info", tone: "accent" },
+  applied: { icon: "success", tone: "positive" },
+  failed: { icon: "warning", tone: "negative" },
+};
+// Neutral outcomes (nothing to do, rejected, replaced, cancelled): the info icon, muted.
+const QUIET = { icon: "info", tone: "neutral" };
+
+// One AI task in plain words — a task waiting for review shows its count in an accent pill (the call to act): the worker, its languages, when, and what came of it — proposals to review, applied,
+// nothing to do, or why it failed (the toolbox error code, named for people). The id links to the task, small.
+export default {
+  name: "AiTaskRow",
+  props: {
+    task: { type: Object, required: true },
+    worker: { type: Object, default: null },
+    selected: { type: Boolean, default: false },
+  },
+  emits: ["select"],
+  computed: {
+    outcome() {
+      return taskOutcome(this.task);
+    },
+    look() {
+      if (this.outcome.failed) return { icon: "warning", tone: "warning" };
+      return LOOK[this.outcome.state] || QUIET;
+    },
+    languages() {
+      return taskLanguages(this.task);
+    },
+    relative() {
+      return formatRelative(this.task.created_at);
+    },
+    taskLink() {
+      return { name: "EnrichmentTasks", query: { status: "__all", task: String(this.task.id) } };
+    },
+    outcomeText() {
+      const { state, count = 0, failed } = this.outcome;
+      if (state === "failed") return this.$t("enrichment.ai.outcome.failed", { reason: this.reason() });
+      const key = state === "review" ? `review_${pluralKey(count)}` : state;
+      const text = this.$t(`enrichment.ai.outcome.${key}`, { count });
+      if (!failed) return text;
+      return `${text} · ${this.$t("enrichment.ai.outcome.partly_failed", { count: failed, reason: this.reason() })}`;
+    },
+  },
+  methods: {
+    // The kind-specific name of the code (translate + PROVIDER_NOT_CONFIGURED = the translator), else the generic one.
+    reason() {
+      const { code, errorId } = this.outcome;
+      const known = [`${this.worker?.kind}_${code}`, code]
+        .map((key) => `enrichment.ai.error.${key}`)
+        .find((path) => this.$t(path) !== path);
+      return known ? this.$t(known, { id: errorId }) : this.$t("enrichment.ai.error.unknown", { code });
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.ai-task {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+}
+.ai-task--selected {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+}
+.ai-task__select {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+.ai-task__icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  padding-top: 2px;
+  color: var(--text-secondary);
+}
+// The same accent pill as the header badge: proposals wait for the operator.
+.ai-task__review {
+  flex-shrink: 0;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 1px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-size: var(--fs-150);
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
+}
+.ai-task__icon--accent {
+  color: var(--accent);
+}
+.ai-task__icon--info {
+  color: var(--info);
+}
+.ai-task__icon--positive {
+  color: var(--positive);
+}
+.ai-task__icon--warning {
+  color: var(--warning);
+}
+.ai-task__icon--negative {
+  color: var(--negative);
+}
+.ai-task__main {
+  flex: 1;
+  min-width: 0;
+}
+.ai-task__label {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+.ai-task__outcome {
+  font-size: var(--fs-300);
+  color: var(--text-secondary);
+}
+.ai-task__outcome--negative {
+  color: var(--negative);
+}
+.ai-task__outcome--accent {
+  color: var(--text-body);
+}
+.ai-task__time {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.ai-task__id {
+  flex-shrink: 0;
+  padding: var(--space-4) var(--space-3) 0 0;
+}
+</style>

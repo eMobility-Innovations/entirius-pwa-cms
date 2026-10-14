@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetTasks = vi.fn();
+const mockGetTask = vi.fn();
 const mockNotify = vi.fn();
 
 vi.mock("@/api/enrichment/api", () => ({
   GET_Tasks: (...a) => mockGetTasks(...a),
+  GET_Task: (...a) => mockGetTask(...a),
 }));
 vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification: mockNotify }),
@@ -24,11 +26,11 @@ const task = (over = {}) => ({
   ...over,
 });
 
-const mountList = (routerMock = {}) =>
+const mountList = (routerMock = {}, query = {}) =>
   mount(TaskList, {
     global: {
       mocks: {
-        $route: { query: {}, path: "/enrichment/tasks" },
+        $route: { query, path: "/enrichment/tasks" },
         $router: { push() {}, replace() {}, ...routerMock },
       },
       stubs: {
@@ -42,6 +44,7 @@ const mountList = (routerMock = {}) =>
 describe("TaskList", () => {
   beforeEach(() => {
     mockGetTasks.mockReset();
+    mockGetTask.mockReset();
     mockNotify.mockReset();
     mockGetTasks.mockResolvedValue({ data: { results: [], count: 0 } });
   });
@@ -111,5 +114,58 @@ describe("TaskList", () => {
     expect(wrapper.vm.queueVisible).toBe(true);
     expect(wrapper.vm.queueTaskId).toBe(7);
     expect(wrapper.vm.queueLabel).toBe("classify-featureset");
+  });
+
+  it("progress reads proposed and failed first (a count without a label keeps its key)", async () => {
+    const wrapper = mountList();
+    await flushPromises();
+    expect(wrapper.vm.formatCounts({ skipped: 2, failed: 1, proposed: 4 })).toBe("proposed: 4, failed: 1, skipped: 2");
+    expect(wrapper.vm.formatCounts({})).toBe("—");
+  });
+
+  it("?task=<id> shows that one task and clears it when a status is picked", async () => {
+    mockGetTask.mockResolvedValue({ data: task({ id: 42, status: "done" }) });
+    const replace = vi.fn();
+    const wrapper = mountList({ replace }, { task: "42", status: "__all" });
+    await flushPromises();
+
+    expect(mockGetTask).toHaveBeenCalledWith("42");
+    expect(wrapper.vm.tasks.map((t) => t.id)).toEqual([42]);
+
+    wrapper.vm.onFilterChange("open");
+    await flushPromises();
+    expect(wrapper.vm.taskFilter).toBe("");
+    expect(replace.mock.calls.at(-1)[0].query).toEqual({ status: "open" });
+  });
+
+  describe("auto-refresh", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("refreshes while a task is in progress, stops when it is done", async () => {
+      mockGetTasks
+        .mockResolvedValueOnce({ data: { results: [task({ status: "in_progress", counts: { proposed: 1 } })], count: 1 } })
+        .mockResolvedValueOnce({ data: { results: [task({ status: "done", counts: { proposed: 3 } })], count: 1 } });
+      const wrapper = mountList();
+      await flushPromises();
+      expect(mockGetTasks).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      await flushPromises();
+      expect(mockGetTasks).toHaveBeenCalledTimes(2);
+      expect(wrapper.vm.tasks[0].counts).toEqual({ proposed: 3 });
+
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(mockGetTasks).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops on unmount", async () => {
+      mockGetTasks.mockResolvedValue({ data: { results: [task({ status: "in_progress" })], count: 1 } });
+      const wrapper = mountList();
+      await flushPromises();
+      wrapper.unmount();
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(mockGetTasks).toHaveBeenCalledTimes(1);
+    });
   });
 });

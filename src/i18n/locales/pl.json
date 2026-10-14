@@ -2633,7 +2633,12 @@
       "col_rule": "Reguła",
       "col_status": "Status",
       "col_progress": "Postęp",
-      "col_created": "Utworzono"
+      "col_created": "Utworzono",
+      "single": "Zadanie #{id}",
+      "counts": {
+        "proposed": "Zaproponowano",
+        "failed": "Błędy"
+      }
     },
     "task_status": {
       "open": "Otwarte",
@@ -2695,7 +2700,8 @@
       "confidence_min": "Min. pewność",
       "modes": {
         "list": "Lista",
-        "focus": "Skupienie"
+        "focus": "Skupienie",
+        "product": "Produkty"
       },
       "col": {
         "subject": "Obiekt",
@@ -2707,7 +2713,8 @@
         "confidence": "Pewność",
         "source": "Źródło",
         "batch": "Partia",
-        "age": "Wiek"
+        "age": "Wiek",
+        "product": "Produkt"
       },
       "bulk": {
         "matching": "Propozycji pasujących do filtra: {count}",
@@ -2731,8 +2738,32 @@
         "bulk_accepted": "Zastosowano propozycji: {count}.",
         "bulk_rejected": "Odrzucono propozycji: {count}.",
         "bulk_undone": "Przywrócono propozycji: {count}.",
-        "bulk_undo_blocked": "Pominięto propozycji: {count} — zmieniono je po zastosowaniu."
-      }
+        "bulk_undo_blocked": "Pominięto propozycji: {count} — zmieniono je po zastosowaniu.",
+        "edited": "Propozycja zaktualizowana."
+      },
+      "source_value": "Źródło ({language})",
+      "edit_label": "Proponowany tekst",
+      "apply": "Zastosuj",
+      "new_text": "Nowy tekst",
+      "view_changes": "Zmiany",
+      "view_before": "Przed",
+      "view_after": "Po",
+      "view_split": "Obok siebie",
+      "show_more": "Pokaż więcej",
+      "show_less": "Pokaż mniej",
+      "length": "{count} / {target} znaków",
+      "kind": {
+        "video": "Wideo produktu",
+        "picture": "Zdjęcie produktu"
+      },
+      "search_preview": "W wynikach wyszukiwania",
+      "change_new": "Nowe",
+      "change_changed": "Zmiana",
+      "duration": "{seconds} s",
+      "open": "Otwórz",
+      "more_columns": "Więcej kolumn",
+      "fewer_columns": "Mniej kolumn",
+      "length_short": "{count} zn."
     },
     "status": {
       "pending": "Oczekująca",
@@ -2769,6 +2800,77 @@
       "submit": "Zleć",
       "toast_success": "Utworzono zadań wzbogacania: {count}.",
       "toast_partial": "Utworzono {ok} z {total} zadań przed błędem."
+    },
+    "ai": {
+      "menu": "AI",
+      "title": "Uruchom zadanie AI",
+      "worker": "Worker",
+      "no_workers": "Brak skonfigurowanych workerów AI",
+      "run": "Uruchom",
+      "prompt_placeholder": "Dodatkowe instrukcje dla tego uruchomienia (opcjonalnie)",
+      "summary": "Jedno zadanie dla produktów: {count}, kanał {channel}.",
+      "created": "Utworzono zadanie #{id}. Propozycje pojawią się w przeglądzie, gdy worker skończy kolejne produkty.",
+      "open_task": "Otwórz zadanie",
+      "params": {
+        "prompt": "Instrukcje",
+        "source_language": "Język źródłowy",
+        "target_languages": "Języki docelowe",
+        "languages": "Języki"
+      },
+      "results_title": "AI dla {sku}",
+      "recent_tasks": "Ostatnie zadania",
+      "results_empty": "Brak propozycji AI czekających na ten produkt",
+      "results_running": "Zadanie działa w tle — jego propozycje pojawią się tutaj, gdy się zakończy.",
+      "started": "Zadanie AI uruchomione. Działa w tle — śledź je w „Wyniki AI”.",
+      "task_done": "Zadanie AI zakończone: {count} propozycji do przejrzenia.",
+      "task_failed": "Zadanie AI #{id} nie powiodło się.",
+      "applied_reload": "Propozycja zastosowana. Produkt pokaże ją po ponownym wczytaniu.",
+      "applied_conflict": "Propozycja zastosowana, ale masz niezapisane zmiany w tym samym polu. Zapisanie teraz nadpisze wartość AI.",
+      "tasks_idle": "Nic nie działa ani nie czeka na przegląd.",
+      "history": "Historia ({count})",
+      "task_filter": "Pokaż propozycje tego zadania",
+      "to_review": "Do przejrzenia",
+      "apply_all": "Zastosuj wszystkie ({count})",
+      "filtered": "Propozycje zadania: {worker}",
+      "show_all": "Pokaż wszystkie",
+      "filtered_empty": "To zadanie nie ma już nic do przejrzenia",
+      "applied_some": "Zastosowano {count}; {drifted} zmieniło się w międzyczasie — przejrzyj je ponownie.",
+      "outcome": {
+        "running": "W toku…",
+        "review_one": "1 propozycja do przejrzenia",
+        "review_few": "{count} propozycje do przejrzenia",
+        "review_many": "{count} propozycji do przejrzenia",
+        "applied": "Zastosowano",
+        "rejected": "Odrzucono",
+        "replaced": "Zastąpione nowszym uruchomieniem",
+        "nothing": "Nic do zrobienia — brak propozycji",
+        "cancelled": "Anulowano",
+        "failed": "Błąd: {reason}",
+        "partly_failed": "{count} z błędem: {reason}"
+      },
+      "error": {
+        "translate_PROVIDER_NOT_CONFIGURED": "Tłumacz nie jest skonfigurowany w AI toolbox",
+        "PROVIDER_NOT_CONFIGURED": "Dostawca AI nie jest skonfigurowany w AI toolbox",
+        "AI_TOOLBOX_DISABLED": "AI toolbox jest wyłączony",
+        "AI_TOOLBOX_NOT_CONFIGURED": "AI toolbox nie jest skonfigurowany",
+        "MODEL_NOT_ALLOWED": "Model workera nie jest dozwolony w AI toolbox",
+        "UPSTREAM_RATE_LIMITED": "Dostawca AI ogranicza zapytania — spróbuj później",
+        "RATE_LIMIT_EXCEEDED": "Za dużo zapytań do AI — spróbuj później",
+        "UPSTREAM_TIMEOUT": "Dostawca AI nie odpowiedział na czas",
+        "TIMEOUT": "Trwało zbyt długo i zostało przerwane",
+        "INTERNAL_ERROR": "Nieoczekiwany błąd (ref. {id})",
+        "unknown": "Błąd AI toolbox {code}",
+        "NOT_RECORDED": "przyczyna nie została zapisana"
+      },
+      "trigger": "AI / Enricher",
+      "trigger_pending": "{count} do przejrzenia",
+      "trigger_failed": "ostatnie uruchomienie nie powiodło się",
+      "run_title": "Uruchom AI"
+    },
+    "video": {
+      "download": "Pobierz wideo",
+      "failed": "Nie udało się wczytać wideo",
+      "loading": "Ładowanie wideo…"
     }
   },
   "promo": {

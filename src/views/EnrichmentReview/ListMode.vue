@@ -45,6 +45,12 @@
 
     <Loader block v-show="loading" />
 
+    <div v-if="rows.length" class="flex jc-fe mb-3">
+      <BasicButton variant="ghost" size="sm" data-testid="enrichment-more-columns" @click="moreColumns = !moreColumns">
+        {{ moreColumns ? $t("enrichment.review.fewer_columns") : $t("enrichment.review.more_columns") }}
+      </BasicButton>
+    </div>
+
     <DataTable
       empty-size="md"
       v-show="!loading"
@@ -52,88 +58,100 @@
       :rows="rows"
       row-key="id"
       :empty-text="$t('enrichment.review.empty')"
-      @row-click="(row) => $emit('row-focus', row)"
+      @row-click="(row) => $emit('row-open', row)"
     >
-      <template #cell-subject="{ row }">
-        <!-- PIM subject: open the product preview drawer (stop the row → focus click). -->
-        <BasicButton
-          v-if="isPimRow(row)"
-          variant="ghost"
-          size="sm"
-          :data-testid="`enrichment-subject-${row.id}`"
-          @click="$emit('preview-product', row)"
-        >
-          {{ row.subject_label || row.subject_ref }}
-        </BasicButton>
-        <a
-          v-else-if="row.subject_url"
-          :href="safeHref(row.subject_url)"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="list-mode__link t-accent"
-          :data-testid="`enrichment-subject-${row.id}`"
-          @click.stop
-          >{{ row.subject_label || row.subject_ref }}</a
-        >
-        <span v-else>{{ row.subject_label || row.subject_ref }}</span>
+      <template #cell-product="{ row }">
+        <div class="list-mode__product flex-column">
+          <!-- PIM subject: open the product preview drawer (stop the row → detail click). -->
+          <BasicButton
+            v-if="isPimRow(row)"
+            variant="ghost"
+            size="sm"
+            class="list-mode__sku"
+            :data-testid="`enrichment-subject-${row.id}`"
+            @click.stop="$emit('preview-product', row)"
+          >
+            {{ row.subject_ref }}
+          </BasicButton>
+          <a
+            v-else-if="row.subject_url"
+            :href="safeHref(row.subject_url)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="list-mode__link t-accent"
+            :data-testid="`enrichment-subject-${row.id}`"
+            @click.stop
+            >{{ row.subject_ref }}</a
+          >
+          <span v-else class="fw-600">{{ row.subject_ref }}</span>
+          <span v-if="row.subject_label && row.subject_label !== row.subject_ref" class="list-mode__name fs-200 t-secondary">
+            {{ row.subject_label }}
+          </span>
+        </div>
       </template>
       <template #cell-field="{ row }">
-        <span class="fs-200 t-secondary">{{ fieldLabel(row) }}</span>
+        <span class="flex ai-ct gap-2">
+          <span class="list-mode__field">{{ proposalField(row) }}</span>
+          <Tag v-if="row.target_locator?.language" :label="row.target_locator.language.toUpperCase()" />
+        </span>
       </template>
       <template #cell-change="{ row }">
-        <DiffRenderer
-          :target-kind="row.target_kind"
-          :proposed="row.proposed_value"
-          :current="row.current_snapshot"
-          :proposal-id="row.id"
-          :subject-label="row.subject_label || row.subject_ref"
-        />
+        <ChangeSummary :proposal="row" :rules="rulesOf(row)" />
       </template>
       <template #cell-status="{ value }">
-        <StatusBadge
-          :label="$t(`enrichment.status.${value}`)"
-          :tone="statusVariant(value)"
-        />
+        <StatusBadge :label="$t(`enrichment.status.${value}`)" :tone="statusVariant(value)" />
       </template>
       <template #cell-confidence="{ value }">
         <span class="fs-200">{{ formatConfidence(value) }}</span>
       </template>
+      <template #cell-source="{ row }">
+        <span class="fs-200 t-secondary">{{ workerOf(row.source) || row.source || "—" }}</span>
+      </template>
       <template #cell-age="{ row }">
-        <span class="fs-200 t-muted">{{ formatDate(row.created_at) }}</span>
+        <span class="fs-200 t-muted" :title="formatDate(row.created_at)">{{ formatRelative(row.created_at) }}</span>
       </template>
       <template #cell-actions="{ row }">
-        <div v-if="isActionable(row)" class="flex ai-ct gap-2">
-          <BasicButton
-            v-if="row.status === 'drifted'"
+        <div class="flex ai-ct gap-2" @click.stop>
+          <template v-if="isActionable(row)">
+            <BasicButton
+              v-if="row.status === 'drifted'"
+              size="sm"
+              variant="secondary"
+              :disabled="busy"
+              :data-testid="`enrichment-reconfirm-${row.id}`"
+              @click="$emit('reconfirm', row)"
+            >
+              {{ $t('enrichment.review.reconfirm') }}
+            </BasicButton>
+            <BasicButton
+              v-else
+              size="sm"
+              variant="secondary"
+              mutates
+              :disabled="busy"
+              :data-testid="`enrichment-accept-${row.id}`"
+              @click="$emit('accept', row)"
+            >
+              {{ $t('enrichment.review.apply') }}
+            </BasicButton>
+            <BasicButton
+              size="sm"
+              variant="danger"
+              :disabled="busy"
+              :data-testid="`enrichment-reject-${row.id}`"
+              @click="$emit('reject', { proposal: row, reason: '' })"
+            >
+              {{ $t('common.reject') }}
+            </BasicButton>
+          </template>
+          <IconButton
+            icon="next"
             size="sm"
-            variant="secondary"
-            :disabled="busy"
-            :data-testid="`enrichment-reconfirm-${row.id}`"
-            @click="$emit('reconfirm', row)"
-          >
-            {{ $t('enrichment.review.reconfirm') }}
-          </BasicButton>
-          <BasicButton
-            v-else
-            size="sm"
-            variant="secondary"
-            :disabled="busy"
-            :data-testid="`enrichment-accept-${row.id}`"
-            @click="$emit('accept', row)"
-          >
-            {{ $t('common.accept') }}
-          </BasicButton>
-          <BasicButton
-            size="sm"
-            variant="danger"
-            :disabled="busy"
-            :data-testid="`enrichment-reject-${row.id}`"
-            @click="$emit('reject', { proposal: row, reason: '' })"
-          >
-            {{ $t('common.reject') }}
-          </BasicButton>
+            :label="$t('enrichment.review.open')"
+            :data-testid="`enrichment-open-${row.id}`"
+            @click="$emit('row-open', row)"
+          />
         </div>
-        <span v-else class="fs-200 t-muted">—</span>
       </template>
     </DataTable>
 
@@ -148,9 +166,14 @@
 </template>
 
 <script>
-import { formatDate } from "@/utils/format";
+import { formatDate, formatRelative } from "@/utils/format";
 import { safeHref } from "@/utils/safeHref";
-import DiffRenderer from "./DiffRenderer.vue";
+import ChangeSummary from "./ChangeSummary.vue";
+import { textRules, workerOf } from "./reviewLogic";
+import { useFieldLabels } from "./useFieldLabels";
+
+// Technical columns, usually empty or only for diagnosis: behind "More columns".
+const TECHNICAL = ["target_module", "target_kind", "source", "batch_id"];
 
 const STATUS_VARIANTS = {
   pending: "info",
@@ -163,7 +186,13 @@ const STATUS_VARIANTS = {
 
 export default {
   name: "EnrichmentListMode",
-  components: { DiffRenderer },
+  components: { ChangeSummary },
+  setup() {
+    return useFieldLabels();
+  },
+  data() {
+    return { moreColumns: false };
+  },
   props: {
     rows: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false },
@@ -177,72 +206,31 @@ export default {
     "bulk-reject",
     "bulk-undo",
     "reconfirm",
-    "row-focus",
+    "row-open",
     "preview-product",
   ],
   computed: {
+    // One line per proposal: product, field + language, the change in brief, status, age, quick actions. Confidence
+    // shows only when some row has one; module, kind, source and batch only on "More columns".
     columns() {
-      return [
-        {
-          key: "subject",
-          label: this.$t("enrichment.review.col.subject"),
-          width: "minmax(160px, 1fr)",
-        },
-        {
-          key: "target_module",
-          label: this.$t("enrichment.review.col.module"),
-          width: "90px",
-          priority: 2,
-        },
-        {
-          key: "target_kind",
-          label: this.$t("enrichment.review.col.kind"),
-          width: "90px",
-          priority: 2,
-        },
-        {
-          key: "field",
-          label: this.$t("enrichment.review.col.field"),
-          width: "130px",
-          priority: 2,
-        },
-        {
-          key: "change",
-          label: this.$t("enrichment.review.col.change"),
-          width: "minmax(360px, 2fr)",
-          priority: 2,
-        },
-        {
-          key: "status",
-          label: this.$t("enrichment.review.col.status"),
-          width: "110px",
-        },
-        {
-          key: "confidence",
-          label: this.$t("enrichment.review.col.confidence"),
-          width: "90px",
-          priority: 2,
-        },
-        {
-          key: "source",
-          label: this.$t("enrichment.review.col.source"),
-          width: "110px",
-          priority: 2,
-        },
-        {
-          key: "batch_id",
-          label: this.$t("enrichment.review.col.batch"),
-          width: "100px",
-          priority: 2,
-        },
-        {
-          key: "age",
-          label: this.$t("enrichment.review.col.age"),
-          width: "120px",
-          priority: 2,
-        },
+      const t = (key) => this.$t(`enrichment.review.col.${key}`);
+      const all = [
+        { key: "product", label: t("product"), width: "minmax(140px, 1fr)" },
+        { key: "field", label: t("field"), width: "minmax(150px, auto)", priority: 2 },
+        { key: "change", label: t("change"), width: "minmax(280px, 3fr)", priority: 2 },
+        { key: "status", label: t("status"), width: "110px" },
+        { key: "confidence", label: t("confidence"), width: "90px", priority: 2 },
+        { key: "target_module", label: t("module"), width: "90px", priority: 3 },
+        { key: "target_kind", label: t("kind"), width: "120px", priority: 3 },
+        { key: "source", label: t("source"), width: "160px", priority: 3 },
+        { key: "batch_id", label: t("batch"), width: "120px", priority: 3 },
+        { key: "age", label: t("age"), width: "100px", priority: 2 },
         { key: "actions", label: "", actions: true },
       ];
+      return all.filter((col) => this.showColumn(col.key));
+    },
+    hasConfidence() {
+      return this.rows.some((r) => r.confidence != null && r.confidence !== "");
     },
     // Bulk accept/reject only makes sense when the queue holds pending work.
     actionableFilter() {
@@ -266,10 +254,16 @@ export default {
       if (value == null || value === "") return "—";
       return `${Math.round(Number(value) * 100)}%`;
     },
-    fieldLabel(row) {
-      const loc = row.target_locator || {};
-      const parts = [loc.feature_idx, loc.language].filter(Boolean);
-      return parts.length ? parts.join(" · ") : "—";
+    formatRelative,
+    workerOf,
+    showColumn(key) {
+      if (TECHNICAL.includes(key)) return this.moreColumns;
+      if (key === "confidence") return this.moreColumns || this.hasConfidence;
+      return true;
+    },
+    rulesOf(row) {
+      const idx = row.target_locator?.feature_idx;
+      return textRules(idx, this.feature(idx));
     },
     // PIM-targeted proposals carry a product SKU in subject_ref — those get the
     // clickable product preview; other modules fall back to subject_url / plain text.
@@ -281,6 +275,18 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.list-mode__product {
+  min-width: 0;
+}
+.list-mode__sku {
+  align-self: flex-start;
+}
+.list-mode__name,
+.list-mode__field {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 .list-mode__link {
   text-decoration: none;
   &:hover {

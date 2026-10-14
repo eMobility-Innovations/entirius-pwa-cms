@@ -88,12 +88,12 @@ describe("EnrichmentReview page frame", () => {
 });
 
 describe("ListMode", () => {
-  it("opens focus on the clicked row", async () => {
+  it("a clicked row opens its detail", async () => {
     const DataTable = { name: "DataTable", emits: ["row-click"], template: "<div />" };
     const row = { id: 2, status: "pending", target_locator: {} };
     const w = mount(ListMode, { props: { rows: [row], totalCount: 1 }, global: { stubs: { DataTable, Loader: true, EmptyState: true } } });
     w.findComponent({ name: "DataTable" }).vm.$emit("row-click", row);
-    expect(w.emitted("row-focus")[0]).toEqual([row]);
+    expect(w.emitted("row-open")[0]).toEqual([row]);
   });
 });
 

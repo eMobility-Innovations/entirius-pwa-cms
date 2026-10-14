@@ -55,6 +55,7 @@
             :current="current.current_snapshot"
             :proposal-id="current.id"
             :subject-label="current.subject_label || current.subject_ref"
+            wide
           />
         </div>
 
@@ -91,6 +92,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { safeHref } from "@/utils/safeHref";
 import DiffRenderer from "./DiffRenderer.vue";
 import ProductPreviewCard from "./ProductPreviewCard.vue";
+import { workerOf } from "./reviewLogic";
 import { POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
 
 export default {
@@ -102,9 +104,6 @@ export default {
     page: { type: Number, default: 1 },
     pageSize: { type: Number, default: 25 },
     totalCount: { type: Number, default: 0 },
-    // Which proposal in the current page to open on first mount (set when entering
-    // focus from a list row click). The rows watcher still resets to 0 on page change.
-    initialIndex: { type: Number, default: 0 },
   },
   emits: ["need-more", "exit"],
   setup() {
@@ -112,7 +111,7 @@ export default {
   },
   data() {
     return {
-      localIndex: this.initialIndex,
+      localIndex: 0,
       acting: false,
       reason: "",
       driftMode: false,
@@ -160,7 +159,7 @@ export default {
         this.current.target_module,
         this.current.target_kind,
         field,
-        this.current.source,
+        workerOf(this.current.source) || this.current.source,
         conf,
       ]
         .filter(Boolean)

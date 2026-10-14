@@ -3,6 +3,12 @@ import { enrichmentApi } from "./client";
 // django-enrichment admin API v2 (etap-05). All endpoints JWT + IsAdminUser.
 const ENR = "/api/enrichment/v2/admin";
 
+// --- Workers (AI POC) ---
+
+// Active workers of one module: [{ key, label, kind, target_module, mode, params_schema }].
+export const GET_Workers = (params) =>
+  enrichmentApi.get(`${ENR}/workers/`, { params });
+
 // --- Tasks ---
 
 export const GET_Tasks = (params) =>
@@ -56,6 +62,10 @@ export const GET_Proposals = (params) =>
 
 export const GET_Proposal = (proposalId) =>
   enrichmentApi.get(`${ENR}/proposals/${proposalId}/`);
+
+// Edit before accept: body { proposed_value } — pending proposals only, else 400.
+export const PATCH_Proposal = (proposalId, data) =>
+  enrichmentApi.patch(`${ENR}/proposals/${proposalId}/`, data);
 
 // Media (etap-08): the staged "after" image is admin-only, so an <img src> can't carry the
 // Bearer token — fetch it as a blob through the authenticated client and objectURL it.

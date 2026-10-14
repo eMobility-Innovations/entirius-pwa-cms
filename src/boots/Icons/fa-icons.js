@@ -120,6 +120,7 @@ import {
   faFile,
   faPaperclip,
   faCode,
+  faCircleNotch,
 } from "@fortawesome/free-solid-svg-icons";
 
 /* import font awesome icon component */
@@ -245,7 +246,8 @@ export default function registerFontAwesome(app) {
     faFileArrowUp,
     faFile,
     faPaperclip,
-    faCode
+    faCode,
+    faCircleNotch
   );
 
   /* add font awesome icon component */

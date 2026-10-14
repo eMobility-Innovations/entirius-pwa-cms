@@ -1,6 +1,6 @@
 /**
- * Plan 54b — a list row click opens Focus on that row; once the list changes (page, filter, reload after an action)
- * or the operator goes back to List, the next Focus starts at the top, so a keyboard shortcut never acts on a stale row.
+ * A list row opens its detail (the full proposal card) in a side panel; Focus mode, picked from the mode switch,
+ * starts at the top, so a keyboard shortcut never acts on a stale row.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { mount, flushPromises, enableAutoUnmount } from "@vue/test-utils";
@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   POST_BulkAcceptProposals: vi.fn(),
   POST_BulkRejectProposals: vi.fn(),
   POST_BulkUndoProposals: vi.fn(),
+  GET_Task: vi.fn(() => Promise.resolve({ data: {} })),
 }));
 vi.mock("@/api/enrichment/api", () => api);
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
@@ -39,7 +40,9 @@ async function mountPage() {
       // The view loads FocusMode lazily; the stub hands it the real component synchronously.
       stubs: { FocusMode, PageLayout, PageHeader: true, DataTable, Pagination, ActionBar: true, DiffRenderer: true,
         ProductPreviewCard: true, FormField: true, BasicTextarea: true, BulkActionBar: true, BulkUndo: true,
-        DriftModal: true, ImportCsvDialog: true, ProductPreviewDrawer: true, MobileFilterPanel: true },
+        DriftModal: true, ImportCsvDialog: true, ProductPreviewDrawer: true, MobileFilterPanel: true,
+        SideDrawer: { props: ["visible"], template: "<div v-if='visible'><slot /></div>" },
+        ProposalPanel: { name: "ProposalPanel", props: ["proposal", "task", "busy"], emits: ["accept", "reject", "updated"], template: "<div />" } },
     },
   });
   await flushPromises();
@@ -64,27 +67,21 @@ async function pressAccept() {
   return api.POST_AcceptProposal.mock.calls[0][0];
 }
 
-describe("EnrichmentReview — focus index", () => {
-  it("opens Focus on the clicked row", async () => {
+describe("EnrichmentReview — list row detail", () => {
+  it("a row click opens that proposal's card in the side panel; Apply there accepts it and closes the panel", async () => {
     const w = await mountPage();
     await clickRow(w, 5);
-    expect(await pressAccept()).toBe(16);
-  });
+    const panel = w.findComponent({ name: "ProposalPanel" });
+    expect(panel.props("proposal").id).toBe(16);
 
-  it("acts on row 0 of the new page after a row click and a page change", async () => {
-    const w = await mountPage();
-    await clickRow(w, 5);
-    await setMode(w, "list");
-    w.findComponent(Pagination).vm.$emit("update:page", 2);
+    panel.vm.$emit("accept", panel.props("proposal"));
     await flushPromises();
-    await setMode(w, "focus");
-    expect(await pressAccept()).toBe(21);
+    expect(api.POST_AcceptProposal).toHaveBeenLastCalledWith(16);
+    expect(w.findComponent({ name: "ProposalPanel" }).exists()).toBe(false);
   });
 
-  it("starts at the top again when the operator goes back to List without changing the list", async () => {
+  it("Focus mode starts at the first row", async () => {
     const w = await mountPage();
-    await clickRow(w, 5);
-    await setMode(w, "list");
     await setMode(w, "focus");
     expect(await pressAccept()).toBe(11);
   });

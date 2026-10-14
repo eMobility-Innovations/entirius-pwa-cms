@@ -6,10 +6,17 @@
     <template #toolbar>
       <div class="flex ai-ct flex-wrap gap-2">
         <FilterChip
+          v-if="taskFilter"
+          :label="$t('enrichment.tasks.single', { id: taskFilter })"
+          active
+          data-testid="enrichment-task-single"
+          @click="onFilterChange('__all')"
+        />
+        <FilterChip
           v-for="opt in statusOptions"
           :key="opt.value"
           :label="opt.label"
-          :active="statusFilter === opt.value"
+          :active="!taskFilter && statusFilter === opt.value"
           :data-testid="`enrichment-task-status-${opt.value}`"
           @click="onFilterChange(opt.value)"
         />
@@ -64,20 +71,15 @@
 <script>
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { GET_Tasks } from "@/api/enrichment/api";
+import { GET_Task, GET_Tasks } from "@/api/enrichment/api";
 import { formatDate } from "@/utils/format";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
+import { needsRefresh, orderedCounts, taskStatusTone } from "./taskProgress";
+
+const REFRESH_MS = 5000;
 
 // Mirrors django_enrichment.enums.TaskStatus.
 const TASK_STATUSES = ["open", "in_progress", "done", "cancelled", "failed"];
-const STATUS_VARIANT = {
-  open: "info",
-  in_progress: "warning",
-  done: "positive",
-  cancelled: "neutral",
-  failed: "negative",
-};
-
 export default {
   name: "TaskList",
   components: { TaskQueueDrawer },
@@ -92,6 +94,9 @@ export default {
       currentPage: 1,
       pageSize: 20,
       statusFilter: this.$route.query.status || "open",
+      // `?task=<id>`: the one task the "Run AI task" dialog links to.
+      taskFilter: this.$route.query.task || "",
+      refreshTimer: null,
       loading: false,
       queueVisible: false,
       queueTaskId: null,
@@ -136,15 +141,18 @@ export default {
     this.currentPage = parseInt(this.$route.query.page) || 1;
     this.fetchTasks();
   },
+  beforeUnmount() {
+    clearTimeout(this.refreshTimer);
+  },
   methods: {
-    async fetchTasks() {
-      this.loading = true;
+    // `silent`: the auto-refresh of a running task updates the rows in place, without the loader.
+    async fetchTasks({ silent = false } = {}) {
+      clearTimeout(this.refreshTimer);
+      if (!silent) this.loading = true;
       try {
-        const params = { page: this.currentPage, page_size: this.pageSize };
-        if (this.statusFilter !== "__all") params.status = this.statusFilter;
-        const { data } = await GET_Tasks(params);
+        const { results, count } = await this.loadPage();
         // Flatten nested fields the DataTable can't reach via row[col.key].
-        this.tasks = (data.results || []).map((t) => ({
+        this.tasks = results.map((t) => ({
           id: t.id,
           type: t.type,
           status: t.status,
@@ -153,7 +161,8 @@ export default {
           check: t.scope_spec?.check ?? "—",
           rule: t.params?.spawn_rule ?? "—",
         }));
-        this.totalCount = data.count || 0;
+        this.totalCount = count;
+        this.scheduleRefresh();
       } catch (err) {
         this.notify.spawnNotification({
           type: "negative",
@@ -163,22 +172,41 @@ export default {
         this.loading = false;
       }
     },
+    async loadPage() {
+      if (this.taskFilter) {
+        const { data } = await GET_Task(this.taskFilter);
+        return { results: [data], count: 1 };
+      }
+      const params = { page: this.currentPage, page_size: this.pageSize };
+      if (this.statusFilter !== "__all") params.status = this.statusFilter;
+      const { data } = await GET_Tasks(params);
+      return { results: data.results || [], count: data.count || 0 };
+    },
+    scheduleRefresh() {
+      if (!needsRefresh(this.tasks, !!this.taskFilter)) return;
+      this.refreshTimer = setTimeout(() => this.fetchTasks({ silent: true }), REFRESH_MS);
+    },
     statusVariant(status) {
-      return STATUS_VARIANT[status] || "neutral";
+      return taskStatusTone(status);
     },
     formatCounts(counts) {
-      const entries = Object.entries(counts || {});
+      const entries = orderedCounts(counts);
       return entries.length
-        ? entries.map(([k, v]) => `${k}: ${v}`).join(", ")
+        ? entries.map(([k, v]) => `${this.countLabel(k)}: ${v}`).join(", ")
         : "—";
+    },
+    countLabel(key) {
+      const path = `enrichment.tasks.counts.${key}`;
+      const label = this.$t(path);
+      return label === path ? key : label;
     },
     onFilterChange(value) {
       this.statusFilter = value;
+      this.taskFilter = "";
       this.currentPage = 1;
-      this.$router.replace({
-        path: this.$route.path,
-        query: { ...this.$route.query, status: value },
-      });
+      const query = { ...this.$route.query, status: value };
+      delete query.task;
+      this.$router.replace({ path: this.$route.path, query });
       this.fetchTasks();
     },
     onPageChange(page) {

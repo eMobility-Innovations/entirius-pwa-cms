@@ -108,7 +108,17 @@
       @bulk-reject="bulkReject"
       @bulk-undo="bulkUndo"
       @reconfirm="openDrift"
-      @row-focus="onRowFocus"
+      @row-open="openDetail"
+      @preview-product="openProductPreview"
+    />
+    <ProductMode
+      v-else-if="mode === 'product'"
+      :rows="rows"
+      :loading="loading"
+      :busy="busy"
+      @accept="acceptOne"
+      @reject="rejectOne"
+      @updated="patchRow"
       @preview-product="openProductPreview"
     />
     <FocusMode
@@ -118,13 +128,12 @@
       :page="page"
       :page-size="pageSize"
       :total-count="totalCount"
-      :initial-index="focusIndex"
       @need-more="loadNextPage"
       @exit="exitFocus"
     />
 
     <!-- Mounted while the list loads (no footer jump); a page change waits for the running fetch or action. -->
-    <template v-if="mode === 'list' && totalCount > pageSize" #footer>
+    <template v-if="mode !== 'focus' && totalCount > pageSize" #footer>
       <Pagination
         :page="page"
         :pages="Math.ceil(totalCount / pageSize)"
@@ -148,6 +157,25 @@
       @close="importVisible = false"
     />
 
+    <SideDrawer
+      :visible="!!detail"
+      :title="detail ? detail.subject_label || detail.subject_ref : ''"
+      width="720px"
+      @close="detail = null"
+    >
+      <ProposalPanel
+        v-if="detail"
+        :key="detail.id"
+        :proposal="detail"
+        :task="detailTask"
+        :busy="busy"
+        data-testid="enrichment-detail"
+        @accept="detailAccept"
+        @reject="detailReject"
+        @updated="detailUpdated"
+      />
+    </SideDrawer>
+
     <ProductPreviewDrawer
       :visible="previewVisible"
       :sku="previewSku"
@@ -163,10 +191,13 @@ import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import ListMode from "./ListMode.vue";
+import ProductMode from "./ProductMode.vue";
 import DriftModal from "./DriftModal.vue";
 import ImportCsvDialog from "./ImportCsvDialog.vue";
 import ProductPreviewDrawer from "./ProductPreviewDrawer.vue";
+import ProposalPanel from "./ProposalPanel.vue";
 import {
+  GET_Task,
   GET_Proposals,
   POST_AcceptProposal,
   POST_RejectProposal,
@@ -176,6 +207,8 @@ import {
 } from "@/api/enrichment/api";
 
 const FocusMode = defineAsyncComponent(() => import("./FocusMode.vue"));
+
+const MODES = ["list", "product", "focus"];
 
 const STATUS_VALUES = [
   "pending",
@@ -188,13 +221,13 @@ const STATUS_VALUES = [
 
 export default {
   name: "EnrichmentReview",
-  components: { ListMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer },
+  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel },
   setup() {
     return { notify: useNotifyStore(), pimChannel: usePimChannelStore() };
   },
   data() {
     return {
-      mode: this.$route.query.mode === "focus" ? "focus" : "list",
+      mode: MODES.includes(this.$route.query.mode) ? this.$route.query.mode : "list",
       filters: {
         status: this.$route.query.status || "pending",
         target_module: "__all",
@@ -212,9 +245,10 @@ export default {
       busy: false,
       searchTimer: null,
       driftVisible: false,
+      detail: null,
+      detailTask: null,
       driftProposal: null,
       importVisible: false,
-      focusIndex: 0,
       previewSku: null,
       previewVisible: false,
     };
@@ -247,6 +281,11 @@ export default {
           testid: "enrichment-mode-list",
         },
         {
+          value: "product",
+          label: this.$t("enrichment.review.modes.product"),
+          testid: "enrichment-mode-product",
+        },
+        {
           value: "focus",
           label: this.$t("enrichment.review.modes.focus"),
           testid: "enrichment-mode-focus",
@@ -274,8 +313,6 @@ export default {
   },
   watch: {
     mode(val) {
-      // Only a row click picks the Focus row; back in List the next Focus starts at the top.
-      if (val === "list") this.focusIndex = 0;
       this.$router.replace({
         path: this.$route.path,
         query: { ...this.$route.query, mode: val },
@@ -347,8 +384,6 @@ export default {
       return f;
     },
     async fetchRows() {
-      // A reloaded list (page, filter, a row removed by an action) has other rows under the old index.
-      this.focusIndex = 0;
       this.loading = true;
       try {
         const { data } = await GET_Proposals(this.buildParams());
@@ -404,12 +439,29 @@ export default {
       });
       this.fetchRows();
     },
-    onRowFocus(row) {
-      // List row click → open Focus on that exact proposal (same loaded page,
-      // so the list index maps straight to FocusMode's localIndex).
-      const idx = this.rows.indexOf(row);
-      this.focusIndex = idx >= 0 ? idx : 0;
-      this.mode = "focus";
+    // A list row opens its detail: the full card (preview, Apply / Edit / Reject) in a side panel.
+    async openDetail(row) {
+      this.detail = row;
+      this.detailTask = null;
+      if (row.task_id == null) return;
+      try {
+        const { data } = await GET_Task(row.task_id);
+        if (this.detail?.id === row.id) this.detailTask = data;
+      } catch {
+        // No task: a translation just shows no source text.
+      }
+    },
+    async detailAccept(proposal) {
+      await this.acceptOne(proposal);
+      if (!this.driftVisible) this.detail = null;
+    },
+    async detailReject(payload) {
+      await this.rejectOne(payload);
+      this.detail = null;
+    },
+    detailUpdated(proposal) {
+      this.patchRow(proposal);
+      this.detail = proposal;
     },
     openProductPreview(row) {
       this.previewSku = row.subject_ref;

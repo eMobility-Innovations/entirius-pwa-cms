@@ -22,6 +22,10 @@ vi.mock("@/stores/notify", () => ({
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ activeChannelIdx: "default", channels: [], activeChannelLanguages: ["pl"] }),
 }));
+// The AI menu stays dormant here (enrichment module off).
+vi.mock("@/views/Pim/components/enrichment/useAiWorkers", () => ({
+  useAiWorkers: () => ({ workers: [], enabled: false, usable: false }),
+}));
 vi.mock("@/stores/munin", () => ({ useMuninStore: () => ({ isPanelEnabled: () => false }) }));
 vi.mock("@/stores/access", () => ({ useAccessStore: () => ({ can: () => true }) }));
 vi.mock("@/composables/useUnsavedChanges", () => ({
