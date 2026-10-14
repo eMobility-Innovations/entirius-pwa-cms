@@ -1,8 +1,10 @@
 // The "Run AI task" form, generated from a worker's `params_schema` (a pydantic JSON schema). Kept small on
-// purpose: a string, a string enum, an array of strings (always a language list), the free-text `prompt`.
-// `channel` is never asked — the dialog fills it from the active PIM channel. Other types keep the backend default.
+// purpose: a string, a string enum, an array of strings (`fields` = the field picker, else a language list), the
+// free-text `prompt`. `channel` is never asked — the dialog fills it from the active PIM channel; `rules` live on
+// the template. Other types keep the backend default. Research (augmentations, contract A4 § 5) sits next to it.
 
-const HIDDEN = new Set(["channel"]);
+const HIDDEN = new Set(["channel", "rules"]);
+export const ALL_LANGUAGES = "*";
 
 // `str | None` arrives as anyOf [{type: string}, {type: null}]; an Enum class as a $ref into $defs.
 function resolveProp(schema, raw) {
@@ -13,7 +15,7 @@ function resolveProp(schema, raw) {
 }
 
 function fieldKind(name, prop) {
-  if (prop.type === "array" && prop.items?.type === "string") return "languages";
+  if (prop.type === "array" && prop.items?.type === "string") return name === "fields" ? "fields" : "languages";
   if (prop.type !== "string") return null;
   if (prop.enum) return "enum";
   if (name === "prompt") return "prompt";
@@ -21,8 +23,9 @@ function fieldKind(name, prop) {
   return "text";
 }
 
-/** [{ name, kind, title, options, default, required }] — kind: text · enum · prompt · language · languages. */
-export function buildFields(schema) {
+/** [{ name, kind, title, options, default, required, allowAll }] — kind: text · enum · prompt · language ·
+ * languages · fields. `allowAll`: a `write` worker's languages take "All languages" (`["*"]`). */
+export function buildFields(schema, workerKind = "") {
   const required = new Set(schema?.required || []);
   return Object.entries(schema?.properties || {})
     .filter(([name]) => !HIDDEN.has(name))
@@ -35,6 +38,7 @@ export function buildFields(schema) {
         options: prop.enum || [],
         default: prop.default,
         required: required.has(name),
+        allowAll: workerKind === "write" && name === "languages",
       };
     })
     .filter((field) => field.kind);
@@ -42,6 +46,8 @@ export function buildFields(schema) {
 
 function defaultFor(field, { languages, source, hasSource }) {
   if (field.kind === "language") return source;
+  if (field.kind === "fields") return [];
+  if (field.allowAll) return [ALL_LANGUAGES];
   if (field.kind === "languages") return hasSource ? languages.filter((l) => l !== source) : [...languages];
   if (field.kind === "enum") return field.default ?? field.options[0] ?? "";
   return field.default ?? "";
@@ -69,13 +75,41 @@ export function missingRequired(fields, values) {
   return fields.filter((field) => field.required && isEmpty(values[field.name])).map((field) => field.name);
 }
 
-/** POST tasks/ body: one task over the picked SKUs of one channel. */
-export function buildTaskPayload({ worker, values, channel, skus }) {
-  const params = { ...values };
-  if (worker.params_schema?.properties?.channel) params.channel = channel;
-  return {
+/** A template's params over the defaults, for the fields the form has. */
+export function presetValues(fields, values, params = {}) {
+  const preset = fields.filter((field) => params[field.name] !== undefined);
+  return { ...values, ...Object.fromEntries(preset.map((field) => [field.name, JSON.parse(JSON.stringify(params[field.name]))])) };
+}
+
+const RESEARCH = { write: ["seo_brief"] };
+
+/** The research a run can add: what the worker's kind supports, plus what a template presets. */
+export function researchKeys(kind, preset = []) {
+  return [...new Set([...(RESEARCH[kind] || []), ...preset])];
+}
+
+/** { augment, seo_scope } — the research a template presets; SEO is remembered per category by default. */
+export function defaultResearch(params = {}) {
+  return { augment: [...(params.augment || [])], seo_scope: params.seo_scope || "category" };
+}
+
+/** Task / template params: the form values (empty optional lists dropped, the backend default stands) + research.
+ * `research` null = the kind takes none; else `augment` is always sent, so a run can switch off a template's preset. */
+export function buildParams(fields, values, research = null) {
+  const optionalEmpty = (field) => !field.required && Array.isArray(values[field.name]) && !values[field.name].length;
+  const skipped = new Set(fields.filter(optionalEmpty).map((field) => field.name));
+  const params = Object.fromEntries(Object.entries(values).filter(([name]) => !skipped.has(name)));
+  if (!research) return params;
+  if (!research.augment.length) return { ...params, augment: [] };
+  return { ...params, augment: [...research.augment], seo_scope: research.seo_scope };
+}
+
+/** POST tasks/ body: one task over the picked SKUs of one channel; `template` presets params and rules server side. */
+export function buildTaskPayload({ worker, params, channel, skus, template = "" }) {
+  const body = {
     type: worker.key,
-    params,
+    params: worker.params_schema?.properties?.channel ? { ...params, channel } : { ...params },
     scope_spec: { mode: "list", module: "pim", channel, refs: [...skus] },
   };
+  return template ? { ...body, template } : body;
 }

@@ -140,11 +140,33 @@ function textOf(value) {
   return values.length === 1 ? values[0] : "";
 }
 
-/** One list row's change, never the full preview: media → { media: icon, duration }; text → { state, excerpt,
- * length } with state new (nothing there before) or changed. */
+/** A select value — `{ option }` (single) or `{ options }` (multi), contract A3 § 2 — else false. */
+export function isOptionValue(value) {
+  return !!value && typeof value === "object" && ("options" in value || "option" in value);
+}
+
+const optionList = (value) => (Array.isArray(value?.options) ? value.options : value?.option ? [value.option] : []);
+
+/** { added, removed, kept } option values of a select proposal against what the product has now. */
+export function optionChanges(proposed, current) {
+  const after = optionList(proposed);
+  const before = optionList(current);
+  return {
+    added: after.filter((value) => !before.includes(value)),
+    removed: before.filter((value) => !after.includes(value)),
+    kept: after.filter((value) => before.includes(value)),
+  };
+}
+
+/** One list row's change, never the full preview: media → { media: icon, duration }; select → { tags: { added,
+ * removed } } counts; text → { state, excerpt, length } with state new (nothing there before) or changed. */
 export function changeSummary(proposal) {
   const icon = MEDIA_KINDS[proposal.target_kind];
   if (icon) return { media: icon, duration: proposal.proposed_value?.duration_s ?? null };
+  if (isOptionValue(proposal.proposed_value)) {
+    const { added, removed } = optionChanges(proposal.proposed_value, proposal.current_snapshot);
+    return { tags: { added: added.length, removed: removed.length } };
+  }
   const after = plainText(textOf(proposal.proposed_value)).replace(/\s+/g, " ").trim();
   const before = textOf(proposal.current_snapshot);
   return { state: isBlank(before) ? "new" : "changed", excerpt: after.slice(0, EXCERPT), length: after.length };

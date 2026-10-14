@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- AI templates (`/enrichment/templates`): saved runs of a worker — fields, languages, instructions, rules and an SEO
+  research preset — in the order Run AI offers them; create, edit, reorder, hide, delete, or "Save as template" from
+  the run dialog.
+- Run AI: the product drawer and the product-list bulk action offer the templates first, then "Custom…". The run
+  dialog picks fields from the module's field catalog (text fields for writing and translating, select fields for
+  tagging), languages with "All languages" for a writer, and SEO research (DataForSEO) per product or per category.
+- Costs after the fact: "$0.04" on task rows, proposal cards and AI versions, "—" with a reason when unknown.
+- Tag proposals show added, removed and kept tags as chips; the compact Review row reads "+2 −1 tags".
+
 ## [3.2.0] (2026-10-12)
 
 ### Added

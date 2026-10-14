@@ -29,7 +29,12 @@ const stubs = {
   BatchCorrection: { name: "BatchCorrection", props: ["taskId"], emits: ["queued"], template: "<div />" },
 };
 
-function mountResults({ proposals = [], tasks = [], running = false, usable = true } = {}) {
+const TEMPLATES = [
+  { key: "meta", label: "Meta descriptions", worker_key: "pim.writer", position: 10 },
+  { key: "tags", label: "Tag the product", worker_key: "pim.tagger", position: 20 },
+];
+
+function mountResults({ proposals = [], tasks = [], running = false, usable = true, templates = TEMPLATES } = {}) {
   Object.assign(ai, {
     proposals: ref(proposals),
     tasks: ref(tasks),
@@ -43,6 +48,7 @@ function mountResults({ proposals = [], tasks = [], running = false, usable = tr
     props: {
       sku: "ENT-1", product: { sku: "ENT-1" }, usable,
       workers: [{ key: "pim.meta_description", label: "Write meta description" }],
+      templates,
     },
     global: { stubs },
   });
@@ -72,18 +78,28 @@ describe("ProductAiResults", () => {
     expect(failed.find("[data-testid='ai-results-failed']").exists()).toBe(true);
   });
 
-  it("Run AI lists the workers; a click closes the drawer and asks the page to run it", async () => {
+  it("Run AI lists the templates in order, then Custom…; a click closes the drawer and asks the page to run it", async () => {
     const w = mountResults();
     await w.find("[data-testid='ai-results']").trigger("click");
-    await w.find("[data-testid='ai-worker-pim.meta_description']").trigger("click");
-    expect(w.emitted("run")[0]).toEqual(["pim.meta_description"]);
+    const labels = w.findAll("[data-testid^='ai-template-'], [data-testid='ai-run-custom']").map((b) => b.text());
+    expect(labels).toEqual(["Meta descriptions", "Tag the product", "enrichment.run.custom"]);
+    await w.find("[data-testid='ai-template-tags']").trigger("click");
+    expect(w.emitted("run")[0]).toEqual(["tags"]);
     expect(w.find("[data-testid='ai-results-drawer']").exists()).toBe(false);
+  });
+
+  it("Custom… asks for a run without a template", async () => {
+    const w = mountResults({ templates: [] });
+    await w.find("[data-testid='ai-results']").trigger("click");
+    await w.find("[data-testid='ai-run-custom']").trigger("click");
+    expect(w.emitted("run")[0]).toEqual([""]);
   });
 
   it("with the toolbox unusable the run buttons are disabled under the hint", async () => {
     const w = mountResults({ usable: false });
     await w.find("[data-testid='ai-results']").trigger("click");
-    expect(w.find("[data-testid='ai-worker-pim.meta_description']").attributes("disabled")).toBeDefined();
+    expect(w.find("[data-testid='ai-template-meta']").attributes("disabled")).toBeDefined();
+    expect(w.find("[data-testid='ai-run-custom']").attributes("disabled")).toBeDefined();
     expect(w.findComponent({ name: "AiToolboxHint" }).exists()).toBe(true);
   });
 

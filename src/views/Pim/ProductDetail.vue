@@ -16,6 +16,7 @@
                 :sku="product.sku"
                 :product="product"
                 :workers="aiWorkers"
+                :templates="aiTemplates"
                 :usable="aiUsable"
                 @applied="onAiApplied"
                 @run="openAiTask"
@@ -288,10 +289,12 @@
       v-if="aiEnabled"
       :open="aiDialogOpen"
       :workers="aiWorkers"
-      :initial-worker="aiWorker"
+      :templates="aiTemplates"
+      :initial-template="aiTemplate"
       :skus="product.sku ? [product.sku] : []"
       background
       @created="(task) => $refs.aiResults?.track(task)"
+      @template-saved="reloadAiTemplates"
       @close="aiDialogOpen = false"
     />
 
@@ -450,13 +453,19 @@ export default {
     const pimChannel = usePimChannelStore();
     const munin = useMuninStore();
     const unsaved = useUnsavedChanges();
-    const { workers: aiWorkers, enabled: aiEnabled, usable: aiUsable } = useAiWorkers();
+    const {
+      workers: aiWorkers,
+      templates: aiTemplates,
+      enabled: aiEnabled,
+      usable: aiUsable,
+      reloadTemplates: reloadAiTemplates,
+    } = useAiWorkers();
     const formErrors = useFormErrors();
     const access = useAccessStore();
     // Deleting a SKU is its own permission (access plan 09b): an Editor edits but does not delete. UX only.
     const canDeleteProduct = computed(() => access.can(AREAS.PIM_PRODUCT_DELETE, "write"));
     const canReadTab = (tab) => access.can(EMBEDDED_AREAS[tab]);
-    return { loader, notify, pimChannel, munin, formErrors, aiWorkers, aiEnabled, aiUsable, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
+    return { loader, notify, pimChannel, munin, formErrors, aiWorkers, aiTemplates, aiEnabled, aiUsable, reloadAiTemplates, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
   },
   data() {
     return {
@@ -471,7 +480,7 @@ export default {
       showAddToChannelDialog: false,
       showSpawnDialog: false,
       aiDialogOpen: false,
-      aiWorker: "",
+      aiTemplate: "",
       mediaKey: 0,
       translatingField: null,
       overriddenLangsMap: {},
@@ -689,8 +698,8 @@ export default {
         inheritedValue: inheritedValues[field]?.[this.defaultLang] || "",
       };
     },
-    openAiTask(workerKey) {
-      this.aiWorker = workerKey;
+    openAiTask(templateKey) {
+      this.aiTemplate = templateKey;
       this.aiDialogOpen = true;
     },
     // An AI proposal was written to PIM: show it without losing unsaved edits. A clean form reloads; a dirty one

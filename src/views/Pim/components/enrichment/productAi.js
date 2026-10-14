@@ -55,3 +55,9 @@ export function groupTasks(tasks) {
   const current = tasks.filter(matters).sort((a, b) => RANK[taskOutcome(a).state] - RANK[taskOutcome(b).state]);
   return { current, history: tasks.filter((task) => !matters(task)) };
 }
+
+/** A task in people's words: the template it ran from, else its worker, else its type. */
+export function taskLabel(task, workers = [], templates = []) {
+  const template = templates.find((t) => t.key === task?.params?.template);
+  return template?.label || workers.find((w) => w.key === task?.type)?.label || task?.type || "";
+}

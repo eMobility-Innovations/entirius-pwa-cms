@@ -20,4 +20,10 @@ describe("ChangeSummary", () => {
     expect(w.find("video").exists()).toBe(false);
     expect(w.find("b").text()).toBe('enrichment.review.duration::{"seconds":4}');
   });
+
+  it("tags: what is added and removed, in one line", () => {
+    const proposal = { target_kind: "attribute_value", proposed_value: { options: ["a", "b", "c"] }, current_snapshot: { options: ["c", "d"] } };
+    const w = mount(ChangeSummary, { props: { proposal }, global: { stubs } });
+    expect(w.find("[data-testid='change-summary-tags']").text()).toBe('enrichment.review.tag_changes::{"added":2,"removed":1}');
+  });
 });

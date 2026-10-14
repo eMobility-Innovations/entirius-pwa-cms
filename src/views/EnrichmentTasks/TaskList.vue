@@ -46,6 +46,9 @@
         <template #cell-progress="{ row }">
           <span class="t-secondary">{{ formatCounts(row.counts) }}</span>
         </template>
+        <template #cell-cost="{ row }">
+          <CostLabel :cost="row.cost_usd" :partial="!row.cost_complete" />
+        </template>
         <template #cell-created="{ row }">
           <span class="fs-200 t-muted">{{ formatDate(row.created_at) }}</span>
         </template>
@@ -73,6 +76,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { GET_Task, GET_Tasks } from "@/api/enrichment/api";
 import { formatDate } from "@/utils/format";
+import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
 import { needsRefresh, orderedCounts, taskStatusTone } from "./taskProgress";
 
@@ -82,7 +86,7 @@ const REFRESH_MS = 5000;
 const TASK_STATUSES = ["open", "in_progress", "done", "cancelled", "failed"];
 export default {
   name: "TaskList",
-  components: { TaskQueueDrawer },
+  components: { CostLabel, TaskQueueDrawer },
   setup() {
     const notify = useNotifyStore();
     return { notify, formatDate };
@@ -121,6 +125,7 @@ export default {
         { key: "rule", label: this.$t("enrichment.tasks.col_rule"), width: "1.2fr" },
         { key: "status", label: this.$t("enrichment.tasks.col_status"), width: "120px" },
         { key: "progress", label: this.$t("enrichment.tasks.col_progress"), width: "1fr" },
+        { key: "cost", label: this.$t("enrichment.cost.label"), width: "90px", priority: 2 },
         { key: "created", label: this.$t("enrichment.tasks.col_created"), width: "170px" },
       ];
     },

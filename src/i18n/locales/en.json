@@ -59,7 +59,8 @@
       "groups": "Groups",
       "audit": "Audit",
       "applications": "Applications"
-    }
+    },
+    "enrichment_templates": "AI templates"
   },
   "login": {
     "welcome": "Sign in",
@@ -2765,7 +2766,12 @@
       "more_columns": "More columns",
       "fewer_columns": "Fewer columns",
       "length_short": "{count} chars",
-      "task_filter": "Showing the proposals of one AI run."
+      "task_filter": "Showing the proposals of one AI run.",
+      "tag_changes": "+{added} −{removed} tags",
+      "tags_none": "No tag changes",
+      "tags_added": "Added",
+      "tags_removed": "Removed",
+      "tags_kept": "Kept"
     },
     "status": {
       "pending": "Pending",
@@ -2817,7 +2823,8 @@
         "prompt": "Instructions",
         "source_language": "Source language",
         "target_languages": "Target languages",
-        "languages": "Languages"
+        "languages": "Languages",
+        "fields": "Fields"
       },
       "results_title": "AI for {sku}",
       "recent_tasks": "Recent tasks",
@@ -2944,6 +2951,46 @@
       "no_text": "This proposal has no text to edit",
       "load_error": "Could not load this proposal",
       "load_error_hint": "Try again in a moment, or go back to the review."
+    },
+    "run": {
+      "template": "Template",
+      "custom": "Custom…",
+      "fields_placeholder": "Pick the fields to work on",
+      "no_fields": "No fields available for this kind of work",
+      "all_languages": "All languages",
+      "research": "Research before writing",
+      "research_seo_brief": "SEO research (DataForSEO)",
+      "scope_category": "Shared by the product's category",
+      "scope_subject": "Separately for each product",
+      "save_as_template": "Save as template",
+      "template_name": "Template name",
+      "save_template": "Save template"
+    },
+    "templates": {
+      "title": "AI templates",
+      "create": "New template",
+      "empty": "No templates yet. Create one here, or set up a run in Run AI and save it as a template.",
+      "col_label": "Name",
+      "col_worker": "AI worker",
+      "col_fields": "Fields",
+      "col_active": "In Run AI",
+      "on": "Offered",
+      "off": "Hidden",
+      "name": "Name",
+      "rules": "Rules",
+      "rules_hint": "One rule per line. Every run of this template follows them.",
+      "active": "Offer in Run AI",
+      "move_up": "Move up",
+      "move_down": "Move down",
+      "saved": "Template saved",
+      "deleted": "Template deleted",
+      "confirm_delete_title": "Delete this template?",
+      "confirm_delete": "It disappears from Run AI. Runs already made from it and their proposals stay."
+    },
+    "cost": {
+      "label": "Cost",
+      "unknown": "Cost not reported by the AI service",
+      "partial": "Some AI calls reported no cost, so the real total is higher"
     }
   },
   "promo": {

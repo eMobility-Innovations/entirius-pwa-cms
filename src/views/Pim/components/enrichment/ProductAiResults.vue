@@ -14,21 +14,24 @@
         <p v-if="!workers.length" class="fs-200 t-muted m-0">{{ $t("enrichment.ai.no_workers") }}</p>
         <div v-else class="flex flex-wrap gap-3">
           <BasicButton
-            v-for="worker in workers"
-            :key="worker.key"
+            v-for="template in templates"
+            :key="template.key"
             mutates
             :disabled="!usable"
-            :data-testid="`ai-worker-${worker.key}`"
-            @click="run(worker.key)"
+            :data-testid="`ai-template-${template.key}`"
+            @click="run(template.key)"
           >
-            {{ worker.label || worker.key }}
+            {{ template.label }}
+          </BasicButton>
+          <BasicButton mutates variant="ghost" :disabled="!usable" data-testid="ai-run-custom" @click="run('')">
+            {{ $t("enrichment.run.custom") }}
           </BasicButton>
         </div>
       </section>
 
       <section v-if="tasks.length" class="flex-column gap-3" aria-labelledby="ai-results-tasks-title">
         <h3 id="ai-results-tasks-title" class="ai-results__heading m-0">{{ $t("enrichment.ai.recent_tasks") }}</h3>
-        <AiTaskList :tasks="tasks" :workers="workers" :selected="taskFilter" @select="(id) => (taskFilter = id)" />
+        <AiTaskList :tasks="tasks" :workers="workers" :templates="templates" :selected="taskFilter" @select="(id) => (taskFilter = id)" />
       </section>
 
       <section class="flex-column gap-5" aria-labelledby="ai-results-proposals-title">
@@ -91,11 +94,12 @@ import DriftModal from "@/views/EnrichmentReview/DriftModal.vue";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import BatchCorrection from "@/views/EnrichmentReview/BatchCorrection.vue";
 import AiTaskList from "./AiTaskList.vue";
-import { groupTasks } from "./productAi";
+import { groupTasks, taskLabel } from "./productAi";
 import { useProductAi } from "./useProductAi";
 
 // The AI of the product on screen: one header icon (the Enricher's) with the pending count, a pulsing dot while a
-// task runs or a warning dot after a failure, opening a drawer: Run AI (one button per worker, `run`), the
+// task runs or a warning dot after a failure, opening a drawer: Run AI (the templates in their order, then
+// "Custom…" — `run` with the template key, "" for custom), the
 // product's tasks in plain words and its pending proposals as cards, reviewed in place (Apply all
 // when there are several). Picking a task shows only its proposals, with "Correct all" for the whole run. An applied proposal goes to the page
 // (`applied`) so the product form shows the new value.
@@ -106,6 +110,7 @@ export default {
     sku: { type: String, required: true },
     product: { type: Object, default: null },
     workers: { type: Array, default: () => [] },
+    templates: { type: Array, default: () => [] },
     // The AI toolbox can take a run (configHealth.aiUsable); off, the run buttons wait behind the toolbox hint.
     usable: { type: Boolean, default: false },
   },
@@ -142,14 +147,14 @@ export default {
     },
     filterLabel() {
       const task = this.tasks.find((t) => t.id === this.taskFilter);
-      return this.workers.find((w) => w.key === task?.type)?.label || task?.type || `#${this.taskFilter}`;
+      return taskLabel(task, this.workers, this.templates) || `#${this.taskFilter}`;
     },
   },
   methods: {
     // The run dialog opens over the page; the task then runs in the background, shown by the pulsing dot.
-    run(workerKey) {
+    run(templateKey) {
       this.open = false;
-      this.$emit("run", workerKey);
+      this.$emit("run", templateKey);
     },
     taskOf(proposal) {
       return this.tasks.find((t) => t.id === proposal.task_id) || null;

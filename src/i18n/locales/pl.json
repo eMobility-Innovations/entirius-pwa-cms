@@ -59,7 +59,8 @@
       "groups": "Grupy",
       "audit": "Dziennik zmian",
       "applications": "Aplikacje"
-    }
+    },
+    "enrichment_templates": "Szablony AI"
   },
   "login": {
     "welcome": "Zaloguj się",
@@ -2764,7 +2765,12 @@
       "more_columns": "Więcej kolumn",
       "fewer_columns": "Mniej kolumn",
       "length_short": "{count} zn.",
-      "task_filter": "Propozycje jednego uruchomienia AI."
+      "task_filter": "Propozycje jednego uruchomienia AI.",
+      "tag_changes": "+{added} −{removed} tagów",
+      "tags_none": "Bez zmian w tagach",
+      "tags_added": "Dodane",
+      "tags_removed": "Usunięte",
+      "tags_kept": "Bez zmian"
     },
     "status": {
       "pending": "Oczekująca",
@@ -2816,7 +2822,8 @@
         "prompt": "Instrukcje",
         "source_language": "Język źródłowy",
         "target_languages": "Języki docelowe",
-        "languages": "Języki"
+        "languages": "Języki",
+        "fields": "Pola"
       },
       "results_title": "AI dla {sku}",
       "recent_tasks": "Ostatnie zadania",
@@ -2943,6 +2950,46 @@
       "no_text": "Ta propozycja nie ma tekstu do edycji",
       "load_error": "Nie udało się wczytać propozycji",
       "load_error_hint": "Spróbuj ponownie za chwilę albo wróć do przeglądu."
+    },
+    "run": {
+      "template": "Szablon",
+      "custom": "Własne…",
+      "fields_placeholder": "Wybierz pola do opracowania",
+      "no_fields": "Brak pól dla tego rodzaju pracy",
+      "all_languages": "Wszystkie języki",
+      "research": "Research przed pisaniem",
+      "research_seo_brief": "Research SEO (DataForSEO)",
+      "scope_category": "Wspólny dla kategorii produktu",
+      "scope_subject": "Osobno dla każdego produktu",
+      "save_as_template": "Zapisz jako szablon",
+      "template_name": "Nazwa szablonu",
+      "save_template": "Zapisz szablon"
+    },
+    "templates": {
+      "title": "Szablony AI",
+      "create": "Nowy szablon",
+      "empty": "Nie ma jeszcze szablonów. Utwórz go tutaj albo ustaw uruchomienie w „Uruchom AI” i zapisz je jako szablon.",
+      "col_label": "Nazwa",
+      "col_worker": "Pracownik AI",
+      "col_fields": "Pola",
+      "col_active": "W „Uruchom AI”",
+      "on": "Widoczny",
+      "off": "Ukryty",
+      "name": "Nazwa",
+      "rules": "Reguły",
+      "rules_hint": "Jedna reguła w wierszu. Każde uruchomienie tego szablonu ich przestrzega.",
+      "active": "Pokazuj w „Uruchom AI”",
+      "move_up": "Przesuń wyżej",
+      "move_down": "Przesuń niżej",
+      "saved": "Szablon zapisany",
+      "deleted": "Szablon usunięty",
+      "confirm_delete_title": "Usunąć ten szablon?",
+      "confirm_delete": "Zniknie z „Uruchom AI”. Wykonane już uruchomienia i ich propozycje zostają."
+    },
+    "cost": {
+      "label": "Koszt",
+      "unknown": "Usługa AI nie podała kosztu",
+      "partial": "Część wywołań AI nie podała kosztu, więc faktyczna suma jest wyższa"
     }
   },
   "promo": {

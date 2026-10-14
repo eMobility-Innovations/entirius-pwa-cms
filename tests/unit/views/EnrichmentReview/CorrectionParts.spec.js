@@ -75,6 +75,15 @@ describe("VersionTimeline", () => {
     expect(w.find("[data-testid='version-restore-3']").exists()).toBe(false);
   });
 
+  it("an AI version shows what it cost; your edits and restores cost nothing", () => {
+    const revisions = REVISIONS.map((r, i) => ({ ...r, cost_usd: [null, "0.0300", null][i] }));
+    const w = mount(VersionTimeline, { props: { revisions }, global: { stubs } });
+    const costs = (n) => w.findAllComponents({ name: "CostLabel" }).filter((c) => c.element.closest(`[data-testid='version-${n}']`));
+    expect(costs(1)[0].props("cost")).toBeNull();
+    expect(costs(2)[0].props("cost")).toBe("0.0300");
+    expect(costs(3)).toHaveLength(0);
+  });
+
   it("shows the changes against the version before, and restores", async () => {
     const w = mount(VersionTimeline, { props: { revisions: REVISIONS }, global: { stubs } });
     await w.find("[data-testid='version-toggle-2']").trigger("click");

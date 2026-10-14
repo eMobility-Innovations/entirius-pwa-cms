@@ -71,3 +71,16 @@ export function formatRelative(iso, now = Date.now()) {
   const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(seconds) >= s) || ["second", 1]
   return unit === "second" ? format.format(0, "second") : format.format(Math.round(seconds / size), unit)
 }
+
+/**
+ * A cost in US dollars as people read it: "$0.04"; a cost under a cent "<$0.01". Unknown (null, "", NaN) is "".
+ *
+ * @param {string|number|null|undefined} amount - decimal-ish input ("0.0420")
+ */
+export function formatUsd(amount) {
+  const formatted = formatCost(amount)
+  if (!formatted) return ""
+  const num = Number(amount)
+  if (num > 0 && num < 0.01) return "<$0.01"
+  return `$${formatted}`
+}

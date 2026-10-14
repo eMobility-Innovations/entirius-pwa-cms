@@ -18,14 +18,17 @@
       </span>
       <span class="ai-task__main flex-column gap-1">
         <span class="flex ai-ct flex-wrap gap-2">
-          <span class="ai-task__label">{{ worker?.label || task.type }}</span>
-          <Tag v-for="lang in languages" :key="lang" :label="lang.toUpperCase()" />
+          <span class="ai-task__label">{{ label || worker?.label || task.type }}</span>
+          <Tag v-for="lang in languages" :key="lang" :label="languageLabel(lang)" />
         </span>
         <span class="ai-task__outcome" :class="`ai-task__outcome--${look.tone}`" data-testid="ai-task-outcome">
           {{ outcomeText }}
         </span>
       </span>
-      <span class="ai-task__time fs-200 t-muted">{{ relative }}</span>
+      <span class="ai-task__aside flex-column gap-1">
+        <span class="ai-task__time fs-200 t-muted">{{ relative }}</span>
+        <CostLabel v-if="!running" :cost="task.cost_usd" :partial="!task.cost_complete" data-testid="ai-task-cost" />
+      </span>
     </div>
     <router-link class="ai-task__id fs-200 t-muted" :to="taskLink" :aria-label="$t('enrichment.tasks.single', { id: task.id })">
       #{{ task.id }}
@@ -35,7 +38,9 @@
 
 <script>
 import { formatRelative } from "@/utils/format";
+import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
 import { pluralKey } from "@/utils/plural";
+import { ALL_LANGUAGES } from "./aiTaskForm";
 import { taskLanguages, taskOutcome } from "./productAi";
 
 const LOOK = {
@@ -47,19 +52,25 @@ const LOOK = {
 // Neutral outcomes (nothing to do, rejected, replaced, cancelled): the info icon, muted.
 const QUIET = { icon: "info", tone: "neutral" };
 
-// One AI task in plain words — a task waiting for review shows its count in an accent pill (the call to act): the worker, its languages, when, and what came of it — proposals to review, applied,
+// One AI task in plain words — a task waiting for review shows its count in an accent pill (the call to act): the template or worker, its languages, when, what it cost once done, and what came of it — proposals to review, applied,
 // nothing to do, or why it failed (the toolbox error code, named for people). The id links to the task, small.
 export default {
   name: "AiTaskRow",
+  components: { CostLabel },
   props: {
     task: { type: Object, required: true },
     worker: { type: Object, default: null },
+    // The template's name when it ran from one (productAi.taskLabel).
+    label: { type: String, default: "" },
     selected: { type: Boolean, default: false },
   },
   emits: ["select"],
   computed: {
     outcome() {
       return taskOutcome(this.task);
+    },
+    running() {
+      return this.outcome.state === "running";
     },
     look() {
       if (this.outcome.failed) return { icon: "warning", tone: "warning" };
@@ -84,6 +95,10 @@ export default {
     },
   },
   methods: {
+    // "*" is a writer's "All languages".
+    languageLabel(lang) {
+      return lang === ALL_LANGUAGES ? this.$t("enrichment.run.all_languages") : lang.toUpperCase();
+    },
     // The kind-specific name of the code (translate + PROVIDER_NOT_CONFIGURED = the translator), else the generic one.
     reason() {
       const { code, errorId } = this.outcome;
@@ -180,8 +195,9 @@ export default {
 .ai-task__outcome--accent {
   color: var(--text-body);
 }
-.ai-task__time {
+.ai-task__aside {
   flex-shrink: 0;
+  align-items: flex-end;
   white-space: nowrap;
 }
 .ai-task__id {

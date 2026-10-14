@@ -55,6 +55,7 @@
             :current="current.current_snapshot"
             :proposal-id="current.id"
             :subject-label="current.subject_label || current.subject_ref"
+            :locator="current.target_locator || {}"
             wide
           />
         </div>

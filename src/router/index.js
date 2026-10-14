@@ -1203,6 +1203,44 @@ const routes = [
     },
   },
 
+  // AI templates: saved runs offered first in Run AI (contract A3 § 4)
+  {
+    path: "/enrichment/templates",
+    name: "EnrichmentTemplates",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateList.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.templates.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+    },
+  },
+  {
+    path: "/enrichment/templates/new",
+    name: "EnrichmentTemplateCreate",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateEdit.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.templates.create",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+    },
+  },
+  {
+    path: "/enrichment/templates/:key",
+    name: "EnrichmentTemplateEdit",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateEdit.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.templates.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+    },
+  },
+
   // Enrichment tasks (read-only queue view)
   {
     path: "/enrichment/tasks",

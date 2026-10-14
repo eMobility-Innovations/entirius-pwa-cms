@@ -252,10 +252,12 @@
       v-if="aiEnabled"
       :open="aiDialogOpen"
       :workers="aiWorkers"
-      :initial-worker="aiWorker"
+      :templates="aiTemplates"
+      :initial-template="aiTemplate"
       :skus="aiSkus"
       @close="aiDialogOpen = false"
       @created="onSpawned"
+      @template-saved="reloadAiTemplates"
     />
 
   </PageLayout>
@@ -287,6 +289,7 @@ import {
 import SpawnDialog from "./components/enrichment/SpawnDialog.vue";
 import RunAiTaskDialog from "./components/enrichment/RunAiTaskDialog.vue";
 import { useAiWorkers } from "./components/enrichment/useAiWorkers";
+
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import GapStatusAlert from "./components/GapStatusAlert.vue";
 import PimTranslateDialog from "./components/PimTranslateDialog.vue";
@@ -303,6 +306,9 @@ function readHideQualitySensor() {
   }
 }
 
+// The AI bulk action's "Custom…" entry (a worker picked in the dialog) beside the templates.
+const CUSTOM_RUN = "__custom";
+
 export default {
   name: "ProductList",
   components: { SpawnDialog, RunAiTaskDialog, AiToolboxHint, GapStatusAlert, PimTranslateDialog, PimChannelSelect },
@@ -312,8 +318,17 @@ export default {
     const pimChannel = usePimChannelStore();
     const munin = useMuninStore();
     const { search, debouncedFetch } = useSearchDebounce();
-    const { workers: aiWorkers, enabled: aiEnabled, usable: aiUsable } = useAiWorkers();
-    return { loader, notify, pimChannel, munin, search, debouncedFetch, aiWorkers, aiEnabled, aiUsable };
+    const {
+      workers: aiWorkers,
+      templates: aiTemplates,
+      enabled: aiEnabled,
+      usable: aiUsable,
+      reloadTemplates: reloadAiTemplates,
+    } = useAiWorkers();
+    return {
+      loader, notify, pimChannel, munin, search, debouncedFetch,
+      aiWorkers, aiTemplates, aiEnabled, aiUsable, reloadAiTemplates,
+    };
   },
   data() {
     return {
@@ -343,7 +358,7 @@ export default {
       spawnSkus: [],
       spawnFilterParams: {},
       aiDialogOpen: false,
-      aiWorker: "",
+      aiTemplate: "",
       aiSkus: [],
     };
   },
@@ -419,7 +434,10 @@ export default {
         actions.push({
           key: "ai_task",
           labelKey: "enrichment.ai.menu",
-          options: this.aiWorkers.map((w) => ({ label: w.label || w.key, value: w.key })),
+          options: [
+            ...this.aiTemplates.map((template) => ({ label: template.label, value: template.key })),
+            { label: this.$t("enrichment.run.custom"), value: CUSTOM_RUN },
+          ],
         });
       }
       if (this.translatorAvailable) {
@@ -816,8 +834,8 @@ export default {
       this.spawnFilterParams = this.currentFilterParams();
       this.showSpawnDialog = true;
     },
-    openAiTask(workerKey) {
-      this.aiWorker = workerKey;
+    openAiTask(templateKey) {
+      this.aiTemplate = templateKey === CUSTOM_RUN ? "" : templateKey;
       this.aiSkus = this.selectedProducts.map((p) => p.sku);
       this.aiDialogOpen = true;
     },

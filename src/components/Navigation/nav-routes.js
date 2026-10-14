@@ -345,6 +345,13 @@ export function buildNavRoutes() {
       app: ["enricher"],
     },
     {
+      route: "/enrichment/templates",
+      labelKey: "nav.enrichment_templates",
+      icon: "layer-group",
+      query: {},
+      app: ["enricher"],
+    },
+    {
       route: "/enrichment/tasks",
       labelKey: "nav.enrichment_tasks",
       icon: "list-check",

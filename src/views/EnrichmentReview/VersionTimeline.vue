@@ -12,6 +12,7 @@
         <span class="version-timeline__number">{{ $t("enrichment.versions.number", { number: revision.number }) }}</span>
         <span class="fs-200 t-secondary" data-testid="version-author">{{ authorLabel(revision) }}</span>
         <StatusBadge v-if="isCurrent(index)" :label="$t('enrichment.versions.current')" tone="accent" size="sm" />
+        <CostLabel v-if="revision.author_kind === 'ai'" class="version-timeline__cost" :cost="revision.cost_usd" />
         <span class="version-timeline__time fs-200 t-muted">{{ relative(revision.created_at) }}</span>
       </div>
       <p v-if="info(revision).instruction" class="version-timeline__instruction fs-300 m-0" data-testid="version-instruction">
@@ -52,15 +53,16 @@
 <script>
 import { ReadonlyOff } from "@/composables/useReadonly";
 import { formatRelative } from "@/utils/format";
+import CostLabel from "./CostLabel.vue";
 import TextDiff from "./TextDiff.vue";
 import { valueText, versionInfo } from "./correction";
 
 // The versions of a proposal, v1 (the AI's first answer) to vN (the current value): who made each (AI, you, a
-// restore) and the instruction behind it, the changes against the version before (TextDiff), and Restore — which
+// restore), what an AI version cost and the instruction behind it, the changes against the version before (TextDiff), and Restore — which
 // adds a new version with the old value (`restore` with its number).
 export default {
   name: "VersionTimeline",
-  components: { ReadonlyOff, TextDiff },
+  components: { CostLabel, ReadonlyOff, TextDiff },
   props: {
     revisions: { type: Array, default: () => [] },
     busy: { type: Boolean, default: false },
@@ -109,6 +111,12 @@ export default {
 .version-timeline__number {
   font-weight: 600;
   color: var(--text-strong);
+}
+.version-timeline__cost {
+  margin-left: auto;
+}
+.version-timeline__cost + .version-timeline__time {
+  margin-left: 0;
 }
 .version-timeline__time {
   margin-left: auto;

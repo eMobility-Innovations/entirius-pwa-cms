@@ -1,9 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   buildFields,
+  buildParams,
   buildTaskPayload,
+  defaultResearch,
   defaultValues,
   missingRequired,
+  presetValues,
+  researchKeys,
   withSource,
 } from "@/views/Pim/components/enrichment/aiTaskForm";
 
@@ -26,6 +30,23 @@ const FIELD = {
     prompt: { type: "string", default: "" },
   },
   required: ["channel", "languages"],
+};
+const WRITE = {
+  properties: {
+    channel: { type: "string" },
+    fields: { type: "array", items: { type: "string" }, minItems: 1 },
+    languages: { type: "array", items: { type: "string" }, minItems: 1 },
+    prompt: { type: "string", default: "" },
+    rules: { type: "array", items: { type: "string" } },
+  },
+  required: ["channel", "fields", "languages"],
+};
+const TRANSLATE_FIELDS = {
+  properties: {
+    ...TRANSLATE.properties,
+    fields: { anyOf: [{ type: "array", items: { type: "string" } }, { type: "null" }], default: null },
+  },
+  required: TRANSLATE.required,
 };
 const OTHER = {
   $defs: { Tone: { enum: ["formal", "casual"], title: "Tone", type: "string" } },
@@ -117,8 +138,8 @@ describe("missingRequired", () => {
 describe("buildTaskPayload", () => {
   it("one list-scoped task over the SKUs, channel in params when the schema has it", () => {
     const worker = { key: "pim.translate", params_schema: TRANSLATE };
-    const values = { source_language: "en", target_languages: ["pl"], prompt: "Keep it short" };
-    expect(buildTaskPayload({ worker, values, channel: "default-europe", skus: ["A", "B"] })).toEqual({
+    const params = { source_language: "en", target_languages: ["pl"], prompt: "Keep it short" };
+    expect(buildTaskPayload({ worker, params, channel: "default-europe", skus: ["A", "B"] })).toEqual({
       type: "pim.translate",
       params: { source_language: "en", target_languages: ["pl"], prompt: "Keep it short", channel: "default-europe" },
       scope_spec: { mode: "list", module: "pim", channel: "default-europe", refs: ["A", "B"] },
@@ -127,6 +148,62 @@ describe("buildTaskPayload", () => {
 
   it("leaves channel out of params when the schema does not ask for it", () => {
     const worker = { key: "x", params_schema: OTHER };
-    expect(buildTaskPayload({ worker, values: {}, channel: "c1", skus: ["A"] }).params).toEqual({});
+    expect(buildTaskPayload({ worker, params: {}, channel: "c1", skus: ["A"] }).params).toEqual({});
+  });
+
+  it("names the template it runs from", () => {
+    const worker = { key: "pim.writer", params_schema: WRITE };
+    expect(buildTaskPayload({ worker, params: {}, channel: "c1", skus: ["A"], template: "meta" }).template).toBe("meta");
+  });
+});
+
+describe("write / pick / translate fields", () => {
+  it("`fields` is the field picker, `rules` stays on the template, a writer's languages take All", () => {
+    const fields = buildFields(WRITE, "write");
+    expect(fields.map((f) => [f.name, f.kind, f.allowAll])).toEqual([
+      ["fields", "fields", false],
+      ["languages", "languages", true],
+      ["prompt", "prompt", false],
+    ]);
+    expect(defaultValues(fields, { languages: ["pl", "en"] })).toEqual({ fields: [], languages: ["*"], prompt: "" });
+  });
+
+  it("a translation's optional field list is a picker too, left out when empty", () => {
+    const fields = buildFields(TRANSLATE_FIELDS, "translate");
+    expect(fields.find((f) => f.name === "fields")).toMatchObject({ kind: "fields", required: false });
+    const values = { source_language: "pl", target_languages: ["en"], prompt: "", fields: [] };
+    expect(buildParams(fields, values)).toEqual({ source_language: "pl", target_languages: ["en"], prompt: "" });
+  });
+
+  it("a template presets the fields the form has and nothing else", () => {
+    const fields = buildFields(WRITE, "write");
+    const base = defaultValues(fields, { languages: ["pl"] });
+    const preset = presetValues(fields, base, { fields: ["meta_title"], languages: ["pl"], channel: "x", augment: ["seo_brief"] });
+    expect(preset).toEqual({ fields: ["meta_title"], languages: ["pl"], prompt: "" });
+  });
+});
+
+describe("research", () => {
+  it("a writer can research SEO; a template's preset is offered whatever the kind", () => {
+    expect(researchKeys("write")).toEqual(["seo_brief"]);
+    expect(researchKeys("translate")).toEqual([]);
+    expect(researchKeys("pick", ["seo_brief"])).toEqual(["seo_brief"]);
+  });
+
+  it("defaults to the category scope; a template's preset wins", () => {
+    expect(defaultResearch()).toEqual({ augment: [], seo_scope: "category" });
+    expect(defaultResearch({ augment: ["seo_brief"], seo_scope: "subject" })).toEqual({
+      augment: ["seo_brief"], seo_scope: "subject",
+    });
+  });
+
+  it("params carry the research: the scope only with something on, nothing for kinds without research", () => {
+    const fields = buildFields(WRITE, "write");
+    const values = { fields: ["meta_title"], languages: ["*"], prompt: "" };
+    expect(buildParams(fields, values, { augment: ["seo_brief"], seo_scope: "category" })).toEqual({
+      ...values, augment: ["seo_brief"], seo_scope: "category",
+    });
+    expect(buildParams(fields, values, { augment: [], seo_scope: "category" })).toEqual({ ...values, augment: [] });
+    expect(buildParams(fields, values, null)).toEqual(values);
   });
 });

@@ -4,28 +4,54 @@ import { useConfigHealthStore } from "@/stores/configHealth";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { t } from "@/i18n";
-import { GET_Workers } from "@/api/enrichment/api";
+import { GET_Templates, GET_Workers } from "@/api/enrichment/api";
+
+const MODULE = "pim";
+
+/** The templates a run can start from: active, of an active worker, in their order. */
+export function runnableTemplates(templates, workers) {
+  const known = new Set(workers.map((w) => w.key));
+  return templates
+    .filter((template) => template.active && known.has(template.worker_key))
+    .sort((a, b) => a.position - b.position);
+}
+
+const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
 
 // The PIM AI actions: present while the enrichment module is on (dormant otherwise), usable while the AI toolbox is
-// (configHealth.aiUsable — the hint is <AiToolboxHint />). Workers load once the module is known to be on;
-// a failed load is toasted, so an empty menu is never a silent misconfiguration.
+// (configHealth.aiUsable — the hint is <AiToolboxHint />). Workers and templates load once the module is known to be
+// on; a failed worker load is toasted, so an empty menu is never a silent misconfiguration. `reloadTemplates` after one is
+// saved from the run dialog.
 export function useAiWorkers() {
   const munin = useMuninStore();
   const health = useConfigHealthStore();
   const workers = ref([]);
+  const allTemplates = ref([]);
   const enabled = computed(() => munin.isModuleEnabled("enrichment"));
   const usable = computed(() => enabled.value && health.aiUsable);
+  const templates = computed(() => runnableTemplates(allTemplates.value, workers.value));
+
+  async function reloadTemplates() {
+    try {
+      const { data } = await GET_Templates({ target_module: MODULE });
+      allTemplates.value = listOf(data);
+    } catch {
+      // Templates are optional (an older backend has none): "Custom…" still runs any worker.
+      allTemplates.value = [];
+    }
+  }
 
   async function load() {
     try {
-      const { data } = await GET_Workers({ target_module: "pim" });
-      workers.value = Array.isArray(data) ? data : data?.results || [];
+      const { data } = await GET_Workers({ target_module: MODULE });
+      workers.value = listOf(data);
     } catch (err) {
       workers.value = [];
       useNotifyStore().spawnNotification({ type: "negative", msg: extractApiMessage(err, t("notifications.error")) });
     }
+    await reloadTemplates();
   }
 
   watch(enabled, (on) => on && load(), { immediate: true });
-  return { workers, enabled, usable };
+  return { workers, templates, enabled, usable, reloadTemplates };
 }

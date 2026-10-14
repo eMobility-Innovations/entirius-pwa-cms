@@ -6,6 +6,9 @@
       </span>
       <Tag v-if="summary.duration != null" :label="$t('enrichment.review.duration', { seconds: summary.duration })" />
     </template>
+    <span v-else-if="summary.tags" class="change-summary__excerpt" data-testid="change-summary-tags">
+      {{ $t("enrichment.review.tag_changes", summary.tags) }}
+    </span>
     <template v-else>
       <Tag :label="$t(`enrichment.review.change_${summary.state}`)" />
       <span class="change-summary__excerpt" :title="summary.excerpt">{{ summary.excerpt || "—" }}</span>
@@ -19,7 +22,7 @@ import LengthCounter from "./LengthCounter.vue";
 import { changeSummary } from "./reviewLogic";
 
 // A proposal's change in one line, for list rows: a "new" / "changed" tag, a plain-text excerpt cut with an
-// ellipsis, the length when the field has a target; media as a small icon tile with its duration. The full
+// ellipsis, the length when the field has a target; tags as "+2 −1 tags"; media as a small icon tile with its duration. The full
 // preview (diff, rendered HTML, player) lives only in the detail views — no media is fetched here.
 export default {
   name: "ChangeSummary",

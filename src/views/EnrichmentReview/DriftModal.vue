@@ -18,6 +18,7 @@
         :current="active.current_snapshot"
         :proposal-id="active.id"
         :subject-label="active.subject_label || active.subject_ref"
+        :locator="active.target_locator || {}"
       />
       <FormField :label="$t('enrichment.review.reject_reason')">
         <BasicTextarea

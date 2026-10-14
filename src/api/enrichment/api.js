@@ -119,3 +119,32 @@ export const POST_PromoteRule = (proposalId, data) =>
 // Correct every pending proposal of a task in the background: body { instruction?, quick_action? } → 202 { queued }.
 export const POST_ReviseTask = (taskId, data) =>
   enrichmentApi.post(`${ENR}/tasks/${taskId}/revise/`, data);
+
+// --- Templates and field catalog (contract A3 § 2, § 4) ---
+
+// [{ key, label, worker_key, worker_label, kind, target_module, params, rules, position, active }], inactive included.
+export const GET_Templates = (params) =>
+  enrichmentApi.get(`${ENR}/templates/`, { params });
+
+export const GET_Template = (key) =>
+  enrichmentApi.get(`${ENR}/templates/${key}/`);
+
+// body: { key, label, worker_key, params?, rules?, position?, active? }
+export const POST_Template = (data) =>
+  enrichmentApi.post(`${ENR}/templates/`, data);
+
+// body: any of { label, worker_key, params, rules, position, active } — `key` is immutable.
+export const PATCH_Template = (key, data) =>
+  enrichmentApi.patch(`${ENR}/templates/${key}/`, data);
+
+export const DELETE_Template = (key) =>
+  enrichmentApi.delete(`${ENR}/templates/${key}/`);
+
+// params { target_module, channel, language? } → [{ key, label, type (text | html | select | multiselect),
+// max_length?, translatable, options?: [{ value, label }], options_truncated? }]; 404 NOT_SUPPORTED without a catalog.
+export const GET_Fields = (params) =>
+  enrichmentApi.get(`${ENR}/fields/`, { params });
+
+// params { target_module, channel } → ["pl", "en", …], main language first.
+export const GET_Languages = (params) =>
+  enrichmentApi.get(`${ENR}/languages/`, { params });

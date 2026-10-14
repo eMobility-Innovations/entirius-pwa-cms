@@ -4,7 +4,8 @@
       <h3 class="proposal-panel__field m-0" data-testid="proposal-field">{{ fieldName }}</h3>
       <Tag v-if="language" :label="language.toUpperCase()" data-testid="proposal-language" />
       <StatusBadge v-if="proposal.status !== 'pending'" :label="$t(`enrichment.status.${proposal.status}`)" size="sm" />
-      <BasicTooltip :text="metaLine" class="proposal-panel__details">
+      <CostLabel class="proposal-panel__cost" :cost="proposal.cost_usd" data-testid="proposal-cost" />
+      <BasicTooltip :text="metaLine">
         <span class="proposal-panel__details-icon t-muted" tabindex="0" :aria-label="metaLine" data-testid="proposal-meta">
           <FontAwesomeIcon :icon="$icons.info" aria-hidden="true" />
         </span>
@@ -31,6 +32,7 @@
         :wide="wide"
         :rules="rules"
         :snippet="snippet"
+        :locator="locator"
       />
     </div>
 
@@ -55,6 +57,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { GET_Product } from "@/api/pim/api";
 import { PATCH_Proposal } from "@/api/enrichment/api";
+import CostLabel from "./CostLabel.vue";
 import DiffRenderer from "./DiffRenderer.vue";
 import LengthCounter from "./LengthCounter.vue";
 import ProposalCorrection from "./ProposalCorrection.vue";
@@ -65,12 +68,12 @@ import { editableText, isHtml, plainText, sourceText, textRules, translationSour
 const ACTIONABLE = ["pending", "drifted"];
 
 // One proposal as a card: the field by its PIM name and the language, the change (DiffRenderer), Apply / Edit /
-// Reject. A translation shows its source text; a meta description its search preview. The worker and kind sit
-// behind the info icon. `product` is the product on screen, else it is fetched when the view needs it. A pending
+// Reject. A translation shows its source text; a meta description its search preview. What its AI call cost sits in
+// the header; the worker and kind sit behind the info icon. `product` is the product on screen, else it is fetched when the view needs it. A pending
 // text or select proposal carries its correction tools (ProposalCorrection); a selection in the text narrows them.
 export default {
   name: "ProposalPanel",
-  components: { DiffRenderer, LengthCounter, ProposalCorrection },
+  components: { CostLabel, DiffRenderer, LengthCounter, ProposalCorrection },
   props: {
     proposal: { type: Object, required: true },
     task: { type: Object, default: null },
@@ -230,7 +233,7 @@ export default {
   font-weight: 600;
   color: var(--text-strong);
 }
-.proposal-panel__details {
+.proposal-panel__cost {
   margin-left: auto;
 }
 .proposal-panel__details-icon {

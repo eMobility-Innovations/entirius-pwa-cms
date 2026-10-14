@@ -18,6 +18,25 @@ const mountRow = (over, worker = { key: "pim.translate", label: "Translate", kin
 const outcome = (w) => w.find("[data-testid='ai-task-outcome']").text();
 
 describe("AiTaskRow", () => {
+  it("names a run by its template and shows what a finished run cost", () => {
+    const w = mount(AiTaskRow, {
+      props: { task: task({ cost_usd: "0.0800", cost_complete: true }), worker: null, label: "Meta descriptions" },
+      global: { mocks: { $t }, stubs: { Tag: true, RouterLink: true, BasicTooltip: { template: "<span><slot /></span>" } } },
+    });
+    expect(w.find(".ai-task__label").text()).toBe("Meta descriptions");
+    expect(w.find("[data-testid='ai-task-cost']").text()).toBe("$0.08");
+  });
+
+  it("a writer's All languages is named, not shown as *", () => {
+    const w = mountRow({ params: { languages: ["*"] } });
+    expect(w.findAll("i").map((n) => n.text())).toEqual(["enrichment.run.all_languages"]);
+  });
+
+  it("a running task shows no cost yet", () => {
+    const w = mountRow({ status: "in_progress" });
+    expect(w.find("[data-testid='ai-task-cost']").exists()).toBe(false);
+  });
+
   it("shows the worker label, its languages as chips and a relative time", () => {
     const w = mountRow();
     expect(w.text()).toContain("Translate");

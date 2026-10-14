@@ -30,6 +30,11 @@ const PRODUCT = { name: "Orion", name_t9n: { pl: "Sofa Orion" }, url_key_t9n: { 
 describe("ProposalPanel", () => {
   beforeEach(() => mockGetProduct.mockReset());
 
+  it("the header shows what its AI call cost", () => {
+    const w = mount(ProposalPanel, { props: { proposal: { ...meta, cost_usd: "0.0140" }, product: PRODUCT }, global: { stubs } });
+    expect(w.find("[data-testid='proposal-cost']").text()).toBe("$0.01");
+  });
+
   it("a meta description gets its length target and a search preview from the product on screen", async () => {
     const w = mount(ProposalPanel, { props: { proposal: meta, product: PRODUCT }, global: { stubs } });
     await flushPromises();

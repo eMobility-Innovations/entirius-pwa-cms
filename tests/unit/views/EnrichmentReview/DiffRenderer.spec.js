@@ -8,6 +8,17 @@ function render(props) {
 }
 
 describe("DiffRenderer dispatch", () => {
+  it("renders tag chips for a select value, with the locator to name them", () => {
+    const locator = { channel: "eu", feature_idx: "badge" };
+    const w = mount(DiffRenderer, {
+      props: { targetKind: "attribute_value", proposed: { options: ["a"] }, current: { options: [] }, locator },
+      global: { stubs: { TagChanges: { name: "TagChanges", props: ["proposed", "current", "locator"], template: "<div />" } } },
+    });
+    const chips = w.findComponent({ name: "TagChanges" });
+    expect(chips.props()).toEqual({ proposed: { options: ["a"] }, current: { options: [] }, locator });
+    expect(w.findComponent({ name: "TextDiff" }).exists()).toBe(false);
+  });
+
   it("renders TextDiff (word diff) for text kind and unwraps {text}", () => {
     const w = render({
       targetKind: "text",

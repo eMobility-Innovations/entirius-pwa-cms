@@ -6,6 +6,7 @@
         :key="task.id"
         :task="task"
         :worker="workerOf(task)"
+        :label="labelOf(task)"
         :selected="task.id === selected"
         @select="toggle"
       />
@@ -30,6 +31,7 @@
           :key="task.id"
           :task="task"
           :worker="workerOf(task)"
+        :label="labelOf(task)"
           :selected="task.id === selected"
           @select="toggle"
         />
@@ -40,7 +42,7 @@
 
 <script>
 import AiTaskRow from "./AiTaskRow.vue";
-import { groupTasks } from "./productAi";
+import { groupTasks, taskLabel } from "./productAi";
 
 // The product's AI tasks: what runs, waits for review or just failed on top; everything already handled folds into
 // History. Picking a task filters the proposals to it (`select` with its id, or null to show all again).
@@ -50,6 +52,7 @@ export default {
   props: {
     tasks: { type: Array, default: () => [] },
     workers: { type: Array, default: () => [] },
+    templates: { type: Array, default: () => [] },
     selected: { type: Number, default: null },
   },
   emits: ["select"],
@@ -64,6 +67,9 @@ export default {
   methods: {
     workerOf(task) {
       return this.workers.find((w) => w.key === task.type) || null;
+    },
+    labelOf(task) {
+      return taskLabel(task, this.workers, this.templates);
     },
     toggle(id) {
       this.$emit("select", id === this.selected ? null : id);

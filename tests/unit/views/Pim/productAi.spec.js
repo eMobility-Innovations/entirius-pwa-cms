@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { finishedTasks, groupTasks, isActive, taskLanguages, taskOutcome } from "@/views/Pim/components/enrichment/productAi";
+import { finishedTasks, groupTasks, isActive, taskLabel, taskLanguages, taskOutcome } from "@/views/Pim/components/enrichment/productAi";
 
 const task = (over = {}) => ({ id: 1, type: "pim.meta", status: "done", counts: {}, errors: [], proposal_counts: {}, ...over });
 
@@ -53,5 +53,17 @@ describe("groupTasks", () => {
     const { current, history } = groupTasks(tasks);
     expect(current.map((t) => t.id)).toEqual([3, 4, 5]);
     expect(history.map((t) => t.id)).toEqual([6, 2]);
+  });
+});
+
+describe("taskLabel", () => {
+  const workers = [{ key: "pim.writer", label: "Writer" }];
+  const templates = [{ key: "meta", label: "Meta descriptions" }];
+
+  it("the template it ran from, else its worker, else its type", () => {
+    expect(taskLabel({ type: "pim.writer", params: { template: "meta" } }, workers, templates)).toBe("Meta descriptions");
+    expect(taskLabel({ type: "pim.writer", params: {} }, workers, templates)).toBe("Writer");
+    expect(taskLabel({ type: "pim.other" }, workers, templates)).toBe("pim.other");
+    expect(taskLabel(undefined)).toBe("");
   });
 });

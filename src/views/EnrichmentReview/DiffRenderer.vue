@@ -6,13 +6,14 @@
     :proposal-id="proposalId"
     :alt="subjectLabel"
   />
+  <TagChanges v-else-if="isOptions" :proposed="proposed" :current="current" :locator="locator" />
   <TextDiff v-else-if="diffComponent === 'TextDiff'" :before="before" :after="after" :wide="wide" :rules="rules" :snippet="snippet" />
   <component :is="diffComponent" v-else :before="before" :after="after" />
 </template>
 
 <script>
 // Universal before/after renderer. Dispatches to the existing supplier diff
-// components keyed by the proposal's `target_kind`: text is a word diff (TextDiff), a
+// components keyed by the proposal's `target_kind`: a select value is tag chips (TagChanges), text is a word diff (TextDiff), a
 // video plays the staged file, the rest reuses the suppliers diff widgets (etap-06).
 //
 // `proposed` = ContentProposal.proposed_value, `current` = current_snapshot.
@@ -23,7 +24,9 @@ import NumericDiff from "@/views/Pim/components/supplier/diffs/NumericDiff.vue";
 import ArrayDiff from "@/views/Pim/components/supplier/diffs/ArrayDiff.vue";
 import JsonDiff from "@/views/Pim/components/supplier/diffs/JsonDiff.vue";
 import ImageDiff from "./ImageDiff.vue";
+import TagChanges from "./TagChanges.vue";
 import TextDiff from "./TextDiff.vue";
+import { isOptionValue } from "./reviewLogic";
 import VideoPreview from "./VideoPreview.vue";
 
 const KIND_TO_COMPONENT = {
@@ -45,7 +48,7 @@ const IMAGE_KINDS = new Set(["image", "picture"]);
 
 export default {
   name: "DiffRenderer",
-  components: { NumericDiff, ArrayDiff, JsonDiff, ImageDiff, TextDiff, VideoPreview },
+  components: { NumericDiff, ArrayDiff, JsonDiff, ImageDiff, TagChanges, TextDiff, VideoPreview },
   props: {
     targetKind: { type: String, default: "text" },
     proposed: { type: [Object, Array, String, Number], default: null },
@@ -56,8 +59,13 @@ export default {
     wide: { type: Boolean, default: false },
     rules: { type: Object, default: null },
     snippet: { type: Object, default: null },
+    // Select values ({ option } / { options }) render as tag chips named through the field of the locator.
+    locator: { type: Object, default: () => ({}) },
   },
   computed: {
+    isOptions() {
+      return isOptionValue(this.proposed);
+    },
     isImage() {
       return IMAGE_KINDS.has(this.targetKind);
     },

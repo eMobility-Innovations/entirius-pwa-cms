@@ -4,6 +4,8 @@ import {
   groupBySubject,
   isHtml,
   changeSummary,
+  isOptionValue,
+  optionChanges,
   htmlDiff,
   isBlank,
   lengthTone,
@@ -166,3 +168,22 @@ describe("changeSummary", () => {
   });
 });
 
+describe("select values", () => {
+  it("tells a select value from text", () => {
+    expect(isOptionValue({ options: [] })).toBe(true);
+    expect(isOptionValue({ option: "" })).toBe(true);
+    expect(isOptionValue({ text: "x" })).toBe(false);
+    expect(isOptionValue(null)).toBe(false);
+  });
+
+  it("splits the change into added, removed and kept", () => {
+    expect(optionChanges({ options: ["a", "b"] }, { options: ["b", "c"] })).toEqual({ added: ["a"], removed: ["c"], kept: ["b"] });
+    expect(optionChanges({ option: "a" }, { option: "b" })).toEqual({ added: ["a"], removed: ["b"], kept: [] });
+    expect(optionChanges({ option: "" }, {})).toEqual({ added: [], removed: [], kept: [] });
+  });
+
+  it("a list row counts the tag changes", () => {
+    const proposal = { target_kind: "attribute_value", proposed_value: { options: ["a"] }, current_snapshot: { options: ["b", "c"] } };
+    expect(changeSummary(proposal)).toEqual({ tags: { added: 1, removed: 2 } });
+  });
+});
