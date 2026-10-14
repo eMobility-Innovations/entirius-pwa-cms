@@ -1151,6 +1151,20 @@ const routes = [
     },
   },
 
+  // Full-screen editor of one long text proposal (contract A3 § 1)
+  {
+    path: "/enrichment/edit/:proposalId",
+    name: "EnrichmentProposalEditor",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentReview/ProposalEditor.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.editor.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+    },
+  },
+
   // Enrichment spawn rules (etap-13)
   {
     path: "/enrichment/spawn-rules",

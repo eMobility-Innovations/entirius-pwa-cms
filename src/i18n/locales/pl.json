@@ -2763,7 +2763,8 @@
       "open": "Otwórz",
       "more_columns": "Więcej kolumn",
       "fewer_columns": "Mniej kolumn",
-      "length_short": "{count} zn."
+      "length_short": "{count} zn.",
+      "task_filter": "Propozycje jednego uruchomienia AI."
     },
     "status": {
       "pending": "Oczekująca",
@@ -2865,12 +2866,81 @@
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",
       "trigger_failed": "ostatnie uruchomienie nie powiodło się",
-      "run_title": "Uruchom AI"
+      "run_title": "Uruchom AI",
+      "review_task": "Przejrzyj jego propozycje"
     },
     "video": {
       "download": "Pobierz wideo",
       "failed": "Nie udało się wczytać wideo",
       "loading": "Ładowanie wideo…"
+    },
+    "correct": {
+      "open": "Popraw z AI",
+      "instruction": "Co zmienić",
+      "instruction_placeholder": "np. Wspomnij o 2-letniej gwarancji",
+      "scope_all": "Cały tekst",
+      "scope_selection": "Zaznaczony fragment",
+      "quick": {
+        "shorten": "Krócej",
+        "expand": "Dłużej",
+        "formal": "Bardziej formalnie",
+        "casual": "Mniej formalnie",
+        "fit_limit": "Zmieść w limicie",
+        "variants": "3 warianty"
+      },
+      "send": "Popraw",
+      "send_all": "Popraw wszystkie",
+      "busy": "AI poprawia tekst — to może potrwać do 30 sekund.",
+      "error": {
+        "not_applicable": "AI nie umiała wprowadzić zmiany — spróbuj bardziej konkretnej instrukcji."
+      },
+      "variants_title": "Wybierz wariant",
+      "variant_pick": "Użyj wariantu {number}",
+      "all": "Popraw wszystkie ({count})",
+      "all_title": "Popraw wszystkie propozycje ({count})",
+      "all_hint": "Jedna instrukcja dla każdej propozycji, która czeka na przegląd. Poprawki idą w tle; każda propozycja dostaje nową wersję.",
+      "all_queued": "Poprawiam w tle propozycje: {count} — nowe wersje pojawią się po kolei."
+    },
+    "versions": {
+      "title": "Wersje",
+      "number": "v{number}",
+      "current": "Aktualna",
+      "by_ai": "AI",
+      "by_you": "Ty",
+      "restored": "Przywrócona z v{number}",
+      "show_changes": "Pokaż zmiany",
+      "hide_changes": "Ukryj zmiany",
+      "restore": "Przywróć",
+      "restored_toast": "Wersja przywrócona.",
+      "empty": "Brak zapisanych wersji."
+    },
+    "rules": {
+      "title": "Zasady dla tego tekstu",
+      "empty": "Brak zasad — dodaj taką, której AI ma zawsze przestrzegać.",
+      "keep_menu": "Zachowaj zasadę: {rule}",
+      "keep_template": "Zachowaj dla tego szablonu",
+      "keep_worker": "Zachowaj dla tego workera",
+      "add": "Dodaj zasadę",
+      "add_placeholder": "np. Nigdy nie podawaj ceny",
+      "error": {
+        "too_long": "Zasada może mieć najwyżej {max} znaków.",
+        "too_many": "Najwyżej {count} zasad."
+      },
+      "kept_template": "Zasada zachowana dla każdego uruchomienia tego szablonu.",
+      "kept_worker": "Zasada zachowana dla każdego uruchomienia tego workera."
+    },
+    "editor": {
+      "open": "Otwórz edytor",
+      "title": "Edycja propozycji",
+      "missing": "Tej propozycji już nie ma",
+      "missing_hint": "Mogła zostać zastosowana lub odrzucona. Wróć do przeglądu.",
+      "text": "Tekst",
+      "unsaved": "Niezapisane zmiany — „Zapisz wersję” je zachowa, „Zastosuj” zapisze i zastosuje.",
+      "view_edit": "Edycja",
+      "view_preview": "Podgląd",
+      "view_changes": "Zmiany",
+      "save_version": "Zapisz wersję",
+      "no_text": "Ta propozycja nie ma tekstu do edycji"
     }
   },
   "promo": {

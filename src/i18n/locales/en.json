@@ -2764,7 +2764,8 @@
       "open": "Open",
       "more_columns": "More columns",
       "fewer_columns": "Fewer columns",
-      "length_short": "{count} chars"
+      "length_short": "{count} chars",
+      "task_filter": "Showing the proposals of one AI run."
     },
     "status": {
       "pending": "Pending",
@@ -2866,12 +2867,81 @@
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} to review",
       "trigger_failed": "last run failed",
-      "run_title": "Run AI"
+      "run_title": "Run AI",
+      "review_task": "Review its proposals"
     },
     "video": {
       "download": "Download video",
       "failed": "Video failed to load",
       "loading": "Loading video…"
+    },
+    "correct": {
+      "open": "Correct with AI",
+      "instruction": "What to change",
+      "instruction_placeholder": "e.g. Mention the 2-year warranty",
+      "scope_all": "Whole text",
+      "scope_selection": "Selected text",
+      "quick": {
+        "shorten": "Shorter",
+        "expand": "Longer",
+        "formal": "More formal",
+        "casual": "More casual",
+        "fit_limit": "Fit the limit",
+        "variants": "3 variants"
+      },
+      "send": "Correct",
+      "send_all": "Correct all",
+      "busy": "AI is correcting the text — this can take up to 30 seconds.",
+      "error": {
+        "not_applicable": "AI could not apply the change — try a more specific instruction."
+      },
+      "variants_title": "Pick a variant",
+      "variant_pick": "Use variant {number}",
+      "all": "Correct all ({count})",
+      "all_title": "Correct all {count} proposals",
+      "all_hint": "One instruction for every proposal still waiting for review. The corrections run in the background; each proposal gets a new version.",
+      "all_queued": "Correcting {count} proposals in the background — new versions appear as they finish."
+    },
+    "versions": {
+      "title": "Versions",
+      "number": "v{number}",
+      "current": "Current",
+      "by_ai": "AI",
+      "by_you": "You",
+      "restored": "Restored from v{number}",
+      "show_changes": "Show changes",
+      "hide_changes": "Hide changes",
+      "restore": "Restore",
+      "restored_toast": "Version restored.",
+      "empty": "No versions recorded yet."
+    },
+    "rules": {
+      "title": "Rules for this text",
+      "empty": "No rules yet — add one the AI must always follow.",
+      "keep_menu": "Keep the rule: {rule}",
+      "keep_template": "Keep for this template",
+      "keep_worker": "Keep for this worker",
+      "add": "Add rule",
+      "add_placeholder": "e.g. Never mention the price",
+      "error": {
+        "too_long": "A rule can have at most {max} characters.",
+        "too_many": "At most {count} rules."
+      },
+      "kept_template": "Rule kept for every run of this template.",
+      "kept_worker": "Rule kept for every run of this worker."
+    },
+    "editor": {
+      "open": "Open editor",
+      "title": "Edit proposal",
+      "missing": "This proposal is gone",
+      "missing_hint": "It may have been applied or rejected. Go back to the review.",
+      "text": "Text",
+      "unsaved": "Unsaved changes — Save version keeps them, Apply saves and applies.",
+      "view_edit": "Edit",
+      "view_preview": "Preview",
+      "view_changes": "Changes",
+      "save_version": "Save version",
+      "no_text": "This proposal has no text to edit"
     }
   },
   "promo": {

@@ -40,6 +40,24 @@
           </span>
         </div>
 
+        <div
+          v-if="filters.task"
+          class="enrichment-review__task flex ai-ct flex-wrap gap-3 fs-300"
+          data-testid="enrichment-task-filter"
+        >
+          <span>{{ $t("enrichment.review.task_filter") }}</span>
+          <BasicButton variant="ghost" size="sm" data-testid="enrichment-task-filter-clear" @click="clearTask">
+            {{ $t("enrichment.ai.show_all") }}
+          </BasicButton>
+          <BatchCorrection
+            v-if="filters.status === 'pending' && totalCount"
+            class="ml-auto"
+            :task-id="Number(filters.task)"
+            :count="totalCount"
+            @queued="fetchRows"
+          />
+        </div>
+
         <MobileFilterPanel
           :active-count="activeFilterCount"
           :trigger-label="$t('enrichment.review.filters')"
@@ -102,6 +120,7 @@
       :loading="loading"
       :total-count="totalCount"
       :busy="busy"
+      :bulk="!filters.task"
       @accept="acceptOne"
       @reject="rejectOne"
       @bulk-accept="bulkAccept"
@@ -196,6 +215,7 @@ import DriftModal from "./DriftModal.vue";
 import ImportCsvDialog from "./ImportCsvDialog.vue";
 import ProductPreviewDrawer from "./ProductPreviewDrawer.vue";
 import ProposalPanel from "./ProposalPanel.vue";
+import BatchCorrection from "./BatchCorrection.vue";
 import {
   GET_Task,
   GET_Proposals,
@@ -221,7 +241,7 @@ const STATUS_VALUES = [
 
 export default {
   name: "EnrichmentReview",
-  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel },
+  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection },
   setup() {
     return { notify: useNotifyStore(), pimChannel: usePimChannelStore() };
   },
@@ -236,6 +256,7 @@ export default {
         batch_id: "",
         confidence_min: "",
         search: "",
+        task: this.$route.query.task || "",
       },
       rows: [],
       page: 1,
@@ -363,6 +384,7 @@ export default {
         params.confidence_min = this.filters.confidence_min;
       }
       if (this.filters.search) params.search = this.filters.search;
+      if (this.filters.task) params.task = this.filters.task;
       return params;
     },
     // Server-side filter payload (no pagination) reused by bulk accept/reject.
@@ -410,6 +432,12 @@ export default {
         });
       }
       this.fetchRows();
+    },
+    clearTask() {
+      const query = { ...this.$route.query };
+      delete query.task;
+      this.$router.replace({ path: this.$route.path, query });
+      this.onFilterChange("task", "");
     },
     onSearchChange() {
       clearTimeout(this.searchTimer);
@@ -636,6 +664,11 @@ export default {
 .enrichment-review__count {
   flex-shrink: 0;
   white-space: nowrap;
+}
+.enrichment-review__task {
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-base);
+  background: var(--surface-raised);
 }
 .enrichment-review__search {
   min-width: 180px;

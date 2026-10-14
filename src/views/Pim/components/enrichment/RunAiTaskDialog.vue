@@ -12,6 +12,9 @@
       <router-link :to="taskLink" class="t-accent fw-600" data-testid="ai-task-link" @click="$emit('close')">
         {{ $t("enrichment.ai.open_task") }}
       </router-link>
+      <router-link :to="reviewLink" class="t-accent fw-600" data-testid="ai-task-review-link" @click="$emit('close')">
+        {{ $t("enrichment.ai.review_task") }}
+      </router-link>
     </div>
 
     <div v-else class="flex-column gap-4">
@@ -124,6 +127,9 @@ export default {
     },
     taskLink() {
       return { name: "EnrichmentTasks", query: { status: "__all", task: String(this.createdTask?.id) } };
+    },
+    reviewLink() {
+      return { name: "EnrichmentReview", query: { task: String(this.createdTask?.id) } };
     },
     actions() {
       if (this.createdTask) {

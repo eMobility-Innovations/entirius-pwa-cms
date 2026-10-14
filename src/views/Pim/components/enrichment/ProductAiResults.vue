@@ -49,9 +49,10 @@
           </BasicButton>
         </div>
 
-        <div v-if="taskFilter" class="ai-results__filter flex ai-ct gap-3 fs-200" data-testid="ai-results-filter">
+        <div v-if="taskFilter" class="ai-results__filter flex ai-ct flex-wrap gap-3 fs-200" data-testid="ai-results-filter">
           <span>{{ $t("enrichment.ai.filtered", { worker: filterLabel }) }}</span>
           <BasicButton variant="ghost" size="sm" @click="taskFilter = null">{{ $t("enrichment.ai.show_all") }}</BasicButton>
+          <BatchCorrection v-if="correctable.length" class="ml-auto" :task-id="taskFilter" :count="correctable.length" @queued="refresh" />
         </div>
 
         <EmptyState
@@ -88,6 +89,7 @@ import { POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
 import ProposalPanel from "@/views/EnrichmentReview/ProposalPanel.vue";
 import DriftModal from "@/views/EnrichmentReview/DriftModal.vue";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
+import BatchCorrection from "@/views/EnrichmentReview/BatchCorrection.vue";
 import AiTaskList from "./AiTaskList.vue";
 import { groupTasks } from "./productAi";
 import { useProductAi } from "./useProductAi";
@@ -95,11 +97,11 @@ import { useProductAi } from "./useProductAi";
 // The AI of the product on screen: one header icon (the Enricher's) with the pending count, a pulsing dot while a
 // task runs or a warning dot after a failure, opening a drawer: Run AI (one button per worker, `run`), the
 // product's tasks in plain words and its pending proposals as cards, reviewed in place (Apply all
-// when there are several). Picking a task shows only its proposals. An applied proposal goes to the page
+// when there are several). Picking a task shows only its proposals, with "Correct all" for them. An applied proposal goes to the page
 // (`applied`) so the product form shows the new value.
 export default {
   name: "ProductAiResults",
-  components: { ProposalPanel, DriftModal, AiTaskList, AiToolboxHint },
+  components: { ProposalPanel, DriftModal, AiTaskList, AiToolboxHint, BatchCorrection },
   props: {
     sku: { type: String, required: true },
     product: { type: Object, default: null },
@@ -133,6 +135,10 @@ export default {
     shown() {
       if (!this.taskFilter) return this.proposals;
       return this.proposals.filter((p) => p.task_id === this.taskFilter);
+    },
+    // What "Correct all" reaches: the picked task's pending proposals.
+    correctable() {
+      return this.shown.filter((p) => p.status === "pending");
     },
     filterLabel() {
       const task = this.tasks.find((t) => t.id === this.taskFilter);

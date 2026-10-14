@@ -4,7 +4,7 @@
          Accept/reject target the pending set; undo (etap-09) targets the applied set. Honest to the
          backend contract. -->
     <div
-      v-if="totalCount > 0 && (actionableFilter || undoableFilter)"
+      v-if="bulk && totalCount > 0 && (actionableFilter || undoableFilter)"
       class="list-mode__bulk flex ai-ct gap-5 mb-8 p-5 bg-accent-subtle rounded flex-wrap"
       data-testid="enrichment-bulk-bar"
     >
@@ -198,6 +198,8 @@ export default {
     loading: { type: Boolean, default: false },
     busy: { type: Boolean, default: false },
     totalCount: { type: Number, default: 0 },
+    // Off when the list is filtered by something the bulk API cannot take (a task): bulk would reach beyond it.
+    bulk: { type: Boolean, default: true },
   },
   emits: [
     "accept",

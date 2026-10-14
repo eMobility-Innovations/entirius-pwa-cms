@@ -57,6 +57,7 @@ export const POST_SpawnRuleRun = (key) =>
 
 // --- Proposals ---
 
+// params: filters + paging; `task` = the owning task id (contract A3 § 1).
 export const GET_Proposals = (params) =>
   enrichmentApi.get(`${ENR}/proposals/`, { params });
 
@@ -92,3 +93,29 @@ export const POST_BulkRejectProposals = (filters) =>
 // (sync/async) + reverted/blocked counts — blocked = drifted since apply, left untouched.
 export const POST_BulkUndoProposals = (filters) =>
   enrichmentApi.post(`${ENR}/proposals/bulk-undo/`, filters);
+
+// --- Revisions and corrections (contract A3 § 1) ---
+
+// [{ number, value, instruction, scope, author_kind (ai | user | restore), author, created_at }], oldest first.
+export const GET_ProposalRevisions = (proposalId) =>
+  enrichmentApi.get(`${ENR}/proposals/${proposalId}/revisions/`);
+
+// body: { instruction?, quick_action?, scope? } → 201 revision | 200 { candidates } (variants, nothing saved).
+// Synchronous AI call (up to ~30 s); 422 REVISION_NOT_APPLICABLE when the answer does not fit the text.
+export const POST_ReviseProposal = (proposalId, data) =>
+  enrichmentApi.post(`${ENR}/proposals/${proposalId}/revise/`, data);
+
+export const POST_RestoreRevision = (proposalId, number) =>
+  enrichmentApi.post(`${ENR}/proposals/${proposalId}/revisions/${number}/restore/`);
+
+// Replaces the proposal's correction rules → the proposal.
+export const PUT_ProposalRules = (proposalId, rules) =>
+  enrichmentApi.put(`${ENR}/proposals/${proposalId}/rules/`, { rules });
+
+// body: { rule, target: "template" | "worker" } → { target, rules }.
+export const POST_PromoteRule = (proposalId, data) =>
+  enrichmentApi.post(`${ENR}/proposals/${proposalId}/rules/promote/`, data);
+
+// Correct every pending proposal of a task in the background: body { instruction?, quick_action? } → 202 { queued }.
+export const POST_ReviseTask = (taskId, data) =>
+  enrichmentApi.post(`${ENR}/tasks/${taskId}/revise/`, data);

@@ -15,9 +15,10 @@ import ProposalPanel from "@/views/EnrichmentReview/ProposalPanel.vue";
 const DiffRenderer = { name: "DiffRenderer", props: ["targetKind", "rules", "snippet", "wide", "subjectLabel"], template: "<div />" };
 const stubs = {
   DiffRenderer,
-  ActionBar: { props: ["actions"], template: "<div />" },
+  ActionBar: { name: "ActionBar", props: ["actions"], template: "<div />" },
   Tag: { props: ["label"], template: "<i>{{ label }}</i>" },
   BasicTooltip: { props: ["text"], template: "<span><slot /></span>" },
+  ProposalCorrection: { name: "ProposalCorrection", props: ["proposal", "task", "selection"], emits: ["updated", "busy"], template: "<div />" },
 };
 const meta = {
   id: 7, status: "pending", subject_ref: "ENT-1", subject_label: "", source: "worker:pim.meta@v1",
@@ -55,5 +56,25 @@ describe("ProposalPanel", () => {
     expect(w.find("[data-testid='proposal-field']").text()).toBe("Product video");
     expect(w.find("[data-testid='proposal-language']").exists()).toBe(false);
     expect(w.find("[data-testid='proposal-meta']").attributes("aria-label")).toBe("pim.meta@v1 · video");
+  });
+
+  it("a pending text carries the correction tools; their new value and busy state reach the card", async () => {
+    const w = mount(ProposalPanel, { props: { proposal: meta, product: PRODUCT }, global: { stubs } });
+    const correction = w.findComponent({ name: "ProposalCorrection" });
+    expect(correction.props("proposal")).toEqual(meta);
+    correction.vm.$emit("updated", { ...meta, proposed_value: { text: "Couch" } });
+    expect(w.emitted("updated")[0][0].proposed_value).toEqual({ text: "Couch" });
+    correction.vm.$emit("busy", true);
+    await w.vm.$nextTick();
+    const actions = w.findComponent({ name: "ActionBar" }).props("actions");
+    expect(actions.every((a) => a.disabled)).toBe(true);
+  });
+
+  it("an applied proposal or a media one has no correction tools", () => {
+    const applied = mount(ProposalPanel, { props: { proposal: { ...meta, status: "applied" }, product: PRODUCT }, global: { stubs } });
+    expect(applied.findComponent({ name: "ProposalCorrection" }).exists()).toBe(false);
+    const video = { ...meta, target_kind: "video", proposed_value: { duration_s: 5 }, target_locator: { channel: "c1" } };
+    const media = mount(ProposalPanel, { props: { proposal: video }, global: { stubs } });
+    expect(media.findComponent({ name: "ProposalCorrection" }).exists()).toBe(false);
   });
 });

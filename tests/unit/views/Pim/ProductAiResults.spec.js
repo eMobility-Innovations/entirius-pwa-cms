@@ -26,6 +26,7 @@ const stubs = {
   IconButton: { name: "IconButton", props: ["icon", "label"], template: "<button :aria-label='label' />" },
   BasicButton: { props: ["disabled"], template: "<button :disabled='disabled'><slot /></button>" },
   RouterLink: { props: ["to"], template: "<a><slot /></a>" },
+  BatchCorrection: { name: "BatchCorrection", props: ["taskId", "count"], emits: ["queued"], template: "<div />" },
 };
 
 function mountResults({ proposals = [], tasks = [], running = false, usable = true } = {}) {
@@ -162,5 +163,17 @@ describe("ProductAiResults", () => {
     const w = mountResults();
     w.vm.track({ id: 9 });
     expect(ai.track).toHaveBeenCalledWith({ id: 9 });
+  });
+
+  it("a picked task offers Correct all for its pending proposals", async () => {
+    const w = mountResults({ proposals: [proposal(1, { task_id: 6 }), proposal(2, { task_id: 6 }), proposal(3)], tasks: [{ id: 6 }] });
+    await w.find("[data-testid='ai-results']").trigger("click");
+    expect(w.findComponent({ name: "BatchCorrection" }).exists()).toBe(false);
+    w.findComponent({ name: "AiTaskList" }).vm.$emit("select", 6);
+    await w.vm.$nextTick();
+    const batch = w.findComponent({ name: "BatchCorrection" });
+    expect(batch.props()).toEqual({ taskId: 6, count: 2 });
+    batch.vm.$emit("queued", 2);
+    expect(ai.refresh).toHaveBeenCalled();
   });
 });

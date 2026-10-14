@@ -21,16 +21,27 @@
       <BasicTextarea v-model="draft" :rows="8" data-testid="proposal-edit-text" />
       <LengthCounter v-if="rules" :length="draftLength" :rules="rules" />
     </FormField>
-    <DiffRenderer
-      v-else
-      :target-kind="proposal.target_kind"
-      :proposed="proposal.proposed_value"
-      :current="proposal.current_snapshot"
-      :proposal-id="proposal.id"
-      :subject-label="productName"
-      :wide="wide"
-      :rules="rules"
-      :snippet="snippet"
+    <div v-else ref="view" class="flex-column" data-testid="proposal-view" @mouseup="captureSelection" @keyup="captureSelection">
+      <DiffRenderer
+        :target-kind="proposal.target_kind"
+        :proposed="proposal.proposed_value"
+        :current="proposal.current_snapshot"
+        :proposal-id="proposal.id"
+        :subject-label="productName"
+        :wide="wide"
+        :rules="rules"
+        :snippet="snippet"
+      />
+    </div>
+
+    <ProposalCorrection
+      v-if="correctable"
+      v-show="!editing"
+      :proposal="proposal"
+      :task="task"
+      :selection="selection"
+      @updated="(p) => $emit('updated', p)"
+      @busy="(value) => (correctionBusy = value)"
     />
 
     <ActionBar :actions="actions" />
@@ -46,6 +57,8 @@ import { GET_Product } from "@/api/pim/api";
 import { PATCH_Proposal } from "@/api/enrichment/api";
 import DiffRenderer from "./DiffRenderer.vue";
 import LengthCounter from "./LengthCounter.vue";
+import ProposalCorrection from "./ProposalCorrection.vue";
+import { revisable } from "./correction";
 import { useFieldLabels } from "./useFieldLabels";
 import { editableText, isHtml, plainText, sourceText, textRules, translationSource, workerOf } from "./reviewLogic";
 
@@ -53,10 +66,11 @@ const ACTIONABLE = ["pending", "drifted"];
 
 // One proposal as a card: the field by its PIM name and the language, the change (DiffRenderer), Apply / Edit /
 // Reject. A translation shows its source text; a meta description its search preview. The worker and kind sit
-// behind the info icon. `product` is the product on screen, else it is fetched when the view needs it.
+// behind the info icon. `product` is the product on screen, else it is fetched when the view needs it. A pending
+// text or select proposal carries its correction tools (ProposalCorrection); a selection in the text narrows them.
 export default {
   name: "ProposalPanel",
-  components: { DiffRenderer, LengthCounter },
+  components: { DiffRenderer, LengthCounter, ProposalCorrection },
   props: {
     proposal: { type: Object, required: true },
     task: { type: Object, default: null },
@@ -69,7 +83,7 @@ export default {
     return { pimChannel: usePimChannelStore(), notify: useNotifyStore(), ...useFieldLabels() };
   },
   data() {
-    return { editing: false, draft: "", saving: false, loaded: null };
+    return { editing: false, draft: "", saving: false, loaded: null, selection: "", correctionBusy: false };
   },
   computed: {
     locator() {
@@ -118,6 +132,9 @@ export default {
     channel() {
       return this.locator.channel || this.task?.params?.channel || this.pimChannel.activeChannelIdx;
     },
+    correctable() {
+      return revisable(this.proposal);
+    },
     canEdit() {
       return this.proposal.status === "pending" && editableText(this.proposal) !== null;
     },
@@ -125,7 +142,7 @@ export default {
       return plainText(this.draft).trim().length;
     },
     actions() {
-      const off = this.busy || this.saving;
+      const off = this.busy || this.saving || this.correctionBusy;
       if (this.editing) {
         return [
           { key: "cancel", role: "secondary", label: this.$t("common.cancel"), disabled: off, onClick: this.cancelEdit },
@@ -148,6 +165,7 @@ export default {
     productKey: { immediate: true, handler: "loadProduct" },
     "proposal.id"() {
       this.editing = false;
+      this.selection = "";
     },
   },
   methods: {
@@ -161,6 +179,12 @@ export default {
       } catch {
         if (key === this.productKey) this.loaded = null;
       }
+    },
+    // The text the operator selected in the change view: the scope a correction can be narrowed to.
+    captureSelection() {
+      const selection = window.getSelection?.();
+      const inside = selection?.anchorNode && this.$refs.view?.contains(selection.anchorNode);
+      this.selection = inside ? selection.toString().trim() : "";
     },
     startEdit() {
       this.draft = editableText(this.proposal);

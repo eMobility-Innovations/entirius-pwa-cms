@@ -1,0 +1,261 @@
+<template>
+  <PageLayout class="proposal-editor">
+    <template #header>
+      <PageHeader :title="title" :crumbs="crumbs" :back="goBack">
+        <template v-if="proposal" #meta>
+          <Tag v-if="language" :label="language.toUpperCase()" />
+          <span class="fs-300 t-secondary">{{ subject }}</span>
+        </template>
+        <template v-if="proposal" #actions>
+          <ActionBar :actions="actions" />
+        </template>
+      </PageHeader>
+    </template>
+
+    <Loader v-if="loading" block />
+    <EmptyState
+      v-else-if="!proposal || shape !== 'text'"
+      icon="empty"
+      size="md"
+      :title="$t(proposal ? 'enrichment.editor.no_text' : 'enrichment.editor.missing')"
+      :message="$t('enrichment.editor.missing_hint')"
+    />
+    <div v-else class="proposal-editor__grid">
+      <div class="flex-column gap-8">
+        <BasicCard>
+          <div class="flex-column gap-5">
+            <ReadonlyOff>
+              <SegmentedControl v-model="view" :options="viewOptions" class="proposal-editor__switch" />
+            </ReadonlyOff>
+            <div
+              v-if="view === 'edit'"
+              class="flex-column gap-2"
+              @mouseup="captureSelection"
+              @keyup="captureSelection"
+              @select="captureSelection"
+            >
+              <FormField :label="$t('enrichment.editor.text')">
+                <BasicTextarea v-model="draft" :rows="22" :disabled="!editable || busy" data-testid="editor-text" />
+              </FormField>
+              <span v-if="dirty" class="fs-200 t-secondary" data-testid="editor-dirty">{{ $t("enrichment.editor.unsaved") }}</span>
+            </div>
+            <div v-else-if="view === 'preview'" class="proposal-editor__preview" data-testid="editor-preview" v-html="sanitizeHtml(previewSource)" />
+            <TextDiff v-else :before="valueText(proposal.current_snapshot)" :after="draft" />
+          </div>
+        </BasicCard>
+
+        <template v-if="editable">
+          <CorrectionBar ref="bar" :shape="shape" :selection="selection" :busy="busy" @submit="correct" />
+          <VariantPicker v-if="candidates.length" :candidates="candidates" :busy="busy" @pick="pick" @cancel="candidates = []" />
+        </template>
+      </div>
+
+      <aside class="flex-column gap-8">
+        <BasicCard :title="$t('enrichment.versions.title')">
+          <Loader v-if="!revisions" />
+          <VersionTimeline v-else :revisions="revisions" :busy="busy" :restorable="editable" @restore="restoreVersion" />
+        </BasicCard>
+        <BasicCard v-if="editable">
+          <RuleChips
+            :rules="proposal.rules || []"
+            :busy="busy"
+            :has-template="!!task?.params?.template"
+            :has-worker="hasWorker"
+            @change="setRules"
+            @promote="promote"
+          />
+        </BasicCard>
+      </aside>
+    </div>
+
+    <DriftModal :visible="!!drifted" :proposal="drifted" :busy="applying" @confirm="confirmDrift" @reject="rejectDrift" @close="drifted = null" />
+  </PageLayout>
+</template>
+
+<script>
+import { computed, ref } from "vue";
+import { marked } from "marked";
+import { useNotifyStore } from "@/stores/notify";
+import { extractApiMessage } from "@/composables/useFormErrors";
+import { ReadonlyOff } from "@/composables/useReadonly";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
+import { GET_Proposal, GET_Task, POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
+import CorrectionBar from "./CorrectionBar.vue";
+import DriftModal from "./DriftModal.vue";
+import RuleChips from "./RuleChips.vue";
+import TextDiff from "./TextDiff.vue";
+import VariantPicker from "./VariantPicker.vue";
+import VersionTimeline from "./VersionTimeline.vue";
+import { useFieldLabels } from "./useFieldLabels";
+import { useProposalCorrection } from "./useProposalCorrection";
+import { revisable, textareaSelection, valueShape, valueText, withText } from "./correction";
+import { isHtml, workerOf } from "./reviewLogic";
+
+// The full-screen editor of one long text proposal (`/enrichment/edit/:proposalId`): the text as it is stored (HTML
+// or markdown) with a preview and the changes against the live value, AI corrections scoped to the selected
+// fragment, the versions and the rules beside it. "Save version" keeps a manual edit; Apply saves it first and
+// writes the value (a drifted field asks again).
+export default {
+  name: "ProposalEditor",
+  components: { ReadonlyOff, CorrectionBar, DriftModal, RuleChips, TextDiff, VariantPicker, VersionTimeline },
+  setup() {
+    const proposal = ref(null);
+    const draft = ref("");
+    const setProposal = (value) => {
+      proposal.value = value;
+      draft.value = valueText(value.proposed_value);
+    };
+    const correction = useProposalCorrection(computed(() => proposal.value || {}), setProposal);
+    return { proposal, draft, setProposal, ...correction, notify: useNotifyStore(), ...useFieldLabels() };
+  },
+  data() {
+    return { loading: true, task: null, view: "edit", selection: "", applying: false, drifted: null };
+  },
+  computed: {
+    title() {
+      return this.proposal ? this.proposalField(this.proposal) : this.$t("enrichment.editor.title");
+    },
+    crumbs() {
+      return [{ label: this.$t("enrichment.review.title"), to: "/enrichment" }, { label: this.title }];
+    },
+    language() {
+      return this.proposal?.target_locator?.language || "";
+    },
+    subject() {
+      return this.proposal?.subject_label || this.proposal?.subject_ref || "";
+    },
+    shape() {
+      return valueShape(this.proposal?.proposed_value);
+    },
+    editable() {
+      return revisable(this.proposal) && this.shape === "text";
+    },
+    hasWorker() {
+      return !!workerOf(this.proposal?.source);
+    },
+    dirty() {
+      return !!this.proposal && this.draft !== valueText(this.proposal.proposed_value);
+    },
+    // HTML as it is; anything else read as markdown (plain text stays paragraphs).
+    previewSource() {
+      return isHtml(this.draft) ? this.draft : marked.parse(this.draft || "");
+    },
+    viewOptions() {
+      return ["edit", "preview", "changes"].map((value) => ({
+        value,
+        label: this.$t(`enrichment.editor.view_${value}`),
+        testid: `editor-view-${value}`,
+      }));
+    },
+    actions() {
+      if (!this.editable) return [];
+      const off = this.busy || this.applying;
+      return [
+        { key: "save", role: "secondary", mutates: true, label: this.$t("enrichment.editor.save_version"),
+          disabled: off || !this.dirty, testid: "editor-save", onClick: this.saveDraft },
+        { key: "apply", role: "primary", mutates: true, label: this.$t("enrichment.review.apply"), disabled: off,
+          loading: this.applying, testid: "editor-apply", onClick: this.apply },
+      ];
+    },
+  },
+  mounted() {
+    this.load();
+  },
+  methods: {
+    valueText,
+    sanitizeHtml,
+    async load() {
+      try {
+        const { data } = await GET_Proposal(this.$route.params.proposalId);
+        this.setProposal(data);
+        this.loadVersions();
+        if (data.task_id != null) this.task = (await GET_Task(data.task_id)).data;
+      } catch {
+        // A missing proposal shows the empty state; a missing task only hides the template promotion.
+      } finally {
+        this.loading = false;
+      }
+    },
+    captureSelection(event) {
+      this.selection = textareaSelection(event.target);
+    },
+    // Manual edits become a version before the AI sees the text.
+    async saveDraft() {
+      if (!this.dirty) return true;
+      return this.saveValue(withText(this.proposal.proposed_value, this.draft));
+    },
+    async correct(request) {
+      if (!(await this.saveDraft())) return;
+      if (await this.revise(request)) this.$refs.bar?.reset();
+    },
+    pick(candidate) {
+      return this.saveValue(candidate);
+    },
+    restoreVersion(number) {
+      return this.restore(number);
+    },
+    async apply() {
+      if (!(await this.saveDraft())) return;
+      await this.accept();
+    },
+    async accept() {
+      this.applying = true;
+      try {
+        const { data } = await POST_AcceptProposal(this.proposal.id);
+        if (data.status === "drifted") {
+          this.drifted = data;
+          return;
+        }
+        this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.review.toast.accepted") });
+        this.goBack();
+      } catch (err) {
+        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
+      } finally {
+        this.applying = false;
+      }
+    },
+    async confirmDrift() {
+      this.drifted = null;
+      await this.accept();
+    },
+    async rejectDrift({ proposal, reason }) {
+      this.drifted = null;
+      try {
+        await POST_RejectProposal(proposal.id, reason ? { reason } : {});
+        this.goBack();
+      } catch (err) {
+        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
+      }
+    },
+    goBack() {
+      if (window.history.state?.back) this.$router.back();
+      else this.$router.push("/enrichment");
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
+.proposal-editor__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+  gap: var(--space-8);
+  align-items: start;
+
+  @include max-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.proposal-editor__switch {
+  align-self: flex-start;
+}
+.proposal-editor__preview {
+  max-width: 70ch;
+  font-size: var(--fs-300);
+  line-height: 1.6;
+  color: var(--text-body);
+  word-break: break-word;
+}
+</style>
