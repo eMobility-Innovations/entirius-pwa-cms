@@ -21,6 +21,7 @@ const health = reactive({ panelOpen: false });
 vi.mock("@/stores/user", () => ({ useUserStore: () => user }));
 vi.mock("@/stores/configHealth", () => ({ useConfigHealthStore: () => health }));
 vi.mock("@/stores/quality", () => ({ useQualityStore: () => ({ available: true }) }));
+vi.mock("@/stores/enrichmentProfile", () => ({ useEnrichmentProfileStore: () => ({ pendingSuggestions: 0 }) }));
 // django-access is not under test here: allow-all, as without the module.
 vi.mock("@/stores/access", () => ({
   useAccessStore: () => ({ can: () => true, canAny: () => true, ensureLoaded: () => Promise.resolve(), available: false, isStaff: true }),

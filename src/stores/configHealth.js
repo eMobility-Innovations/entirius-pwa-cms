@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { GET_ConfigHealth, POST_ConfigHealthCheck } from "@/api/munin/api";
 import { useMuninStore } from "@/stores/munin";
+import { profileHealthRow, useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
 
 // Configuration health (django-munin `health/`): state, not events — nothing to mark read; a fixed config clears
 // on the next poll. A bad → good flip keeps `justFixed` for FIXED_MS so the header can say "fixed" before it hides.
@@ -29,11 +30,17 @@ export const useConfigHealthStore = defineStore("configHealth", () => {
   // Bumped by stop(): a response that lands after logout belongs to the old session and is dropped.
   let session = 0;
 
+  // The munin rows plus the company profile's own row (the CMS reads it from django-enrichment, munin does not).
+  const enrichmentProfile = useEnrichmentProfileStore();
+  const rows = computed(() => {
+    const profileRow = profileHealthRow(enrichmentProfile.status);
+    return profileRow ? [...checks.value, profileRow] : checks.value;
+  });
   const failing = computed(() =>
-    checks.value.filter((row) => !QUIET_STATES.includes(row.state))
+    rows.value.filter((row) => !QUIET_STATES.includes(row.state))
   );
   const passing = computed(() =>
-    checks.value.filter((row) => QUIET_STATES.includes(row.state))
+    rows.value.filter((row) => QUIET_STATES.includes(row.state))
   );
 
   // "" = not reported (check absent on this backend), else the worst row's state for that code.

@@ -35,6 +35,7 @@
     >
       <FontAwesomeIcon :icon="icon" class="sidebar-nav-item__icon" aria-hidden="true" />
       <span v-if="!collapsed" class="sidebar-nav-item__label">{{ label }}</span>
+      <CountBadge v-if="count && !collapsed" :count="count" class="sidebar-nav-item__end" data-testid="sidebar-nav-count" />
     </router-link>
   </component>
 </template>
@@ -52,6 +53,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { ICONS } from "@/boots/Icons/icons";
 import BasicTooltip from "@/boots/BasicTooltip/index.vue";
+import CountBadge from "@/boots/CountBadge/index.vue";
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -64,6 +66,8 @@ const props = defineProps({
   expanded: { type: Boolean, default: undefined },
   controls: { type: String, default: undefined },
   collapsed: { type: Boolean, default: false },
+  // A number waiting on the page (a link only): a CountBadge after the label, nothing at 0 or in the rail.
+  count: { type: Number, default: 0 },
 });
 defineEmits(["toggle"]);
 

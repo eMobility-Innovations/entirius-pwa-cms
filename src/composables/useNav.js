@@ -5,6 +5,7 @@ import { buildNavRoutes, filterNavRoutes, isNavActive } from "@/components/Navig
 import { useMuninStore } from "@/stores/munin";
 import { useAccessStore } from "@/stores/access";
 import { useQualityStore } from "@/stores/quality";
+import { useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
 import { useIsDesktop } from "@/composables/useIsDesktop";
 import { t } from "@/i18n";
 
@@ -33,10 +34,16 @@ export function usePanels() {
 export const withAreas = (routes, router) =>
   routes.map((entry) => ({ ...entry, area: router?.resolve?.(entry.route).meta?.area }));
 
-// `{ [panelIdx]: entries[] }`; ctx = { qualityAvailable, isModuleEnabled, isDesktop, canRead }.
+// An entry with a `badge` key takes its number from `counts` (the Memory suggestions); 0 shows nothing.
+const withCount = (entry, counts) => (entry.badge ? { ...entry, count: counts?.[entry.badge] || 0 } : entry);
+
+// `{ [panelIdx]: entries[] }`; ctx = { qualityAvailable, isModuleEnabled, isDesktop, canRead, counts? }.
 export function navTree(ctx, routes = buildNavRoutes()) {
   return Object.fromEntries(
-    REGISTRY.map((panel) => [panel.idx, filterNavRoutes(routes, { ...ctx, panel: panel.idx })])
+    REGISTRY.map((panel) => [
+      panel.idx,
+      filterNavRoutes(routes, { ...ctx, panel: panel.idx }).map((entry) => withCount(entry, ctx.counts)),
+    ])
   );
 }
 
@@ -44,6 +51,7 @@ export function useNavTree() {
   const munin = useMuninStore();
   const access = useAccessStore();
   const quality = useQualityStore();
+  const enrichmentProfile = useEnrichmentProfileStore();
   const isDesktop = useIsDesktop();
   const routes = withAreas(buildNavRoutes(), useRouter());
   return computed(() =>
@@ -53,6 +61,7 @@ export function useNavTree() {
         isModuleEnabled: munin.isModuleEnabled,
         isDesktop: isDesktop.value,
         canRead: access.can,
+        counts: { memorySuggestions: enrichmentProfile.pendingSuggestions },
       },
       routes
     )

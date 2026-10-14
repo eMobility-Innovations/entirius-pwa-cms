@@ -19,6 +19,7 @@
     "atlas.credentials",
     "enrichment.rules",
     "enrichment.proposals",
+    "enrichment.profile",
     "lookup.search",
     "content.pages",
     "content.publish",

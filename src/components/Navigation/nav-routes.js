@@ -345,6 +345,24 @@ export function buildNavRoutes() {
       app: ["enricher"],
     },
     {
+      route: "/enrichment/profile",
+      labelKey: "nav.enrichment_profile",
+      icon: "building",
+      query: {},
+      app: ["enricher"],
+      desktopOnly: true, // a long form; the phone tab bar keeps the panel's five daily pages
+    },
+    {
+      // `badge`: the pending suggestions count (useNav `counts`)
+      route: "/enrichment/memory",
+      labelKey: "nav.enrichment_memory",
+      icon: "folder",
+      query: {},
+      app: ["enricher"],
+      badge: "memorySuggestions",
+      desktopOnly: true,
+    },
+    {
       route: "/enrichment/spawn-rules",
       labelKey: "nav.enrichment_spawn_rules",
       icon: "gears",

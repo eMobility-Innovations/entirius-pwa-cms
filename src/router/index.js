@@ -1267,6 +1267,32 @@ const routes = [
     },
   },
 
+  // Company profile and memory (contract A4 § 2–§ 3)
+  {
+    path: "/enrichment/profile",
+    name: "EnrichmentProfile",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentProfile/ProfilePage.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.profile.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROFILE,
+    },
+  },
+  {
+    path: "/enrichment/memory",
+    name: "EnrichmentMemory",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentMemory/MemoryList.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.memory.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROFILE,
+    },
+  },
+
   // Enrichment tasks (read-only queue view)
   {
     path: "/enrichment/tasks",

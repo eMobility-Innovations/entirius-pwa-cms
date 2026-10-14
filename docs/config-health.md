@@ -23,3 +23,11 @@ props) is the one place for the hint, with one text per state in `config_health.
 Review, the company card and thread, the Communicate dialog, an AI template, the translate dialog and the PIM "AI"
 menu (product detail, list selection — `useAiWorkers`, dormant without the `enrichment` module). A new AI
 action reads `aiUsable` and renders the hint, never its own state check or text.
+
+The company profile adds one row of its own, read from django-enrichment, not munin: `src/stores/enrichmentProfile.js`
+polls `GET profile/status/` (the whole company) and counts the active `rule_suggestion` / `fact_suggestion` memory
+entries (60 s) while the `enrichment` module is on and the user can read `enrichment.profile` (App.vue). Its row
+(`enrichment.profile`, state `incomplete` or `configured`, `scope` = the missing sections, fix `/enrichment/profile`)
+joins the munin rows in `failing` / `passing`; text in `config_health.checks.enrichment_profile.incomplete`. The
+suggestions count is the Memory nav entry's badge (`badge: "memorySuggestions"` in `nav-routes.js`, `counts` in
+`useNav`). The profile and memory pages call `refresh()` after a change.

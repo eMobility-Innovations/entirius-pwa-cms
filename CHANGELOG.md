@@ -22,6 +22,19 @@ All notable changes to this project will be documented in this file.
   "Open draft in ContentDB" once approved. Approve and Regenerate (optional instruction) per step, Cancel run, run
   cost in the header, auto-refresh while a step works (it stops on a cancelled run, and a step quiet for 3 minutes
   offers Regenerate), and a notice when the company profile is incomplete.
+- Company profile (`/enrichment/profile`): what the AI is told about the company, for the whole company or as a
+  channel overlay. A form built from the profile's schema — markdown texts with a preview, facts, rules (DO / DON'T,
+  on / off), spellings, personas and glossary as editable rows, lists as chips — or "Edit JSON", checked as it is
+  typed. Completeness per section, Save with a version note, History with the difference of any two versions and
+  Restore. Errors from the server show at their fields.
+- Memory (`/enrichment/memory`): SEO research, answers and suggestions, filtered by subject, kind, state and expiry;
+  waiting suggestions come first with "Add to profile" or "Dismiss"; SEO research reads as main and supporting
+  phrases, intent and expiry.
+- Configuration health lists the communication profile (missing sections, link to the profile); the Memory nav entry
+  shows the number of waiting suggestions.
+- Proposal cards list the quality warnings (a rule, a number the facts do not back with "Add to facts", a failed
+  checklist item) with "Check against the standard" and "Fix warnings", and say what the AI used from the profile
+  ("Used from profile: Facts (4), Brand, Tone of voice").
 
 ## [3.2.0] (2026-10-12)
 

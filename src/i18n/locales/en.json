@@ -61,7 +61,9 @@
       "applications": "Applications"
     },
     "enrichment_templates": "AI templates",
-    "enrichment_studio": "Studio"
+    "enrichment_studio": "Studio",
+    "enrichment_profile": "Company profile",
+    "enrichment_memory": "Memory"
   },
   "login": {
     "welcome": "Sign in",
@@ -3099,6 +3101,156 @@
         "created": "The draft is in Pages, unpublished.",
         "open": "Open draft in ContentDB"
       }
+    },
+    "profile": {
+      "title": "Company profile",
+      "description": "What the AI knows about the company: brand, audience, facts, tone and language rules. Every AI text follows it.",
+      "scope": "Scope",
+      "whole_company": "Whole company",
+      "unsaved": "Unsaved changes",
+      "overlay_note": "This channel's profile holds only what differs from the whole company — an empty section uses the company's.",
+      "save_note": "Version note",
+      "note": "What changed",
+      "note_hint": "Saved with the new version and shown in the history.",
+      "json": "Profile as JSON",
+      "history": "History",
+      "edit_form": "Edit as form",
+      "edit_json": "Edit JSON",
+      "saved": "Profile saved as a new version.",
+      "restored": "Version restored as a new version.",
+      "completeness": "{done} of {total} key sections complete",
+      "complete": "Complete",
+      "incomplete": "Needs more",
+      "add_item": "Type and press Enter",
+      "write": "Write",
+      "preview": "Preview",
+      "no_rows": "Nothing here yet.",
+      "active": "Checked",
+      "map_placeholder": "pl: tekst; de: Text",
+      "remove_row": "Remove row",
+      "add_row": "Add row",
+      "json_only": "Edit this part with Edit JSON.",
+      "no_versions": "Not saved yet.",
+      "version": "Version {n}",
+      "restore": "Restore",
+      "compare_from": "Compare",
+      "compare_to": "with",
+      "restore_title": "Restore version {n}?",
+      "restore_message": "Its content becomes the current profile as a new version. Nothing is lost: the current version stays in the history.",
+      "used": "Used from profile: {sections}",
+      "sections": {
+        "brand": "Brand",
+        "persona": "Audience",
+        "facts": "Facts",
+        "tone": "Tone of voice",
+        "language": "Language",
+        "headlines": "Headlines",
+        "proof": "Proof",
+        "seo": "SEO",
+        "checklists": "Checklists",
+        "always_rules": "Always rules",
+        "rules": "Checked rules",
+        "routing": "Sections per task"
+      },
+      "fields": {
+        "text": "Description",
+        "differentiators": "What sets us apart",
+        "never_say": "Never say",
+        "personas": "Personas",
+        "ai_patterns": "Phrases that sound like AI",
+        "spellings": "Spelling",
+        "glossary": "Glossary"
+      },
+      "columns": {
+        "label": "What",
+        "value": "Value",
+        "source": "Source",
+        "verified_at": "Verified on",
+        "note": "Note",
+        "name": "Name",
+        "text": "Description",
+        "wrong": "Wrong",
+        "right": "Right",
+        "term": "Term",
+        "translations": "Translations",
+        "pattern": "Pattern",
+        "flags": "Flags",
+        "message": "Message",
+        "do": "DO",
+        "dont": "DON'T",
+        "active": "On"
+      },
+      "minimum": {
+        "brand": "Add at least one thing that sets the company apart.",
+        "persona": "Describe at least one audience.",
+        "facts": "Add at least three facts with a verification date.",
+        "tone": "Write at least three lines about the tone, or list one phrase that sounds like AI.",
+        "language": "Add a spelling rule or a few words about the language."
+      },
+      "json_error": {
+        "parse": "Not valid JSON: {arg}",
+        "type": "Wrong type, expected {arg}",
+        "required": "Required",
+        "unknown": "Unknown key",
+        "too_long": "Longer than {arg} characters",
+        "too_many": "More than {arg} items",
+        "enum": "Must be one of: {arg}",
+        "format": "Wrong format"
+      }
+    },
+    "memory": {
+      "title": "Memory",
+      "description": "What the AI studio learned while working: SEO research, your answers and suggestions waiting for you. Suggestions come first.",
+      "subject_search": "Product or subject",
+      "kind_filter": "Kind",
+      "status_filter": "State",
+      "expiry_filter": "Expiry",
+      "empty": "Nothing remembered here yet.",
+      "delete_title": "Delete this memory entry?",
+      "all_kinds": "All kinds",
+      "all_statuses": "All states",
+      "kind": {
+        "seo_brief": "SEO research",
+        "answer": "Answer",
+        "rule_suggestion": "Rule suggestion",
+        "fact_suggestion": "Fact suggestion"
+      },
+      "status": {
+        "active": "In use",
+        "dismissed": "Dismissed",
+        "promoted": "Added to profile"
+      },
+      "expiry": {
+        "current": "Current",
+        "expired": "Expired",
+        "all": "All"
+      },
+      "expired": "Expired",
+      "expires": "Valid until",
+      "promote": "Add to profile",
+      "dismiss": "Dismiss",
+      "activate": "Use again",
+      "general": "General",
+      "studio_run": "Studio article",
+      "promoted_toast": "Added to the profile as a new version.",
+      "dismissed_toast": "Dismissed.",
+      "active_toast": "In use again.",
+      "deleted_toast": "Deleted."
+    },
+    "qa": {
+      "code": {
+        "rule": "Rule",
+        "NUMBER_NOT_IN_FACTS": "Number",
+        "checklist": "Checklist"
+      },
+      "number_message": "{number} is not in the company facts or the source — check it.",
+      "add_fact": "Add to facts",
+      "fact_suggested": "Suggested",
+      "fact_suggested_toast": "Suggested as a fact — confirm it in Memory.",
+      "check_standard": "Check against the standard",
+      "fix_warnings": "Fix warnings",
+      "checked_toast": "No problems found.",
+      "fixed_toast": "Corrected — a new version."
     }
   },
   "promo": {
@@ -4014,7 +4166,8 @@
       "email_smtp": "Email SMTP entries",
       "communicator_smtp": "Outreach mail (SMTP)",
       "siteintel_sources": "Site audit sources",
-      "siteintel_keys": "Site audit API keys"
+      "siteintel_keys": "Site audit API keys",
+      "enrichment_profile": "Communication profile"
     },
     "checks": {
       "toolbox_status": {
@@ -4037,6 +4190,9 @@
       "siteintel_keys": {
         "unreachable": "The {scope} API does not answer — site audits of this source fail",
         "auth_failed": "The {scope} API rejects the key — site audits of this source fail"
+      },
+      "enrichment_profile": {
+        "incomplete": "The communication profile is incomplete: {scope} — AI texts stay generic there"
       }
     }
   },
@@ -4414,7 +4570,8 @@
       },
       "enrichment": {
         "rules": "Enrichment spawn rules",
-        "proposals": "Enrichment tasks and proposals"
+        "proposals": "Enrichment tasks and proposals",
+        "profile": "Company profile and AI memory"
       },
       "lookup": {
         "search": "Product lookup"

@@ -1,0 +1,60 @@
+<template>
+  <p v-if="text" class="profile-usage m-0 fs-200 t-secondary" data-testid="profile-usage">
+    <FontAwesomeIcon :icon="$icons.info" class="mr-1" aria-hidden="true" />{{ text }}
+  </p>
+</template>
+
+<script>
+import { AREAS } from "@/configs/areas";
+import { useAccessStore } from "@/stores/access";
+import { valueShape } from "./correction";
+import { loadMergedProfile, usedSections } from "./profileUsage";
+
+const KIND_OF_SHAPE = { text: "write", select: "pick" };
+
+// What the AI was given from the company profile for this proposal: shown when its task used a profile
+// (`profile_versions`) and the user may read the profile; nothing on any failure.
+export default {
+  name: "ProfileUsageNote",
+  props: {
+    proposal: { type: Object, required: true },
+    task: { type: Object, default: null },
+  },
+  data() {
+    return { sections: [] };
+  },
+  computed: {
+    channel() {
+      return this.task?.params?.channel || this.proposal.target_locator?.channel || "";
+    },
+    key() {
+      const used = this.task?.profile_versions?.length && useAccessStore().can(AREAS.ENRICHMENT_PROFILE);
+      return used ? `${this.task.id}:${this.channel}` : "";
+    },
+    text() {
+      if (!this.sections.length) return "";
+      const names = this.sections.map(({ key, count }) => (count ? `${this.sectionName(key)} (${count})` : this.sectionName(key)));
+      return this.$t("enrichment.profile.used", { sections: names.join(", ") });
+    },
+  },
+  watch: {
+    key: { immediate: true, handler: "load" },
+  },
+  methods: {
+    async load() {
+      const key = this.key;
+      this.sections = [];
+      if (!key) return;
+      const data = await loadMergedProfile(this.channel);
+      if (key !== this.key || !data) return;
+      const kind = KIND_OF_SHAPE[valueShape(this.proposal.proposed_value)] || "";
+      this.sections = usedSections({ data, taskType: this.task.type, kind });
+    },
+    sectionName(key) {
+      const path = `enrichment.profile.sections.${key}`;
+      const name = this.$t(path);
+      return name === path ? key : name;
+    },
+  },
+};
+</script>

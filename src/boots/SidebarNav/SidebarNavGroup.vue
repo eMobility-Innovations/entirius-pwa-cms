@@ -26,6 +26,7 @@
             :icon="entry.icon"
             :to="{ path: entry.route, query: entry.query }"
             :active="entry.route === activeEntry"
+            :count="entry.count || 0"
           />
         </li>
       </ul>

@@ -58,6 +58,7 @@ import { ACCESS_STORE } from "@/composables/useReadonly";
 import { AREAS } from "@/configs/areas";
 import { useNotificationsStore } from "@/stores/notifications";
 import { useConfigHealthStore } from "@/stores/configHealth";
+import { useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
 import { useLeadTypesStore } from "@/stores/leadTypes";
 import { useIsDesktop } from "@/composables/useIsDesktop";
 import { tabBarShown, useActiveNav } from "@/composables/useNav";
@@ -92,9 +93,12 @@ export default {
     const notificationBar = useNotificationsStore();
     const configHealth = useConfigHealthStore();
     const leadTypes = useLeadTypesStore();
+    const enrichmentProfile = useEnrichmentProfileStore();
     const isDesktop = useIsDesktop();
     const { panelIdx, tree } = useActiveNav();
-    return { loader, userStore, handy, munin, access, notificationBar, configHealth, leadTypes, isDesktop, panelIdx, tree };
+    return {
+      loader, userStore, handy, munin, access, notificationBar, configHealth, leadTypes, enrichmentProfile, isDesktop, panelIdx, tree,
+    };
   },
   data() {
     return { envStatus, menuOpen: false, MOBILE_MENU_ID: "app-mobile-menu" };
@@ -119,6 +123,11 @@ export default {
     configHealthActive() {
       const allowed = this.access.loaded && this.access.can(AREAS.MUNIN_CONFIG);
       return this.userStore.isAuth && this.access.isStaff && allowed && this.munin.healthAvailable;
+    },
+    // The company profile's health row and the Memory badge: the enrichment module on, `enrichment.profile` readable.
+    enrichmentProfileActive() {
+      const allowed = this.access.loaded && this.access.can(AREAS.ENRICHMENT_PROFILE);
+      return this.userStore.isAuth && this.access.isStaff && allowed && this.munin.isModuleEnabled("enrichment");
     },
     // A phone shows the tab bar for a panel with two or more entries, never on `meta.noBottomBar` (Leads Review keeps
     // its sticky actions); without it `--bottom-bar-height` is 0 (the FloatingActions offset).
@@ -146,6 +155,13 @@ export default {
       handler(active) {
         if (active) this.configHealth.start();
         else this.configHealth.stop();
+      },
+      immediate: true,
+    },
+    enrichmentProfileActive: {
+      handler(active) {
+        if (active) this.enrichmentProfile.start();
+        else this.enrichmentProfile.stop();
       },
       immediate: true,
     },

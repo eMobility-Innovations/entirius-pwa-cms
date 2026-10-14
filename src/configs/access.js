@@ -127,7 +127,7 @@ export const panels = [
     root: "/enrichment",
     labelKey: "panels.enricher",
     descriptionKey: "panels.enricher_desc",
-    areas: [AREAS.ENRICHMENT_RULES, AREAS.ENRICHMENT_PROPOSALS],
+    areas: [AREAS.ENRICHMENT_RULES, AREAS.ENRICHMENT_PROPOSALS, AREAS.ENRICHMENT_PROFILE],
   },
   {
     name: "Promo",

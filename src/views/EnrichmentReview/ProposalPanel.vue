@@ -36,6 +36,9 @@
       />
     </div>
 
+    <QaWarnings :proposal="proposal" @updated="(p) => $emit('updated', p)" @busy="(value) => (qaBusy = value)" />
+    <ProfileUsageNote :proposal="proposal" :task="task" />
+
     <ProposalCorrection
       v-if="correctable"
       v-show="!editing"
@@ -60,7 +63,9 @@ import { PATCH_Proposal } from "@/api/enrichment/api";
 import CostLabel from "./CostLabel.vue";
 import DiffRenderer from "./DiffRenderer.vue";
 import LengthCounter from "./LengthCounter.vue";
+import ProfileUsageNote from "./ProfileUsageNote.vue";
 import ProposalCorrection from "./ProposalCorrection.vue";
+import QaWarnings from "./QaWarnings.vue";
 import { revisable, uniqueFragment, valueText } from "./correction";
 import { useFieldLabels } from "./useFieldLabels";
 import { editableText, isHtml, plainText, sourceText, textRules, translationSource, workerOf } from "./reviewLogic";
@@ -69,11 +74,13 @@ const ACTIONABLE = ["pending", "drifted"];
 
 // One proposal as a card: the field by its PIM name and the language, the change (DiffRenderer), Apply / Edit /
 // Reject. A translation shows its source text; a meta description its search preview. What its AI call cost sits in
-// the header; the worker and kind sit behind the info icon. `product` is the product on screen, else it is fetched when the view needs it. A pending
-// text or select proposal carries its correction tools (ProposalCorrection); a selection in the text narrows them.
+// the header; the worker and kind sit behind the info icon. Its QA warnings (with "Check against the standard" and
+// "Fix warnings") and what the AI used from the company profile sit under the text. `product` is the product on
+// screen, else it is fetched when the view needs it. A pending text or select proposal carries its correction tools
+// (ProposalCorrection); a selection in the text narrows them.
 export default {
   name: "ProposalPanel",
-  components: { CostLabel, DiffRenderer, LengthCounter, ProposalCorrection },
+  components: { CostLabel, DiffRenderer, LengthCounter, ProfileUsageNote, ProposalCorrection, QaWarnings },
   props: {
     proposal: { type: Object, required: true },
     task: { type: Object, default: null },
@@ -86,7 +93,7 @@ export default {
     return { pimChannel: usePimChannelStore(), notify: useNotifyStore(), ...useFieldLabels() };
   },
   data() {
-    return { editing: false, draft: "", saving: false, loaded: null, selection: "", correctionBusy: false };
+    return { editing: false, draft: "", saving: false, loaded: null, selection: "", correctionBusy: false, qaBusy: false };
   },
   computed: {
     locator() {
@@ -145,7 +152,7 @@ export default {
       return plainText(this.draft).trim().length;
     },
     actions() {
-      const off = this.busy || this.saving || this.correctionBusy;
+      const off = this.busy || this.saving || this.correctionBusy || this.qaBusy;
       if (this.editing) {
         return [
           { key: "cancel", role: "secondary", label: this.$t("common.cancel"), disabled: off, onClick: this.cancelEdit },

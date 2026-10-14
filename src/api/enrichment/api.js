@@ -180,3 +180,49 @@ export const POST_CancelRun = (uid) =>
 // params { channel } → { channel, complete, sections: [{ key, complete, minimum }] } of the merged profile.
 export const GET_ProfileStatus = (params) =>
   enrichmentApi.get(`${ENR}/profile/status/`, { params });
+
+// params { channel } → { channel, data, version, schema_version, updated_by_id, modified_at } — the scope's own data.
+export const GET_Profile = (params) =>
+  enrichmentApi.get(`${ENR}/profile/`, { params });
+
+// body { data, note? } → 200 new version; 400 details[].field = "data.<path>".
+export const PUT_Profile = (params, data) =>
+  enrichmentApi.put(`${ENR}/profile/`, data, { params });
+
+// params { channel } → [{ id, version, note, data, created_by_id, created_at }], newest first.
+export const GET_ProfileVersions = (params) =>
+  enrichmentApi.get(`${ENR}/profile/versions/`, { params });
+
+export const POST_RestoreProfileVersion = (number, params) =>
+  enrichmentApi.post(`${ENR}/profile/versions/${number}/restore/`, null, { params });
+
+// → { schema_version, json_schema }
+export const GET_ProfileSchema = () =>
+  enrichmentApi.get(`${ENR}/profile/schema/`);
+
+// --- Memory (contract A4 § 3) ---
+
+// params { channel?, kind?, subject_ref?, status?, page?, page_size? } → paginated entries, newest first.
+export const GET_Memory = (params) =>
+  enrichmentApi.get(`${ENR}/memory/`, { params });
+
+// body { status: "active" | "dismissed" }
+export const PATCH_Memory = (id, data) =>
+  enrichmentApi.patch(`${ENR}/memory/${id}/`, data);
+
+export const DELETE_Memory = (id) =>
+  enrichmentApi.delete(`${ENR}/memory/${id}/`);
+
+// body { target?: always_rules | rules | facts } → { entry, profile }
+export const POST_PromoteMemory = (id, data = {}) =>
+  enrichmentApi.post(`${ENR}/memory/${id}/promote/`, data);
+
+// --- QA checks (contract A4 § 4) ---
+
+// Re-runs the deterministic checks on the current value → the proposal.
+export const POST_CheckProposal = (proposalId) =>
+  enrichmentApi.post(`${ENR}/proposals/${proposalId}/check/`);
+
+// "Add to facts": body { value, label? } → 201 memory fact_suggestion.
+export const POST_SuggestFact = (proposalId, data) =>
+  enrichmentApi.post(`${ENR}/proposals/${proposalId}/facts/suggest/`, data);

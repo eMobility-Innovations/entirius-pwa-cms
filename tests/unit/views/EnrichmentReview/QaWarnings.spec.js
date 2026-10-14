@@ -1,0 +1,110 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
+
+const api = vi.hoisted(() => ({ GET_Proposal: vi.fn(), POST_ReviseProposal: vi.fn(), POST_SuggestFact: vi.fn(), GET_Profile: vi.fn() }));
+const refresh = vi.hoisted(() => vi.fn());
+const can = vi.hoisted(() => vi.fn(() => true));
+vi.mock("@/api/enrichment/api", () => api);
+vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
+vi.mock("@/stores/enrichmentProfile", () => ({ useEnrichmentProfileStore: () => ({ refresh }) }));
+vi.mock("@/stores/access", () => ({ useAccessStore: () => ({ can }) }));
+
+import QaWarnings from "@/views/EnrichmentReview/QaWarnings.vue";
+import ProfileUsageNote from "@/views/EnrichmentReview/ProfileUsageNote.vue";
+import { clearProfileCache, mergeProfiles, usedSections } from "@/views/EnrichmentReview/profileUsage";
+
+const NUMBER = { code: "NUMBER_NOT_IN_FACTS", message: "The number 25% is not in the facts registry.", span: { start: 4, end: 7, text: "25%" } };
+const RULE = { code: "rule", message: "Say 'affordable', not 'cheap'.", span: null };
+const proposal = (extra = {}) => ({ id: 7, status: "pending", proposed_value: { text: "Now 25% off, cheap!" }, warnings: [NUMBER, RULE], ...extra });
+
+describe("QaWarnings", () => {
+  beforeEach(() => {
+    Object.values(api).forEach((fn) => fn.mockReset());
+    refresh.mockReset();
+  });
+
+  it("lists the warnings in plain words; a number gets Add to facts", () => {
+    const w = mount(QaWarnings, { props: { proposal: proposal() } });
+    expect(w.find("[data-testid='qa-warning-NUMBER_NOT_IN_FACTS']").text()).toContain("enrichment.qa.number_message");
+    expect(w.find("[data-testid='qa-warning-rule']").text()).toContain("Say 'affordable', not 'cheap'.");
+    expect(w.findAll("[data-testid='qa-add-fact']")).toHaveLength(1);
+  });
+
+  it("Add to facts leaves a fact suggestion and refreshes the Memory badge", async () => {
+    api.POST_SuggestFact.mockResolvedValue({ data: { id: 3 } });
+    const w = mount(QaWarnings, { props: { proposal: proposal() } });
+    w.vm.suggestFact(NUMBER);
+    await flushPromises();
+    expect(api.POST_SuggestFact).toHaveBeenCalledWith(7, { value: "25%" });
+    expect(refresh).toHaveBeenCalled();
+    expect(w.vm.suggested).toEqual(["25%"]);
+  });
+
+  it("Check against the standard stores the answer's warnings on the card, no new version", async () => {
+    const checklist = { code: "checklist", message: "No concrete benefit.", span: null };
+    api.POST_ReviseProposal.mockResolvedValue({ data: { warnings: [checklist] } });
+    const w = mount(QaWarnings, { props: { proposal: proposal() } });
+    await w.vm.checkStandard();
+    expect(api.POST_ReviseProposal).toHaveBeenCalledWith(7, { quick_action: "check_standard" });
+    expect(w.emitted("updated")[0][0].warnings).toEqual([checklist]);
+    expect(api.GET_Proposal).not.toHaveBeenCalled();
+  });
+
+  it("Fix warnings makes a corrected version and hands up the reloaded proposal", async () => {
+    api.POST_ReviseProposal.mockResolvedValue({ data: { number: 2 } });
+    api.GET_Proposal.mockResolvedValue({ data: proposal({ proposed_value: { text: "Fixed" }, warnings: [] }) });
+    const w = mount(QaWarnings, { props: { proposal: proposal() } });
+    await w.vm.fixWarnings();
+    expect(api.POST_ReviseProposal).toHaveBeenCalledWith(7, { quick_action: "fix_warnings" });
+    expect(w.emitted("updated")[0][0].proposed_value).toEqual({ text: "Fixed" });
+    expect(w.emitted("busy").map(([b]) => b)).toEqual([true, false]);
+  });
+
+  it("an applied proposal shows its warnings without the quick actions", () => {
+    const w = mount(QaWarnings, { props: { proposal: proposal({ status: "applied" }) } });
+    expect(w.find("[data-testid='qa-check-standard']").exists()).toBe(false);
+    expect(w.findAll("li")).toHaveLength(2);
+  });
+
+  it("renders nothing for an applied proposal without warnings", () => {
+    const w = mount(QaWarnings, { props: { proposal: proposal({ status: "applied", warnings: [] }) } });
+    expect(w.find("[data-testid='qa-warnings']").exists()).toBe(false);
+  });
+});
+
+describe("profile usage", () => {
+  const DATA = {
+    brand: { text: "We make sofas." },
+    tone: { text: "Calm." },
+    persona: { text: "", personas: [] },
+    facts: [{ id: "f1" }, { id: "f2" }, { id: "f3" }, { id: "f4" }],
+  };
+
+  it("names the routed sections with content, facts and brand first", () => {
+    expect(usedSections({ data: DATA, taskType: "pim.writer", kind: "write" })).toEqual([
+      { key: "facts", count: 4 }, { key: "brand" }, { key: "tone" },
+    ]);
+    const routed = { ...DATA, routing: { "pim.writer": ["tone", "facts"] } };
+    expect(usedSections({ data: routed, taskType: "pim.writer", kind: "write" })).toEqual([{ key: "facts", count: 4 }, { key: "tone" }]);
+  });
+
+  it("an overlay replaces whole sections it fills", () => {
+    expect(mergeProfiles({ tone: { text: "A" }, brand: { text: "B" } }, { tone: { text: "C" }, brand: { text: "" } })).toEqual({
+      tone: { text: "C" }, brand: { text: "B" },
+    });
+  });
+
+  it("the note shows only for a task that used a profile", async () => {
+    clearProfileCache();
+    api.GET_Profile.mockImplementation(({ channel }) => Promise.resolve({ data: { data: channel ? { tone: { text: "Eu." } } : DATA } }));
+    const $t = (key, params) => (params ? `${key}:${params.sections}` : `T:${key}`);
+    const task = { id: 1, type: "pim.writer", params: { channel: "eu" }, profile_versions: [4, 9] };
+    const w = mount(ProfileUsageNote, { props: { proposal: proposal(), task }, global: { mocks: { $t } } });
+    await flushPromises();
+    expect(w.text()).toBe("enrichment.profile.used:T:enrichment.profile.sections.facts (4), T:enrichment.profile.sections.brand, T:enrichment.profile.sections.tone");
+    expect(api.GET_Profile).toHaveBeenCalledWith({ channel: "eu" });
+    const none = mount(ProfileUsageNote, { props: { proposal: proposal(), task: { ...task, profile_versions: [] } } });
+    await flushPromises();
+    expect(none.find("[data-testid='profile-usage']").exists()).toBe(false);
+  });
+});

@@ -61,7 +61,9 @@
       "applications": "Aplikacje"
     },
     "enrichment_templates": "Szablony AI",
-    "enrichment_studio": "Studio"
+    "enrichment_studio": "Studio",
+    "enrichment_profile": "Profil firmy",
+    "enrichment_memory": "Pamięć"
   },
   "login": {
     "welcome": "Zaloguj się",
@@ -3098,6 +3100,156 @@
         "created": "Szkic jest w Stronach, nieopublikowany.",
         "open": "Otwórz szkic w ContentDB"
       }
+    },
+    "profile": {
+      "title": "Profil firmy",
+      "description": "Co AI wie o firmie: marka, odbiorcy, fakty, ton i zasady języka. Każdy tekst AI się do niego stosuje.",
+      "scope": "Zakres",
+      "whole_company": "Cała firma",
+      "unsaved": "Niezapisane zmiany",
+      "overlay_note": "Profil kanału zawiera tylko to, co różni się od całej firmy — pusta sekcja korzysta z profilu firmy.",
+      "save_note": "Opis wersji",
+      "note": "Co się zmieniło",
+      "note_hint": "Zapisuje się z nową wersją i widać go w historii.",
+      "json": "Profil jako JSON",
+      "history": "Historia",
+      "edit_form": "Edytuj w formularzu",
+      "edit_json": "Edytuj JSON",
+      "saved": "Profil zapisany jako nowa wersja.",
+      "restored": "Wersja przywrócona jako nowa wersja.",
+      "completeness": "Kompletne sekcje: {done} z {total}",
+      "complete": "Kompletna",
+      "incomplete": "Do uzupełnienia",
+      "add_item": "Wpisz i naciśnij Enter",
+      "write": "Pisz",
+      "preview": "Podgląd",
+      "no_rows": "Na razie pusto.",
+      "active": "Sprawdzana",
+      "map_placeholder": "pl: tekst; de: Text",
+      "remove_row": "Usuń wiersz",
+      "add_row": "Dodaj wiersz",
+      "json_only": "Tę część edytuj w trybie Edytuj JSON.",
+      "no_versions": "Jeszcze nie zapisano.",
+      "version": "Wersja {n}",
+      "restore": "Przywróć",
+      "compare_from": "Porównaj",
+      "compare_to": "z",
+      "restore_title": "Przywrócić wersję {n}?",
+      "restore_message": "Jej treść stanie się bieżącym profilem jako nowa wersja. Nic nie ginie: bieżąca wersja zostaje w historii.",
+      "used": "Użyto z profilu: {sections}",
+      "sections": {
+        "brand": "Marka",
+        "persona": "Odbiorcy",
+        "facts": "Fakty",
+        "tone": "Ton",
+        "language": "Język",
+        "headlines": "Nagłówki",
+        "proof": "Dowody",
+        "seo": "SEO",
+        "checklists": "Listy kontrolne",
+        "always_rules": "Zasady stałe",
+        "rules": "Reguły sprawdzane",
+        "routing": "Sekcje dla zadań"
+      },
+      "fields": {
+        "text": "Opis",
+        "differentiators": "Czym się wyróżniamy",
+        "never_say": "Nigdy nie mów",
+        "personas": "Persony",
+        "ai_patterns": "Zwroty brzmiące jak AI",
+        "spellings": "Pisownia",
+        "glossary": "Słownik"
+      },
+      "columns": {
+        "label": "Co",
+        "value": "Wartość",
+        "source": "Źródło",
+        "verified_at": "Sprawdzono",
+        "note": "Uwaga",
+        "name": "Nazwa",
+        "text": "Opis",
+        "wrong": "Błędnie",
+        "right": "Poprawnie",
+        "term": "Termin",
+        "translations": "Tłumaczenia",
+        "pattern": "Wzorzec",
+        "flags": "Flagi",
+        "message": "Komunikat",
+        "do": "TAK",
+        "dont": "NIE",
+        "active": "Wł."
+      },
+      "minimum": {
+        "brand": "Dodaj co najmniej jedną rzecz, która wyróżnia firmę.",
+        "persona": "Opisz co najmniej jednego odbiorcę.",
+        "facts": "Dodaj co najmniej trzy fakty z datą sprawdzenia.",
+        "tone": "Napisz co najmniej trzy zdania o tonie albo dodaj jeden zwrot brzmiący jak AI.",
+        "language": "Dodaj regułę pisowni albo kilka słów o języku."
+      },
+      "json_error": {
+        "parse": "Niepoprawny JSON: {arg}",
+        "type": "Zły typ, oczekiwano {arg}",
+        "required": "Wymagane",
+        "unknown": "Nieznany klucz",
+        "too_long": "Dłuższe niż {arg} znaków",
+        "too_many": "Więcej niż {arg} pozycji",
+        "enum": "Dozwolone: {arg}",
+        "format": "Zły format"
+      }
+    },
+    "memory": {
+      "title": "Pamięć",
+      "description": "Czego studio AI nauczyło się przy pracy: analizy SEO, twoje odpowiedzi i czekające na ciebie sugestie. Sugestie są na górze.",
+      "subject_search": "Produkt lub temat",
+      "kind_filter": "Rodzaj",
+      "status_filter": "Stan",
+      "expiry_filter": "Ważność",
+      "empty": "Nic tu jeszcze nie zapamiętano.",
+      "delete_title": "Usunąć ten wpis pamięci?",
+      "all_kinds": "Wszystkie rodzaje",
+      "all_statuses": "Wszystkie stany",
+      "kind": {
+        "seo_brief": "Analiza SEO",
+        "answer": "Odpowiedź",
+        "rule_suggestion": "Sugestia reguły",
+        "fact_suggestion": "Sugestia faktu"
+      },
+      "status": {
+        "active": "W użyciu",
+        "dismissed": "Odrzucone",
+        "promoted": "Dodane do profilu"
+      },
+      "expiry": {
+        "current": "Aktualne",
+        "expired": "Wygasłe",
+        "all": "Wszystkie"
+      },
+      "expired": "Wygasło",
+      "expires": "Ważne do",
+      "promote": "Dodaj do profilu",
+      "dismiss": "Odrzuć",
+      "activate": "Przywróć do użycia",
+      "general": "Ogólne",
+      "studio_run": "Artykuł ze studia",
+      "promoted_toast": "Dodano do profilu jako nową wersję.",
+      "dismissed_toast": "Odrzucono.",
+      "active_toast": "Znów w użyciu.",
+      "deleted_toast": "Usunięto."
+    },
+    "qa": {
+      "code": {
+        "rule": "Reguła",
+        "NUMBER_NOT_IN_FACTS": "Liczba",
+        "checklist": "Lista kontrolna"
+      },
+      "number_message": "{number} nie ma w faktach firmy ani w źródle — sprawdź.",
+      "add_fact": "Dodaj do faktów",
+      "fact_suggested": "Zasugerowano",
+      "fact_suggested_toast": "Zasugerowano jako fakt — potwierdź w Pamięci.",
+      "check_standard": "Sprawdź ze standardem",
+      "fix_warnings": "Popraw ostrzeżenia",
+      "checked_toast": "Nie znaleziono problemów.",
+      "fixed_toast": "Poprawiono — nowa wersja."
     }
   },
   "promo": {
@@ -4013,7 +4165,8 @@
       "email_smtp": "Wpisy SMTP poczty",
       "communicator_smtp": "Poczta outreach (SMTP)",
       "siteintel_sources": "Źródła audytów stron",
-      "siteintel_keys": "Klucze API audytów stron"
+      "siteintel_keys": "Klucze API audytów stron",
+      "enrichment_profile": "Profil komunikacji"
     },
     "checks": {
       "toolbox_status": {
@@ -4036,6 +4189,9 @@
       "siteintel_keys": {
         "unreachable": "API {scope} nie odpowiada — audyty stron z tego źródła kończą się błędem",
         "auth_failed": "API {scope} odrzuca klucz — audyty stron z tego źródła kończą się błędem"
+      },
+      "enrichment_profile": {
+        "incomplete": "Profil komunikacji jest niepełny: {scope} — teksty AI będą tam ogólnikowe"
       }
     }
   },
@@ -4413,7 +4569,8 @@
       },
       "enrichment": {
         "rules": "Reguły tworzenia zadań wzbogacania",
-        "proposals": "Zadania i propozycje wzbogacania"
+        "proposals": "Zadania i propozycje wzbogacania",
+        "profile": "Profil firmy i pamięć AI"
       },
       "lookup": {
         "search": "Wyszukiwanie produktów"

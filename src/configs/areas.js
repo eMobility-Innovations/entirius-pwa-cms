@@ -21,6 +21,7 @@ export const AREAS = Object.freeze({
   ATLAS_CREDENTIALS: "atlas.credentials",
   ENRICHMENT_RULES: "enrichment.rules",
   ENRICHMENT_PROPOSALS: "enrichment.proposals",
+  ENRICHMENT_PROFILE: "enrichment.profile",
   LOOKUP_SEARCH: "lookup.search",
   CONTENT_PAGES: "content.pages",
   CONTENT_PUBLISH: "content.publish",
