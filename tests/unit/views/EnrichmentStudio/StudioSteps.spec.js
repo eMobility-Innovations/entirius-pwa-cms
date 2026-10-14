@@ -178,6 +178,32 @@ describe("StepPanel", () => {
     expect(w.findComponent({ name: "ActionBar" }).exists()).toBe(false);
   });
 
+  it("a cancelled run says its open steps stopped instead of working", async () => {
+    const run = { ...RUN, status: "cancelled", steps: [RUN.steps[0], { ...RUN.steps[1], status: "running" }] };
+    const w = mount(StepPanel, { props: { run, step: run.steps[1] }, global: { stubs } });
+    await flushPromises();
+    expect(w.find("[data-testid='step-stopped']").exists()).toBe(true);
+    expect(w.find("[data-testid='step-running']").exists()).toBe(false);
+  });
+
+  it("a running step gone quiet says so and offers Regenerate", async () => {
+    const quiet = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const run = { ...RUN, status: "running", modified_at: quiet, steps: [RUN.steps[0], { ...RUN.steps[1], status: "running" }] };
+    const w = mount(StepPanel, { props: { run, step: run.steps[1] }, global: { stubs } });
+    await flushPromises();
+    expect(w.find("[data-testid='step-stale']").exists()).toBe(true);
+    expect(w.find("[data-testid='step-running']").exists()).toBe(false);
+    expect(action(w, "regenerate")).toBeTruthy();
+  });
+
+  it("a running step still fresh shows the spinner and no Regenerate", async () => {
+    const run = { ...RUN, status: "running", modified_at: new Date().toISOString(), steps: [RUN.steps[0], { ...RUN.steps[1], status: "running" }] };
+    const w = mount(StepPanel, { props: { run, step: run.steps[1] }, global: { stubs } });
+    await flushPromises();
+    expect(w.find("[data-testid='step-running']").exists()).toBe(true);
+    expect(w.findComponent({ name: "ActionBar" }).exists()).toBe(false);
+  });
+
   it("a waiting step says what it waits for and offers no decision", async () => {
     const run = { ...RUN, steps: [RUN.steps[0], { ...RUN.steps[1], status: "waiting", proposal_id: null }] };
     const w = mount(StepPanel, { props: { run, step: run.steps[1] }, global: { stubs } });

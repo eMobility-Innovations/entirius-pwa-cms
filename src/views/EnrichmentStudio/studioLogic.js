@@ -11,10 +11,14 @@ const STEP_LOOK = {
 
 const RUN_TONES = { running: "info", waiting: "warning", done: "positive", failed: "negative", cancelled: "neutral" };
 
-// The content type a workflow document lands in (django-contentdb `ENRICHMENT_DOCUMENT_TYPE`).
+// The content type a workflow document lands in. Coupled to django-contentdb `CONTENTDB_ENRICHMENT_DOCUMENT_TYPE`
+// (default "blog-post") until the run carries its draft's type — docs/panels-routing.md.
 export const DOCUMENT_TYPE = "blog-post";
 export const MAX_SECONDARY = 2;
 const LONG_TEXT = 300;
+// A run that has not changed for this long while a step is marked running has likely lost its task.
+export const STALE_MS = 3 * 60 * 1000;
+const CLOSED_RUN = ["done", "cancelled"];
 
 /** The icon and tone of a step state. */
 export const stepLook = (status) => STEP_LOOK[status] || STEP_LOOK.waiting;
@@ -39,8 +43,17 @@ export function defaultStep(run) {
   return first("review") || first("running") || first("failed") || run?.current_step || steps.at(-1)?.key || "";
 }
 
-/** A run still working on a step: the view keeps refreshing it. */
-export const isRunWorking = (run) => (run?.steps || []).some((step) => step.status === "running");
+/** A done or cancelled run: no decisions, no refresh. */
+export const isRunClosed = (run) => CLOSED_RUN.includes(run?.status);
+
+/** A run that has not changed for STALE_MS (false without `modified_at`). */
+export const isRunStale = (run, now = Date.now()) => now - Date.parse(run?.modified_at) > STALE_MS;
+
+/** An open run still working on a step that has not gone quiet: the view keeps refreshing it. */
+export function isRunWorking(run, now = Date.now()) {
+  if (isRunClosed(run) || isRunStale(run, now)) return false;
+  return (run?.steps || []).some((step) => step.status === "running");
+}
 
 /** The label of the run's current step ("" when every step is approved). */
 export function currentStepLabel(run) {
@@ -77,8 +90,17 @@ export function briefFieldError(field, raw) {
   if (!value) return field.required ? "required" : "";
   if (field.minLength != null && value.length < field.minLength) return "too_short";
   if (field.maxLength != null && value.length > field.maxLength) return "too_long";
-  if (field.pattern && !new RegExp(field.pattern).test(value)) return "format";
-  return "";
+  return matchesPattern(field.pattern, value) ? "" : "format";
+}
+
+// A schema pattern JavaScript cannot compile is left to the server, which validates the brief anyway.
+function matchesPattern(pattern, value) {
+  if (!pattern) return true;
+  try {
+    return new RegExp(pattern, "u").test(value);
+  } catch {
+    return true;
+  }
 }
 
 /** { field key: error code } of the brief; empty when it can be sent. */

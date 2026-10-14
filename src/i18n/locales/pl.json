@@ -3026,6 +3026,8 @@
       "waiting_for": "Rusza po zatwierdzeniu kroków: {steps}.",
       "running": "AI pracuje nad tym krokiem. Strona odświeża się sama.",
       "failed": "Ten krok się nie udał. Wygeneruj go ponownie, opcjonalnie z instrukcją.",
+      "stale": "To trwa dłużej niż zwykle. Wygeneruj krok ponownie, aby spróbować jeszcze raz.",
+      "stopped": "Zatrzymany przy anulowaniu procesu.",
       "approve": "Zatwierdź",
       "approved_toast": "Krok zatwierdzony",
       "regenerate": "Wygeneruj ponownie",

@@ -7,13 +7,19 @@
         <CostLabel v-if="proposal" class="step-panel__cost" :cost="proposal.cost_usd" />
       </header>
 
-      <p v-if="step.status === 'waiting'" class="m-0 t-secondary" data-testid="step-waiting">
+      <p v-if="stopped" class="m-0 t-secondary" data-testid="step-stopped">
+        {{ $t("enrichment.studio.stopped") }}
+      </p>
+      <p v-else-if="step.status === 'waiting'" class="m-0 t-secondary" data-testid="step-waiting">
         {{ $t("enrichment.studio.waiting_for", { steps: neededLabels }) }}
       </p>
-      <div v-else-if="step.status === 'running'" class="flex ai-ct gap-3 t-secondary" data-testid="step-running">
+      <div v-else-if="step.status === 'running' && !stale" class="flex ai-ct gap-3 t-secondary" data-testid="step-running">
         <Loader />
         <span>{{ $t("enrichment.studio.running") }}</span>
       </div>
+      <p v-else-if="step.status === 'running'" class="m-0 t-secondary" data-testid="step-stale">
+        {{ $t("enrichment.studio.stale") }}
+      </p>
       <p v-else-if="step.status === 'failed'" class="m-0 step-panel__failed" role="alert" data-testid="step-failed">
         {{ $t("enrichment.studio.failed") }}
       </p>
@@ -56,10 +62,9 @@ import KeywordsTable from "./KeywordsTable.vue";
 import MetaCards from "./MetaCards.vue";
 import QuestionsForm from "./QuestionsForm.vue";
 import TextArtifact from "./TextArtifact.vue";
-import { outputKind, stepLook } from "./studioLogic";
+import { isRunClosed, isRunStale, outputKind, stepLook } from "./studioLogic";
 
 const REGENERABLE = ["review", "failed"];
-const CLOSED = ["done", "cancelled"];
 
 // One step of a run: its output by type (questions form, text card, search phrases, metadata, document summary) and
 // its decisions — Approve (the next steps start) and Regenerate with an optional instruction. A changed run goes up
@@ -96,14 +101,24 @@ export default {
     outputKey() {
       return this.step.proposal_id ? `${this.step.proposal_id}:${this.step.status}` : "";
     },
+    // Re-evaluated on every refresh of the run; the view stops refreshing once the run has gone quiet.
+    stale() {
+      return this.step.status === "running" && isRunStale(this.run);
+    },
+    stopped() {
+      return this.run.status === "cancelled" && this.step.status !== "approved";
+    },
+    canRegenerate() {
+      return REGENERABLE.includes(this.step.status) || this.stale;
+    },
     canApprove() {
       return this.step.status === "review" && this.proposal?.status === "pending";
     },
     actions() {
-      if (CLOSED.includes(this.run.status)) return [];
+      if (isRunClosed(this.run)) return [];
       const off = this.busy || this.correcting || this.loading;
       return [
-        REGENERABLE.includes(this.step.status) && {
+        this.canRegenerate && {
           key: "regenerate", role: "secondary", mutates: true, label: this.$t("enrichment.studio.regenerate"),
           disabled: off, testid: "step-regenerate", onClick: this.openRegenerate,
         },

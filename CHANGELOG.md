@@ -20,7 +20,8 @@ All notable changes to this project will be documented in this file.
   output: a questions form (why-hints, required answers, Save), text with the correction tools, search phrases with a
   main / supporting pick, metadata cards with length counters and a search preview, and the document summary with
   "Open draft in ContentDB" once approved. Approve and Regenerate (optional instruction) per step, Cancel run, run
-  cost in the header, auto-refresh while a step works, and a notice when the company profile is incomplete.
+  cost in the header, auto-refresh while a step works (it stops on a cancelled run, and a step quiet for 3 minutes
+  offers Regenerate), and a notice when the company profile is incomplete.
 
 ## [3.2.0] (2026-10-12)
 

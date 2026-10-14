@@ -43,6 +43,23 @@ describe("RunView", () => {
     expect(w.findComponent(StepPanel).props("step").status).toBe("review");
   });
 
+  it("a cancelled run with a running step schedules no refresh", async () => {
+    api.GET_Run.mockResolvedValue({ data: { ...run(step("a", "running")), status: "cancelled" } });
+    mountRun();
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(12000);
+    expect(api.GET_Run).toHaveBeenCalledTimes(1);
+  });
+
+  it("a running step stops refreshing once the run has gone quiet", async () => {
+    const quiet = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    api.GET_Run.mockResolvedValue({ data: { ...run(step("a", "running")), modified_at: quiet } });
+    mountRun();
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(12000);
+    expect(api.GET_Run).toHaveBeenCalledTimes(1);
+  });
+
   it("an approval moves the selection to the next step that needs attention", async () => {
     api.GET_Run.mockResolvedValue({ data: run(step("a", "review"), step("b", "waiting")) });
     const w = mountRun({ step: "a" });

@@ -71,6 +71,10 @@ path prefix and lazy-loaded (`() => import(...)`). Grouped by panel:
 Details for every child route are in `src/router/index.js` — this table maps
 prefixes to view components, not individual paths.
 
+Studio "Open draft" builds a Builder route with the content type `blog-post` (`DOCUMENT_TYPE` in
+`src/views/EnrichmentStudio/studioLogic.js`), a copy of the backend setting `CONTENTDB_ENRICHMENT_DOCUMENT_TYPE`. A
+service that changes that setting opens the wrong Builder route until the run API carries its draft's content type.
+
 ## Gating Model
 
 ### `meta.panel` — panel-level gate

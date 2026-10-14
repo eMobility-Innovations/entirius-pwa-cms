@@ -3027,6 +3027,8 @@
       "waiting_for": "Starts once these steps are approved: {steps}.",
       "running": "The AI is working on this step. The page refreshes by itself.",
       "failed": "This step did not finish. Regenerate it, optionally with an instruction.",
+      "stale": "This is taking longer than usual. Regenerate the step to try again.",
+      "stopped": "Stopped when the run was cancelled.",
       "approve": "Approve",
       "approved_toast": "Step approved",
       "regenerate": "Regenerate",

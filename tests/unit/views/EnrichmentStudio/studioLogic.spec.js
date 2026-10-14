@@ -7,6 +7,7 @@ import {
   defaultStep,
   draftRoute,
   initialBrief,
+  isRunStale,
   isRunWorking,
   keywordRole,
   keywordRows,
@@ -50,6 +51,8 @@ describe("steps rail", () => {
   it("knows when a run is still working and names its current step", () => {
     expect(isRunWorking(RUN)).toBe(false);
     expect(isRunWorking({ steps: [step("a", "running")] })).toBe(true);
+    expect(isRunWorking({ status: "cancelled", steps: [step("a", "running")] })).toBe(false);
+    expect(isRunWorking({ status: "done", steps: [step("a", "running")] })).toBe(false);
     expect(currentStepLabel(RUN)).toBe("DRAFT");
     expect(currentStepLabel({ ...RUN, current_step: null })).toBe("");
   });
@@ -87,6 +90,20 @@ describe("brief form", () => {
     expect(briefErrors(fields, { topic: "", language: "EN", notes: "" })).toEqual({ topic: "required", language: "format" });
     expect(briefErrors(fields, { topic: "ab", language: "en" })).toEqual({ topic: "too_short" });
     expect(briefErrors(fields, { topic: "Sofas", language: "en", notes: "" })).toEqual({});
+  });
+
+  it("a run quiet for longer than the limit is stale and stops refreshing", () => {
+    const now = Date.parse("2026-10-15T12:00:00Z");
+    const run = (modified_at) => ({ status: "running", modified_at, steps: [step("a", "running")] });
+    expect(isRunStale(run("2026-10-15T11:58:00Z"), now)).toBe(false);
+    expect(isRunStale(run("2026-10-15T11:56:00Z"), now)).toBe(true);
+    expect(isRunWorking(run("2026-10-15T11:58:00Z"), now)).toBe(true);
+    expect(isRunWorking(run("2026-10-15T11:56:00Z"), now)).toBe(false);
+  });
+
+  it("leaves a pattern JavaScript cannot compile to the server", () => {
+    const fields = briefFields({ properties: { code: { type: "string", pattern: "^[a-z]+\\Z" } } });
+    expect(briefErrors(fields, { code: "abc" })).toEqual({});
   });
 
   it("sends trimmed values and leaves empty ones out", () => {
