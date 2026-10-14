@@ -2896,8 +2896,8 @@
       },
       "variants_title": "Wybierz wariant",
       "variant_pick": "Użyj wariantu {number}",
-      "all": "Popraw wszystkie ({count})",
-      "all_title": "Popraw wszystkie propozycje ({count})",
+      "all": "Popraw wszystkie w tym uruchomieniu: {count} (wszystkie produkty)",
+      "all_title": "Popraw wszystkie propozycje tego uruchomienia ({count})",
       "all_hint": "Jedna instrukcja dla każdej propozycji, która czeka na przegląd. Poprawki idą w tle; każda propozycja dostaje nową wersję.",
       "all_queued": "Poprawiam w tle propozycje: {count} — nowe wersje pojawią się po kolei."
     },

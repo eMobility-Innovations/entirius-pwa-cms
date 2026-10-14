@@ -52,7 +52,7 @@
         <div v-if="taskFilter" class="ai-results__filter flex ai-ct flex-wrap gap-3 fs-200" data-testid="ai-results-filter">
           <span>{{ $t("enrichment.ai.filtered", { worker: filterLabel }) }}</span>
           <BasicButton variant="ghost" size="sm" @click="taskFilter = null">{{ $t("enrichment.ai.show_all") }}</BasicButton>
-          <BatchCorrection v-if="correctable.length" class="ml-auto" :task-id="taskFilter" :count="correctable.length" @queued="refresh" />
+          <BatchCorrection v-if="correctable.length" class="ml-auto" :task-id="taskFilter" @queued="refresh" />
         </div>
 
         <EmptyState
@@ -97,7 +97,7 @@ import { useProductAi } from "./useProductAi";
 // The AI of the product on screen: one header icon (the Enricher's) with the pending count, a pulsing dot while a
 // task runs or a warning dot after a failure, opening a drawer: Run AI (one button per worker, `run`), the
 // product's tasks in plain words and its pending proposals as cards, reviewed in place (Apply all
-// when there are several). Picking a task shows only its proposals, with "Correct all" for them. An applied proposal goes to the page
+// when there are several). Picking a task shows only its proposals, with "Correct all" for the whole run. An applied proposal goes to the page
 // (`applied`) so the product form shows the new value.
 export default {
   name: "ProductAiResults",
@@ -136,7 +136,7 @@ export default {
       if (!this.taskFilter) return this.proposals;
       return this.proposals.filter((p) => p.task_id === this.taskFilter);
     },
-    // What "Correct all" reaches: the picked task's pending proposals.
+    // Whether "Correct all" shows: the picked task has pending proposals here (it reaches all of the run's products).
     correctable() {
       return this.shown.filter((p) => p.status === "pending");
     },

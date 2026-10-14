@@ -26,7 +26,7 @@ const stubs = {
   IconButton: { name: "IconButton", props: ["icon", "label"], template: "<button :aria-label='label' />" },
   BasicButton: { props: ["disabled"], template: "<button :disabled='disabled'><slot /></button>" },
   RouterLink: { props: ["to"], template: "<a><slot /></a>" },
-  BatchCorrection: { name: "BatchCorrection", props: ["taskId", "count"], emits: ["queued"], template: "<div />" },
+  BatchCorrection: { name: "BatchCorrection", props: ["taskId"], emits: ["queued"], template: "<div />" },
 };
 
 function mountResults({ proposals = [], tasks = [], running = false, usable = true } = {}) {
@@ -172,7 +172,7 @@ describe("ProductAiResults", () => {
     w.findComponent({ name: "AiTaskList" }).vm.$emit("select", 6);
     await w.vm.$nextTick();
     const batch = w.findComponent({ name: "BatchCorrection" });
-    expect(batch.props()).toEqual({ taskId: 6, count: 2 });
+    expect(batch.props()).toEqual({ taskId: 6 });
     batch.vm.$emit("queued", 2);
     expect(ai.refresh).toHaveBeenCalled();
   });

@@ -2897,8 +2897,8 @@
       },
       "variants_title": "Pick a variant",
       "variant_pick": "Use variant {number}",
-      "all": "Correct all ({count})",
-      "all_title": "Correct all {count} proposals",
+      "all": "Correct all {count} in this run (all products)",
+      "all_title": "Correct all {count} proposals of this run",
       "all_hint": "One instruction for every proposal still waiting for review. The corrections run in the background; each proposal gets a new version.",
       "all_queued": "Correcting {count} proposals in the background — new versions appear as they finish."
     },

@@ -11,7 +11,7 @@ vi.mock("@/stores/pimChannel", () => ({
 import EnrichmentReview from "@/views/EnrichmentReview/index.vue";
 
 const ListMode = { name: "ListMode", props: ["rows", "bulk", "totalCount"], template: "<div />" };
-const BatchCorrection = { name: "BatchCorrection", props: ["taskId", "count"], emits: ["queued"], template: "<div />" };
+const BatchCorrection = { name: "BatchCorrection", props: ["taskId"], emits: ["queued"], template: "<div />" };
 const BasicButton = { emits: ["click"], template: "<button @click=\"$emit('click')\"><slot /></button>" };
 const replace = vi.fn();
 
@@ -34,7 +34,7 @@ describe("EnrichmentReview filtered by task", () => {
     const w = await mountPage({ task: "12" });
     expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ task: "12", status: "pending" });
     expect(w.findComponent({ name: "ListMode" }).props("bulk")).toBe(false);
-    expect(w.findComponent({ name: "BatchCorrection" }).props()).toEqual({ taskId: 12, count: 3 });
+    expect(w.findComponent({ name: "BatchCorrection" }).props()).toEqual({ taskId: 12 });
   });
 
   it("Show all drops the task filter", async () => {

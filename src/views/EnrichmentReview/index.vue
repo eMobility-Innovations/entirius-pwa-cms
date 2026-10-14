@@ -50,10 +50,9 @@
             {{ $t("enrichment.ai.show_all") }}
           </BasicButton>
           <BatchCorrection
-            v-if="filters.status === 'pending' && totalCount"
+            v-if="filters.status === 'pending'"
             class="ml-auto"
             :task-id="Number(filters.task)"
-            :count="totalCount"
             @queued="fetchRows"
           />
         </div>

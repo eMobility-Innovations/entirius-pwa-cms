@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   PUT_ProposalRules: vi.fn(),
   POST_PromoteRule: vi.fn(),
   POST_ReviseTask: vi.fn(),
+  GET_Proposals: vi.fn(),
 }));
 const notify = vi.fn();
 vi.mock("@/api/enrichment/api", () => api);
@@ -117,11 +118,21 @@ describe("ProposalCorrection", () => {
 });
 
 describe("BatchCorrection", () => {
-  beforeEach(() => notify.mockReset());
+  beforeEach(() => {
+    notify.mockReset();
+    api.GET_Proposals.mockReset();
+  });
 
-  it("Correct all (N) queues one instruction for the task's pending proposals", async () => {
+  async function mountBatch(count) {
+    api.GET_Proposals.mockResolvedValue({ data: { count, results: [] } });
+    const w = mount(BatchCorrection, { props: { taskId: 5 }, global: { stubs } });
+    await flushPromises();
+    return w;
+  }
+
+  it("Correct all N queues one instruction for the task's pending proposals", async () => {
     api.POST_ReviseTask.mockResolvedValue({ data: { queued: 4 } });
-    const w = mount(BatchCorrection, { props: { taskId: 5, count: 4 }, global: { stubs } });
+    const w = await mountBatch(4);
     expect(w.find("[data-testid='batch-correct']").text()).toBe('enrichment.correct.all::{"count":4}');
     await w.find("[data-testid='batch-correct']").trigger("click");
     const bar = w.findComponent({ name: "CorrectionBar" });
@@ -131,5 +142,23 @@ describe("BatchCorrection", () => {
     expect(api.POST_ReviseTask).toHaveBeenCalledWith(5, { instruction: "Use 'you'" });
     expect(w.emitted("queued")[0]).toEqual([4]);
     expect(w.findComponent({ name: "CorrectionBar" }).exists()).toBe(false);
+  });
+
+  it("N is the task-wide pending count, re-read when the dialog opens", async () => {
+    const w = await mountBatch(240);
+    expect(api.GET_Proposals).toHaveBeenCalledWith({ task: 5, status: "pending", page_size: 1 });
+    expect(w.find("[data-testid='batch-correct']").text()).toBe('enrichment.correct.all::{"count":240}');
+    api.GET_Proposals.mockResolvedValue({ data: { count: 241 } });
+    await w.find("[data-testid='batch-correct']").trigger("click");
+    await flushPromises();
+    expect(w.find("[data-testid='batch-correct']").text()).toBe('enrichment.correct.all::{"count":241}');
+  });
+
+  it("a failed count disables the button and says so", async () => {
+    api.GET_Proposals.mockRejectedValue({ response: { status: 500 } });
+    const w = mount(BatchCorrection, { props: { taskId: 5 }, global: { stubs } });
+    await flushPromises();
+    expect(w.find("[data-testid='batch-correct']").attributes("disabled")).toBeDefined();
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: "negative" }));
   });
 });
