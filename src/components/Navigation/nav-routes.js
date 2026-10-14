@@ -338,6 +338,13 @@ export function buildNavRoutes() {
       app: ["enricher"],
     },
     {
+      route: "/enrichment/studio",
+      labelKey: "nav.enrichment_studio",
+      icon: "pen-to-square",
+      query: {},
+      app: ["enricher"],
+    },
+    {
       route: "/enrichment/spawn-rules",
       labelKey: "nav.enrichment_spawn_rules",
       icon: "gears",

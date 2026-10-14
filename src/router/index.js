@@ -1241,6 +1241,32 @@ const routes = [
     },
   },
 
+  // AI Studio: workflow runs step by step (contract A4 § 6)
+  {
+    path: "/enrichment/studio",
+    name: "EnrichmentStudio",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentStudio/RunList.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.studio.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+    },
+  },
+  {
+    path: "/enrichment/studio/:uid",
+    name: "EnrichmentStudioRun",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentStudio/RunView.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.studio.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+    },
+  },
+
   // Enrichment tasks (read-only queue view)
   {
     path: "/enrichment/tasks",

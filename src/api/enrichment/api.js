@@ -148,3 +148,35 @@ export const GET_Fields = (params) =>
 // params { target_module, channel } → ["pl", "en", …], main language first.
 export const GET_Languages = (params) =>
   enrichmentApi.get(`${ENR}/languages/`, { params });
+
+// --- Workflows (contract A4 § 6) ---
+
+// Active workflows: [{ key, label, target_module, inputs_schema, steps: [{ key, label, needs, gate, output }] }].
+export const GET_Workflows = () =>
+  enrichmentApi.get(`${ENR}/workflows/`);
+
+// params { status?, definition?, page? } → paginated runs, newest first.
+export const GET_Runs = (params) =>
+  enrichmentApi.get(`${ENR}/runs/`, { params });
+
+// { uid, definition_label, channel, inputs, subject_ref, status, current_step, steps: [{ …, status, proposal_id }],
+// cost_usd, cost_complete, created_at } — a step's output is its proposal (`GET_Proposal(proposal_id)`).
+export const GET_Run = (uid) =>
+  enrichmentApi.get(`${ENR}/runs/${uid}/`);
+
+// body { definition, inputs, channel } → 201 run; 400 with the brief's field errors.
+export const POST_Run = (data) =>
+  enrichmentApi.post(`${ENR}/runs/`, data);
+
+// body { instruction? } → 200 run (the step's pending output is replaced by a new one).
+export const POST_RegenerateStep = (uid, stepKey, data = {}) =>
+  enrichmentApi.post(`${ENR}/runs/${uid}/steps/${stepKey}/regenerate/`, data);
+
+export const POST_CancelRun = (uid) =>
+  enrichmentApi.post(`${ENR}/runs/${uid}/cancel/`);
+
+// --- Company profile (contract A4 § 2) ---
+
+// params { channel } → { channel, complete, sections: [{ key, complete, minimum }] } of the merged profile.
+export const GET_ProfileStatus = (params) =>
+  enrichmentApi.get(`${ENR}/profile/status/`, { params });

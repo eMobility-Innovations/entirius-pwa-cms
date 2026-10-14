@@ -60,7 +60,8 @@
       "audit": "Audit",
       "applications": "Applications"
     },
-    "enrichment_templates": "AI templates"
+    "enrichment_templates": "AI templates",
+    "enrichment_studio": "Studio"
   },
   "login": {
     "welcome": "Sign in",
@@ -2991,6 +2992,111 @@
       "label": "Cost",
       "unknown": "Cost not reported by the AI service",
       "partial": "Some AI calls reported no cost, so the real total is higher"
+    },
+    "studio": {
+      "title": "Studio",
+      "description": "Write longer content step by step: the AI drafts each step, you review and approve it.",
+      "new": "New",
+      "new_title": "New content",
+      "workflow": "What to write",
+      "channel": "Channel",
+      "start": "Start",
+      "no_workflows": "No content workflows are set up yet.",
+      "empty": "Nothing written in the Studio yet. Start with New.",
+      "col_title": "Title",
+      "col_workflow": "Type",
+      "col_status": "Status",
+      "col_step": "Current step",
+      "col_age": "Started",
+      "steps": "Steps",
+      "run_cost": "Cost so far",
+      "run_status": {
+        "running": "Working",
+        "waiting": "Needs your review",
+        "done": "Finished",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "step_status": {
+        "waiting": "Waiting",
+        "running": "Working",
+        "review": "Needs review",
+        "approved": "Approved",
+        "failed": "Failed"
+      },
+      "waiting_for": "Starts once these steps are approved: {steps}.",
+      "running": "The AI is working on this step. The page refreshes by itself.",
+      "failed": "This step did not finish. Regenerate it, optionally with an instruction.",
+      "approve": "Approve",
+      "approved_toast": "Step approved",
+      "regenerate": "Regenerate",
+      "regenerate_title": "Regenerate: {step}",
+      "regenerating_toast": "The step is being written again",
+      "instruction": "Instruction (optional)",
+      "instruction_hint": "What to change, e.g. \"shorter, focus on care tips\". Empty = a fresh attempt.",
+      "cancel_run": "Cancel run",
+      "cancel_title": "Cancel this run?",
+      "cancel_message": "Work in progress stops and the steps not approved yet are dropped. This cannot be undone.",
+      "cancelled_toast": "Run cancelled",
+      "missing": "This run does not exist",
+      "missing_hint": "It may have been removed. Go back to the Studio list.",
+      "back_to_list": "Back to the Studio",
+      "profile_incomplete": "The company profile is incomplete ({sections}), so the AI will write more generic text.",
+      "profile_sections": {
+        "brand": "Brand",
+        "persona": "Audience",
+        "facts": "Facts",
+        "tone": "Tone of voice",
+        "language": "Language"
+      },
+      "brief_errors": {
+        "required": "Required",
+        "too_short": "At least {min} characters",
+        "too_long": "At most {max} characters",
+        "format": "Wrong format"
+      },
+      "questions": {
+        "intro": "Answer what you can — the answers make the article specific. Required questions are marked.",
+        "required": "An answer is required",
+        "unsaved": "Unsaved answers"
+      },
+      "keywords": {
+        "primary": "Main phrase",
+        "secondary": "Supporting phrases",
+        "intent": "Search intent",
+        "phrase": "Phrase",
+        "volume": "Searches / month",
+        "serp": "What ranks today",
+        "use": "Use as",
+        "as_primary": "Main",
+        "as_secondary": "Supporting",
+        "pick_hint": "Pick one main phrase and up to {max} supporting ones. Each pick is saved at once.",
+        "intents": {
+          "informational": "Learn something",
+          "commercial": "Compare before buying",
+          "transactional": "Buy",
+          "navigational": "Find a site"
+        }
+      },
+      "meta": {
+        "title": "Page title",
+        "description": "Meta description",
+        "og_title": "Social title",
+        "og_description": "Social description",
+        "slug": "Address",
+        "preview": "Search result preview",
+        "faq": "FAQ ({count})"
+      },
+      "document": {
+        "title": "Title",
+        "slug": "Address",
+        "language": "Language",
+        "words": "Words",
+        "faq": "FAQ questions",
+        "on_approve": "Approving this step creates an unpublished draft in Pages.",
+        "created": "The draft is in Pages, unpublished.",
+        "open": "Open draft in ContentDB"
+      }
     }
   },
   "promo": {

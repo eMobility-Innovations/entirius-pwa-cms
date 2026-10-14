@@ -14,6 +14,13 @@ All notable changes to this project will be documented in this file.
   tagging), languages with "All languages" for a writer, and SEO research (DataForSEO) per product or per category.
 - Costs after the fact: "$0.04" on task rows, proposal cards and AI versions, "—" with a reason when unknown.
 - Tag proposals show added, removed and kept tags as chips; the compact Review row reads "+2 −1 tags".
+- Studio (`/enrichment/studio`): workflow runs step by step. The list shows what is written, its title, state,
+  current step, cost and age; "New" picks a workflow and fills its brief (a form from the workflow's inputs) and the
+  channel. A run shows the steps rail (waiting, working, needs review, approved, failed) and the selected step's
+  output: a questions form (why-hints, required answers, Save), text with the correction tools, search phrases with a
+  main / supporting pick, metadata cards with length counters and a search preview, and the document summary with
+  "Open draft in ContentDB" once approved. Approve and Regenerate (optional instruction) per step, Cancel run, run
+  cost in the header, auto-refresh while a step works, and a notice when the company profile is incomplete.
 
 ## [3.2.0] (2026-10-12)
 

@@ -60,7 +60,8 @@
       "audit": "Dziennik zmian",
       "applications": "Aplikacje"
     },
-    "enrichment_templates": "Szablony AI"
+    "enrichment_templates": "Szablony AI",
+    "enrichment_studio": "Studio"
   },
   "login": {
     "welcome": "Zaloguj się",
@@ -2990,6 +2991,111 @@
       "label": "Koszt",
       "unknown": "Usługa AI nie podała kosztu",
       "partial": "Część wywołań AI nie podała kosztu, więc faktyczna suma jest wyższa"
+    },
+    "studio": {
+      "title": "Studio",
+      "description": "Pisz dłuższe treści krok po kroku: AI przygotowuje każdy krok, Ty go sprawdzasz i zatwierdzasz.",
+      "new": "Nowa",
+      "new_title": "Nowa treść",
+      "workflow": "Co napisać",
+      "channel": "Kanał",
+      "start": "Rozpocznij",
+      "no_workflows": "Nie skonfigurowano jeszcze żadnych procesów treści.",
+      "empty": "W Studio nic jeszcze nie powstało. Zacznij od „Nowa”.",
+      "col_title": "Tytuł",
+      "col_workflow": "Rodzaj",
+      "col_status": "Status",
+      "col_step": "Bieżący krok",
+      "col_age": "Rozpoczęto",
+      "steps": "Kroki",
+      "run_cost": "Koszt do tej pory",
+      "run_status": {
+        "running": "W toku",
+        "waiting": "Czeka na Ciebie",
+        "done": "Gotowe",
+        "failed": "Błąd",
+        "cancelled": "Anulowano"
+      },
+      "step_status": {
+        "waiting": "Czeka",
+        "running": "W toku",
+        "review": "Do sprawdzenia",
+        "approved": "Zatwierdzony",
+        "failed": "Błąd"
+      },
+      "waiting_for": "Rusza po zatwierdzeniu kroków: {steps}.",
+      "running": "AI pracuje nad tym krokiem. Strona odświeża się sama.",
+      "failed": "Ten krok się nie udał. Wygeneruj go ponownie, opcjonalnie z instrukcją.",
+      "approve": "Zatwierdź",
+      "approved_toast": "Krok zatwierdzony",
+      "regenerate": "Wygeneruj ponownie",
+      "regenerate_title": "Wygeneruj ponownie: {step}",
+      "regenerating_toast": "Krok jest pisany od nowa",
+      "instruction": "Instrukcja (opcjonalnie)",
+      "instruction_hint": "Co zmienić, np. „krócej, skup się na pielęgnacji”. Puste = nowa próba.",
+      "cancel_run": "Anuluj proces",
+      "cancel_title": "Anulować ten proces?",
+      "cancel_message": "Trwająca praca zostanie przerwana, a niezatwierdzone kroki odrzucone. Tego nie da się cofnąć.",
+      "cancelled_toast": "Proces anulowany",
+      "missing": "Ten proces nie istnieje",
+      "missing_hint": "Mógł zostać usunięty. Wróć do listy Studio.",
+      "back_to_list": "Wróć do Studio",
+      "profile_incomplete": "Profil firmy jest niepełny ({sections}), więc AI napisze bardziej ogólny tekst.",
+      "profile_sections": {
+        "brand": "Marka",
+        "persona": "Odbiorcy",
+        "facts": "Fakty",
+        "tone": "Ton wypowiedzi",
+        "language": "Język"
+      },
+      "brief_errors": {
+        "required": "Pole wymagane",
+        "too_short": "Co najmniej {min} znaków",
+        "too_long": "Najwyżej {max} znaków",
+        "format": "Zły format"
+      },
+      "questions": {
+        "intro": "Odpowiedz na co możesz — odpowiedzi sprawiają, że artykuł jest konkretny. Pytania wymagane są oznaczone.",
+        "required": "Odpowiedź jest wymagana",
+        "unsaved": "Niezapisane odpowiedzi"
+      },
+      "keywords": {
+        "primary": "Fraza główna",
+        "secondary": "Frazy wspierające",
+        "intent": "Intencja wyszukiwania",
+        "phrase": "Fraza",
+        "volume": "Wyszukiwań / mies.",
+        "serp": "Co dziś jest wysoko",
+        "use": "Użyj jako",
+        "as_primary": "Główna",
+        "as_secondary": "Wspierająca",
+        "pick_hint": "Wybierz jedną frazę główną i do {max} wspierających. Każdy wybór zapisuje się od razu.",
+        "intents": {
+          "informational": "Dowiedzieć się",
+          "commercial": "Porównać przed zakupem",
+          "transactional": "Kupić",
+          "navigational": "Znaleźć stronę"
+        }
+      },
+      "meta": {
+        "title": "Tytuł strony",
+        "description": "Opis meta",
+        "og_title": "Tytuł w mediach społecznościowych",
+        "og_description": "Opis w mediach społecznościowych",
+        "slug": "Adres",
+        "preview": "Podgląd wyniku wyszukiwania",
+        "faq": "FAQ ({count})"
+      },
+      "document": {
+        "title": "Tytuł",
+        "slug": "Adres",
+        "language": "Język",
+        "words": "Słowa",
+        "faq": "Pytania FAQ",
+        "on_approve": "Zatwierdzenie tego kroku utworzy nieopublikowany szkic w Stronach.",
+        "created": "Szkic jest w Stronach, nieopublikowany.",
+        "open": "Otwórz szkic w ContentDB"
+      }
     }
   },
   "promo": {
