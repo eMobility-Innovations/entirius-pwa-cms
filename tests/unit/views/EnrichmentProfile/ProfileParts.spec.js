@@ -88,8 +88,16 @@ describe("ProfileHistory", () => {
   const stubs = {
     SideDrawer: { template: "<div><slot /></div>" }, ReadonlyOff: passthrough, BasicSelect: true,
     TextDiff: { name: "TextDiff", props: ["before", "after"], template: "<pre />" },
-    ConfirmDialog: { name: "ConfirmDialog", props: ["open"], emits: ["confirm"], template: "<div />" },
+    ConfirmDialog: { name: "ConfirmDialog", props: ["open", "message"], emits: ["confirm"], template: "<div />" },
   };
+
+  it("the restore prompt warns that unsaved edits will be lost", () => {
+    const clean = mount(ProfileHistory, { props: { visible: true, versions }, global: { stubs } });
+    const dirty = mount(ProfileHistory, { props: { visible: true, versions, dirty: true }, global: { stubs } });
+    const message = (w) => w.findComponent({ name: "ConfirmDialog" }).props("message");
+    expect(message(clean)).not.toContain(dirty.vm.$t("enrichment.profile.restore_discards"));
+    expect(message(dirty)).toContain(dirty.vm.$t("enrichment.profile.restore_discards"));
+  });
 
   it("compares the previous version with the latest and restores after a confirmation", async () => {
     const w = mount(ProfileHistory, { props: { visible: true, versions }, global: { stubs } });

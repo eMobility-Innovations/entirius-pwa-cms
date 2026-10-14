@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
-const api = vi.hoisted(() => ({ GET_Proposal: vi.fn(), POST_ReviseProposal: vi.fn(), POST_SuggestFact: vi.fn(), GET_Profile: vi.fn() }));
+const api = vi.hoisted(() => ({ GET_Proposal: vi.fn(), POST_ReviseProposal: vi.fn(), POST_SuggestFact: vi.fn(), GET_ProfileVersions: vi.fn() }));
 const refresh = vi.hoisted(() => vi.fn());
 const can = vi.hoisted(() => vi.fn(() => true));
 vi.mock("@/api/enrichment/api", () => api);
@@ -94,15 +94,20 @@ describe("profile usage", () => {
     });
   });
 
-  it("the note shows only for a task that used a profile", async () => {
+  it("the note reads the snapshots the task used, not the live profile, and only for a task that used one", async () => {
     clearProfileCache();
-    api.GET_Profile.mockImplementation(({ channel }) => Promise.resolve({ data: { data: channel ? { tone: { text: "Eu." } } : DATA } }));
+    const versions = {
+      "": [{ id: 12, data: { brand: { text: "Edited later." } } }, { id: 4, data: DATA }],
+      eu: [{ id: 9, data: { tone: { text: "Eu." } } }],
+    };
+    api.GET_ProfileVersions.mockImplementation(({ channel }) => Promise.resolve({ data: versions[channel] }));
     const $t = (key, params) => (params ? `${key}:${params.sections}` : `T:${key}`);
     const task = { id: 1, type: "pim.writer", params: { channel: "eu" }, profile_versions: [4, 9] };
     const w = mount(ProfileUsageNote, { props: { proposal: proposal(), task }, global: { mocks: { $t } } });
     await flushPromises();
     expect(w.text()).toBe("enrichment.profile.used:T:enrichment.profile.sections.facts (4), T:enrichment.profile.sections.brand, T:enrichment.profile.sections.tone");
-    expect(api.GET_Profile).toHaveBeenCalledWith({ channel: "eu" });
+    expect(w.find("[data-testid='profile-usage']").attributes("title")).toBe("T:enrichment.profile.used_hint");
+    expect(api.GET_ProfileVersions).toHaveBeenCalledWith({ channel: "eu" });
     const none = mount(ProfileUsageNote, { props: { proposal: proposal(), task: { ...task, profile_versions: [] } } });
     await flushPromises();
     expect(none.find("[data-testid='profile-usage']").exists()).toBe(false);

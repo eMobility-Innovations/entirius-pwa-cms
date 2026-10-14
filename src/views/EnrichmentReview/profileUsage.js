@@ -1,9 +1,9 @@
-import { GET_Profile } from "@/api/enrichment/api";
+import { GET_ProfileVersions } from "@/api/enrichment/api";
 
-// "Used from profile: Tone, Facts (4)" under a proposal (contract A4 § 2): which profile sections the task's prompt
-// was given — the routing of the merged profile (instance + channel overlay), else the defaults per kind, kept only
-// where the profile has content. Mirrors `profile_service.context_for`; the task's `profile_versions` say whether a
-// profile was used at all.
+// "Likely used from profile: Tone, Facts (4)" under a proposal (contract A4 § 2): which profile sections the task's
+// prompt was given, worked out from the profile versions the task stamped (`profile_versions`: instance + channel
+// overlay snapshots) — their routing, else the defaults per kind, kept only where the snapshot has content.
+// An approximation of `profile_service.context_for`, which does not record its choice; the note says so.
 
 const DEFAULT_ROUTING = {
   write: ["brand", "persona", "tone", "language", "facts"],
@@ -12,7 +12,6 @@ const DEFAULT_ROUTING = {
   questions: ["brand", "facts"],
 };
 const ORDER_FIRST = ["facts", "brand"];
-const CACHE_MS = 60000;
 
 const hasContent = (value) => {
   if (Array.isArray(value)) return value.length > 0;
@@ -36,18 +35,27 @@ export function usedSections({ data, taskType, kind }) {
     .map((key) => (key === "facts" ? { key, count: data.facts.length } : { key }));
 }
 
+// Snapshots never change, so a used profile is fetched once per channel and version set.
 const cache = new Map();
 
-/** The merged profile of a channel, fetched once a minute for every card of a screen; null when unavailable. */
-export function loadMergedProfile(channel = "") {
-  const hit = cache.get(channel);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.promise;
+async function fetchUsedProfile(channel, versionIds) {
   const scopes = channel ? ["", channel] : [""];
-  const promise = Promise.all(scopes.map((scope) => GET_Profile({ channel: scope })))
-    .then(([base, overlay]) => mergeProfiles(base.data.data, overlay?.data.data))
-    .catch(() => null);
-  cache.set(channel, { at: Date.now(), promise });
-  return promise;
+  const answers = await Promise.all(scopes.map((scope) => GET_ProfileVersions({ channel: scope })));
+  const [base, overlay] = answers.map(({ data }) => (data || []).find((v) => versionIds.includes(v.id))?.data);
+  return base || overlay ? mergeProfiles(base, overlay) : null;
+}
+
+/** The merged snapshots a task's prompt used; null when unavailable (a failure is not remembered). */
+export function loadUsedProfile(channel, versionIds) {
+  const key = `${channel}:${versionIds.join(",")}`;
+  if (!cache.has(key)) {
+    const promise = fetchUsedProfile(channel, versionIds).catch(() => {
+      cache.delete(key);
+      return null;
+    });
+    cache.set(key, promise);
+  }
+  return cache.get(key);
 }
 
 /** Test seam: forget the cached profiles. */

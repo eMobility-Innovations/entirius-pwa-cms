@@ -3136,7 +3136,7 @@
       "compare_to": "z",
       "restore_title": "Przywrócić wersję {n}?",
       "restore_message": "Jej treść stanie się bieżącym profilem jako nowa wersja. Nic nie ginie: bieżąca wersja zostaje w historii.",
-      "used": "Użyto z profilu: {sections}",
+      "used": "Prawdopodobnie użyto z profilu: {sections}",
       "sections": {
         "brand": "Marka",
         "persona": "Odbiorcy",
@@ -3195,7 +3195,10 @@
         "too_many": "Więcej niż {arg} pozycji",
         "enum": "Dozwolone: {arg}",
         "format": "Zły format"
-      }
+      },
+      "restore_discards": "Niezapisane zmiany na tej stronie zostaną utracone.",
+      "switch_discards": "Zmiana zakresu odrzuci niezapisane zmiany w tym profilu.",
+      "used_hint": "Ustalone na podstawie wersji profilu użytych przez to zadanie."
     },
     "memory": {
       "title": "Pamięć",
@@ -3203,7 +3206,7 @@
       "subject_search": "Produkt lub temat",
       "kind_filter": "Rodzaj",
       "status_filter": "Stan",
-      "expiry_filter": "Ważność",
+      "expiry_filter": "Ważność (ta strona)",
       "empty": "Nic tu jeszcze nie zapamiętano.",
       "delete_title": "Usunąć ten wpis pamięci?",
       "all_kinds": "Wszystkie rodzaje",
@@ -3229,12 +3232,21 @@
       "promote": "Dodaj do profilu",
       "dismiss": "Odrzuć",
       "activate": "Przywróć do użycia",
-      "general": "Ogólne",
-      "studio_run": "Artykuł ze studia",
       "promoted_toast": "Dodano do profilu jako nową wersję.",
       "dismissed_toast": "Odrzucono.",
       "active_toast": "Znów w użyciu.",
-      "deleted_toast": "Usunięto."
+      "deleted_toast": "Usunięto.",
+      "empty_page": "Nic na tej stronie nie pasuje do filtra ważności — sprawdź inną stronę.",
+      "waiting": "Czeka na ciebie",
+      "a_channel": "Kanał",
+      "subject": {
+        "general": "Ogólne",
+        "catalogue": "Katalog",
+        "page": "Strona",
+        "studio_run": "Artykuł ze studia",
+        "market": "Dane rynkowe",
+        "item": "Element"
+      }
     },
     "qa": {
       "code": {

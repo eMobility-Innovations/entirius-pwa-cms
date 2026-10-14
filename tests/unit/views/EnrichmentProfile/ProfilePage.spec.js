@@ -22,10 +22,11 @@ import ProfilePage from "@/views/EnrichmentProfile/ProfilePage.vue";
 
 const ProfileSection = { name: "ProfileSection", props: ["section", "modelValue", "status", "errors"], template: "<div />" };
 const ActionBar = { name: "ActionBar", props: ["actions"], template: "<div />" };
-const ProfileHistory = { name: "ProfileHistory", props: ["visible", "versions", "busy"], emits: ["restore", "close"], template: "<div />" };
+const ProfileHistory = { name: "ProfileHistory", props: ["visible", "versions", "busy", "dirty"], emits: ["restore", "close"], template: "<div />" };
+const ConfirmDialog = { name: "ConfirmDialog", props: ["open"], emits: ["confirm"], template: "<div />" };
 const stubs = {
   PageHeader: { template: "<div><slot name='meta' /><slot name='actions' /></div>" },
-  BasicSelect: true, BasicCard: { template: "<section><slot /></section>" }, BasicTextarea: true,
+  BasicSelect: true, ConfirmDialog, BasicCard: { template: "<section><slot /></section>" }, BasicTextarea: true,
   ProfileCompleteness: true, ProfileSection, ActionBar, ProfileHistory,
 };
 const STATUS = { channel: "", complete: false, sections: [{ key: "brand", complete: true, minimum: "" }, { key: "facts", complete: false, minimum: "" }] };
@@ -121,5 +122,47 @@ describe("ProfilePage", () => {
     await flushPromises();
     expect(api.POST_RestoreProfileVersion).toHaveBeenCalledWith(1, { channel: "" });
     expect(section(w, "brand").props("modelValue")).toBeUndefined();
+  });
+
+  it("switching the scope with unsaved edits asks first and keeps the edits until confirmed", async () => {
+    const w = mountPage();
+    await flushPromises();
+    section(w, "tone").vm.$emit("update:modelValue", { text: "Calm." });
+    await w.vm.$nextTick();
+    w.vm.setChannel("eu");
+    await w.vm.$nextTick();
+    const confirm = w.findAllComponents(ConfirmDialog).find((d) => d.attributes("data-testid") === "profile-switch-confirm");
+    expect(confirm.props("open")).toBe(true);
+    expect(api.GET_Profile).toHaveBeenCalledTimes(1);
+    expect(w.vm.form.tone).toEqual({ text: "Calm." });
+    confirm.vm.$emit("confirm");
+    await flushPromises();
+    expect(api.GET_Profile).toHaveBeenLastCalledWith({ channel: "eu" });
+    expect(w.vm.channel).toBe("eu");
+  });
+
+  it("restoring with unsaved edits warns in the restore prompt", async () => {
+    const w = mountPage();
+    await flushPromises();
+    expect(w.findComponent(ProfileHistory).props("dirty")).toBe(false);
+    section(w, "tone").vm.$emit("update:modelValue", { text: "Calm." });
+    await w.vm.$nextTick();
+    expect(w.findComponent(ProfileHistory).props("dirty")).toBe(true);
+  });
+
+  it("a slow answer for the scope the picker left never fills the form", async () => {
+    const w = mountPage();
+    await flushPromises();
+    let slow;
+    api.GET_Profile.mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)));
+    api.GET_Profile.mockImplementationOnce(() => Promise.resolve({ data: { channel: "us", version: 1, data: { tone: { text: "US." } } } }));
+    w.vm.setChannel("eu");
+    w.vm.setChannel("us");
+    await flushPromises();
+    slow({ data: { channel: "eu", version: 1, data: { tone: { text: "EU." } } } });
+    await flushPromises();
+    expect(w.vm.channel).toBe("us");
+    expect(w.vm.form.tone).toEqual({ text: "US." });
+    expect(w.vm.loading).toBe(false);
   });
 });

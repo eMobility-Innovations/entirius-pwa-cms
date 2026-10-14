@@ -49,7 +49,18 @@
       </template>
     </div>
 
-    <ProfileHistory :visible="historyOpen" :versions="versions" :busy="saving" @close="historyOpen = false" @restore="restore" />
+    <ProfileHistory :visible="historyOpen" :versions="versions" :busy="saving" :dirty="dirty" @close="historyOpen = false" @restore="restore" />
+
+    <ConfirmDialog
+      :open="pendingChannel !== null"
+      tone="danger"
+      :title="$t('unsaved.title')"
+      :message="$t('enrichment.profile.switch_discards')"
+      :confirm-label="$t('unsaved.discard')"
+      data-testid="profile-switch-confirm"
+      @update:open="(open) => !open && (pendingChannel = null)"
+      @confirm="confirmChannel"
+    />
   </PageLayout>
 </template>
 
@@ -98,6 +109,8 @@ export default {
       loading: true,
       saving: false,
       historyOpen: false,
+      pendingChannel: null,
+      loadSeq: 0,
     };
   },
   computed: {
@@ -146,30 +159,43 @@ export default {
       return { ...own, ...errorsInside(this.apiErrors, key) };
     },
     setChannel(channel) {
+      if (this.dirty) this.pendingChannel = channel || "";
+      else this.applyChannel(channel);
+    },
+    confirmChannel() {
+      const channel = this.pendingChannel;
+      this.pendingChannel = null;
+      this.applyChannel(channel);
+    },
+    applyChannel(channel) {
       this.channel = channel || "";
       this.$router.replace({ query: { ...this.$route.query, channel: this.channel || undefined } });
       this.loadAll();
     },
+    // Only the newest load fills the page: a slower answer for a scope the picker already left is dropped.
     async loadAll() {
+      const mine = ++this.loadSeq;
       this.loading = true;
       try {
-        const [schema] = await Promise.all([this.schema || this.fetchSchema(), this.loadScope()]);
+        const [schema, scope] = await Promise.all([this.schema || this.fetchSchema(), this.fetchScope()]);
+        if (mine !== this.loadSeq) return;
         this.schema = schema;
+        this.showScope(scope);
       } catch (err) {
-        this.toastError(err);
+        if (mine === this.loadSeq) this.toastError(err);
       } finally {
-        this.loading = false;
+        if (mine === this.loadSeq) this.loading = false;
       }
     },
     async fetchSchema() {
       const { data } = await GET_ProfileSchema();
       return data.json_schema;
     },
-    async loadScope() {
+    fetchScope() {
       const params = { channel: this.channel };
-      const [profile, status, versions] = await Promise.all([
-        GET_Profile(params), GET_ProfileStatus(params), GET_ProfileVersions(params),
-      ]);
+      return Promise.all([GET_Profile(params), GET_ProfileStatus(params), GET_ProfileVersions(params)]);
+    },
+    showScope([profile, status, versions]) {
       this.showProfile(profile.data);
       this.status = status.data;
       this.versions = versions.data || [];

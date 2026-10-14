@@ -34,7 +34,7 @@
     <ConfirmDialog
       :open="restoring !== null"
       :title="$t('enrichment.profile.restore_title', { n: restoring })"
-      :message="$t('enrichment.profile.restore_message')"
+      :message="restoreMessage"
       :confirm-label="$t('enrichment.profile.restore')"
       @update:open="(open) => !open && (restoring = null)"
       @confirm="confirmRestore"
@@ -57,6 +57,7 @@ export default {
     visible: { type: Boolean, default: false },
     versions: { type: Array, default: () => [] },
     busy: { type: Boolean, default: false },
+    dirty: { type: Boolean, default: false },
   },
   emits: ["close", "restore"],
   setup() {
@@ -68,6 +69,10 @@ export default {
   computed: {
     latest() {
       return this.versions[0]?.version ?? null;
+    },
+    restoreMessage() {
+      const message = this.$t("enrichment.profile.restore_message");
+      return this.dirty ? `${message} ${this.$t("enrichment.profile.restore_discards")}` : message;
     },
     options() {
       return this.versions.map((v) => ({ value: v.version, label: this.$t("enrichment.profile.version", { n: v.version }) }));

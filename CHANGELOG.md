@@ -26,15 +26,17 @@ All notable changes to this project will be documented in this file.
   channel overlay. A form built from the profile's schema — markdown texts with a preview, facts, rules (DO / DON'T,
   on / off), spellings, personas and glossary as editable rows, lists as chips — or "Edit JSON", checked as it is
   typed. Completeness per section, Save with a version note, History with the difference of any two versions and
-  Restore. Errors from the server show at their fields.
-- Memory (`/enrichment/memory`): SEO research, answers and suggestions, filtered by subject, kind, state and expiry;
-  waiting suggestions come first with "Add to profile" or "Dismiss"; SEO research reads as main and supporting
-  phrases, intent and expiry.
+  Restore. Errors from the server show at their fields. Switching the scope or restoring with unsaved edits asks
+  first; only the newest scope load fills the form.
+- Memory (`/enrichment/memory`): SEO research, answers and suggestions, filtered by subject, kind and state (expiry
+  filters the page shown); every waiting suggestion is pinned above the list with "Add to profile" or "Dismiss";
+  SEO research reads as main and supporting phrases, intent and expiry; entries name their channel and the kind of
+  subject, never ids.
 - Configuration health lists the communication profile (missing sections, link to the profile); the Memory nav entry
   shows the number of waiting suggestions.
 - Proposal cards list the quality warnings (a rule, a number the facts do not back with "Add to facts", a failed
-  checklist item) with "Check against the standard" and "Fix warnings", and say what the AI used from the profile
-  ("Used from profile: Facts (4), Brand, Tone of voice").
+  checklist item) with "Check against the standard" and "Fix warnings", and say what the AI likely used from the
+  profile versions its task recorded ("Likely used from profile: Facts (4), Brand, Tone of voice").
 
 ## [3.2.0] (2026-10-12)
 

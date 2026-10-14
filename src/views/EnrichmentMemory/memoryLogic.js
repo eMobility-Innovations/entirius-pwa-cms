@@ -3,8 +3,10 @@
 
 export const KINDS = ["seo_brief", "answer", "rule_suggestion", "fact_suggestion"];
 export const STATUSES = ["active", "dismissed", "promoted"];
-export const EXPIRY = ["current", "expired", "all"];
+export const EXPIRY = ["all", "current", "expired"];
 const SUGGESTIONS = ["rule_suggestion", "fact_suggestion"];
+// What a memory entry is about, in words, per module of its subject; the subject's own ref is never shown.
+const SUBJECTS = { pim: "catalogue", contentdb: "page", enrichment: "studio_run", atlas: "market" };
 
 /** An expiry date in the past. */
 export const isExpired = (entry, now = Date.now()) => !!entry.expires_at && Date.parse(entry.expires_at) <= now;
@@ -19,9 +21,20 @@ export function byExpiry(entries, mode, now = Date.now()) {
   return entries;
 }
 
-/** Waiting suggestions first, the rest after them, each group in the API's order (newest first). */
-export function suggestionsFirst(entries) {
-  return [...entries.filter(isPendingSuggestion), ...entries.filter((e) => !isPendingSuggestion(e))];
+/** The suggestion kinds to pin above the list for the kind and state filters (none when they exclude waiting ones). */
+export function pinnedKinds(kind, status) {
+  if (status && status !== "active") return [];
+  return kind ? SUGGESTIONS.filter((k) => k === kind) : SUGGESTIONS;
+}
+
+/** Entries of several answers, newest first. */
+export const newestFirst = (entries) => [...entries].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+
+/** The i18n key under `enrichment.memory.subject` naming what an entry is about. */
+export function subjectKey(entry) {
+  if (!entry.subject_ref) return "general";
+  if (entry.subject_ref.startsWith("run:")) return "studio_run";
+  return SUBJECTS[entry.subject_module] || "item";
 }
 
 /** Where "Add to profile" puts it: a fact into facts, a rule with a pattern into the checked rules, else always-rules. */

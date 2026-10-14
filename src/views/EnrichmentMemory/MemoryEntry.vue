@@ -47,7 +47,8 @@
 
 <script>
 import { formatDate } from "@/utils/format";
-import { briefOf, isExpired, isPendingSuggestion, promoteTarget } from "./memoryLogic";
+import { useProfileChannels } from "@/views/EnrichmentProfile/useProfileChannels";
+import { briefOf, isExpired, isPendingSuggestion, promoteTarget, subjectKey } from "./memoryLogic";
 
 const TONES = { active: "positive", dismissed: "neutral", promoted: "accent" };
 
@@ -61,7 +62,8 @@ export default {
   },
   emits: ["promote", "status", "delete"],
   setup() {
-    return { formatDate };
+    const { options: channelOptions } = useProfileChannels();
+    return { formatDate, channelOptions };
   },
   computed: {
     pending() {
@@ -80,12 +82,11 @@ export default {
       return briefOf(this.entry);
     },
     subject() {
-      const ref = this.entry.subject_ref || "";
-      if (!ref) return this.$t("enrichment.memory.general");
-      return ref.startsWith("run:") ? this.$t("enrichment.memory.studio_run") : ref;
+      return this.$t(`enrichment.memory.subject.${subjectKey(this.entry)}`);
     },
     scope() {
-      return this.entry.channel || this.$t("enrichment.profile.whole_company");
+      const channel = this.channelOptions.find((option) => option.value === this.entry.channel);
+      return channel?.label || this.$t("enrichment.memory.a_channel");
     },
   },
   methods: {

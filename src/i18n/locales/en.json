@@ -3137,7 +3137,7 @@
       "compare_to": "with",
       "restore_title": "Restore version {n}?",
       "restore_message": "Its content becomes the current profile as a new version. Nothing is lost: the current version stays in the history.",
-      "used": "Used from profile: {sections}",
+      "used": "Likely used from profile: {sections}",
       "sections": {
         "brand": "Brand",
         "persona": "Audience",
@@ -3196,7 +3196,10 @@
         "too_many": "More than {arg} items",
         "enum": "Must be one of: {arg}",
         "format": "Wrong format"
-      }
+      },
+      "restore_discards": "Your unsaved changes on this page will be lost.",
+      "switch_discards": "Switching the scope discards your unsaved changes to this profile.",
+      "used_hint": "Worked out from the profile versions this task used."
     },
     "memory": {
       "title": "Memory",
@@ -3204,7 +3207,7 @@
       "subject_search": "Product or subject",
       "kind_filter": "Kind",
       "status_filter": "State",
-      "expiry_filter": "Expiry",
+      "expiry_filter": "Expiry (this page)",
       "empty": "Nothing remembered here yet.",
       "delete_title": "Delete this memory entry?",
       "all_kinds": "All kinds",
@@ -3230,12 +3233,21 @@
       "promote": "Add to profile",
       "dismiss": "Dismiss",
       "activate": "Use again",
-      "general": "General",
-      "studio_run": "Studio article",
       "promoted_toast": "Added to the profile as a new version.",
       "dismissed_toast": "Dismissed.",
       "active_toast": "In use again.",
-      "deleted_toast": "Deleted."
+      "deleted_toast": "Deleted.",
+      "empty_page": "Nothing on this page matches the expiry filter — try another page.",
+      "waiting": "Waiting for you",
+      "a_channel": "A channel",
+      "subject": {
+        "general": "General",
+        "catalogue": "Catalogue",
+        "page": "Page",
+        "studio_run": "Studio article",
+        "market": "Market data",
+        "item": "Item"
+      }
     },
     "qa": {
       "code": {
