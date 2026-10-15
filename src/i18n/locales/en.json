@@ -2879,6 +2879,7 @@
       "worker": "What the AI does",
       "no_workers": "No AI workers configured",
       "prompt_placeholder": "Extra instructions for the AI (optional)",
+      "prompt_placeholder_required": "What should the AI change in the picture?",
       "created": "Sent to the AI. Its proposals appear in the review as each product is finished.",
       "open_task": "Open the run",
       "params": {

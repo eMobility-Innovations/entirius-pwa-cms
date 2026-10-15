@@ -2878,6 +2878,7 @@
       "worker": "Co robi AI",
       "no_workers": "Brak skonfigurowanych workerów AI",
       "prompt_placeholder": "Dodatkowe wskazówki dla AI (opcjonalnie)",
+      "prompt_placeholder_required": "Co AI ma zmienić na zdjęciu?",
       "created": "Wysłano do AI. Propozycje pojawią się w przeglądzie, gdy AI skończy kolejne produkty.",
       "open_task": "Otwórz uruchomienie",
       "params": {

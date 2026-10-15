@@ -5,7 +5,7 @@
         v-if="field.kind === 'prompt'"
         :model-value="modelValue[field.name]"
         :rows="3"
-        :placeholder="$t('enrichment.ai.prompt_placeholder')"
+        :placeholder="$t(isRequired(field, modelValue, forRun) ? 'enrichment.ai.prompt_placeholder_required' : 'enrichment.ai.prompt_placeholder')"
         :data-testid="`ai-task-param-${field.name}`"
         @update:model-value="(value) => set(field.name, value)"
       />
