@@ -68,6 +68,16 @@
       @update:open="(open) => !open && (pendingChannel = null)"
       @confirm="confirmChannel"
     />
+    <ConfirmDialog
+      :open="!!pendingNav"
+      :title="$t('unsaved.title')"
+      :message="$t('unsaved.message')"
+      :confirm-label="$t('unsaved.save_and_leave')"
+      :discard-label="$t('unsaved.discard')"
+      @confirm="saveAndLeave"
+      @discard="confirmLeave"
+      @cancel="cancelLeave"
+    />
   </PageLayout>
 </template>
 
@@ -81,6 +91,7 @@ import {
   PUT_Profile,
 } from "@/api/enrichment/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { useUnsavedChanges } from "@/composables/useUnsavedChanges";
 import { useNotifyStore } from "@/stores/notify";
 import { useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
 import RouteTabs from "@/components/Navigation/RouteTabs.vue";
@@ -95,7 +106,8 @@ import { useProfileChannels } from "./useProfileChannels";
 // The company profile (contract A4 § 2): what the AI is told about the company, per scope — the whole company or a
 // channel overlay (only the sections that differ). The form comes from the profile's schema; "Edit JSON" edits the
 // same data as text, checked as it is typed. Save makes a new version with an optional note; History compares and
-// restores versions. Validation errors from the server show at their fields (or as a list in JSON mode).
+// restores versions. Validation errors from the server show at their fields (or as a list in JSON mode). Leaving
+// (another tab, the menu, the browser) with unsaved edits asks first.
 export default {
   name: "ProfilePage",
   components: { ProfileCompleteness, ProfileHistory, ProfileSection, RouteTabs },
@@ -104,6 +116,7 @@ export default {
     return {
       notify: useNotifyStore(), profileStore: useEnrichmentProfileStore(), channelOptions, loadChannels,
       ENRICHMENT_SETTINGS_TABS, tabPanel: routeTabPanel(ENRICHMENT_SETTINGS_TABS, "EnrichmentProfile"),
+      ...useUnsavedChanges(),
     };
   },
   data() {
@@ -161,11 +174,25 @@ export default {
       ];
     },
   },
+  watch: {
+    dirty(on) {
+      this.isDirty = on;
+    },
+  },
+  beforeRouteLeave(to, from, next) {
+    this.guardNavigation(to, from, next);
+  },
   mounted() {
     this.loadChannels();
     this.loadAll();
   },
   methods: {
+    // A failed save keeps the page (its errors at the fields).
+    async saveAndLeave() {
+      await this.save();
+      if (this.dirty) this.cancelLeave();
+      else this.confirmLeave();
+    },
     setHistory(open) {
       this.historyOpen = open;
       this.$router.replace({ query: { ...this.$route.query, history: open ? "1" : undefined } });

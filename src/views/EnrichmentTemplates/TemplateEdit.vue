@@ -70,6 +70,16 @@
     >
       <p>{{ $t("enrichment.templates.confirm_delete") }}</p>
     </ConfirmDialog>
+    <ConfirmDialog
+      :open="!!pendingNav"
+      :title="$t('unsaved.title')"
+      :message="$t('unsaved.message')"
+      :confirm-label="$t('unsaved.save_and_leave')"
+      :discard-label="$t('unsaved.discard')"
+      @confirm="saveAndLeave"
+      @discard="confirmLeave"
+      @cancel="cancelLeave"
+    />
   </PageLayout>
 </template>
 
@@ -77,6 +87,7 @@
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { useUnsavedChanges } from "@/composables/useUnsavedChanges";
 import { withStoredOption } from "@/utils/options";
 import { isNotFound } from "@/api/createClient";
 import {
@@ -104,12 +115,13 @@ const MODULE = "pim";
 
 // One AI template: its name, the worker it runs, what that worker is told (fields, languages, instructions, research
 // preset — the same form as the run dialog), its rules one per line, and whether the Run AI menu offers it. Field
-// names and languages come from the active PIM channel's catalog; the template itself serves every channel.
+// names and languages come from the active PIM channel's catalog; the template itself serves every channel. Leaving
+// with unsaved edits asks first.
 export default {
   name: "TemplateEdit",
   components: { AiParamsForm },
   setup() {
-    return { notify: useNotifyStore(), pimChannel: usePimChannelStore() };
+    return { notify: useNotifyStore(), pimChannel: usePimChannelStore(), ...useUnsavedChanges() };
   },
   data() {
     return {
@@ -123,6 +135,8 @@ export default {
       saving: false,
       confirmDelete: false,
       missing: false,
+      // The form as loaded or last saved (JSON); null until the page is ready.
+      baseline: null,
     };
   },
   computed: {
@@ -157,17 +171,41 @@ export default {
     canSave() {
       return !this.unfilled.length && !this.saving;
     },
+    editState() {
+      return JSON.stringify({ form: this.form, values: this.values, research: this.research });
+    },
+    dirty() {
+      return this.baseline !== null && this.editState !== this.baseline;
+    },
   },
   watch: {
     "form.worker_key": "applyValues",
+    dirty(on) {
+      this.isDirty = on;
+    },
+  },
+  beforeRouteLeave(to, from, next) {
+    this.guardNavigation(to, from, next);
   },
   async mounted() {
     this.loading = true;
     await Promise.all([this.loadWorkers(), this.loadCatalog(), this.isCreate ? null : this.loadTemplate()]);
     this.loading = false;
     this.applyValues();
+    await this.$nextTick();
+    this.baseline = this.editState;
   },
   methods: {
+    async saveAndLeave() {
+      await this.save();
+      if (this.isDirty) this.cancelLeave();
+      else this.confirmLeave();
+    },
+    // Saved or deleted: nothing left to lose, leaving asks nothing.
+    settle() {
+      this.baseline = this.editState;
+      this.isDirty = false;
+    },
     async loadWorkers() {
       try {
         const { data } = await GET_Workers({ target_module: MODULE });
@@ -218,7 +256,8 @@ export default {
         if (this.isCreate) await POST_Template(await this.createBody());
         else await PATCH_Template(this.$route.params.key, this.body());
         this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.templates.saved") });
-        this.$router.push({ name: "EnrichmentTemplates" });
+        this.settle();
+        if (!this.pendingNav) this.$router.push({ name: "EnrichmentTemplates" });
       } catch (err) {
         this.failed(err);
       } finally {
@@ -230,6 +269,7 @@ export default {
       try {
         await DELETE_Template(this.$route.params.key);
         this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.templates.deleted") });
+        this.settle();
         this.$router.push({ name: "EnrichmentTemplates" });
       } catch (err) {
         this.failed(err);

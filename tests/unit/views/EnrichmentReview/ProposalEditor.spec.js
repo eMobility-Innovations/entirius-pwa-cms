@@ -37,7 +37,10 @@ const BasicTextarea = {
 };
 const CorrectionBar = { name: "CorrectionBar", props: ["shape", "selection", "busy"], emits: ["submit"], template: "<div />", methods: { reset() {} } };
 const SegmentedControl = { name: "SegmentedControl", props: ["modelValue", "options"], emits: ["update:modelValue"], template: "<div />" };
+const ConfirmDialog = { name: "ConfirmDialog", props: ["open", "title"], emits: ["confirm", "discard", "cancel"], template: "<div />" };
+const leaveDialog = (w) => w.findAllComponents(ConfirmDialog).find((d) => d.props("title") === "unsaved.title");
 const stubs = {
+  ConfirmDialog,
   PageLayout, PageHeader, ActionBar, BasicTextarea, CorrectionBar, SegmentedControl,
   BasicCard: { template: "<section><slot /></section>" }, FormField: { template: "<div><slot /></div>" }, Tag: true, VariantPicker: true, RuleChips: true,
   CorrectionThread: { name: "CorrectionThread", props: ["revisions", "restorable", "landed"], template: "<div />" }, DriftModal: true, TextDiff: true,
@@ -168,5 +171,27 @@ describe("ProposalEditor", () => {
     w.vm.setProposal({ ...PROPOSAL, proposed_value: { text: "red couch" } });
     await w.vm.$nextTick();
     expect(w.findComponent({ name: "CorrectionBar" }).props("selection")).toBe("");
+  });
+
+  it("leaving with no manual edit asks nothing", async () => {
+    const w = await mountEditor();
+    const next = vi.fn();
+    ProposalEditor.beforeRouteLeave.call(w.vm, {}, {}, next);
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it("leaving with a manual edit asks first; Save and leave keeps it as a version, then leaves", async () => {
+    const w = await mountEditor();
+    await w.find("textarea").setValue("<p>A blue sofa</p>");
+    const next = vi.fn();
+    ProposalEditor.beforeRouteLeave.call(w.vm, {}, {}, next);
+    await w.vm.$nextTick();
+    expect(next).not.toHaveBeenCalled();
+    expect(leaveDialog(w).props("open")).toBe(true);
+    api.PATCH_Proposal.mockResolvedValue({ data: { ...PROPOSAL, proposed_value: { text: "<p>A blue sofa</p>" } } });
+    leaveDialog(w).vm.$emit("confirm");
+    await flushPromises();
+    expect(api.PATCH_Proposal).toHaveBeenCalledWith(9, { proposed_value: { text: "<p>A blue sofa</p>" } });
+    expect(next).toHaveBeenCalledWith();
   });
 });

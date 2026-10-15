@@ -23,7 +23,8 @@ import ProfilePage from "@/views/EnrichmentProfile/ProfilePage.vue";
 const ProfileSection = { name: "ProfileSection", props: ["section", "modelValue", "status", "errors", "inherited"], template: "<div />" };
 const ActionBar = { name: "ActionBar", props: ["actions"], template: "<div />" };
 const ProfileHistory = { name: "ProfileHistory", props: ["visible", "versions", "busy", "dirty"], emits: ["restore", "close"], template: "<div />" };
-const ConfirmDialog = { name: "ConfirmDialog", props: ["open"], emits: ["confirm"], template: "<div />" };
+const ConfirmDialog = { name: "ConfirmDialog", props: ["open", "title", "message"], emits: ["confirm", "discard", "cancel"], template: "<div />" };
+const leaveDialog = (w) => w.findAllComponents(ConfirmDialog).find((d) => d.props("message") === "unsaved.message");
 const stubs = {
   PageHeader: { template: "<div><slot name='meta' /><slot name='actions' /></div>" },
   BasicSelect: true, ConfirmDialog, BasicCard: { template: "<section><slot /></section>" }, BasicTextarea: true,
@@ -173,5 +174,28 @@ describe("ProfilePage", () => {
     expect(w.vm.loading).toBe(false);
     // The channel's empty sections get the company's value to show; the company scope gets none.
     expect(section(w, "brand").props("inherited")).toEqual(PROFILE.data.brand);
+  });
+
+  it("leaving with unsaved edits asks first; Discard leaves without saving", async () => {
+    const w = mountPage();
+    await flushPromises();
+    section(w, "tone").vm.$emit("update:modelValue", { text: "Calm." });
+    await w.vm.$nextTick();
+    const next = vi.fn();
+    ProfilePage.beforeRouteLeave.call(w.vm, {}, {}, next);
+    await w.vm.$nextTick();
+    expect(next).not.toHaveBeenCalled();
+    expect(leaveDialog(w).props("open")).toBe(true);
+    leaveDialog(w).vm.$emit("discard");
+    expect(next).toHaveBeenCalledWith();
+    expect(api.PUT_Profile).not.toHaveBeenCalled();
+  });
+
+  it("leaving without edits asks nothing", async () => {
+    const w = mountPage();
+    await flushPromises();
+    const next = vi.fn();
+    ProfilePage.beforeRouteLeave.call(w.vm, {}, {}, next);
+    expect(next).toHaveBeenCalledWith();
   });
 });

@@ -91,6 +91,16 @@
     </div>
 
     <DriftModal :visible="!!drifted" :proposal="drifted" :busy="applying" @confirm="confirmDrift" @reject="rejectDrift" @close="drifted = null" />
+    <ConfirmDialog
+      :open="!!pendingNav"
+      :title="$t('unsaved.title')"
+      :message="$t('unsaved.message')"
+      :confirm-label="$t('unsaved.save_and_leave')"
+      :discard-label="$t('unsaved.discard')"
+      @confirm="saveAndLeave"
+      @discard="confirmLeave"
+      @cancel="cancelLeave"
+    />
   </PageLayout>
 </template>
 
@@ -99,6 +109,7 @@ import { computed, ref } from "vue";
 import { marked } from "marked";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { useUnsavedChanges } from "@/composables/useUnsavedChanges";
 import { ReadonlyOff } from "@/composables/useReadonly";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { isNotFound } from "@/api/createClient";
@@ -116,7 +127,7 @@ import { isHtml, workerOf } from "./reviewLogic";
 // The full-screen editor of one long text proposal (`/enrichment/edit/:proposalId`): the text as it is stored (HTML
 // or markdown) with a preview and the changes against the live value, AI corrections scoped to the selected
 // fragment — the versions as a correction thread with its composer and the rules beside the text. "Save version" keeps a manual edit; Apply saves it first and
-// writes the value (a drifted field asks again).
+// writes the value (a drifted field asks again). Leaving with a manual edit not saved as a version asks first.
 export default {
   name: "ProposalEditor",
   components: { ReadonlyOff, CorrectionBar, CorrectionThread, DriftModal, RuleChips, TextDiff },
@@ -128,7 +139,7 @@ export default {
       draft.value = valueText(value.proposed_value);
     };
     const correction = useProposalCorrection(computed(() => proposal.value || {}), setProposal);
-    return { proposal, draft, setProposal, ...correction, notify: useNotifyStore(), ...useFieldLabels() };
+    return { proposal, draft, setProposal, ...correction, notify: useNotifyStore(), ...useFieldLabels(), ...useUnsavedChanges() };
   },
   data() {
     return { loading: true, loadFailed: false, task: null, view: "edit", selection: "", applying: false, drifted: null };
@@ -185,11 +196,20 @@ export default {
     proposal() {
       this.selection = "";
     },
+    dirty(on) {
+      this.isDirty = on;
+    },
+  },
+  beforeRouteLeave(to, from, next) {
+    this.guardNavigation(to, from, next);
   },
   mounted() {
     this.load();
   },
   methods: {
+    async saveAndLeave() {
+      if (await this.saveDraft()) this.confirmLeave();
+    },
     valueText,
     sanitizeHtml,
     async load() {

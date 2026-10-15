@@ -38,7 +38,8 @@ const STORED = {
 const stubs = {
   PageHeader: { template: "<div><slot name='actions' /></div>" },
   ActionBar: { template: "<div><slot /></div>" },
-  IconButton: true, BasicSelect: true, BasicTextarea: true, BasicSwitch: true, ConfirmDialog: true,
+  IconButton: true, BasicSelect: true, BasicTextarea: true, BasicSwitch: true,
+  ConfirmDialog: { name: "ConfirmDialog", props: ["open", "title"], emits: ["confirm", "discard", "cancel"], template: "<div />" },
   AiParamsForm: { name: "AiParamsForm", props: ["fields", "modelValue", "fieldChoices", "research", "researchKeys"], template: "<div />" },
 };
 
@@ -131,5 +132,43 @@ describe("TemplateEdit", () => {
     const w = await mountEdit();
     expect(w.vm.unfilled).toContain(w.vm.$t("enrichment.templates.name"));
     expect(w.find("[data-testid='template-unfilled']").exists()).toBe(true);
+  });
+
+  describe("leaving", () => {
+    const leaveDialog = (w) => w.findAllComponents({ name: "ConfirmDialog" }).find((d) => d.props("title") === "unsaved.title");
+
+    it("an untouched template leaves without asking", async () => {
+      const w = await mountEdit("meta");
+      const next = vi.fn();
+      TemplateEdit.beforeRouteLeave.call(w.vm, {}, {}, next);
+      expect(next).toHaveBeenCalledWith();
+    });
+
+    it("an edited one asks first; Save and leave saves, then leaves (not to the list)", async () => {
+      const w = await mountEdit("meta");
+      w.vm.$.proxy.form.rules = "Brand first.";
+      await w.vm.$nextTick();
+      const next = vi.fn();
+      TemplateEdit.beforeRouteLeave.call(w.vm, {}, {}, next);
+      await w.vm.$nextTick();
+      expect(next).not.toHaveBeenCalled();
+      expect(leaveDialog(w).props("open")).toBe(true);
+      leaveDialog(w).vm.$emit("confirm");
+      await flushPromises();
+      expect(api.PATCH_Template).toHaveBeenCalledWith("meta", expect.objectContaining({ rules: ["Brand first."] }));
+      expect(next).toHaveBeenCalledWith();
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it("a save from the page leaves for the list without asking", async () => {
+      const w = await mountEdit("meta");
+      w.vm.$.proxy.form.rules = "Brand first.";
+      await w.vm.$nextTick();
+      await w.vm.$.proxy.save();
+      expect(push).toHaveBeenCalledWith({ name: "EnrichmentTemplates" });
+      const next = vi.fn();
+      TemplateEdit.beforeRouteLeave.call(w.vm, {}, {}, next);
+      expect(next).toHaveBeenCalledWith();
+    });
   });
 });
