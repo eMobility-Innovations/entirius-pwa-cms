@@ -68,7 +68,7 @@
       <template v-if="proposal && step.status !== 'running'">
         <QuestionsForm v-if="kind === 'questions'" ref="output" :proposal="proposal" @updated="setProposal" @state="(s) => (form = s)" />
         <DocumentSummary v-else-if="kind === 'document'" :proposal="proposal" :run="run" />
-        <KeywordsTable v-else-if="kind === 'keywords'" :proposal="proposal" @updated="setProposal" />
+        <KeywordsTable v-else-if="kind === 'keywords'" :proposal="proposal" @updated="setProposal" @busy="(b) => (picking = b)" />
         <MetaCards v-else-if="kind === 'meta'" :proposal="proposal" />
         <TextArtifact v-else-if="kind === 'text'" :proposal="proposal" />
         <pre v-else class="step-panel__data m-0" data-testid="step-data">{{ dataText }}</pre>
@@ -176,6 +176,8 @@ export default {
       loading: false,
       busy: false,
       correcting: false,
+      // A keyword pick saving: the step is approved with the set the operator picked, never the one before.
+      picking: false,
       regenerating: false,
       instruction: "",
       form: null,
@@ -247,9 +249,9 @@ export default {
       return this.failure || this.$t("enrichment.studio.failed");
     },
     // An answer saving on its own (the field just left) never blocks Approve: the tap that left the field lands on it,
-    // and approve() waits for that save before it accepts.
+    // and approve() waits for that save (busy meanwhile, so a second tap sends nothing) before it accepts.
     off() {
-      return this.busy || this.correcting || this.loading;
+      return this.busy || this.correcting || this.picking || this.loading;
     },
     canRetry() {
       return this.step.status === "failed" || this.stale;
@@ -357,8 +359,8 @@ export default {
       this.proposal = proposal;
     },
     async approve() {
-      if (this.kind === "questions" && !(await this.$refs.output.prepare())) return;
       await this.act(async () => {
+        if (this.kind === "questions" && !(await this.$refs.output.prepare())) return false;
         await POST_AcceptProposal(this.proposal.id);
         const { data } = await GET_Run(this.run.uid);
         this.$emit("changed", data, { advance: true });
@@ -379,10 +381,12 @@ export default {
         this.$emit("changed", data, { advance: false });
       }, "enrichment.studio.regenerating_toast");
     },
+    // One decision at a time: a second tap while one is on its way sends nothing. `work` returning false = not done.
     async act(work, toastKey) {
+      if (this.busy) return;
       this.busy = true;
       try {
-        await work();
+        if ((await work()) === false) return;
         this.notify.spawnNotification({ type: "positive", msg: this.$t(toastKey) });
       } catch (err) {
         this.regenerating = false;

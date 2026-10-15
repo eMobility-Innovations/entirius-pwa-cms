@@ -127,9 +127,10 @@ export default {
       this.errors = Object.fromEntries(missing.map((id) => [id, true]));
       return missing.length === 0;
     },
-    // One save at a time: a second call waits for the first, then saves only what is still unsaved.
+    // One save at a time: a later call waits until none runs (two waiting callers never both start one), then saves
+    // only what is still unsaved.
     async save() {
-      if (this.inflight) await this.inflight;
+      while (this.inflight) await this.inflight;
       if (!this.dirty) return true;
       this.inflight = this.persist();
       try {

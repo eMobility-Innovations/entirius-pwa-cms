@@ -93,7 +93,8 @@ export default {
   props: {
     proposal: { type: Object, required: true },
   },
-  emits: ["updated"],
+  // `busy`: a pick is saving — the step's Approve waits for it.
+  emits: ["updated", "busy"],
   setup() {
     return { notify: useNotifyStore(), MAX_SECONDARY };
   },
@@ -112,6 +113,11 @@ export default {
     },
     supportingFull() {
       return (this.data.secondary || []).length >= MAX_SECONDARY;
+    },
+  },
+  watch: {
+    busy(on) {
+      this.$emit("busy", on);
     },
   },
   methods: {

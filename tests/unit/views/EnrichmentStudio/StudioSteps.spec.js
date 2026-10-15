@@ -27,7 +27,12 @@ const FormField = {
 const StatusBadge = { name: "StatusBadge", props: ["label", "tone"], template: "<span class='badge'>{{ label }}</span>" };
 const BasicTextarea = { name: "BasicTextarea", props: ["modelValue", "disabled"], emits: ["update:modelValue"], template: "<textarea />" };
 const BasicButton = { name: "BasicButton", props: ["disabled"], emits: ["click"], template: "<button :disabled='disabled' @click=\"$emit('click')\"><slot /></button>" };
-const ActionBar = { name: "ActionBar", props: ["actions"], template: "<div />" };
+// Renders each action as a button, off while disabled or loading — as the real ActionBar's BasicButton.
+const ActionBar = {
+  name: "ActionBar",
+  props: ["actions"],
+  template: "<div><button v-for='a in actions' :key='a.key' :data-testid='a.testid' :disabled='a.disabled || a.loading' @click='a.onClick'>{{ a.label }}</button></div>",
+};
 const BasicModal = { name: "BasicModal", props: ["open", "actions"], template: "<div v-if='open'><slot /></div>" };
 const stubs = {
   FormField, BasicTextarea, BasicButton, ActionBar, BasicModal, StatusBadge,
@@ -215,6 +220,49 @@ describe("StepPanel", () => {
     await flushPromises();
     expect(api.PATCH_Proposal).toHaveBeenCalledTimes(1);
     expect(api.POST_AcceptProposal).toHaveBeenCalledWith(11);
+  });
+
+  it("a double tap on Approve while the answers save sends one save and one approval", async () => {
+    let saved;
+    api.PATCH_Proposal.mockReturnValue(new Promise((resolve) => (saved = resolve)));
+    api.POST_AcceptProposal.mockResolvedValue({ data: {} });
+    api.GET_Run.mockResolvedValue({ data: RUN });
+    const w = await mountStep(0);
+    w.findAllComponents({ name: "BasicTextarea" })[0].vm.$emit("update:modelValue", "2019");
+    await w.find("[data-testid='questions-form']").trigger("focusout");
+    await w.find("[data-testid='step-approve']").trigger("click");
+    await w.find("[data-testid='step-approve']").trigger("click");
+    saved({ data: QUESTIONS });
+    await flushPromises();
+    expect(api.PATCH_Proposal).toHaveBeenCalledTimes(1);
+    expect(api.POST_AcceptProposal).toHaveBeenCalledTimes(1);
+    expect(w.emitted("changed")).toHaveLength(1);
+  });
+
+  it("a double tap on Approve sends one approval", async () => {
+    let accepted;
+    api.POST_AcceptProposal.mockReturnValue(new Promise((resolve) => (accepted = resolve)));
+    api.GET_Run.mockResolvedValue({ data: RUN });
+    const w = await mountStep(1);
+    await w.find("[data-testid='step-approve']").trigger("click");
+    await w.find("[data-testid='step-approve']").trigger("click");
+    accepted({ data: {} });
+    await flushPromises();
+    expect(api.POST_AcceptProposal).toHaveBeenCalledTimes(1);
+  });
+
+  it("Approve waits while a search-phrase pick saves: the step goes on with the picked set", async () => {
+    let picked;
+    api.PATCH_Proposal.mockReturnValue(new Promise((resolve) => (picked = resolve)));
+    const w = await mountStep(1);
+    await w.find("[data-testid='keyword-row-linen sofa'] [data-testid='keyword-secondary']").trigger("click");
+    const approve = w.find("[data-testid='step-approve']");
+    expect(approve.attributes("disabled")).toBeDefined();
+    await approve.trigger("click");
+    expect(api.POST_AcceptProposal).not.toHaveBeenCalled();
+    picked({ data: KEYWORDS });
+    await flushPromises();
+    expect(w.find("[data-testid='step-approve']").attributes("disabled")).toBeUndefined();
   });
 
   it("approving questions with a required answer missing sends nothing", async () => {
