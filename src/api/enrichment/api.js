@@ -9,6 +9,15 @@ const ENR = "/api/enrichment/v2/admin";
 export const GET_Workers = (params) =>
   enrichmentApi.get(`${ENR}/workers/`, { params });
 
+// Work queue per worker: [{ key, label, mode, state (running|paused), paused_reason, paused_at, online_instances,
+// queued_units, oldest_queued_age_s, leased_units, failed_units_24h, nobody_taking }].
+export const GET_WorkersStatus = () =>
+  enrichmentApi.get(`${ENR}/workers/status/`);
+
+// Resume a paused worker → its status row.
+export const POST_ResumeWorker = (key) =>
+  enrichmentApi.post(`${ENR}/workers/${key}/resume/`);
+
 // --- Tasks ---
 
 export const GET_Tasks = (params) =>

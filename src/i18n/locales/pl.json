@@ -2688,7 +2688,33 @@
       "page": "Strona {page}",
       "prev": "Poprzednia",
       "next": "Następna",
-      "end": "Koniec kolejki"
+      "end": "Koniec kolejki",
+      "units_done_one": "Gotowe: {done} z 1 partii",
+      "units_done_few": "Gotowe: {done} z {total} partii",
+      "units_done_many": "Gotowe: {done} z {total} partii",
+      "units_waiting": "czeka: {count}",
+      "units_working": "w toku: {count}",
+      "units_failed": "nieudane: {count}",
+      "units_cancelled": "anulowane: {count}",
+      "units_hint": "Przebieg dzieli się na małe partie produktów, które workery biorą po kolei.",
+      "cost_stopped": "Zatrzymane: ten przebieg osiągnął limit kosztów. Partie, które jeszcze nie ruszyły, zostały anulowane.",
+      "failed_title": "Co się nie udało",
+      "failed_more": "Widać ostatnie {shown} z {count} nieudanych partii.",
+      "tries_one": "po 1 próbie",
+      "tries_few": "po {count} próbach",
+      "tries_many": "po {count} próbach",
+      "details": "Szczegóły",
+      "hide_details": "Ukryj szczegóły",
+      "event_try": "próba {number}",
+      "event": {
+        "claimed": "Worker wziął partię",
+        "completed": "Zakończone",
+        "requeued": "Wróciło do kolejki na kolejną próbę",
+        "failed": "Nie udało się",
+        "lease_expired": "Worker przestał odpowiadać",
+        "discarded": "Odrzucone: przebieg anulowano",
+        "other": "Zmiana w kolejce"
+      }
     },
     "import": {
       "open": "Import CSV",
@@ -2895,7 +2921,14 @@
         "VALIDATION_ERROR": "Usługa AI odrzuciła zapytanie",
         "INVALID_REQUEST": "Usługa AI odrzuciła zapytanie",
         "unknown": "Usługa AI zgłosiła błąd",
-        "NOT_RECORDED": "przyczyna nie została zapisana"
+        "NOT_RECORDED": "przyczyna nie została zapisana",
+        "COST_LIMIT": "Przebieg osiągnął limit kosztów",
+        "LEASE_EXPIRED": "Worker przestał odpowiadać przed końcem",
+        "NO_RESULT": "Worker nic nie zwrócił dla tego produktu",
+        "BUDGET_EXCEEDED": "Budżet AI się wyczerpał",
+        "HARD_CAP_REACHED": "Osiągnięto limit wydatków na AI",
+        "SPEND_CAP_EXCEEDED": "Osiągnięto limit wydatków na AI",
+        "QUOTA_EXCEEDED": "Limit AI się wyczerpał"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",
@@ -3423,6 +3456,13 @@
       "fix_warnings": "Popraw ostrzeżenia",
       "checked_toast": "Nie znaleziono problemów.",
       "fixed_toast": "Poprawiono — nowa wersja."
+    },
+    "workers": {
+      "alerts": "Workery AI wymagające uwagi",
+      "paused": "{label} — praca wstrzymana: {reason}",
+      "nobody_taking": "Nikt nie przyjmuje pracy {label} — czeka {count} od {minutes} min",
+      "resume": "Wznów",
+      "resumed": "{label} znów pracuje"
     }
   },
   "promo": {

@@ -2689,7 +2689,33 @@
       "page": "Page {page}",
       "prev": "Previous",
       "next": "Next",
-      "end": "End of queue"
+      "end": "End of queue",
+      "units_done_one": "{done} of 1 batch done",
+      "units_done_few": "{done} of {total} batches done",
+      "units_done_many": "{done} of {total} batches done",
+      "units_waiting": "{count} waiting",
+      "units_working": "{count} working",
+      "units_failed": "{count} failed",
+      "units_cancelled": "{count} cancelled",
+      "units_hint": "A run is split into small batches of products that workers pick up one by one.",
+      "cost_stopped": "Stopped: this run reached its cost limit. Batches not started yet were cancelled.",
+      "failed_title": "What failed",
+      "failed_more": "Showing the latest {shown} of {count} failed batches.",
+      "tries_one": "after 1 try",
+      "tries_few": "after {count} tries",
+      "tries_many": "after {count} tries",
+      "details": "Details",
+      "hide_details": "Hide details",
+      "event_try": "try {number}",
+      "event": {
+        "claimed": "Picked up by a worker",
+        "completed": "Finished",
+        "requeued": "Put back in the queue to try again",
+        "failed": "Failed",
+        "lease_expired": "The worker stopped answering",
+        "discarded": "Dropped: the run was cancelled",
+        "other": "Queue update"
+      }
     },
     "import": {
       "open": "Import CSV",
@@ -2896,7 +2922,14 @@
         "VALIDATION_ERROR": "The AI service rejected the request",
         "INVALID_REQUEST": "The AI service rejected the request",
         "unknown": "The AI service reported an error",
-        "NOT_RECORDED": "reason not recorded"
+        "NOT_RECORDED": "reason not recorded",
+        "COST_LIMIT": "The run reached its cost limit",
+        "LEASE_EXPIRED": "The worker stopped answering before it finished",
+        "NO_RESULT": "The worker returned nothing for this product",
+        "BUDGET_EXCEEDED": "The AI budget is used up",
+        "HARD_CAP_REACHED": "The AI spending limit is reached",
+        "SPEND_CAP_EXCEEDED": "The AI spending limit is reached",
+        "QUOTA_EXCEEDED": "The AI quota is used up"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} to review",
@@ -3424,6 +3457,13 @@
       "fix_warnings": "Fix warnings",
       "checked_toast": "No problems found.",
       "fixed_toast": "Corrected — a new version."
+    },
+    "workers": {
+      "alerts": "AI workers that need attention",
+      "paused": "{label} is paused: {reason}",
+      "nobody_taking": "Nobody is taking {label} work — {count} waiting for {minutes} min",
+      "resume": "Resume",
+      "resumed": "{label} is working again"
     }
   },
   "promo": {

@@ -47,6 +47,7 @@ const mountList = (routerMock = {}, query = {}) =>
         Pagination: true,
         TaskQueueDrawer: { name: "TaskQueueDrawer", props: ["visible", "taskId", "outcome", "progress"], template: "<div />" },
         RunProposals: { name: "RunProposals", props: ["task"], emits: ["changed"], template: "<div />" },
+        WorkerAlerts: { name: "WorkerAlerts", template: "<div />" },
       },
     },
   });
@@ -59,7 +60,13 @@ describe("RunsPage", () => {
     mockGetTasks.mockResolvedValue({ data: { results: [], count: 0 } });
   });
 
-  it("loads tasks, keeps each one whole and flattens scope_spec.check", async () => {
+  it("the page header raises the AI workers that need attention", async () => {
+    const wrapper = mountList();
+    await flushPromises();
+    expect(wrapper.findComponent({ name: "WorkerAlerts" }).exists()).toBe(true);
+  });
+
+    it("loads tasks, keeps each one whole and flattens scope_spec.check", async () => {
     mockGetTasks.mockResolvedValueOnce({ data: { results: [task()], count: 1 } });
 
     const wrapper = mountList();

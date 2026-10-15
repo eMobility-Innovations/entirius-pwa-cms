@@ -45,6 +45,9 @@ export function runScope(task) {
 export const runTitle = (task, workers = [], templates = []) =>
   [runName(task, workers, templates), runScope(task)].filter(Boolean).join(" · ");
 
+/** A product by its name once a proposal told it, else its SKU. */
+export const productName = (ref) => productNames[ref] || ref;
+
 /** Product names the caller already holds: the proposals on screen. */
 export function noteProductNames(proposals) {
   for (const { subject_ref: ref, subject_label: label } of proposals) {

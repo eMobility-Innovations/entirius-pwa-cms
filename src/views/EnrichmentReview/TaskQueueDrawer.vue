@@ -6,10 +6,17 @@
     @close="$emit('close')"
   >
     <div class="task-queue flex-column gap-5">
-      <div v-if="outcome || progress" class="flex-column gap-1">
+      <div v-if="outcome || progress || unitLine" class="flex-column gap-1">
         <p v-if="outcome" class="task-queue__outcome m-0 fw-600 t-strong" data-testid="queue-outcome">{{ outcome }}</p>
         <p v-if="progress" class="m-0 fs-200 t-secondary" data-testid="queue-progress">{{ progress }}</p>
+        <p v-if="unitLine" class="m-0 fs-200 t-secondary" :title="$t('enrichment.queue.units_hint')" data-testid="queue-units">
+          {{ unitLine }}
+        </p>
       </div>
+      <StepCallout v-if="stoppedByCost" tone="warning" icon="warning" role="alert" data-testid="queue-cost-stopped">
+        {{ $t("enrichment.queue.cost_stopped") }}
+      </StepCallout>
+      <FailedUnits v-if="failedUnits.length" :units="failedUnits" :total="failedTotal" />
       <Loader v-show="loading" />
 
       <DataTable
@@ -78,11 +85,18 @@
 <script>
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { GET_TaskTargets } from "@/api/enrichment/api";
+import { GET_Task, GET_TaskTargets } from "@/api/enrichment/api";
+import { isActive } from "@/views/Pim/components/enrichment/productAi";
 import { runUidOf } from "@/views/EnrichmentReview/reviewLogic";
+import StepCallout from "@/views/EnrichmentStudio/StepCallout.vue";
+import FailedUnits from "./FailedUnits.vue";
+import { costStopped, unitProgress } from "./workQueue";
+
+const REFRESH_MS = 5000;
 
 export default {
   name: "TaskQueueDrawer",
+  components: { FailedUnits, StepCallout },
   props: {
     visible: { type: Boolean, default: false },
     taskId: { type: Number, default: null },
@@ -101,6 +115,11 @@ export default {
       page: 1,
       loading: false,
       reachedEnd: false,
+      // The run itself: its batches, the failed ones, why it stopped — refreshed while it runs and the drawer is open.
+      task: null,
+      taskTimer: null,
+      // Bumped by every run read, on close and on leaving: only the latest read of the open run lands.
+      taskSeq: 0,
     };
   },
   computed: {
@@ -129,12 +148,29 @@ export default {
         };
       });
     },
+    // The run shown: none while the drawer is closed.
+    openTask() {
+      return this.visible ? this.taskId : null;
+    },
+    unitLine() {
+      return unitProgress(this.task?.units);
+    },
+    stoppedByCost() {
+      return costStopped(this.task);
+    },
+    failedUnits() {
+      return this.task?.failed_units || [];
+    },
+    failedTotal() {
+      return this.task?.units?.failed || this.failedUnits.length;
+    },
     // No total count from the API — a full-looking page means "maybe more".
     hasMore() {
       return !this.reachedEnd && this.targets.length > 0;
     },
   },
   watch: {
+    openTask: "watchTask",
     visible(open) {
       if (open) {
         this.page = 1;
@@ -148,7 +184,31 @@ export default {
       }
     },
   },
+  beforeUnmount() {
+    this.stopTask();
+  },
   methods: {
+    // The open run is read now and every few seconds while it runs; a closed drawer forgets it.
+    watchTask() {
+      this.stopTask();
+      this.task = null;
+      if (this.openTask) this.fetchTask();
+    },
+    stopTask() {
+      this.taskSeq += 1;
+      clearTimeout(this.taskTimer);
+    },
+    async fetchTask() {
+      const mine = ++this.taskSeq;
+      try {
+        const { data } = await GET_Task(this.taskId);
+        if (mine !== this.taskSeq) return;
+        this.task = data;
+        if (isActive(data)) this.taskTimer = setTimeout(() => this.fetchTask(), REFRESH_MS);
+      } catch {
+        // The run's batches are extra: without them the drawer still lists its products.
+      }
+    },
     async fetchTargets() {
       if (!this.taskId) {
         this.targets = [];

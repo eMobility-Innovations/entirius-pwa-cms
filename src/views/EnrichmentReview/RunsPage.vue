@@ -33,6 +33,7 @@
     </template>
 
     <div class="flex-column gap-8" v-bind="tabPanel">
+      <WorkerAlerts />
       <Loader block v-show="loading" />
 
       <DataTable
@@ -123,6 +124,7 @@ import { pluralKey } from "@/utils/plural";
 import CostLabel from "./CostLabel.vue";
 import RunProposals from "./RunProposals.vue";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
+import WorkerAlerts from "./WorkerAlerts.vue";
 import { loadProductNames, runName, runScope, runTitle } from "./runLabel";
 import { needsRefresh, opensDrawer, orderedCounts, taskStatusTone } from "./taskProgress";
 import { listOf } from "@/api/enrichment/listOf";
@@ -138,7 +140,7 @@ const ALL = "__all";
 // what it came to). Each run reads in plain words: its template or worker, what it ran on, never its key.
 export default {
   name: "RunsPage",
-  components: { CostLabel, RouteTabs, RunProposals, TaskQueueDrawer },
+  components: { CostLabel, RouteTabs, RunProposals, TaskQueueDrawer, WorkerAlerts },
   setup() {
     const notify = useNotifyStore();
     const tabPanel = routeTabPanel(ENRICHMENT_REVIEW_TABS, "EnrichmentRuns");
