@@ -61,7 +61,8 @@ describe("saving", () => {
   });
 
   it("maps the API's 400 details to paths inside the profile", () => {
-    const err = { response: { data: { details: [{ field: "data.brand.differentiators.0", description: "5 is not of type 'string'" }] } } };
+    // The client rejects with the bare v2 body (createClient rejectWithBody).
+    const err = { error: "VALIDATION_ERROR", httpStatus: 400, details: [{ field: "data.brand.differentiators.0", description: "5 is not of type 'string'" }] };
     const errors = errorsByPath(err);
     expect(errors).toEqual({ "brand.differentiators.0": "5 is not of type 'string'" });
     expect(errorsInside(errors, "brand")).toEqual({ "differentiators.0": "5 is not of type 'string'" });

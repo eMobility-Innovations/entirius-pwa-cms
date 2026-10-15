@@ -49,6 +49,7 @@
 </template>
 
 <script>
+import { isNotFound } from "@/api/createClient";
 import { GET_Run, POST_CancelRun } from "@/api/enrichment/api";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
@@ -113,7 +114,7 @@ export default {
         const { data } = await GET_Run(this.uid);
         this.setRun(data);
       } catch (err) {
-        if (err?.response?.status !== 404) this.failed(err);
+        if (!isNotFound(err)) this.failed(err);
         if (!this.run) return;
         this.schedule();
       }

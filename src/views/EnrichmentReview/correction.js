@@ -35,9 +35,12 @@ export function reviseBody({ instruction = "", quickAction = null, selection = "
 
 const ERROR_KEYS = { REVISION_NOT_APPLICABLE: "enrichment.correct.error.not_applicable" };
 
-/** The i18n key of a known correction error code, else "" (the caller falls back to the API message). */
+/**
+ * The i18n key of a known correction error code, else "" (the caller falls back to the API message). The client
+ * rejects with the bare v2 body.
+ */
 export function reviseErrorKey(err) {
-  return ERROR_KEYS[err?.response?.data?.error] || "";
+  return ERROR_KEYS[(err?.response?.data ?? err)?.error] || "";
 }
 
 /** The rules with `rule` added: trimmed, no duplicate, within the limits; `error` names what stopped it. */

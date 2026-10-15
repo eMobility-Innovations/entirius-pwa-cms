@@ -87,6 +87,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { ReadonlyOff } from "@/composables/useReadonly";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
+import { isNotFound } from "@/api/createClient";
 import { GET_Proposal, GET_Task, POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
 import CorrectionBar from "./CorrectionBar.vue";
 import DriftModal from "./DriftModal.vue";
@@ -190,7 +191,7 @@ export default {
         this.setProposal(data);
         this.loadVersions();
       } catch (err) {
-        if (err?.response?.status === 404) return;
+        if (isNotFound(err)) return;
         this.loadFailed = true;
         this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
       }

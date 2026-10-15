@@ -45,10 +45,10 @@ describe("correction helpers", () => {
   });
 
   it("names REVISION_NOT_APPLICABLE in plain words, nothing else", () => {
-    expect(reviseErrorKey({ response: { data: { error: "REVISION_NOT_APPLICABLE" } } })).toBe(
+    expect(reviseErrorKey({ error: "REVISION_NOT_APPLICABLE", httpStatus: 400 })).toBe(
       "enrichment.correct.error.not_applicable"
     );
-    expect(reviseErrorKey({ response: { data: { error: "VALIDATION_ERROR" } } })).toBe("");
+    expect(reviseErrorKey({ error: "VALIDATION_ERROR", httpStatus: 400 })).toBe("");
     expect(reviseErrorKey(null)).toBe("");
   });
 

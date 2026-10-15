@@ -78,7 +78,7 @@ describe("ProfilePage", () => {
 
   it("a refused save shows each error at its section", async () => {
     api.PUT_Profile.mockRejectedValue({
-      response: { data: { details: [{ field: "data.brand.differentiators.0", description: "Too long" }] } },
+      error: "VALIDATION_ERROR", httpStatus: 400, details: [{ field: "data.brand.differentiators.0", description: "Too long" }],
     });
     const w = mountPage();
     await flushPromises();

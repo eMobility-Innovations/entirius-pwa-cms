@@ -98,9 +98,9 @@ export function pruneEmpty(value) {
   return Object.fromEntries(entries.filter(([, item]) => !isEmpty(item)));
 }
 
-/** The API's 400 details as `{ "<path without data.>": message }`. */
+/** The API's 400 details as `{ "<path without data.>": message }` (the client rejects with the bare v2 body). */
 export function errorsByPath(err) {
-  const details = err?.response?.data?.details;
+  const details = (err?.response?.data ?? err)?.details;
   if (!Array.isArray(details)) return {};
   const pairs = details
     .filter((d) => d.field)

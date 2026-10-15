@@ -117,7 +117,7 @@ describe("ProposalEditor", () => {
     const applied = await mountEditor({ ...PROPOSAL, status: "applied" });
     expect(applied.findComponent({ name: "ActionBar" }).props("actions")).toEqual([]);
     expect(applied.findComponent({ name: "CorrectionBar" }).exists()).toBe(false);
-    api.GET_Proposal.mockRejectedValue({ response: { status: 404 } });
+    api.GET_Proposal.mockRejectedValue({ error: "NOT_FOUND", httpStatus: 404 });
     const missing = mount(ProposalEditor, {
       global: { stubs, mocks: { $route: { params: { proposalId: "1" }, query: {} }, $router: { push, back } } },
     });
@@ -128,14 +128,14 @@ describe("ProposalEditor", () => {
   });
 
   it("a load failure other than 404 is reported, not shown as a gone proposal", async () => {
-    api.GET_Proposal.mockRejectedValue({ response: { status: 403, data: { detail: "No access" } } });
+    api.GET_Proposal.mockRejectedValue({ error: "PERMISSION_DENIED", message: "No access", httpStatus: 403 });
     const w = mount(ProposalEditor, {
       global: { stubs, mocks: { $route: { params: { proposalId: "9" }, query: {} }, $router: { push, back } } },
     });
     await flushPromises();
     expect(w.find("[data-testid='editor-load-error']").exists()).toBe(true);
     expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: "negative" }));
-    api.GET_Proposal.mockRejectedValue({ response: { status: 404 } });
+    api.GET_Proposal.mockRejectedValue({ error: "NOT_FOUND", httpStatus: 404 });
     const gone = mount(ProposalEditor, {
       global: { stubs, mocks: { $route: { params: { proposalId: "9" }, query: {} }, $router: { push, back } } },
     });
@@ -147,7 +147,7 @@ describe("ProposalEditor", () => {
   it("a missing task only hides the template promotion", async () => {
     api.GET_Proposal.mockResolvedValue({ data: PROPOSAL });
     api.GET_ProposalRevisions.mockResolvedValue({ data: [] });
-    api.GET_Task.mockRejectedValue({ response: { status: 404 } });
+    api.GET_Task.mockRejectedValue({ error: "NOT_FOUND", httpStatus: 404 });
     const w = mount(ProposalEditor, {
       global: { stubs, mocks: { $route: { params: { proposalId: "9" }, query: {} }, $router: { push, back } } },
     });

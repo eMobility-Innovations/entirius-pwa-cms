@@ -57,7 +57,7 @@ describe("ProposalCorrection", () => {
   });
 
   it("REVISION_NOT_APPLICABLE is told in plain words and nothing changes", async () => {
-    api.POST_ReviseProposal.mockRejectedValue({ response: { data: { error: "REVISION_NOT_APPLICABLE", message: "x" } } });
+    api.POST_ReviseProposal.mockRejectedValue({ error: "REVISION_NOT_APPLICABLE", message: "x", httpStatus: 400 });
     const w = mountCorrection();
     (await openBar(w)).vm.$emit("submit", { instruction: "Swap", quickAction: null, selection: "" });
     await flushPromises();
@@ -155,7 +155,7 @@ describe("BatchCorrection", () => {
   });
 
   it("a failed count disables the button and says so", async () => {
-    api.GET_Proposals.mockRejectedValue({ response: { status: 500 } });
+    api.GET_Proposals.mockRejectedValue({ error: "INTERNAL_ERROR", httpStatus: 500 });
     const w = mount(BatchCorrection, { props: { taskId: 5 }, global: { stubs } });
     await flushPromises();
     expect(w.find("[data-testid='batch-correct']").attributes("disabled")).toBeDefined();

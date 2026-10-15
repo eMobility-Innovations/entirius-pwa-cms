@@ -3,7 +3,8 @@ import { mount, flushPromises } from "@vue/test-utils";
 
 const api = vi.hoisted(() => ({ GET_Run: vi.fn(), POST_CancelRun: vi.fn(), GET_ProfileStatus: vi.fn() }));
 vi.mock("@/api/enrichment/api", () => api);
-vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
+const notify = vi.hoisted(() => vi.fn());
+vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 
 import RunView from "@/views/EnrichmentStudio/RunView.vue";
 
@@ -27,8 +28,21 @@ describe("RunView", () => {
     vi.useFakeTimers();
     api.GET_Run.mockReset();
     replace.mockReset();
+    notify.mockReset();
   });
   afterEach(() => vi.useRealTimers());
+
+  it("a missing run shows quietly as gone; another failure is told", async () => {
+    // The client rejects with the bare v2 body (createClient rejectWithBody).
+    api.GET_Run.mockRejectedValue({ error: "NOT_FOUND", httpStatus: 404 });
+    mountRun();
+    await flushPromises();
+    expect(notify).not.toHaveBeenCalled();
+    api.GET_Run.mockRejectedValue({ error: "INTERNAL_ERROR", message: "boom", httpStatus: 500 });
+    mountRun();
+    await flushPromises();
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: "negative" }));
+  });
 
   it("refreshes itself while a step works and stops once it waits for review", async () => {
     api.GET_Run.mockResolvedValueOnce({ data: run(step("a", "running")) });
