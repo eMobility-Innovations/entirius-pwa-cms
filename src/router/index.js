@@ -5,7 +5,7 @@ import { useMuninStore } from "@/stores/munin";
 import { useAccessStore } from "@/stores/access";
 import { panels } from "@/configs/access";
 import { AREAS } from "@/configs/areas";
-import { buildNavRoutes } from "@/components/Navigation/nav-routes";
+import { ENRICHMENT_SETTINGS_TABS, buildNavRoutes } from "@/components/Navigation/nav-routes";
 
 import Home from "../views/Home/index.vue";
 import rv_builds from "../views/Builder/index.vue";
@@ -1205,7 +1205,15 @@ const routes = [
 
   // Enricher → Settings: the company profile and memory (contract A4 § 2–§ 3), AI templates (contract A3 § 4) and
   // spawn rules (etap-13), each a tab of one screen
-  { path: "/enrichment/settings", redirect: "/enrichment/settings/profile" },
+  // `/enrichment/settings` (the menu entry) opens the first tab the user can read: Profile needs the profile area,
+  // narrower than the proposals one. Never rendered: beforeEnter always moves on.
+  {
+    path: "/enrichment/settings",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentProfile/ProfilePage.vue"),
+    meta: { requiresAuth: true, panel: "enricher" },
+    beforeEnter: firstSettingsTab,
+  },
   {
     path: "/enrichment/settings/profile",
     name: "EnrichmentProfile",
@@ -1636,6 +1644,14 @@ function accessFallback(to, panel) {
   if (landing) return { path: landing.route, query: landing.query };
   if (access.status !== "error") access.deniedPanel = panel;
   return "/";
+}
+
+// The Enricher Settings tab to open: the first one the user can read (the first one when none, the guard refuses it).
+async function firstSettingsTab() {
+  const access = useAccessStore();
+  await access.ensureLoaded();
+  const tabs = ENRICHMENT_SETTINGS_TABS.sections.map(({ route }) => ({ name: route }));
+  return tabs.find((tab) => access.can(router.resolve(tab).meta.area)) || tabs[0];
 }
 
 // django-access: read on the route's area, or on any area of its panel when the route carries none.
