@@ -12,6 +12,7 @@ import EnrichmentReview from "@/views/EnrichmentReview/index.vue";
 
 const ListMode = { name: "ListMode", props: ["rows", "bulk", "totalCount"], template: "<div />" };
 const BatchCorrection = { name: "BatchCorrection", props: ["taskId"], emits: ["queued"], template: "<div />" };
+const RunCorrections = { name: "RunCorrections", props: ["rows"], emits: ["queued"], template: "<div />" };
 const BasicButton = { emits: ["click"], template: "<button @click=\"$emit('click')\"><slot /></button>" };
 const replace = vi.fn();
 
@@ -19,7 +20,7 @@ async function mountPage(query) {
   const w = mount(EnrichmentReview, {
     global: {
       stubs: { PageLayout: { template: "<div><slot name='toolbar' /><slot /></div>" }, PageHeader: true, ListMode,
-        BatchCorrection, BasicButton, DriftModal: true, ImportCsvDialog: true, ProductPreviewDrawer: true,
+        BatchCorrection, RunCorrections, BasicButton, DriftModal: true, ImportCsvDialog: true, ProductPreviewDrawer: true,
         MobileFilterPanel: true, SideDrawer: true },
       mocks: { $route: { path: "/enrichment", query }, $router: { replace, push: vi.fn() } },
     },
@@ -47,9 +48,21 @@ describe("EnrichmentReview filtered by task", () => {
     expect(w.findComponent({ name: "ListMode" }).props("bulk")).toBe(true);
   });
 
-  it("without a task there is no task line", async () => {
+  it("without a task there is no task line; the pending list offers Correct all per run", async () => {
     const w = await mountPage({});
     expect(w.findComponent({ name: "BatchCorrection" }).exists()).toBe(false);
+    expect(w.findComponent({ name: "RunCorrections" }).props("rows")).toEqual([{ id: 7, status: "pending" }]);
+  });
+
+  it("a task reached with every status still offers Correct all", async () => {
+    const w = await mountPage({ task: "12", status: "__all" });
+    expect(w.findComponent({ name: "BatchCorrection" }).props()).toEqual({ taskId: 12 });
+    expect(w.findComponent({ name: "RunCorrections" }).exists()).toBe(false);
+  });
+
+  it("another status chip than pending has no Correct all", async () => {
+    const w = await mountPage({ status: "applied" });
+    expect(w.findComponent({ name: "RunCorrections" }).exists()).toBe(false);
   });
 
   it("the All status chip asks the server for every status, not the pending default", async () => {

@@ -2710,7 +2710,7 @@
     "review": {
       "title": "Wzbogacanie treści",
       "filters": "Filtry",
-      "search_placeholder": "Szukaj po obiekcie...",
+      "search_placeholder": "Szukaj po nazwie lub SKU…",
       "matching": "Pasujących: {count}",
       "confidence_min": "Min. pewność",
       "modes": {
@@ -2842,6 +2842,9 @@
       "results_empty": "Brak propozycji AI czekających na ten produkt",
       "results_running": "Zadanie działa w tle — jego propozycje pojawią się tutaj, gdy się zakończy.",
       "task_done": "Zadanie AI zakończone: {count} propozycji do przejrzenia.",
+      "kept_edited_one": "1 pole pominięte — masz w nim swoje zmiany.",
+      "kept_edited_few": "{count} pola pominięte — masz w nich swoje zmiany.",
+      "kept_edited_many": "{count} pól pominiętych — masz w nich swoje zmiany.",
       "task_failed": "Zadanie AI #{id} nie powiodło się.",
       "applied_reload": "Propozycja zastosowana. Produkt pokaże ją po ponownym wczytaniu.",
       "applied_conflict": "Propozycja zastosowana, ale masz niezapisane zmiany w tym samym polu. Zapisanie teraz nadpisze wartość AI.",
@@ -2944,6 +2947,7 @@
       "variant_pick": "Użyj tego",
       "all": "Popraw wszystkie ({count})",
       "all_title": "Popraw wszystkie propozycje tego uruchomienia ({count})",
+      "runs_title": "Popraw całe uruchomienie AI jednym poleceniem",
       "all_hint": "Jedna instrukcja dla każdej propozycji, która czeka na przegląd. Poprawki idą w tle; każda propozycja dostaje nową wersję.",
       "all_queued": "Poprawiam w tle propozycje: {count} — nowe wersje pojawią się po kolei.",
       "batch_placeholder": "Jedna instrukcja dla każdej propozycji…",
@@ -3382,6 +3386,7 @@
       "deleted_toast": "Usunięto.",
       "empty_page": "Nic na tej stronie nie pasuje do filtra ważności — sprawdź inną stronę.",
       "waiting": "Czeka na ciebie",
+      "fact_title": "Liczba {value} z tekstu AI — czy to fakt?",
       "a_channel": "Kanał",
       "subject": {
         "general": "Ogólne",

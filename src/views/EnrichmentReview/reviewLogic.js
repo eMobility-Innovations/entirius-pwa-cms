@@ -184,6 +184,13 @@ export function runUidOf(proposal) {
   return ref.startsWith(RUN_PREFIX) ? ref.slice(RUN_PREFIX.length) : "";
 }
 
+/** What a proposal is about, for a heading: its name and code ("Orion lamp · ENT-S001"), or whichever it has. */
+export function subjectName(proposal) {
+  const { subject_label: label, subject_ref: ref } = proposal || {};
+  if (!label || label === ref) return ref || "";
+  return ref ? `${label} · ${ref}` : label;
+}
+
 export function changeSummary(proposal) {
   const icon = MEDIA_KINDS[proposal.target_kind];
   if (icon) return { media: icon, duration: proposal.proposed_value?.duration_s ?? null };

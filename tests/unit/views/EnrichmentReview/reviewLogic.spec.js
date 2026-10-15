@@ -11,6 +11,7 @@ import {
   lengthTone,
   plainText,
   sourceText,
+  subjectName,
   textRules,
   translationSource,
   wordDiff,
@@ -185,5 +186,14 @@ describe("select values", () => {
   it("a list row counts the tag changes", () => {
     const proposal = { target_kind: "attribute_value", proposed_value: { options: ["a"] }, current_snapshot: { options: ["b", "c"] } };
     expect(changeSummary(proposal)).toEqual({ tags: { added: 1, removed: 2 } });
+  });
+});
+
+describe("subjectName", () => {
+  it("names a proposal by its name and code, or by whichever it has", () => {
+    expect(subjectName({ subject_label: "Orion lamp", subject_ref: "ENT-S001" })).toBe("Orion lamp · ENT-S001");
+    expect(subjectName({ subject_label: "", subject_ref: "ENT-S001" })).toBe("ENT-S001");
+    expect(subjectName({ subject_label: "ENT-S001", subject_ref: "ENT-S001" })).toBe("ENT-S001");
+    expect(subjectName({ subject_label: "Orion lamp", subject_ref: "" })).toBe("Orion lamp");
   });
 });

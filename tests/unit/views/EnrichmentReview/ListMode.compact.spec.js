@@ -53,6 +53,15 @@ describe("ListMode — compact rows", () => {
     expect(w.findComponent({ name: "ChangeSummary" }).props("rules")).toEqual({ min: 120, max: 155, snippet: true });
   });
 
+  it("a named product leads with its name, its SKU under it; an unnamed one shows the SKU once", () => {
+    const named = mountList([row()]);
+    expect(named.get("[data-testid='enrichment-subject-1']").text()).toBe("Orion sofa");
+    expect(named.get("[data-testid='enrichment-sku-1']").text()).toBe("ENT-1");
+    const bare = mountList([row({ subject_label: "" })]);
+    expect(bare.get("[data-testid='enrichment-subject-1']").text()).toBe("ENT-1");
+    expect(bare.find("[data-testid='enrichment-sku-1']").exists()).toBe(false);
+  });
+
   it("the open affordance and a row click both open the detail; quick Apply stays in the row", async () => {
     const r = row();
     const w = mountList([r]);

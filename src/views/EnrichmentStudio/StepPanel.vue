@@ -246,8 +246,10 @@ export default {
     failureTitle() {
       return this.failure || this.$t("enrichment.studio.failed");
     },
+    // An answer saving on its own (the field just left) never blocks Approve: the tap that left the field lands on it,
+    // and approve() waits for that save before it accepts.
     off() {
-      return this.busy || this.correcting || this.loading || !!this.form?.saving;
+      return this.busy || this.correcting || this.loading;
     },
     canRetry() {
       return this.step.status === "failed" || this.stale;
@@ -531,13 +533,16 @@ export default {
   margin-left: auto;
 }
 
-// A phone keeps the decision in reach: the footer sticks to the bottom of the screen while the step scrolls.
+// A phone keeps the decision in reach: the footer sticks to the bottom of the screen while the step scrolls. It sits
+// flush on the scroll body's edge through PageLayout's padding (as its own footer does), so no strip of the step
+// shows cut off beneath it, and it keeps the FAB's corner lane clear.
 @include max-shell {
   .step-panel__footer {
     position: sticky;
-    bottom: 0;
+    bottom: calc(-1 * var(--page-layout-pad-y, var(--space-5)));
     z-index: 1;
     padding-bottom: var(--space-3);
+    padding-right: var(--fab-lane, 0px);
     background: var(--surface-base);
   }
 }
@@ -552,6 +557,10 @@ export default {
   }
   .step-panel__decide {
     justify-content: flex-start;
+  }
+  // "Saving…" appears after Approve, so it never pushes the button away from a tap.
+  .step-panel__decide > span {
+    order: 1;
   }
 }
 </style>

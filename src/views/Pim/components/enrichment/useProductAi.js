@@ -2,6 +2,7 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { t } from "@/i18n";
+import { pluralKey } from "@/utils/plural";
 import { GET_Proposals, GET_Tasks } from "@/api/enrichment/api";
 import { finishedTasks, isActive } from "./productAi";
 
@@ -36,9 +37,7 @@ export function useProductAi(sku) {
 
   function announce(task) {
     const done = task.status === "done";
-    const msg = done
-      ? t("enrichment.ai.task_done", { count: task.counts?.proposed ?? 0 })
-      : t("enrichment.ai.task_failed", { id: task.id });
+    const msg = done ? doneMessage(task.counts || {}) : t("enrichment.ai.task_failed", { id: task.id });
     notify.spawnNotification({ type: done ? "positive" : "negative", msg });
   }
 
@@ -79,4 +78,11 @@ export function useProductAi(sku) {
   watch(sku, (ref) => ref && refresh(), { immediate: true });
   onBeforeUnmount(() => clearTimeout(timer));
   return { proposals, tasks, loading, running, refresh, track, syncTasks };
+}
+
+// The finished-run toast; fields the run left alone because the operator had edited their proposal are named too.
+function doneMessage(counts) {
+  const msg = t("enrichment.ai.task_done", { count: counts.proposed ?? 0 });
+  const kept = counts.kept_edited ?? 0;
+  return kept ? `${msg} ${t(`enrichment.ai.kept_edited_${pluralKey(kept)}`, { count: kept })}` : msg;
 }

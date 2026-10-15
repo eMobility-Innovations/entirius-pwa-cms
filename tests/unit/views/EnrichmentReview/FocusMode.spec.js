@@ -8,6 +8,9 @@ vi.mock("@/api/enrichment/api", () => ({
 vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification: vi.fn() }),
 }));
+vi.mock("@/api/pim/api", () => ({
+  GET_Features: () => Promise.resolve({ data: { results: [{ idx: "description", name: "Description" }] } }),
+}));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ activeChannelIdx: "escootersclinic" }),
 }));
@@ -39,6 +42,25 @@ function build(props = {}) {
     global: { stubs },
   });
 }
+
+describe("FocusMode wording", () => {
+  it("the header names the field and language, never module, kind or worker keys", async () => {
+    const w = build({ rows: [{ ...rows(1)[0], target_module: "pim", target_kind: "attribute_value", source: "worker:pim.writer@v1" }] });
+    await flushPromises();
+    const text = w.text();
+    expect(text).toContain("Description · EN");
+    expect(text).not.toMatch(/attribute_value|pim\.writer|description ·/);
+  });
+
+  it("the header names the product and its SKU", () => {
+    const w = build({ rows: [{ ...rows(1)[0], subject_ref: "ENT-S001", subject_label: "Orion lamp" }] });
+    expect(w.get("[data-testid='enrichment-focus-subject']").text()).toBe("Orion lamp · ENT-S001");
+  });
+
+  it("the primary action is Apply, like everywhere else", () => {
+    expect(build().vm.actions.find((a) => a.key === "accept").label).toBe("enrichment.review.apply");
+  });
+});
 
 describe("FocusMode navigation", () => {
   beforeEach(() => POST_AcceptProposal.mockClear());

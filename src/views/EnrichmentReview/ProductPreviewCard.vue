@@ -38,7 +38,7 @@
         </div>
         <div v-if="product.product_class_name" class="product-preview__row">
           <dt>{{ $t("enrichment.preview.class") }}</dt>
-          <dd>{{ product.product_class_name }}</dd>
+          <dd>{{ productType }}</dd>
         </div>
         <div class="product-preview__row">
           <dt>{{ $t("enrichment.preview.status") }}</dt>
@@ -87,6 +87,8 @@ import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { GET_Product } from "@/api/pim/api";
 
+const PRODUCT_TYPES = ["base", "simple", "configurable", "bundle"];
+
 export default {
   name: "ProductPreviewCard",
   props: {
@@ -106,6 +108,11 @@ export default {
   computed: {
     productName() {
       return this.product?.name || this.sku;
+    },
+    // "ProductSimple" reads as the PIM's own type name ("Simple"); a class it does not know is "Custom".
+    productType() {
+      const type = this.product.product_class_name.toLowerCase().replace(/^product/, "");
+      return this.$t(`pim.type_${PRODUCT_TYPES.includes(type) ? type : "custom"}`);
     },
     heroUrl() {
       const path = this.product?.og_image;

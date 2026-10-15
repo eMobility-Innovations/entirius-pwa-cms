@@ -6,6 +6,7 @@ import {
   revisable,
   reviseBody,
   reviseErrorKey,
+  sentenceWith,
   splitInstruction,
   textareaSelection,
   valueShape,
@@ -88,5 +89,17 @@ describe("correction helpers", () => {
     expect(textareaSelection({ value: "a red sofa", selectionStart: 2, selectionEnd: 5 })).toBe("red");
     expect(textareaSelection({ value: "a red sofa", selectionStart: 3, selectionEnd: 3 })).toBe("");
     expect(textareaSelection(null)).toBe("");
+  });
+});
+
+describe("sentenceWith", () => {
+  it("returns the sentence that holds the number, tags dropped", () => {
+    const text = "<p>Cuadro de aluminio.</p><p>Tiene 7 años de garantía. Envío gratis!</p>";
+    expect(sentenceWith(text, "7")).toBe("Tiene 7 años de garantía.");
+  });
+
+  it("caps a long sentence and gives nothing when no sentence holds the number", () => {
+    expect(sentenceWith(`${"a".repeat(300)} 7`, "7")).toHaveLength(200);
+    expect(sentenceWith("No numbers here.", "7")).toBe("");
   });
 });

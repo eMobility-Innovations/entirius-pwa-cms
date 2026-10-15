@@ -19,10 +19,10 @@
               target="_blank"
               rel="noopener noreferrer"
               class="focus-mode__subject fs-400 fw-600 t-accent"
-              >{{ current.subject_label || current.subject_ref }}</a
+              >{{ subjectName(current) }}</a
             >
-            <span v-else class="focus-mode__subject fs-400 fw-600">{{
-              current.subject_label || current.subject_ref
+            <span v-else class="focus-mode__subject fs-400 fw-600" data-testid="enrichment-focus-subject">{{
+              subjectName(current)
             }}</span>
             <div class="fs-200 t-muted mt-2">{{ metaLine }}</div>
           </div>
@@ -71,7 +71,7 @@
         </FormField>
 
         <div class="flex ai-ct jc-sb flex-wrap gap-5">
-          <span class="fs-200 t-muted">{{ $t("enrichment.review.shortcuts_hint") }}</span>
+          <span class="focus-mode__shortcuts fs-200 t-muted">{{ $t("enrichment.review.shortcuts_hint") }}</span>
           <ActionBar :actions="actions" />
         </div>
       </BasicCard>
@@ -93,7 +93,8 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { safeHref } from "@/utils/safeHref";
 import DiffRenderer from "./DiffRenderer.vue";
 import ProductPreviewCard from "./ProductPreviewCard.vue";
-import { workerOf } from "./reviewLogic";
+import { subjectName } from "./reviewLogic";
+import { useFieldLabels } from "./useFieldLabels";
 import { POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
 
 export default {
@@ -108,7 +109,7 @@ export default {
   },
   emits: ["need-more", "exit"],
   setup() {
-    return { notify: useNotifyStore(), pimChannel: usePimChannelStore() };
+    return { notify: useNotifyStore(), pimChannel: usePimChannelStore(), ...useFieldLabels() };
   },
   data() {
     return {
@@ -128,7 +129,7 @@ export default {
         { key: "reject", role: "danger", label: this.$t("common.reject"), disabled: this.acting,
           testid: "enrichment-focus-reject", onClick: this.reject },
         { key: "accept", role: "primary", disabled: this.acting, testid: "enrichment-focus-accept",
-          label: this.driftMode ? this.$t("enrichment.drift.confirm") : this.$t("common.accept"), onClick: this.accept },
+          label: this.driftMode ? this.$t("enrichment.drift.confirm") : this.$t("enrichment.review.apply"), onClick: this.accept },
       ];
     },
     current() {
@@ -148,23 +149,18 @@ export default {
     hasMorePages() {
       return this.page * this.pageSize < this.totalCount;
     },
+    // What the proposal changes, in the operator's words: the field, its language, the AI's confidence when known.
     metaLine() {
       if (!this.current) return "";
-      const loc = this.current.target_locator || {};
-      const field = [loc.feature_idx, loc.language].filter(Boolean).join(" · ");
-      const conf =
-        this.current.confidence != null
-          ? `${Math.round(Number(this.current.confidence) * 100)}%`
-          : "—";
+      const language = this.current.target_locator?.language;
+      const confidence = this.current.confidence;
       return [
-        this.current.target_module,
-        this.current.target_kind,
-        field,
-        workerOf(this.current.source) || this.current.source,
-        conf,
+        this.proposalField(this.current),
+        language && language.toUpperCase(),
+        confidence != null && `${Math.round(Number(confidence) * 100)}%`,
       ]
         .filter(Boolean)
-        .join("  ·  ");
+        .join(" · ");
     },
   },
   watch: {
@@ -184,6 +180,7 @@ export default {
   },
   methods: {
     safeHref,
+    subjectName,
     onKey(e) {
       // Never hijack keys while the operator is typing a reject reason.
       const tag = (e.target?.tagName || "").toLowerCase();
@@ -285,6 +282,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
 .focus-mode__column {
   max-width: 860px;
   margin: 0 auto;
@@ -305,5 +303,11 @@ export default {
 }
 .focus-mode__diff {
   margin: var(--space-8) 0;
+}
+// Keyboard shortcuts mean nothing on a touch screen.
+@include max-tablet {
+  .focus-mode__shortcuts {
+    display: none;
+  }
 }
 </style>

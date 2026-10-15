@@ -106,4 +106,12 @@ describe("ProductPreviewCard in the drawer", () => {
     expect(wrapper.find("h2").exists()).toBe(false);
     expect(wrapper.find(".product-preview__name").text()).toBe("Dualtron Spider 2");
   });
+
+  it("names the product type in plain words, never the PIM class", async () => {
+    mockGetProduct.mockResolvedValueOnce({ data: product() });
+    const wrapper = mountCard();
+    await flushPromises();
+    expect(wrapper.text()).toContain("pim.type_simple");
+    expect(wrapper.text()).not.toContain("ProductSimple");
+  });
 });

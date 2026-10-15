@@ -54,13 +54,13 @@
           <BasicButton variant="ghost" size="sm" data-testid="enrichment-task-filter-clear" @click="clearTask">
             {{ $t("enrichment.ai.show_all") }}
           </BasicButton>
-          <BatchCorrection
-            v-if="filters.status === 'pending' && rows.length"
-            class="ml-auto"
-            :task-id="Number(filters.task)"
-            @queued="fetchRows"
-          />
+          <BatchCorrection class="ml-auto" :task-id="Number(filters.task)" @queued="fetchRows" />
         </div>
+        <RunCorrections
+          v-else-if="filters.status === 'pending' && mode !== 'focus'"
+          :rows="rows"
+          @queued="fetchRows"
+        />
 
         <MobileFilterPanel
           :active-count="activeFilterCount"
@@ -251,7 +251,8 @@ import ImportCsvDialog from "./ImportCsvDialog.vue";
 import ProductPreviewDrawer from "./ProductPreviewDrawer.vue";
 import ProposalPanel from "./ProposalPanel.vue";
 import BatchCorrection from "./BatchCorrection.vue";
-import { runUidOf } from "./reviewLogic";
+import RunCorrections from "./RunCorrections.vue";
+import { runUidOf, subjectName } from "./reviewLogic";
 import {
   GET_Task,
   GET_Proposals,
@@ -278,7 +279,7 @@ const STATUS_VALUES = [
 
 export default {
   name: "EnrichmentReview",
-  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection },
+  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection, RunCorrections },
   setup() {
     return { notify: useNotifyStore(), pimChannel: usePimChannelStore() };
   },
@@ -316,7 +317,7 @@ export default {
     // A Studio step's proposal has no product: the drawer names its article.
     detailTitle() {
       if (runUidOf(this.detail)) return this.detail.subject_label || this.$t("enrichment.review.studio_article");
-      return this.detail.subject_label || this.detail.subject_ref;
+      return subjectName(this.detail);
     },
     // Count of the filters in the filter panel (status lives in its own always-visible
     // chip row, so it's excluded) — the badge on the panel's phone trigger.

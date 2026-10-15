@@ -36,7 +36,7 @@ import { GET_Proposal, POST_ReviseProposal, POST_SuggestFact } from "@/api/enric
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { useNotifyStore } from "@/stores/notify";
 import { useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
-import { revisable, valueShape } from "./correction";
+import { revisable, sentenceWith, valueShape, valueText } from "./correction";
 
 const NUMBER = "NUMBER_NOT_IN_FACTS";
 
@@ -93,10 +93,12 @@ export default {
         this.busy = false;
       }
     },
+    // The fact is named by the sentence the number stands in ("7 años de garantía…"), so Memory shows what it means.
     suggestFact(warning) {
       const value = this.factValue(warning);
+      const label = sentenceWith(valueText(this.proposal.proposed_value), value);
       return this.run(async () => {
-        await POST_SuggestFact(this.proposal.id, { value });
+        await POST_SuggestFact(this.proposal.id, { value, label });
         this.suggested = [...this.suggested, value];
         useEnrichmentProfileStore().refresh();
       }, "enrichment.qa.fact_suggested_toast");

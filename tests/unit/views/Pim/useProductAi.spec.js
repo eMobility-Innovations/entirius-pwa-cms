@@ -61,6 +61,18 @@ describe("useProductAi", () => {
     expect(mockTasks).toHaveBeenCalledTimes(3); // stopped once nothing runs
   });
 
+  it("the finished toast says how many fields were skipped because the operator edited them", async () => {
+    const ai = useProductAi(ref("ENT-1"));
+    await flushPromises();
+    ai.track({ id: 5, status: "in_progress" });
+    mockTasks.mockResolvedValueOnce(page([{ id: 5, status: "done", counts: { proposed: 6, kept_edited: 2 } }]));
+    await vi.advanceTimersByTimeAsync(POLL_MS);
+    expect(notify).toHaveBeenCalledWith({
+      type: "positive",
+      msg: "AI task finished: 6 proposal(s) ready for review. 2 fields skipped — you edited them.",
+    });
+  });
+
   it("a failed task is toasted as an error", async () => {
     const ai = useProductAi(ref("ENT-1"));
     await flushPromises();

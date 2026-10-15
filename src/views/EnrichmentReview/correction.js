@@ -61,6 +61,15 @@ export function valueText(value) {
   return value.option == null ? "" : String(value.option);
 }
 
+const FACT_LABEL_MAX = 200;
+
+/** The sentence of a text that holds `number` (tags dropped, at most 200 characters), "" when none does. */
+export function sentenceWith(text, number) {
+  const plain = (text || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+  const sentence = plain.split(/(?<=[.!?])\s/).find((part) => part.includes(number)) || "";
+  return sentence.trim().slice(0, FACT_LABEL_MAX);
+}
+
 /** The value with its text replaced, keeping the rest of the envelope. */
 export function withText(value, text) {
   return { ...(value || {}), text };

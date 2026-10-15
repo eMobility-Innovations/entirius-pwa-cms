@@ -35,7 +35,7 @@ describe("QaWarnings", () => {
     const w = mount(QaWarnings, { props: { proposal: proposal() } });
     w.vm.suggestFact(NUMBER);
     await flushPromises();
-    expect(api.POST_SuggestFact).toHaveBeenCalledWith(7, { value: "25%" });
+    expect(api.POST_SuggestFact).toHaveBeenCalledWith(7, { value: "25%", label: "Now 25% off, cheap!" });
     expect(refresh).toHaveBeenCalled();
     expect(w.vm.suggested).toEqual(["25%"]);
   });

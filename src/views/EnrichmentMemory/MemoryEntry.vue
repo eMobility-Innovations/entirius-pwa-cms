@@ -2,12 +2,12 @@
   <article class="memory-entry flex-column gap-3" :class="{ 'memory-entry--pending': pending }" :data-testid="`memory-entry-${entry.id}`">
     <header class="flex ai-ct flex-wrap gap-3">
       <Tag :label="$t(`enrichment.memory.kind.${entry.kind}`)" />
-      <StatusBadge :label="$t(`enrichment.memory.status.${entry.status}`)" :tone="tone" size="sm" />
+      <StatusBadge :label="statusLabel" :tone="tone" size="sm" data-testid="memory-status" />
       <StatusBadge v-if="expired" :label="$t('enrichment.memory.expired')" tone="neutral" size="sm" data-testid="memory-expired" />
       <span class="memory-entry__meta fs-200 t-muted">{{ subject }} · {{ scope }} · {{ formatDate(entry.created_at) }}</span>
     </header>
 
-    <h3 class="memory-entry__title m-0">{{ entry.title }}</h3>
+    <h3 class="memory-entry__title m-0">{{ title }}</h3>
 
     <dl v-if="entry.kind === 'seo_brief'" class="memory-entry__brief m-0" data-testid="memory-brief">
       <dt class="field-label">{{ $t("enrichment.studio.keywords.primary") }}</dt>
@@ -18,6 +18,10 @@
       <dd class="m-0">{{ intentLabel(brief.intent) }}</dd>
       <dt class="field-label">{{ $t("enrichment.memory.expires") }}</dt>
       <dd class="m-0" data-testid="memory-brief-expiry">{{ entry.expires_at ? formatDate(entry.expires_at) : "—" }}</dd>
+    </dl>
+    <dl v-else-if="entry.kind === 'fact_suggestion'" class="memory-entry__brief m-0" data-testid="memory-fact">
+      <dt class="field-label">{{ $t("enrichment.profile.columns.value") }}</dt>
+      <dd class="m-0 fw-600" data-testid="memory-fact-value">{{ factValue }}</dd>
     </dl>
     <p v-else-if="entry.text" class="memory-entry__text m-0">{{ entry.text }}</p>
 
@@ -87,8 +91,20 @@ export default {
     expired() {
       return isExpired(this.entry);
     },
+    // A suggestion still waiting reads "Waiting for you", never "In use".
+    statusLabel() {
+      return this.$t(this.pending ? "enrichment.memory.waiting" : `enrichment.memory.status.${this.entry.status}`);
+    },
     tone() {
-      return TONES[this.entry.status] || "neutral";
+      return this.pending ? "accent" : TONES[this.entry.status] || "neutral";
+    },
+    factValue() {
+      return this.entry.data?.value || this.entry.text;
+    },
+    // A fact suggestion is titled by the sentence its number came from; one saved without it says what it is.
+    title() {
+      const bare = this.entry.kind === "fact_suggestion" && this.entry.title === this.factValue;
+      return bare ? this.$t("enrichment.memory.fact_title", { value: this.factValue }) : this.entry.title;
     },
     brief() {
       return briefOf(this.entry);

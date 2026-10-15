@@ -2711,7 +2711,7 @@
     "review": {
       "title": "Enrichment Review",
       "filters": "Filters",
-      "search_placeholder": "Search by subject...",
+      "search_placeholder": "Search by name or SKU…",
       "matching": "{count} matching",
       "confidence_min": "Min. confidence",
       "modes": {
@@ -2843,6 +2843,9 @@
       "results_empty": "No AI proposals waiting for this product",
       "results_running": "The task runs in the background — its proposals appear here when it finishes.",
       "task_done": "AI task finished: {count} proposal(s) ready for review.",
+      "kept_edited_one": "1 field skipped — you edited it.",
+      "kept_edited_few": "{count} fields skipped — you edited them.",
+      "kept_edited_many": "{count} fields skipped — you edited them.",
       "task_failed": "AI task #{id} failed.",
       "applied_reload": "Proposal applied. The product shows it after the next reload.",
       "applied_conflict": "Proposal applied, but you have unsaved edits in the same field. Saving now overwrites the AI value.",
@@ -2945,6 +2948,7 @@
       "variant_pick": "Use this",
       "all": "Correct all ({count})",
       "all_title": "Correct all {count} proposals of this run",
+      "runs_title": "Correct a whole AI run with one instruction",
       "all_hint": "One instruction for every proposal still waiting for review. The corrections run in the background; each proposal gets a new version.",
       "all_queued": "Correcting {count} proposals in the background — new versions appear as they finish.",
       "batch_placeholder": "One instruction for every proposal…",
@@ -3383,6 +3387,7 @@
       "deleted_toast": "Deleted.",
       "empty_page": "Nothing on this page matches the expiry filter — try another page.",
       "waiting": "Waiting for you",
+      "fact_title": "The number {value} from an AI text — is it a fact?",
       "a_channel": "A channel",
       "subject": {
         "general": "General",

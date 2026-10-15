@@ -99,6 +99,25 @@ describe("MemoryEntry", () => {
     expect(done.find("[data-testid='memory-promote']").exists()).toBe(false);
     expect(done.find("[data-testid='memory-dismiss']").exists()).toBe(false);
   });
+
+  it("a fact suggestion is titled by the sentence of its number and shows the number as its value", () => {
+    const fact = { ...FACT, title: "Now 25% off all sofas.", data: { value: "25%", label: "Now 25% off all sofas." } };
+    const w = mount(MemoryEntry, { props: { entry: fact }, global: { stubs } });
+    expect(w.find(".memory-entry__title").text()).toBe("Now 25% off all sofas.");
+    expect(w.find("[data-testid='memory-fact-value']").text()).toBe("25%");
+  });
+
+  it("a fact suggestion saved without its sentence says what the bare number is", () => {
+    const w = mount(MemoryEntry, { props: { entry: { ...FACT, title: "25%" } }, global: { stubs } });
+    expect(w.find(".memory-entry__title").text()).toBe('enrichment.memory.fact_title::{"value":"25%"}');
+  });
+
+  it("a waiting suggestion's state reads Waiting for you, an entry in use reads In use", () => {
+    const waiting = mount(MemoryEntry, { props: { entry: FACT }, global: { stubs } });
+    expect(waiting.find("[data-testid='memory-status']").attributes("label")).toBe("enrichment.memory.waiting");
+    const answer = mount(MemoryEntry, { props: { entry: OLD }, global: { stubs } });
+    expect(answer.find("[data-testid='memory-status']").attributes("label")).toBe("enrichment.memory.status.active");
+  });
 });
 
 describe("MemoryList", () => {

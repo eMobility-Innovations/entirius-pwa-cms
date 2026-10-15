@@ -197,6 +197,26 @@ describe("StepPanel", () => {
     expect(w.emitted("changed")[0]).toEqual([next, { advance: true }]);
   });
 
+  it("one tap approves typed answers: the save started by leaving the field keeps Approve on and runs first", async () => {
+    let saved;
+    api.PATCH_Proposal.mockReturnValue(new Promise((resolve) => (saved = resolve)));
+    api.POST_AcceptProposal.mockResolvedValue({ data: {} });
+    api.GET_Run.mockResolvedValue({ data: RUN });
+    const w = await mountStep(0);
+    w.findAllComponents({ name: "BasicTextarea" })[0].vm.$emit("update:modelValue", "2019");
+    await w.find("[data-testid='questions-form']").trigger("focusout");
+    await w.vm.$nextTick();
+    const approve = action(w, "approve");
+    expect(approve.disabled).toBe(false);
+    const done = approve.onClick();
+    expect(api.POST_AcceptProposal).not.toHaveBeenCalled();
+    saved({ data: { ...QUESTIONS, proposed_value: { ...QUESTIONS.proposed_value, answers: { since: "2019" } } } });
+    await done;
+    await flushPromises();
+    expect(api.PATCH_Proposal).toHaveBeenCalledTimes(1);
+    expect(api.POST_AcceptProposal).toHaveBeenCalledWith(11);
+  });
+
   it("approving questions with a required answer missing sends nothing", async () => {
     const w = await mountStep(0);
     await action(w, "approve").onClick();

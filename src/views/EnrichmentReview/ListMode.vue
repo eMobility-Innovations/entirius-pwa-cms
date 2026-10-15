@@ -80,7 +80,7 @@
             :data-testid="`enrichment-subject-${row.id}`"
             @click.stop="$emit('preview-product', row)"
           >
-            {{ row.subject_ref }}
+            {{ named(row) ? row.subject_label : row.subject_ref }}
           </BasicButton>
           <a
             v-else-if="row.subject_url"
@@ -93,10 +93,11 @@
             >{{ row.subject_ref }}</a
           >
           <span v-else class="fw-600">{{ row.subject_ref }}</span>
-          <span
-            v-if="!runUidOf(row) && row.subject_label && row.subject_label !== row.subject_ref"
-            class="list-mode__name fs-200 t-secondary"
-          >
+          <!-- A named product reads by its name; its SKU (what search also finds) goes under it. -->
+          <span v-if="isPimRow(row) && named(row)" class="list-mode__name fs-200 t-secondary" :data-testid="`enrichment-sku-${row.id}`">
+            {{ row.subject_ref }}
+          </span>
+          <span v-else-if="!runUidOf(row) && named(row)" class="list-mode__name fs-200 t-secondary">
             {{ row.subject_label }}
           </span>
           <!-- A phone hides the field column: the field and language go under the subject. -->
@@ -288,6 +289,9 @@ export default {
     // clickable product preview; other modules fall back to subject_url / plain text.
     isPimRow(row) {
       return (row.target_module || "").includes("pim") && !!row.subject_ref;
+    },
+    named(row) {
+      return !!row.subject_label && row.subject_label !== row.subject_ref;
     },
   },
 };
