@@ -144,8 +144,13 @@ export default {
     languageSource: "loadLanguages",
   },
   methods: {
+    // Every open starts from an empty brief (the workflow and channel picked last stay).
     async prepare(open) {
       if (!open) return;
+      this.brief = initialBrief(this.fields);
+      this.showDetails = false;
+      this.errors = {};
+      this.formErrors.clearErrors();
       this.loading = true;
       try {
         await this.channels.fetchChannelsAndLanguages();
@@ -165,8 +170,12 @@ export default {
       const { data: run } = await GET_Run(uid);
       this.channel = run.channel || this.channel;
       this.copied = { ...run.inputs };
-      if (this.definition === run.definition) this.brief = { ...this.brief, ...this.copied };
-      else this.definition = run.definition;
+      if (this.definition === run.definition) {
+        this.brief = { ...this.brief, ...this.copied };
+        this.copied = null;
+      } else {
+        this.definition = run.definition;
+      }
       this.showDetails = this.optionalFields.some((field) => String(this.brief[field.key] ?? "").trim());
     },
     isLanguage(field) {
