@@ -37,6 +37,14 @@ describe("AiTaskRow", () => {
     expect(w.find("[data-testid='ai-task-cost']").exists()).toBe(false);
   });
 
+  it("a queued task says how many runs wait before it, or that it starts next; no cost yet", () => {
+    const waiting = mountRow({ status: "open", queued_ahead: 2 });
+    expect(outcome(waiting)).toBe('enrichment.ai.outcome.queued_few::{"count":2}');
+    expect(waiting.find(".ai-task__icon--info").exists()).toBe(true);
+    expect(waiting.find("[data-testid='ai-task-cost']").exists()).toBe(false);
+    expect(outcome(mountRow({ status: "open", queued_ahead: 0 }))).toBe("enrichment.ai.outcome.queued_next");
+  });
+
   it("shows the worker label, its languages as chips and a relative time", () => {
     const w = mountRow();
     expect(w.text()).toContain("Translate");

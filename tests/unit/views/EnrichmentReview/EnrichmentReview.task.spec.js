@@ -51,4 +51,10 @@ describe("EnrichmentReview filtered by task", () => {
     const w = await mountPage({});
     expect(w.findComponent({ name: "BatchCorrection" }).exists()).toBe(false);
   });
+
+  it("the All status chip asks the server for every status, not the pending default", async () => {
+    mockGetProposals.mockClear();
+    await mountPage({ status: "__all" });
+    expect(mockGetProposals.mock.calls[0][0].status).toBe("all");
+  });
 });

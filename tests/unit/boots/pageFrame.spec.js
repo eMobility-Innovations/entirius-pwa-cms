@@ -154,3 +154,11 @@ describe("PageLayout", () => {
     expect(mount(PageLayout, { slots: { default: "<p />" } }).find(".page-layout__toolbar").exists()).toBe(false);
   });
 });
+
+describe("PageHeader wrapTitle", () => {
+  it("lets a long title take two lines and keeps the full text in its title", () => {
+    const wrapper = header({ title: "A long topic", wrapTitle: true });
+    expect(wrapper.find("h1").classes()).toContain("page-header__title--wrap");
+    expect(header().find("h1").classes()).not.toContain("page-header__title--wrap");
+  });
+});

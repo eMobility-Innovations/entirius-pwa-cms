@@ -72,3 +72,16 @@ describe("Leads nav (UX-002d: one panel, Settings instead of four entries)", () 
     expect(routesFor("leads", false, new Set(["communicator"]))).toEqual(["/leads/inbox", "/leads/settings"]);
   });
 });
+
+describe("Enricher nav on a phone", () => {
+  it("the tab bar keeps the daily pages: Review · Studio · Profile · Memory · Tasks; setup screens stay on desktop", () => {
+    expect(routesFor("enricher", false)).toEqual([
+      "/enrichment",
+      "/enrichment/studio",
+      "/enrichment/profile",
+      "/enrichment/memory",
+      "/enrichment/tasks",
+    ]);
+    expect(routesFor("enricher", true)).toEqual(expect.arrayContaining(["/enrichment/templates", "/enrichment/spawn-rules"]));
+  });
+});

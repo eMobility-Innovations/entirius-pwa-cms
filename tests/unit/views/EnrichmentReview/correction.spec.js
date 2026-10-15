@@ -6,6 +6,7 @@ import {
   revisable,
   reviseBody,
   reviseErrorKey,
+  splitInstruction,
   textareaSelection,
   valueShape,
   valueText,
@@ -67,9 +68,20 @@ describe("correction helpers", () => {
   });
 
   it("tells a restore from an AI or a manual version", () => {
-    expect(versionInfo({ author_kind: "restore", instruction: "#2" })).toEqual({ author: "restore", restoredFrom: 2, instruction: "" });
-    expect(versionInfo({ author_kind: "ai", instruction: "Shorter" })).toEqual({ author: "ai", instruction: "Shorter" });
+    expect(versionInfo({ author_kind: "restore", instruction: "#2" })).toMatchObject({ author: "restore", restoredFrom: 2, instruction: "" });
+    expect(versionInfo({ author_kind: "ai", instruction: "Say crimson" })).toEqual({
+      author: "ai", quickAction: null, instruction: "Say crimson", fragment: "",
+    });
     expect(versionInfo({ author_kind: "user", instruction: "" }).author).toBe("user");
+  });
+
+  it("shows a quick action by its key, never the prompt the API expanded it into", () => {
+    const shorter = "Make the text noticeably shorter; keep the key information.";
+    expect(splitInstruction(shorter)).toEqual({ quickAction: "shorten", instruction: "" });
+    expect(splitInstruction(`${shorter}\n\nMention the warranty`)).toEqual({ quickAction: "shorten", instruction: "Mention the warranty" });
+    expect(splitInstruction("Make the text noticeably shorter please")).toEqual({ quickAction: null, instruction: "Make the text noticeably shorter please" });
+    const scoped = versionInfo({ author_kind: "ai", instruction: shorter, scope: { type: "selection", text: "red sofa" } });
+    expect(scoped).toMatchObject({ quickAction: "shorten", fragment: "red sofa" });
   });
 
   it("reads the selected text of a textarea", () => {

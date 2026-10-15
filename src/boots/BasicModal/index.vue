@@ -38,7 +38,7 @@
           </div>
           <footer v-if="$slots.footer || actions.length" class="basic-modal__footer">
             <slot name="footer">
-              <ActionBar :actions="actions" />
+              <ActionBar :actions="actions" :labelled="false" />
             </slot>
           </footer>
         </div>

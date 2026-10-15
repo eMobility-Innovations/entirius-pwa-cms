@@ -1,73 +1,89 @@
 <template>
-  <div class="correction-bar flex-column gap-4" data-testid="correction-bar">
-    <FormField :label="$t('enrichment.correct.instruction')">
-      <BasicInput
-        v-model="instruction"
-        :placeholder="$t('enrichment.correct.instruction_placeholder')"
+  <div v-if="!readonly" class="correction-bar flex-column gap-3" data-testid="correction-bar">
+    <div
+      v-if="quickActions.length"
+      class="correction-bar__chips"
+      role="group"
+      :aria-label="$t('enrichment.correct.suggestions')"
+    >
+      <FilterChip
+        v-for="action in quickActions"
+        :key="action"
+        :label="$t(`enrichment.correct.quick.${action}`)"
+        :active="picked === action"
+        :aria-pressed="batch ? String(picked === action) : undefined"
         :disabled="busy"
-        :maxlength="2000"
-        data-testid="correction-instruction"
-        @on-key-down="submit(null)"
+        :data-testid="`correction-quick-${action}`"
+        @click="onChip(action)"
       />
-    </FormField>
+    </div>
 
-    <div v-if="selection && !batch" class="flex ai-ct flex-wrap gap-3" data-testid="correction-scope">
+    <div v-if="selection && !batch" class="flex ai-ct flex-wrap gap-3 rg-2" data-testid="correction-scope">
       <SegmentedControl v-model="scope" :options="scopeOptions" :disabled="busy" />
       <span v-if="scope === 'selection'" class="correction-bar__excerpt fs-200 t-secondary" :title="selection">
         “{{ excerpt }}”
       </span>
     </div>
 
-    <div class="flex ai-ct flex-wrap gap-3">
-      <BasicButton
-        v-for="action in quickActions"
-        :key="action"
-        size="sm"
-        mutates
+    <div class="correction-bar__box" :class="{ 'correction-bar__box--busy': busy }">
+      <BasicTextarea
+        v-model="instruction"
+        class="correction-bar__input"
+        autogrow
+        :rows="1"
+        :placeholder="$t(batch ? 'enrichment.correct.batch_placeholder' : 'enrichment.correct.instruction_placeholder')"
+        :aria-label="$t('enrichment.correct.instruction')"
         :disabled="busy"
-        :data-testid="`correction-quick-${action}`"
-        @click="submit(action)"
-      >
-        {{ $t(`enrichment.correct.quick.${action}`) }}
-      </BasicButton>
-      <BasicButton
+        data-testid="correction-instruction"
+        @keydown="onKeydown"
+      />
+      <IconButton
+        v-if="!batch"
         class="correction-bar__send"
-        size="sm"
+        icon="send"
+        variant="primary"
         mutates
+        :label="$t('enrichment.correct.send')"
         :disabled="busy || !instruction.trim()"
         data-testid="correction-send"
         @click="submit(null)"
-      >
-        {{ $t(batch ? "enrichment.correct.send_all" : "enrichment.correct.send") }}
-      </BasicButton>
+      />
     </div>
+    <span v-if="!batch" class="correction-bar__hint fs-200 t-muted">{{ $t("enrichment.correct.enter_hint") }}</span>
 
-    <p v-if="busy" class="flex ai-ct gap-3 fs-300 t-secondary m-0" role="status" data-testid="correction-busy">
-      <Loader />
+    <p v-if="busy && batch" class="flex ai-ct gap-3 fs-300 t-secondary m-0" role="status" data-testid="correction-busy">
       {{ $t("enrichment.correct.busy") }}
     </p>
   </div>
 </template>
 
 <script>
+import FilterChip from "@/boots/FilterChip/index.vue";
+import { useReadonly } from "@/composables/useReadonly";
 import { quickActionsFor } from "./correction";
 
 const EXCERPT = 60;
 
-// The correction bar of a proposal (or of a whole task with `batch`): a free instruction, the scope (the whole text
-// or the fragment selected in the text view) and the quick actions. It only asks — `submit` carries
-// { instruction, quickAction, selection }; the caller calls the API and sets `busy` while the AI works.
+// The composer of a correction (of one proposal, or of a whole task with `batch`): the quick actions as suggestion
+// chips above a growing text box with a send button — Enter sends, Shift+Enter breaks the line. A chip asks for that
+// action alone (what is typed stays for the next message); in a batch a chip is picked instead and the caller's
+// footer sends (`draft` reports the request as it changes). A selection in the text narrows the scope. It only asks —
+// `submit` carries { instruction, quickAction, selection }; the caller calls the API and sets `busy`.
 export default {
   name: "CorrectionBar",
+  components: { FilterChip },
   props: {
     shape: { type: String, default: "text" },
     batch: { type: Boolean, default: false },
     selection: { type: String, default: "" },
     busy: { type: Boolean, default: false },
   },
-  emits: ["submit"],
+  emits: ["submit", "draft"],
+  setup() {
+    return { readonly: useReadonly() };
+  },
   data() {
-    return { instruction: "", scope: "all" };
+    return { instruction: "", scope: "all", picked: null };
   },
   computed: {
     quickActions() {
@@ -82,32 +98,78 @@ export default {
     excerpt() {
       return this.selection.length > EXCERPT ? `${this.selection.slice(0, EXCERPT)}…` : this.selection;
     },
+    request() {
+      const selection = this.scope === "selection" && !this.batch ? this.selection : "";
+      return { instruction: this.instruction, quickAction: this.picked, selection };
+    },
   },
   watch: {
     // A new selection is what the operator wants to change; none left → the whole text again.
     selection(text) {
       this.scope = text ? "selection" : "all";
     },
+    request: {
+      immediate: true,
+      handler(request) {
+        if (this.batch) this.$emit("draft", { ...request, ready: !!(request.quickAction || request.instruction.trim()) });
+      },
+    },
   },
   methods: {
+    onChip(action) {
+      if (this.batch) this.picked = this.picked === action ? null : action;
+      else this.ask({ ...this.request, instruction: "", quickAction: action });
+    },
+    onKeydown(event) {
+      if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+      event.preventDefault();
+      this.submit(this.picked);
+    },
     submit(quickAction) {
-      if (this.busy || (!quickAction && !this.instruction.trim())) return;
-      const selection = this.scope === "selection" && !this.batch ? this.selection : "";
-      this.$emit("submit", { instruction: this.instruction, quickAction, selection });
+      this.ask({ ...this.request, quickAction });
+    },
+    ask(request) {
+      if (this.busy || (!request.quickAction && !request.instruction.trim())) return;
+      this.$emit("submit", request);
     },
     // The caller clears the instruction once the correction landed.
     reset() {
       this.instruction = "";
+      this.picked = null;
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-.correction-bar {
-  padding: var(--space-5);
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
+@import "@/assets/scss/utils/media-query";
+
+// Suggestions wrap on a wide screen; on a phone they are one row that scrolls sideways.
+// The row fades out at its right edge on a phone, so the chips cut there read as "more this way".
+.correction-bar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  @include max-tablet {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-block: var(--space-1);
+    padding-right: var(--space-8);
+    scrollbar-width: none;
+    mask-image: linear-gradient(to right, var(--surface-base) calc(100% - var(--space-8)), transparent);
+  }
+}
+// Suggestions are no filter: they keep a calm surface; disabled while the AI works.
+.correction-bar__chips :deep(.filter-chip) {
+  flex-shrink: 0;
+  border-color: var(--border-subtle);
+  font-family: inherit;
+
+  &:disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
 }
 .correction-bar__excerpt {
   min-width: 0;
@@ -115,7 +177,49 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.correction-bar__send {
-  margin-left: auto;
+.correction-bar__box {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-lg);
+  background: var(--surface-base);
+  transition: border-color 0.15s ease;
+
+  // The field's own focus ring moves to the box (as the text fields draw it, src/assets/scss/utils/_reset.scss).
+  &:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 calc(var(--space-1) / 2) color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+}
+.correction-bar__box--busy {
+  background: var(--surface-disabled);
+}
+.correction-bar__input {
+  flex: 1;
+  min-width: 0;
+
+  // The box draws the frame; the text area is bare inside it and grows to four lines, then scrolls.
+  :deep(.basic-textarea__field) {
+    min-height: 0;
+    max-height: calc(4 * 1.5em + 2 * var(--space-2));
+    padding: var(--space-2) 0;
+    border: 0;
+    background: transparent;
+    font-size: var(--fs-300);
+    line-height: 1.5;
+    resize: none;
+    box-shadow: none;
+  }
+}
+.correction-bar__hint {
+  align-self: flex-end;
+
+  // A phone keyboard has no Shift+Enter: the send button is the way there.
+  @include max-tablet {
+    display: none;
+  }
 }
 </style>

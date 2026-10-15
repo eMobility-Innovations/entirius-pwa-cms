@@ -1,20 +1,26 @@
 import { describe, it, expect } from "vitest";
 import {
+  answeredCount,
   briefErrors,
   briefFields,
   cleanBrief,
-  currentStepLabel,
   defaultStep,
   draftRoute,
+  elapsedLabel,
+  failureCode,
   initialBrief,
   isRunStale,
   isRunWorking,
   keywordRole,
   keywordRows,
   missingAnswers,
+  nextAction,
+  nextStep,
+  openFirst,
   outputKind,
   pickKeyword,
   railItems,
+  readingStats,
   runTitle,
   wordCount,
 } from "@/views/EnrichmentStudio/studioLogic";
@@ -29,16 +35,40 @@ const RUN = {
 };
 
 describe("steps rail", () => {
-  it("maps every step state to its icon and tone and marks the current step", () => {
+  it("numbers every step, gives it its tone and says its state in words", () => {
     expect(railItems(RUN)).toEqual([
-      { key: "questions", label: "QUESTIONS", status: "approved", icon: "success", tone: "positive", current: false },
-      { key: "draft", label: "DRAFT", status: "review", icon: "preview", tone: "warning", current: true },
-      { key: "meta", label: "META", status: "waiting", icon: "scheduled", tone: "neutral", current: false },
+      { key: "questions", label: "QUESTIONS", status: "approved", look: "approved", number: 1, tone: "positive", current: false, line: { key: "approved", params: {} } },
+      { key: "draft", label: "DRAFT", status: "review", look: "review", number: 2, tone: "warning", current: true, line: { key: "review", params: {} } },
+      { key: "meta", label: "META", status: "waiting", look: "waiting", number: 3, tone: "neutral", current: false, line: { key: "queued", params: {} } },
     ]);
-    expect(railItems({ steps: [step("a", "running"), step("b", "failed")] }).map((i) => [i.icon, i.tone])).toEqual([
-      ["running", "info"],
-      ["warning", "negative"],
-    ]);
+    expect(railItems({ steps: [step("a", "running"), step("b", "failed")] }).map((i) => i.tone)).toEqual(["info", "negative"]);
+  });
+
+  it("a waiting step starts after the last step it still needs; a cancelled run stops the open ones", () => {
+    const run = {
+      steps: [step("a", "approved"), step("b", "review"), step("c", "waiting", { needs: ["a", "b"] })],
+    };
+    expect(railItems(run)[2].line).toEqual({ key: "waiting", params: { step: "B" } });
+    const cancelled = railItems({ ...run, status: "cancelled" });
+    expect(cancelled.map((i) => i.line.key)).toEqual(["approved", "stopped", "stopped"]);
+    expect(cancelled.map((i) => [i.look, i.tone])[1]).toEqual(["stopped", "neutral"]);
+  });
+
+  it("says what the operator should do now and on which step", () => {
+    expect(nextAction(RUN)).toEqual({ kind: "your_turn", step: RUN.steps[1] });
+    const failed = { steps: [step("a", "failed"), step("b", "running")] };
+    expect(nextAction(failed).kind).toBe("failed");
+    expect(nextAction({ steps: [step("a", "approved"), step("b", "running")] }).step.key).toBe("b");
+    expect(nextAction({ steps: [step("a", "waiting")] })).toEqual({ kind: "waiting", step: null });
+    expect(nextAction({ ...RUN, status: "done" })).toEqual({ kind: "done", step: null });
+    expect(nextAction({ ...RUN, status: "cancelled" })).toEqual({ kind: "cancelled", step: null });
+    expect(nextStep(RUN, "draft").key).toBe("meta");
+    expect(nextStep(RUN, "meta")).toBeNull();
+  });
+
+  it("lists open runs first and keeps the date order inside each group", () => {
+    const runs = ["done", "running", "waiting", "cancelled", "failed", "waiting"].map((status, i) => ({ uid: String(i), status }));
+    expect(openFirst(runs).map((run) => run.uid)).toEqual(["2", "5", "4", "1", "0", "3"]);
   });
 
   it("opens the step that needs the operator, else the working one, else a failed one", () => {
@@ -53,8 +83,6 @@ describe("steps rail", () => {
     expect(isRunWorking({ steps: [step("a", "running")] })).toBe(true);
     expect(isRunWorking({ status: "cancelled", steps: [step("a", "running")] })).toBe(false);
     expect(isRunWorking({ status: "done", steps: [step("a", "running")] })).toBe(false);
-    expect(currentStepLabel(RUN)).toBe("DRAFT");
-    expect(currentStepLabel({ ...RUN, current_step: null })).toBe("");
   });
 
   it("names a run by its working title, else its topic, else the workflow", () => {
@@ -152,12 +180,15 @@ describe("search-phrase pick", () => {
     expect(pickKeyword(DATA, "linen sofa", "primary")).toEqual({ ...DATA, primary: "linen sofa", secondary: [] });
   });
 
-  it("a supporting pick toggles, at most two, never the main phrase", () => {
+  it("a supporting pick adds, at most two; skip drops it; the main phrase stays until another is picked", () => {
     const added = pickKeyword(DATA, "clean sofa", "secondary");
     expect(added.secondary).toEqual(["linen sofa", "clean sofa"]);
     expect(pickKeyword(added, "third", "secondary")).toBe(added);
-    expect(pickKeyword(added, "linen sofa", "secondary").secondary).toEqual(["clean sofa"]);
+    expect(pickKeyword(added, "linen sofa", "secondary")).toBe(added);
+    expect(pickKeyword(added, "linen sofa", "skip").secondary).toEqual(["clean sofa"]);
+    expect(pickKeyword(DATA, "other", "skip")).toBe(DATA);
     expect(pickKeyword(DATA, "sofa care", "secondary")).toBe(DATA);
+    expect(pickKeyword(DATA, "sofa care", "skip")).toBe(DATA);
     expect(pickKeyword(DATA, "sofa care", "primary")).toBe(DATA);
   });
 
@@ -170,5 +201,17 @@ describe("search-phrase pick", () => {
     expect(keywordRows(DATA).map((row) => row.phrase)).toEqual(["sofa care", "linen sofa"]);
     const candidates = [{ phrase: "a", volume: 10, intent: "commercial", serp_notes: "" }];
     expect(keywordRows({ ...DATA, candidates })).toBe(candidates);
+  });
+});
+
+describe("step details", () => {
+  it("counts answers, reading time, elapsed time and the failure code", () => {
+    const questions = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    expect(answeredCount(questions, { a: "yes", b: "  ", c: null })).toBe(1);
+    expect(readingStats("one two three")).toEqual({ words: 3, minutes: 1 });
+    expect(readingStats("word ".repeat(1000)).minutes).toBe(5);
+    expect([0, 61_000, -5].map(elapsedLabel)).toEqual(["0:00", "1:01", "0:00"]);
+    expect(failureCode({ errors: [{ code: "TIMEOUT" }] })).toBe("TIMEOUT");
+    expect(failureCode({ errors: [] })).toBe("");
   });
 });

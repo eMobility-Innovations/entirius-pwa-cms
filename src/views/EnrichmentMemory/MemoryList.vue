@@ -4,14 +4,20 @@
       <PageHeader :title="$t('enrichment.memory.title')" :description="$t('enrichment.memory.description')" />
     </template>
     <template #toolbar>
-      <BasicInput v-model="search" icon="search" :placeholder="$t('enrichment.memory.subject_search')" data-testid="memory-subject" @input="debouncedFetch(refetch)" />
-      <BasicSelect v-model="kind" :options="kindOptions" :floating-label="$t('enrichment.memory.kind_filter')" data-testid="memory-kind" />
-      <BasicSelect v-model="status" :options="statusOptions" :floating-label="$t('enrichment.memory.status_filter')" data-testid="memory-status" />
-      <BasicSelect v-model="expiry" :options="expiryOptions" :floating-label="$t('enrichment.memory.expiry_filter')" data-testid="memory-expiry" />
+      <div class="flex ai-ct flex-wrap gap-8 rg-6">
+        <BasicInput v-model="search" icon="search" :placeholder="$t('enrichment.memory.subject_search')" class="memory-list__search" data-testid="memory-subject" @input="debouncedFetch(refetch)" />
+        <BasicSelect v-model="kind" :options="kindOptions" :floating-label="$t('enrichment.memory.kind_filter')" class="memory-list__filter" data-testid="memory-kind" />
+        <BasicSelect v-model="status" :options="statusOptions" :floating-label="$t('enrichment.memory.status_filter')" class="memory-list__filter" data-testid="memory-status" />
+        <BasicSelect v-model="expiry" :options="expiryOptions" :floating-label="$t('enrichment.memory.expiry_filter')" class="memory-list__filter" data-testid="memory-expiry" />
+      </div>
     </template>
 
     <Loader v-if="loading" block />
-    <EmptyState v-else-if="!pinned.length && !shown.length" icon="empty" :title="emptyTitle" size="md" data-testid="memory-empty" />
+    <EmptyState v-else-if="!pinned.length && !shown.length" icon="empty" :title="emptyTitle" size="md" data-testid="memory-empty">
+      <BasicButton v-if="filtered" variant="secondary" data-testid="memory-clear-filters" @click="clearFilters">
+        {{ $t("enrichment.memory.clear_filters") }}
+      </BasicButton>
+    </EmptyState>
     <div v-else class="flex-column gap-6">
       <section v-if="pinned.length" class="flex-column gap-4" data-testid="memory-pinned">
         <h2 class="memory-list__heading m-0">{{ $t("enrichment.memory.waiting") }}</h2>
@@ -52,6 +58,8 @@ import {
 
 const PAGE_SIZE = 25;
 const PINNED_MAX = 100;
+const DEFAULT_STATUS = "active";
+const DEFAULT_EXPIRY = "all";
 
 // What the studio remembered (contract A4 § 3): SEO briefs, operator answers and the suggestions waiting for the
 // operator — those are fetched apart and pinned above the paged list, with "Add to profile" (a new profile version)
@@ -65,7 +73,7 @@ export default {
     return { notify: useNotifyStore(), profileStore: useEnrichmentProfileStore(), search, debouncedFetch, loadChannels };
   },
   data() {
-    return { entries: [], suggestions: [], count: 0, page: 1, kind: "", status: "active", expiry: "all", loading: false, busy: false, deleting: null };
+    return { entries: [], suggestions: [], count: 0, page: 1, kind: "", status: DEFAULT_STATUS, expiry: DEFAULT_EXPIRY, loading: false, busy: false, deleting: null };
   },
   computed: {
     pinned() {
@@ -74,8 +82,13 @@ export default {
     shown() {
       return byExpiry(this.entries.filter((entry) => !isPendingSuggestion(entry)), this.expiry);
     },
+    // A filter away from the defaults: an empty list is "nothing matches", never "nothing remembered".
+    filtered() {
+      return !!(this.search || this.kind) || this.status !== DEFAULT_STATUS || this.expiry !== DEFAULT_EXPIRY;
+    },
     emptyTitle() {
-      return this.$t(this.count ? "enrichment.memory.empty_page" : "enrichment.memory.empty");
+      if (this.count) return this.$t("enrichment.memory.empty_page");
+      return this.$t(this.filtered ? "enrichment.memory.empty_filtered" : "enrichment.memory.empty");
     },
     entryEvents() {
       return { promote: this.promote, status: this.setStatus, delete: (entry) => (this.deleting = entry) };
@@ -105,6 +118,10 @@ export default {
   methods: {
     options(values, group, allKey) {
       return [{ value: "", label: this.$t(allKey) }, ...values.map((value) => ({ value, label: this.$t(`enrichment.memory.${group}.${value}`) }))];
+    },
+    clearFilters() {
+      Object.assign(this, { search: "", kind: "", status: DEFAULT_STATUS, expiry: DEFAULT_EXPIRY });
+      this.refetch();
     },
     refetch() {
       if (this.page !== 1) this.page = 1;
@@ -164,6 +181,18 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.memory-list__search {
+  flex: 1;
+  max-width: 400px;
+  min-width: 150px;
+}
+
+.memory-list__filter {
+  min-width: 180px;
+  max-width: 240px;
+  flex-shrink: 0;
+}
+
 .memory-list__heading {
   font-size: var(--fs-400);
   font-weight: 600;

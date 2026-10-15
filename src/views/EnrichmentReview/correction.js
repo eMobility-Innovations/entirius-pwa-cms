@@ -68,11 +68,35 @@ export function withText(value, text) {
 
 const RESTORED = /^#(\d+)$/;
 
-/** What a version says about itself: { author: ai | user | restore, restoredFrom?, instruction }. */
+// The fixed English instructions the API expands a quick action into (django-enrichment `revise_prompt.QUICK_ACTIONS`,
+// joined to the operator's words by a blank line). A version stores the expanded text; the thread shows the label.
+const QUICK_PROMPTS = {
+  shorten: "Make the text noticeably shorter; keep the key information.",
+  expand: "Expand the text with more useful detail; do not invent facts.",
+  formal: "Rewrite the text in a more formal tone.",
+  casual: "Rewrite the text in a more casual, friendly tone.",
+  fit_limit: "Shorten the text so it fits the field's maximum length.",
+  variants: "Propose alternative versions of the value.",
+  fix_warnings: "Fix every problem listed in the warnings block; change nothing else.",
+};
+
+/** A stored instruction split into the quick action behind it (or null) and the operator's own words. */
+export function splitInstruction(stored = "") {
+  const text = (stored || "").trim();
+  const match = Object.entries(QUICK_PROMPTS).find(([, prompt]) => text === prompt || text.startsWith(`${prompt}\n\n`));
+  if (!match) return { quickAction: null, instruction: text };
+  return { quickAction: match[0], instruction: text.slice(match[1].length).trim() };
+}
+
+/**
+ * What a version says about itself: { author: ai | user | restore, restoredFrom?, quickAction, instruction,
+ * fragment } — `fragment` is the selected text a correction was narrowed to.
+ */
 export function versionInfo(revision) {
   const restored = revision.author_kind === "restore" ? RESTORED.exec(revision.instruction || "") : null;
-  if (restored) return { author: "restore", restoredFrom: Number(restored[1]), instruction: "" };
-  return { author: revision.author_kind, instruction: revision.instruction || "" };
+  if (restored) return { author: "restore", restoredFrom: Number(restored[1]), quickAction: null, instruction: "", fragment: "" };
+  const fragment = revision.scope?.type === "selection" ? revision.scope.text || "" : "";
+  return { author: revision.author_kind, ...splitInstruction(revision.instruction), fragment };
 }
 
 /** The selected text inside a textarea (or "" when the selection is collapsed). */

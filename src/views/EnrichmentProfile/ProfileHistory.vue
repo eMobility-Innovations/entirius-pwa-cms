@@ -1,6 +1,15 @@
 <template>
   <SideDrawer :visible="visible" width="50rem" :title="$t('enrichment.profile.history')" @close="$emit('close')">
     <div class="flex-column gap-6" data-testid="profile-history">
+      <template v-if="versions.length > 1">
+        <ReadonlyOff>
+          <div class="flex flex-wrap gap-4">
+            <BasicSelect v-model="from" :options="options" :floating-label="$t('enrichment.profile.compare_from')" data-testid="profile-diff-from" />
+            <BasicSelect v-model="to" :options="options" :floating-label="$t('enrichment.profile.compare_to')" data-testid="profile-diff-to" />
+          </div>
+        </ReadonlyOff>
+        <TextDiff :before="jsonOf(from)" :after="jsonOf(to)" wide />
+      </template>
       <p v-if="!versions.length" class="m-0 fs-300 t-secondary">{{ $t("enrichment.profile.no_versions") }}</p>
       <ol v-else class="profile-history__list m-0 flex-column gap-3">
         <li v-for="item in versions" :key="item.version" class="profile-history__item flex ai-ct flex-wrap gap-3" :data-testid="`profile-version-${item.version}`">
@@ -19,16 +28,6 @@
           </BasicButton>
         </li>
       </ol>
-
-      <template v-if="versions.length > 1">
-        <ReadonlyOff>
-          <div class="flex flex-wrap gap-4">
-            <BasicSelect v-model="from" :options="options" :floating-label="$t('enrichment.profile.compare_from')" data-testid="profile-diff-from" />
-            <BasicSelect v-model="to" :options="options" :floating-label="$t('enrichment.profile.compare_to')" data-testid="profile-diff-to" />
-          </div>
-        </ReadonlyOff>
-        <TextDiff :before="jsonOf(from)" :after="jsonOf(to)" wide />
-      </template>
     </div>
 
     <ConfirmDialog
@@ -48,8 +47,9 @@ import { formatDate } from "@/utils/format";
 import TextDiff from "@/views/EnrichmentReview/TextDiff.vue";
 import { prettyJson } from "./profileLogic";
 
-// The saved versions of one profile scope, newest first: when, the note, Restore (a new version with the old data);
-// and the difference between any two versions as text (pretty JSON), the previous against the latest at first.
+// The saved versions of one profile scope: first the difference between any two of them as text (pretty JSON), the
+// previous against the latest at first — on top, so comparing never needs a scroll past the list — then the versions
+// newest first: when, the note, Restore (a new version with the old data).
 export default {
   name: "ProfileHistory",
   components: { ReadonlyOff, TextDiff },

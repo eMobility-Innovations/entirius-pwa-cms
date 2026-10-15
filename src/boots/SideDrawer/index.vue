@@ -18,7 +18,7 @@
           :aria-labelledby="title ? titleId : undefined"
           tabindex="-1"
         >
-          <header class="side-drawer__header flex ai-ct jc-sb gap-3 mb-8">
+          <header class="side-drawer__header flex ai-ct jc-sb gap-3">
             <h2 :id="titleId" class="side-drawer__title fs-300 fw-600 t-body">{{ title }}</h2>
             <IconButton icon="close" :label="$t('common.close')" data-testid="side-drawer-close" @click="close" />
           </header>
@@ -40,7 +40,7 @@
       :aria-labelledby="title ? titleId : undefined"
       @keydown.esc="closable && close()"
     >
-      <header v-if="title || closable" class="side-drawer__header flex ai-ct jc-sb gap-3 mb-8">
+      <header v-if="title || closable" class="side-drawer__header flex ai-ct jc-sb gap-3">
         <h2 v-if="title" :id="titleId" class="side-drawer__title fs-300 fw-600 t-body">{{ title }}</h2>
         <IconButton
           v-if="closable"
@@ -64,7 +64,7 @@ let nextId = 0;
 <script setup>
 // Side panel (docs/ui-rules.md C4). `focused`: a modal panel from the right over a backdrop, focus trapped while
 // visible, Esc and the backdrop close it. `sticky`: a sidebar in the page flow; Esc inside it closes it when
-// `closable`. Both emit `close`, the caller hides it. `inline` renders the focused panel in the page flow (catalogue):
+// `closable`. Both emit `close`, the caller hides it. The header (title, close) sticks to the top of the scrolling panel. `inline` renders the focused panel in the page flow (catalogue):
 // no Teleport, no backdrop, no trap.
 import { computed, ref } from "vue";
 import IconButton from "@/boots/IconButton/index.vue";
@@ -178,9 +178,18 @@ useFocusTrap(overlay, {
   flex-direction: column;
 }
 
-/* Shared header */
+/* Shared header: it stays on top while the body scrolls (title and close in reach on a full-screen phone drawer),
+   bleeding over the panel's padding so the scrolled content passes under it. A sticky box sticks inside the
+   panel's padding, so its offset is minus that padding: the header meets the panel's top edge, nothing shows above. */
 .side-drawer__header {
+  position: sticky;
+  top: calc(-1 * var(--space-8));
+  z-index: 2;
   flex-shrink: 0;
+  margin: calc(-1 * var(--space-8)) calc(-1 * var(--space-8)) var(--space-8);
+  padding: var(--space-5) var(--space-8);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-base);
 }
 
 .side-drawer__title {

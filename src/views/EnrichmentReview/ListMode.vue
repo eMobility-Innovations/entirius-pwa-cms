@@ -60,6 +60,11 @@
       :empty-text="$t('enrichment.review.empty')"
       @row-click="(row) => $emit('row-open', row)"
     >
+      <template #empty>
+        <slot name="empty">
+          <EmptyState icon="enrich" :title="$t('enrichment.review.empty')" :message="$t('enrichment.review.empty_message')" />
+        </slot>
+      </template>
       <template #cell-product="{ row }">
         <div class="list-mode__product flex-column">
           <!-- PIM subject: open the product preview drawer (stop the row → detail click). -->
@@ -155,12 +160,6 @@
       </template>
     </DataTable>
 
-    <EmptyState
-      v-if="!loading && !rows.length"
-      icon="enrich"
-      :title="$t('enrichment.review.empty')"
-      :message="$t('enrichment.review.empty_message')"
-    />
 
   </div>
 </template>

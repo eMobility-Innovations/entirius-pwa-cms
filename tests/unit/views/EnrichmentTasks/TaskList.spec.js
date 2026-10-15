@@ -61,6 +61,18 @@ describe("TaskList", () => {
     expect(wrapper.vm.totalCount).toBe(1);
   });
 
+  it("a task waiting in the queue reads as Queued with the runs ahead of it", async () => {
+    mockGetTasks.mockResolvedValueOnce({ data: { results: [task({ queued_ahead: 2 }), task({ id: 2, queued_ahead: null })], count: 2 } });
+
+    const wrapper = mountList();
+    await flushPromises();
+
+    expect(wrapper.vm.isQueued(wrapper.vm.tasks[0])).toBe(true);
+    expect(wrapper.vm.isQueued(wrapper.vm.tasks[1])).toBe(false);
+    expect(wrapper.vm.queuedText(2)).toBe('enrichment.tasks.ahead_few::{"count":2}');
+    expect(wrapper.vm.queuedText(0)).toBe("enrichment.tasks.starts_next");
+  });
+
   it("falls back to em-dash when nested fields are missing", async () => {
     mockGetTasks.mockResolvedValueOnce({
       data: { results: [task({ scope_spec: {}, params: {} })], count: 1 },
@@ -73,12 +85,12 @@ describe("TaskList", () => {
     expect(wrapper.vm.tasks[0].rule).toBe("—");
   });
 
-  it("initial fetch defaults to status=open", async () => {
+  it("initial fetch lists every task (no status param)", async () => {
     const wrapper = mountList();
     await flushPromises();
 
-    expect(wrapper.vm.statusFilter).toBe("open");
-    expect(mockGetTasks.mock.calls.at(-1)[0].status).toBe("open");
+    expect(wrapper.vm.statusFilter).toBe("__all");
+    expect(mockGetTasks.mock.calls.at(-1)[0].status).toBeUndefined();
   });
 
   it("status filter change requests that status and syncs the route", async () => {

@@ -6,7 +6,7 @@
     :aria-label="$t('shell.panels')"
     v-bind="flat ? {} : { 'data-testid': 'app-sidebar', 'data-fid': 'sidebar' }"
   >
-    <div class="sidebar-nav__scroll flex-column gap-3 fg-1">
+    <div ref="scroller" class="sidebar-nav__scroll flex-column gap-3 fg-1">
       <p v-if="!flat && !isCollapsed" class="sidebar-nav__title">{{ $t("shell.panels") }}</p>
       <ul class="sidebar-nav__list flex-column gap-3">
         <li>
@@ -54,8 +54,8 @@ let nextId = 0;
 // (session state of this nav, not persisted). 300 px, scrolls on its own; `collapsed` (default: the user store's
 // `isSidebarCollapsed`, persisted as `cms_sidebar_collapsed`) is the 64 px icon rail, toggled from the footer button
 // (`v-model:collapsed` when the prop is set). `flat` is the MobileMenu list: no title, no footer, every panel one
-// link to its root.
-import { computed, reactive, watch } from "vue";
+// link to its root. The current entry is scrolled into view when it changes.
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import { ICONS } from "@/boots/Icons/icons";
 import IconButton from "@/boots/IconButton/index.vue";
 import { useUserStore } from "@/stores/user";
@@ -91,6 +91,23 @@ function toggleGroup(idx) {
 }
 
 watch(panelIdx, (idx) => idx && open.add(idx), { immediate: true });
+
+// A deep link or a reload lands with the sidebar at its top: the current entry scrolls into view (a panel low in the
+// list would leave the operator's place and its sibling pages off-screen).
+const scroller = ref(null);
+watch(
+  () => entry.value?.route,
+  async () => {
+    await nextTick();
+    const box = scroller.value;
+    const item = box?.querySelector("[aria-current]");
+    if (!item) return;
+    // Centred in the sidebar's own scroll box (scrollIntoView would move the page too): its siblings show around it.
+    const offset = item.getBoundingClientRect().top - box.getBoundingClientRect().top;
+    box.scrollTop += offset - (box.clientHeight - item.offsetHeight) / 2;
+  },
+  { immediate: true }
+);
 </script>
 
 <style lang="scss" scoped>

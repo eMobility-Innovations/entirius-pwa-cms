@@ -1,6 +1,6 @@
 <template>
   <div class="action-bar flex ai-ct" role="group" :aria-label="$t('common.actions')">
-    <span class="action-bar__label fs-200 t-muted" aria-hidden="true">{{ $t("common.actions") }}</span>
+    <span v-if="labelled" class="action-bar__label fs-200 t-muted" aria-hidden="true">{{ $t("common.actions") }}</span>
     <div class="action-bar__actions flex ai-ct wrap">
       <template v-for="action in shown" :key="action.key">
         <IconButton
@@ -46,7 +46,7 @@ const ROLES = ["utility", "secondary", "danger", "primary"];
 // caller with its own controls passes them in the default slot, already in R5 order. Below the shell breakpoint the
 // bar takes its own row with the visible label "Akcje" (Figma S7). On a read-only page (useReadonly, plan 19) only the
 // utilities stay — and of those not a `danger` one; `mutates` (true/false) overrides the role. The default slot is the
-// caller's.
+// caller's. `labelled` false drops the "Akcje" caption where the actions already sit in their own footer (a dialog).
 import { computed, watchEffect } from "vue";
 import IconButton from "@/boots/IconButton/index.vue";
 import { useReadonly } from "@/composables/useReadonly";
@@ -62,6 +62,7 @@ const props = defineProps({
           action.key && action.label && ROLES.includes(action.role) && (action.role !== "utility" || action.icon)
       ),
   },
+  labelled: { type: Boolean, default: true },
 });
 
 const readonly = useReadonly();

@@ -18,6 +18,11 @@ describe("needsRefresh", () => {
     expect(needsRefresh([{ status: "open" }, { status: "done" }])).toBe(false);
   });
 
+  it("while a task waits in the queue", () => {
+    expect(needsRefresh([{ status: "open", queued_ahead: 0 }])).toBe(true);
+    expect(needsRefresh([{ status: "open", queued_ahead: null }])).toBe(false);
+  });
+
   it("a single open task (just created) refreshes too", () => {
     expect(needsRefresh([{ status: "open" }], true)).toBe(true);
     expect(needsRefresh([{ status: "failed" }], true)).toBe(false);

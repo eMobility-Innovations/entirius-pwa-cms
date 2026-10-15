@@ -23,7 +23,8 @@ Notable ones for list/form views:
 
 - **`DataTable`** — see API below.
 - **`FormField`** — label/hint/required/error wrapper for form
-  inputs. Props: `label`, `hint`, `hintLevel`, `required`, `error`.
+  inputs. Props: `label`, `hint`, `hintLevel`, `required`, `error`. The `label` slot replaces the caps label with the
+  caller's markup (a numbered question) and keeps the label's `for` and id.
 - **`EmptyState`** — placeholder for empty lists and panels. Props: `title`, `message`,
   `icon`, `size` (`md` full block, default; `sm` one line); the default slot takes an action. `DataTable` renders it
   for `emptyText`, one line by default; a list screen whose only content is the table passes `empty-size="md"`.
@@ -41,7 +42,8 @@ Notable ones for list/form views:
   Filtering stays local; there is no remote-search mode.
 - **`BulkActionBar`** — sticky bar for bulk row actions. Props: `count`
   (required), `actions` (required: `variant` per action, `secondary` without one; an action with `options` is an
-  action picker, a BasicSelect), `selectedLabelKey`, `clearLabelKey`.
+  action picker, a BasicSelect), `selectedLabelKey`, `clearLabelKey`. One wrapping row (count, actions, "Clear
+  selection" at its end), so every action stays reachable on a phone; keep bulk actions `secondary`.
 - **`SegmentedControl`** — single-choice toggle group. Props: `options`
   (required), `modelValue`; emits `update:modelValue`.
 - **`StatusBadge`** — coloured status pill. Props: `label` (required),
@@ -166,6 +168,7 @@ and one meaning per glyph (unit test). A new meaning adds its glyph to `fa-icons
   and Enter in a field presses it), `role` `utility` (an IconButton, `icon` required) · `secondary` · `danger` ·
   `primary` (one at most, a second warns in dev); extra controls go into the default slot, already in order.
   Right-aligned, gap 12 px (8 px on a phone); below 768 px it takes its own row: the label „Akcje” above the actions, left-aligned (Figma S7).
+  `labelled` false drops that label where the bar is already a footer of its own (BasicModal, ConfirmDialog).
   On a read-only page only the utilities stay, minus a `danger` one; `mutates` (true/false) overrides the role.
 - **`FloatingActions`** — FAB 44 px `accent-fill`, 24 px inset from 1024 px up; below it 16 px inset and 16 px above
   the tab bar, `data-fid="fab"`;
@@ -228,7 +231,8 @@ Catalogue: `#actions` (`#basic-button`, `#icon-button`, `#action-bar`, `#floatin
   trigger holding only a disabled control makes the wrapper the tab stop (disabled with a reason).
   `IconButton` shows its `label` through it (no `title`).
 - **`SideDrawer`** — focus trapped in `focused` mode (`role="dialog" aria-modal`, named by its title), Esc closes in
-  both modes (sticky: while focus is inside), close = `IconButton` (`side-drawer-close`). **`TranslationsDrawer`**
+  both modes (sticky: while focus is inside), close = `IconButton` (`side-drawer-close`). The header (title, close)
+  sticks to the top of the scrolling panel. **`TranslationsDrawer`**
   footer is an `ActionBar` (Save rightmost, `translations-save` / `translations-cancel`).
 - `inline` (BasicModal, ConfirmDialog, SideDrawer, TranslationsDrawer, BasicMenu) renders the open state in the page
   flow: no Teleport, no backdrop, no trap (catalogue).
@@ -322,7 +326,8 @@ Catalogue: `#display` (`#status-badge`, `#count-badge`, `#tag`, `#basic-tabs`, `
   actions row scrolls away. Slots `meta` (chips beside the title, they keep their width and wrap under a title they do not fit beside) and `actions` (an
   ActionBar): in the title row on desktop while both fit, otherwise wrapped under it right-aligned, and always its own
   row below 1024 px. The title stays on one line at every width: one longer than its row ends with an ellipsis and carries the full
-  text in its `title` attribute.
+  text in its `title` attribute; `wrapTitle` gives a long name (an article topic) two lines before the ellipsis. More
+  `meta` chips than the row holds wrap inside it.
 - **Shell claim** — `src/composables/pageHeader.js`: `PAGE_HEADER_CLAIM` (injection key) and
   `usePageHeaderClaim()`. The shell (P4) provides `{ claim, release, crumbs }` and hides its fallback header while a
   claim is held; claims overlap during a route change, so the provider counts them. PageHeader claims on mount,
@@ -401,7 +406,7 @@ Catalogue: `#selects` (`#basic-select`, `#entity-search-picker`, `#channel-multi
   error (`reportError` of `FORM_FIELD`; the caller's `error` wins). `min` / `max` / `pattern` (the API regex of a
   `code` / `key`) are its rules. The save still checks the form: `useFormErrors().validateFormats`.
 - **`BasicTextarea`** — replaces `TextAreaBasic`: `v-model`, `rows` (4), `maxlength` (with an „n / max” counter),
-  `placeholder`, `disabled`, `readonly`.
+  `placeholder`, `disabled`, `readonly`, `autogrow` (grows with its text from `rows` up to the max height).
 - **`NumberInput`** — `disabled`; the value field reads the contract.
 - **`BasicCheckbox`** — one checkbox: a boolean `v-model`, its label in the default slot, `disabled`. A list of ids
   is `BasicSelect multiple`.
@@ -416,7 +421,7 @@ Catalogue: `#selects` (`#basic-select`, `#entity-search-picker`, `#channel-multi
   room below), so a scrolling parent such as a wide table does not clip it. Its label is the FormField's. The trigger's click reaches the document, so other
   popovers close; a click inside the open calendar never closes it.
 - **`SegmentedControl`** — contract id and `disabled`, named by the FormField label, `aria-pressed` on the active
-  option. **`ColorInput`** — `disabled`, the text field reads the contract, the swatch is the native picker itself
+  option; an option's own `disabled` takes just that option out. **`ColorInput`** — `disabled`, the text field reads the contract, the swatch is the native picker itself
   (named by the FormField label, else „Wybierz kolor”).
 - Codemod `scripts/codemods/p3-inputs.mjs` (sweeps 17/18): `Switcher` → `BasicSwitch` (`:selected` + `@onSelect="x =
   !x"` → `v-model`, `prevent` → `disabled`), `TextAreaBasic` → `BasicTextarea` (`limit` → `maxlength`), `LockedField` →

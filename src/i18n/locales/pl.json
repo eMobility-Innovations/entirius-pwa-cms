@@ -2642,14 +2642,21 @@
       "counts": {
         "proposed": "Zaproponowano",
         "failed": "Błędy"
-      }
+      },
+      "empty_filtered": "Brak zadań o tym statusie",
+      "show_all": "Pokaż wszystkie zadania",
+      "starts_next": "rusza jako następne",
+      "ahead_one": "1 przed nim",
+      "ahead_few": "{count} przed nim",
+      "ahead_many": "{count} przed nim"
     },
     "task_status": {
       "open": "Otwarte",
       "in_progress": "W toku",
       "done": "Zrobione",
       "cancelled": "Anulowane",
-      "failed": "Błąd"
+      "failed": "Błąd",
+      "queued": "W kolejce"
     },
     "preview": {
       "title": "Podgląd produktu",
@@ -2768,12 +2775,16 @@
       "more_columns": "Więcej kolumn",
       "fewer_columns": "Mniej kolumn",
       "length_short": "{count} zn.",
-      "task_filter": "Propozycje jednego uruchomienia AI.",
       "tag_changes": "+{added} −{removed} tagów",
       "tags_none": "Bez zmian w tagach",
       "tags_added": "Dodane",
       "tags_removed": "Usunięte",
-      "tags_kept": "Bez zmian"
+      "tags_kept": "Bez zmian",
+      "task_filter_of": "Propozycje uruchomienia AI",
+      "clear_filters": "Wyczyść filtry",
+      "show_pending": "Pokaż oczekujące",
+      "show_applied": "Pokaż zastosowane",
+      "run_ai": "Uruchom AI dla produktów"
     },
     "status": {
       "pending": "Oczekująca",
@@ -2788,35 +2799,11 @@
       "intro": "Wartość na żywo zmieniła się po wygenerowaniu tej propozycji. Sprawdź bieżącą wartość poniżej przed zastosowaniem.",
       "confirm": "Zastosuj mimo to"
     },
-    "spawn": {
-      "title": "Wyślij do kolejki wzbogacania",
-      "send_selected": "Wyślij do wzbogacania",
-      "send_single": "Wzbogać",
-      "operation": "Operacja",
-      "op_translate": "Przetłumacz",
-      "op_fix": "Popraw / ulepsz",
-      "op_fill": "Uzupełnij braki",
-      "feature": "Pole",
-      "feature_hint": "Tłumaczalny atrybut tekstowy, który zapisze worker.",
-      "feature_placeholder": "Wybierz pole...",
-      "languages": "Języki",
-      "no_languages": "Brak języków na aktywnym kanale.",
-      "channels": "Kanały",
-      "channels_hint": "Dla każdego wybranego kanału tworzone jest osobne zadanie.",
-      "scope": "Zakres",
-      "scope_selection": "Zaznaczone produkty ({count})",
-      "scope_filter": "Wszystkie produkty pasujące do bieżącego filtra",
-      "summary": "Utworzy {tasks} zadań w {channels} kanałach, po {languages} języków.",
-      "submit": "Zleć",
-      "toast_success": "Utworzono zadań wzbogacania: {count}.",
-      "toast_partial": "Utworzono {ok} z {total} zadań przed błędem."
-    },
     "ai": {
       "menu": "AI",
       "title": "Uruchom zadanie AI",
       "worker": "Worker",
       "no_workers": "Brak skonfigurowanych workerów AI",
-      "run": "Uruchom",
       "prompt_placeholder": "Dodatkowe instrukcje dla tego uruchomienia (opcjonalnie)",
       "summary": "Jedno zadanie dla produktów: {count}, kanał {channel}.",
       "created": "Utworzono zadanie #{id}. Propozycje pojawią się w przeglądzie, gdy worker skończy kolejne produkty.",
@@ -2832,7 +2819,6 @@
       "recent_tasks": "Ostatnie zadania",
       "results_empty": "Brak propozycji AI czekających na ten produkt",
       "results_running": "Zadanie działa w tle — jego propozycje pojawią się tutaj, gdy się zakończy.",
-      "started": "Zadanie AI uruchomione. Działa w tle — śledź je w „Wyniki AI”.",
       "task_done": "Zadanie AI zakończone: {count} propozycji do przejrzenia.",
       "task_failed": "Zadanie AI #{id} nie powiodło się.",
       "applied_reload": "Propozycja zastosowana. Produkt pokaże ją po ponownym wczytaniu.",
@@ -2857,7 +2843,12 @@
         "nothing": "Nic do zrobienia — brak propozycji",
         "cancelled": "Anulowano",
         "failed": "Błąd: {reason}",
-        "partly_failed": "{count} z błędem: {reason}"
+        "partly_failed": "{count} z błędem: {reason}",
+        "queued": "W kolejce",
+        "queued_next": "W kolejce — rusza jako następne",
+        "queued_one": "W kolejce — przed nim 1 uruchomienie",
+        "queued_few": "W kolejce — przed nim {count} uruchomienia",
+        "queued_many": "W kolejce — przed nim {count} uruchomień"
       },
       "error": {
         "translate_PROVIDER_NOT_CONFIGURED": "Tłumacz nie jest skonfigurowany w AI toolbox",
@@ -2880,7 +2871,23 @@
       "trigger_failed": "ostatnie uruchomienie nie powiodło się",
       "run_title": "Uruchom AI",
       "review_task": "Przejrzyj jego propozycje",
-      "task_generic": "Zadanie AI"
+      "task_generic": "Zadanie AI",
+      "manage_templates": "Zarządzaj szablonami",
+      "open_review": "Otwórz kolejkę przeglądu",
+      "results_empty_hint": "Wybierz szablon w sekcji Uruchom AI, aby dostać nowe propozycje.",
+      "lane": {
+        "run_now": "Uruchom teraz",
+        "add_to_queue": "Dodaj do kolejki",
+        "now_cap": "„Uruchom teraz” obejmuje najwyżej {max} produktów naraz. Dodaj to uruchomienie do kolejki.",
+        "running_now": "Działa teraz.",
+        "starts_next": "W kolejce — rusza jako następne.",
+        "queued_one": "W kolejce — przed nim 1 uruchomienie.",
+        "queued_few": "W kolejce — przed nim {count} uruchomienia.",
+        "queued_many": "W kolejce — przed nim {count} uruchomień.",
+        "skipped_one": "Pominięto 1 produkt — już w toku.",
+        "skipped_few": "Pominięto {count} produkty — już w toku.",
+        "skipped_many": "Pominięto {count} produktów — już w toku."
+      }
     },
     "video": {
       "download": "Pobierz wideo",
@@ -2888,9 +2895,9 @@
       "loading": "Ładowanie wideo…"
     },
     "correct": {
-      "open": "Popraw z AI",
-      "instruction": "Co zmienić",
-      "instruction_placeholder": "np. Wspomnij o 2-letniej gwarancji",
+      "open": "Dopracuj z AI",
+      "instruction": "Wiadomość do AI",
+      "instruction_placeholder": "Napisz, co AI ma zmienić…",
       "scope_all": "Cały tekst",
       "scope_selection": "Zaznaczony fragment",
       "quick": {
@@ -2899,40 +2906,52 @@
         "formal": "Bardziej formalnie",
         "casual": "Mniej formalnie",
         "fit_limit": "Zmieść w limicie",
-        "variants": "3 warianty"
+        "variants": "3 warianty",
+        "fix_warnings": "Popraw ostrzeżenia"
       },
-      "send": "Popraw",
-      "send_all": "Popraw wszystkie",
-      "busy": "AI poprawia tekst — to może potrwać do 30 sekund.",
+      "send": "Wyślij",
+      "send_all": "Popraw propozycje: {count}",
+      "busy": "To może potrwać do 30 sekund.",
       "error": {
         "not_applicable": "AI nie umiała wprowadzić zmiany — spróbuj bardziej konkretnej instrukcji."
       },
-      "variants_title": "Wybierz wariant",
-      "variant_pick": "Użyj wariantu {number}",
-      "all": "Popraw wszystkie w tym uruchomieniu: {count} (wszystkie produkty)",
+      "variants_title": "Warianty ({count})",
+      "variant_pick": "Użyj tego",
+      "all": "Popraw wszystkie ({count})",
       "all_title": "Popraw wszystkie propozycje tego uruchomienia ({count})",
       "all_hint": "Jedna instrukcja dla każdej propozycji, która czeka na przegląd. Poprawki idą w tle; każda propozycja dostaje nową wersję.",
-      "all_queued": "Poprawiam w tle propozycje: {count} — nowe wersje pojawią się po kolei."
+      "all_queued": "Poprawiam w tle propozycje: {count} — nowe wersje pojawią się po kolei.",
+      "batch_placeholder": "Jedna instrukcja dla każdej propozycji…",
+      "suggestions": "Podpowiedzi",
+      "enter_hint": "Enter wysyła · Shift+Enter dodaje linię",
+      "variants_hint": "Nic się nie zmieni, dopóki nie wybierzesz.",
+      "variant_keep": "Zostaw obecny tekst"
     },
     "versions": {
-      "title": "Wersje",
-      "number": "v{number}",
       "current": "Aktualna",
-      "by_ai": "AI",
-      "by_you": "Ty",
-      "restored": "Przywrócona z v{number}",
       "show_changes": "Pokaż zmiany",
       "hide_changes": "Ukryj zmiany",
       "restore": "Przywróć",
-      "restored_toast": "Wersja przywrócona.",
-      "empty": "Brak zapisanych wersji."
+      "restored_toast": "Wersja przywrócona."
+    },
+    "thread": {
+      "label": "Poprawki",
+      "earlier": "Pokaż wcześniejsze wersje ({count})",
+      "first_draft": "Pierwsza wersja",
+      "version": "Wersja {number}",
+      "your_edit": "Twoja edycja · wersja {number}",
+      "restored": "Powrót do wersji {number}",
+      "undo": "Cofnij",
+      "writing": "AI pisze",
+      "only_fragment": "Tylko: „{text}”",
+      "unchanged": "AI zwróciła ten sam tekst — spróbuj bardziej konkretnej wiadomości."
     },
     "rules": {
-      "title": "Zasady dla tego tekstu",
+      "title": "Zasady",
       "empty": "Brak zasad — dodaj taką, której AI ma zawsze przestrzegać.",
       "keep_menu": "Zachowaj zasadę: {rule}",
-      "keep_template": "Zachowaj dla tego szablonu",
-      "keep_worker": "Zachowaj dla tego workera",
+      "keep_template": "Zachowaj dla każdego uruchomienia tego szablonu",
+      "keep_worker": "Zachowaj dla każdego uruchomienia AI tego rodzaju",
       "add": "Dodaj zasadę",
       "add_placeholder": "np. Nigdy nie podawaj ceny",
       "error": {
@@ -2940,7 +2959,9 @@
         "too_many": "Najwyżej {count} zasad."
       },
       "kept_template": "Zasada zachowana dla każdego uruchomienia tego szablonu.",
-      "kept_worker": "Zasada zachowana dla każdego uruchomienia tego workera."
+      "kept_worker": "Zasada zachowana dla każdego uruchomienia AI tego rodzaju.",
+      "lead": "AI zawsze przestrzega tych reguł w tym tekście.",
+      "keep": "Zawsze"
     },
     "editor": {
       "open": "Otwórz edytor",
@@ -2955,7 +2976,8 @@
       "save_version": "Zapisz wersję",
       "no_text": "Ta propozycja nie ma tekstu do edycji",
       "load_error": "Nie udało się wczytać propozycji",
-      "load_error_hint": "Spróbuj ponownie za chwilę albo wróć do przeglądu."
+      "load_error_hint": "Spróbuj ponownie za chwilę albo wróć do przeglądu.",
+      "back_to_review": "Wróć do przeglądu"
     },
     "run": {
       "template": "Szablon",
@@ -2969,7 +2991,8 @@
       "scope_subject": "Osobno dla każdego produktu",
       "save_as_template": "Zapisz jako szablon",
       "template_name": "Nazwa szablonu",
-      "save_template": "Zapisz szablon"
+      "save_template": "Zapisz szablon",
+      "pick_worker": "Wybierz, co ma przygotować AI"
     },
     "templates": {
       "title": "Szablony AI",
@@ -2990,12 +3013,17 @@
       "saved": "Szablon zapisany",
       "deleted": "Szablon usunięty",
       "confirm_delete_title": "Usunąć ten szablon?",
-      "confirm_delete": "Zniknie z „Uruchom AI”. Wykonane już uruchomienia i ich propozycje zostają."
+      "confirm_delete": "Zniknie z „Uruchom AI”. Wykonane już uruchomienia i ich propozycje zostają.",
+      "missing_title": "Ten szablon już nie istnieje",
+      "missing_hint": "Mógł zostać usunięty lub przemianowany. Wybierz szablon z listy.",
+      "back_to_list": "Wróć do szablonów",
+      "unfilled": "Aby zapisać, uzupełnij: {fields}"
     },
     "cost": {
       "label": "Koszt",
       "unknown": "Usługa AI nie podała kosztu",
-      "partial": "Część wywołań AI nie podała kosztu, więc faktyczna suma jest wyższa"
+      "partial": "Część wywołań AI nie podała kosztu, więc faktyczna suma jest wyższa",
+      "free": "Bez kosztu"
     },
     "studio": {
       "title": "Studio",
@@ -3015,25 +3043,24 @@
       "steps": "Kroki",
       "run_cost": "Koszt do tej pory",
       "run_status": {
-        "running": "W toku",
-        "waiting": "Czeka na Ciebie",
+        "running": "AI pisze",
+        "waiting": "Twoja kolej",
         "done": "Gotowe",
         "failed": "Błąd",
         "cancelled": "Anulowano"
       },
       "step_status": {
         "waiting": "Czeka",
-        "running": "W toku",
-        "review": "Do sprawdzenia",
-        "approved": "Zatwierdzony",
+        "running": "AI pisze",
+        "review": "Twoja kolej",
+        "approved": "Gotowe",
         "failed": "Błąd"
       },
-      "waiting_for": "Rusza po zatwierdzeniu kroków: {steps}.",
-      "running": "AI pracuje nad tym krokiem. Strona odświeża się sama.",
-      "failed": "Ten krok się nie udał. Wygeneruj go ponownie, opcjonalnie z instrukcją.",
-      "stale": "To trwa dłużej niż zwykle. Wygeneruj krok ponownie, aby spróbować jeszcze raz.",
+      "waiting_for": "Rusza po: {steps}",
+      "running": "AI pracuje nad krokiem {step}…",
+      "failed": "Ten krok się nie udał",
+      "stale": "To trwa dłużej niż zwykle. Spróbuj ponownie: krok zacznie się od nowa.",
       "stopped": "Zatrzymany przy anulowaniu procesu.",
-      "approve": "Zatwierdź",
       "approved_toast": "Krok zatwierdzony",
       "regenerate": "Wygeneruj ponownie",
       "regenerate_title": "Wygeneruj ponownie: {step}",
@@ -3062,18 +3089,20 @@
         "format": "Zły format"
       },
       "questions": {
-        "intro": "Odpowiedz na co możesz — odpowiedzi sprawiają, że artykuł jest konkretny. Pytania wymagane są oznaczone.",
         "required": "Odpowiedź jest wymagana",
-        "unsaved": "Niezapisane odpowiedzi"
+        "unsaved": "Niezapisane zmiany",
+        "required_badge": "Wymagane",
+        "saving": "Zapisywanie…",
+        "saved": "Zapisano",
+        "answered": "Odpowiedzi: {count} z {total}",
+        "placeholder": "Twoja odpowiedź (zostaw puste, a zdecyduje AI)",
+        "not_answered": "Bez odpowiedzi: decyduje AI"
       },
       "keywords": {
         "primary": "Fraza główna",
         "secondary": "Frazy wspierające",
         "intent": "Intencja wyszukiwania",
-        "phrase": "Fraza",
-        "volume": "Wyszukiwań / mies.",
         "serp": "Co dziś jest wysoko",
-        "use": "Użyj jako",
         "as_primary": "Główna",
         "as_secondary": "Wspierająca",
         "pick_hint": "Wybierz jedną frazę główną i do {max} wspierających. Każdy wybór zapisuje się od razu.",
@@ -3082,7 +3111,14 @@
           "commercial": "Porównać przed zakupem",
           "transactional": "Kupić",
           "navigational": "Znaleźć stronę"
-        }
+        },
+        "list_title": "Frazy do wyboru",
+        "volume_count": "{count} wyszukiwań / mies.",
+        "volume_none": "Brak danych o wyszukiwaniach",
+        "serp_show": "Co dziś jest wysoko",
+        "as_skip": "Pomiń",
+        "use_label": "Użyj „{phrase}” jako",
+        "none": "Nic nie wybrano"
       },
       "meta": {
         "title": "Tytuł strony",
@@ -3099,10 +3135,82 @@
         "language": "Język",
         "words": "Słowa",
         "faq": "Pytania FAQ",
-        "on_approve": "Zatwierdzenie tego kroku utworzy nieopublikowany szkic w Stronach.",
-        "created": "Szkic jest w Stronach, nieopublikowany.",
-        "open": "Otwórz szkic w ContentDB"
-      }
+        "created": "Jest w Stronach jako szkic. Sprawdź go tam przed publikacją.",
+        "open": "Otwórz szkic w Stronach",
+        "created_title": "Szkic utworzony, nieopublikowany",
+        "another": "Rozpocznij nową treść"
+      },
+      "run_cost_final": "Koszt",
+      "your_turn_on": "Twoja kolej: {step}",
+      "failed_on": "Błąd: {step}",
+      "next": {
+        "your_turn": "Sprawdź krok {step} i zatwierdź go. Kolejne kroki ruszą potem.",
+        "writing": "Teraz nic do zrobienia: AI pisze krok {step}. Możesz opuścić tę stronę.",
+        "failed": "Krok {step} się nie udał. Otwórz go i spróbuj ponownie.",
+        "waiting": "Teraz nic do zrobienia.",
+        "done": "Gotowe. Szkic jest w Stronach, nieopublikowany."
+      },
+      "open_draft_short": "Otwórz szkic",
+      "run_menu": "Opcje procesu",
+      "cancelled_banner": "Proces anulowany. Zatwierdzone kroki zostają.",
+      "start_same": "Rozpocznij nowy proces z tym samym briefem",
+      "brief": {
+        "label": "Brief",
+        "show": "Pokaż brief",
+        "hide": "Ukryj brief",
+        "title": "Tytuł roboczy",
+        "angle": "Ujęcie",
+        "audience": "Odbiorcy",
+        "notes": "Notatki"
+      },
+      "step_of": "Krok {number} z {total}",
+      "rail": {
+        "review": "Twoja kolej",
+        "running": "AI pisze…",
+        "approved": "Gotowe",
+        "failed": "Nie udało się",
+        "waiting": "Rusza po: {step}",
+        "queued": "Zaraz ruszy",
+        "stopped": "Zatrzymany"
+      },
+      "purpose": {
+        "questions": "Odpowiedz na to, co wiesz. AI użyje odpowiedzi w każdym kolejnym kroku.",
+        "keywords": "Wybierz frazę, której ludzie szukają. Konspekt i tekst powstaną wokół niej.",
+        "outline": "Sprawdź strukturę. Szkic pójdzie za nią sekcja po sekcji.",
+        "draft": "Przeczytaj tekst i popraw to, co nie pasuje. Metadane powstaną na jego podstawie.",
+        "meta": "Sprawdź, jak strona wygląda w wynikach wyszukiwania.",
+        "compose": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany."
+      },
+      "purpose_output": {
+        "questions": "Odpowiedz na to, co wiesz. AI użyje odpowiedzi w każdym kolejnym kroku.",
+        "artifact": "Sprawdź, co napisało AI, i zatwierdź, aby przejść dalej.",
+        "document": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany."
+      },
+      "approve_to": "Zatwierdź i przejdź do: {step}",
+      "create_draft": "Utwórz szkic",
+      "try_again": "Spróbuj ponownie",
+      "try_instruction": "Spróbuj z instrukcją",
+      "go_to": "Przejdź do: {step}",
+      "running_for": "Trwa {time}. Strona odświeża się sama; możesz ją opuścić i wrócić.",
+      "failed_hint": "Spróbuj ponownie albo daj AI instrukcję.",
+      "failure_service": "Usługa, z której korzysta AI, nie odpowiedziała",
+      "approved_bar": "Zatwierdzony",
+      "text": {
+        "reading": "{words} słów · {minutes} min czytania"
+      },
+      "details_show": "Dodaj szczegóły (opcjonalnie)",
+      "details_hide": "Ukryj szczegóły",
+      "filter_your_turn": "Twoja kolej",
+      "filters": "Filtry",
+      "list_step": {
+        "your_turn": "Twoja kolej: {step}",
+        "writing": "AI pisze: {step}",
+        "failed": "Błąd: {step}"
+      },
+      "approve": "Zatwierdź",
+      "profile_fill": "Uzupełnij profil",
+      "empty_your_turn": "Nic teraz na Ciebie nie czeka.",
+      "show_all": "Pokaż wszystkie"
     },
     "profile": {
       "title": "Profil firmy",
@@ -3249,7 +3357,9 @@
         "studio_run": "Artykuł ze studia",
         "market": "Dane rynkowe",
         "item": "Element"
-      }
+      },
+      "empty_filtered": "Nic nie pasuje do tych filtrów.",
+      "clear_filters": "Wyczyść filtry"
     },
     "qa": {
       "code": {

@@ -27,7 +27,12 @@
       size="md"
       :title="$t(proposal ? 'enrichment.editor.no_text' : 'enrichment.editor.missing')"
       :message="$t('enrichment.editor.missing_hint')"
-    />
+      data-testid="editor-missing"
+    >
+      <router-link to="/enrichment" class="t-accent fw-600" data-testid="editor-missing-back">
+        {{ $t("enrichment.editor.back_to_review") }}
+      </router-link>
+    </EmptyState>
     <div v-else class="proposal-editor__grid">
       <div class="flex-column gap-8">
         <BasicCard>
@@ -51,27 +56,36 @@
             <TextDiff v-else :before="valueText(proposal.current_snapshot)" :after="draft" />
           </div>
         </BasicCard>
-
-        <template v-if="editable">
-          <CorrectionBar ref="bar" :shape="shape" :selection="selection" :busy="busy" @submit="correct" />
-          <VariantPicker v-if="candidates.length" :candidates="candidates" :busy="busy" @pick="pick" @cancel="candidates = []" />
-        </template>
       </div>
 
       <aside class="flex-column gap-8">
-        <BasicCard :title="$t('enrichment.versions.title')">
-          <Loader v-if="!revisions" />
-          <VersionTimeline v-else :revisions="revisions" :busy="busy" :restorable="editable" @restore="restoreVersion" />
-        </BasicCard>
-        <BasicCard v-if="editable">
-          <RuleChips
-            :rules="proposal.rules || []"
-            :busy="busy"
-            :has-template="!!task?.params?.template"
-            :has-worker="hasWorker"
-            @change="setRules"
-            @promote="promote"
-          />
+        <BasicCard :title="$t('enrichment.correct.open')">
+          <div class="flex-column gap-5">
+            <Loader v-if="!revisions" :size="32" />
+            <CorrectionThread
+              v-else
+              :revisions="revisions"
+              :busy="busy"
+              :restorable="editable"
+              :asking="asking"
+              :candidates="candidates"
+              :landed="landed"
+              @restore="restoreVersion"
+              @pick="pick"
+              @dismiss="candidates = []"
+            />
+            <template v-if="editable">
+              <CorrectionBar ref="bar" :shape="shape" :selection="selection" :busy="busy" @submit="correct" />
+              <RuleChips
+                :rules="proposal.rules || []"
+                :busy="busy"
+                :has-template="!!task?.params?.template"
+                :has-worker="hasWorker"
+                @change="setRules"
+                @promote="promote"
+              />
+            </template>
+          </div>
         </BasicCard>
       </aside>
     </div>
@@ -90,11 +104,10 @@ import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { isNotFound } from "@/api/createClient";
 import { GET_Proposal, GET_Task, POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
 import CorrectionBar from "./CorrectionBar.vue";
+import CorrectionThread from "./CorrectionThread.vue";
 import DriftModal from "./DriftModal.vue";
 import RuleChips from "./RuleChips.vue";
 import TextDiff from "./TextDiff.vue";
-import VariantPicker from "./VariantPicker.vue";
-import VersionTimeline from "./VersionTimeline.vue";
 import { useFieldLabels } from "./useFieldLabels";
 import { useProposalCorrection } from "./useProposalCorrection";
 import { revisable, textareaSelection, uniqueFragment, valueShape, valueText, withText } from "./correction";
@@ -102,11 +115,11 @@ import { isHtml, workerOf } from "./reviewLogic";
 
 // The full-screen editor of one long text proposal (`/enrichment/edit/:proposalId`): the text as it is stored (HTML
 // or markdown) with a preview and the changes against the live value, AI corrections scoped to the selected
-// fragment, the versions and the rules beside it. "Save version" keeps a manual edit; Apply saves it first and
+// fragment — the versions as a correction thread with its composer and the rules beside the text. "Save version" keeps a manual edit; Apply saves it first and
 // writes the value (a drifted field asks again).
 export default {
   name: "ProposalEditor",
-  components: { ReadonlyOff, CorrectionBar, DriftModal, RuleChips, TextDiff, VariantPicker, VersionTimeline },
+  components: { ReadonlyOff, CorrectionBar, CorrectionThread, DriftModal, RuleChips, TextDiff },
   setup() {
     const proposal = ref(null);
     const draft = ref("");
@@ -213,7 +226,7 @@ export default {
     },
     async correct(request) {
       if (!(await this.saveDraft())) return;
-      if (await this.revise(request)) this.$refs.bar?.reset();
+      if ((await this.revise(request)) && request.instruction.trim()) this.$refs.bar?.reset();
     },
     pick(candidate) {
       return this.saveValue(candidate);

@@ -2643,14 +2643,21 @@
       "counts": {
         "proposed": "Proposed",
         "failed": "Failed"
-      }
+      },
+      "empty_filtered": "No tasks with this status",
+      "show_all": "Show all tasks",
+      "starts_next": "starts next",
+      "ahead_one": "1 ahead",
+      "ahead_few": "{count} ahead",
+      "ahead_many": "{count} ahead"
     },
     "task_status": {
       "open": "Open",
-      "in_progress": "In progress",
+      "in_progress": "Running",
       "done": "Done",
       "cancelled": "Cancelled",
-      "failed": "Failed"
+      "failed": "Failed",
+      "queued": "Queued"
     },
     "preview": {
       "title": "Product preview",
@@ -2769,12 +2776,16 @@
       "more_columns": "More columns",
       "fewer_columns": "Fewer columns",
       "length_short": "{count} chars",
-      "task_filter": "Showing the proposals of one AI run.",
       "tag_changes": "+{added} −{removed} tags",
       "tags_none": "No tag changes",
       "tags_added": "Added",
       "tags_removed": "Removed",
-      "tags_kept": "Kept"
+      "tags_kept": "Kept",
+      "task_filter_of": "Proposals of AI run",
+      "clear_filters": "Clear filters",
+      "show_pending": "Show pending",
+      "show_applied": "Show applied",
+      "run_ai": "Run AI on products"
     },
     "status": {
       "pending": "Pending",
@@ -2789,35 +2800,11 @@
       "intro": "The live value moved after this proposal was generated. Review the current value below before applying.",
       "confirm": "Apply anyway"
     },
-    "spawn": {
-      "title": "Send to enrichment queue",
-      "send_selected": "Send to enrichment",
-      "send_single": "Enrich",
-      "operation": "Operation",
-      "op_translate": "Translate",
-      "op_fix": "Fix / improve",
-      "op_fill": "Fill missing",
-      "feature": "Field",
-      "feature_hint": "Translatable text attribute the worker will write.",
-      "feature_placeholder": "Choose a field...",
-      "languages": "Languages",
-      "no_languages": "No languages on the active channel.",
-      "channels": "Channels",
-      "channels_hint": "One task is created per selected channel.",
-      "scope": "Scope",
-      "scope_selection": "Selected products ({count})",
-      "scope_filter": "All products matching the current filter",
-      "summary": "Spawns {tasks} task(s) across {channels} channel(s), {languages} language(s) each.",
-      "submit": "Spawn",
-      "toast_success": "{count} enrichment task(s) created.",
-      "toast_partial": "Created {ok} of {total} tasks before an error."
-    },
     "ai": {
       "menu": "AI",
       "title": "Run AI task",
       "worker": "Worker",
       "no_workers": "No AI workers configured",
-      "run": "Run",
       "prompt_placeholder": "Extra instructions for this run (optional)",
       "summary": "One task over {count} product(s) in channel {channel}.",
       "created": "Task #{id} created. Proposals appear in the review as the worker finishes products.",
@@ -2833,7 +2820,6 @@
       "recent_tasks": "Recent tasks",
       "results_empty": "No AI proposals waiting for this product",
       "results_running": "The task runs in the background — its proposals appear here when it finishes.",
-      "started": "AI task started. It runs in the background — follow it under AI results.",
       "task_done": "AI task finished: {count} proposal(s) ready for review.",
       "task_failed": "AI task #{id} failed.",
       "applied_reload": "Proposal applied. The product shows it after the next reload.",
@@ -2858,7 +2844,12 @@
         "nothing": "Nothing to do — no proposals",
         "cancelled": "Cancelled",
         "failed": "Failed: {reason}",
-        "partly_failed": "{count} failed: {reason}"
+        "partly_failed": "{count} failed: {reason}",
+        "queued": "Queued",
+        "queued_next": "Queued — starts next",
+        "queued_one": "Queued — 1 run ahead",
+        "queued_few": "Queued — {count} runs ahead",
+        "queued_many": "Queued — {count} runs ahead"
       },
       "error": {
         "translate_PROVIDER_NOT_CONFIGURED": "Translator not configured on the AI toolbox",
@@ -2881,7 +2872,23 @@
       "trigger_failed": "last run failed",
       "run_title": "Run AI",
       "review_task": "Review its proposals",
-      "task_generic": "AI task"
+      "task_generic": "AI task",
+      "manage_templates": "Manage templates",
+      "open_review": "Open the review queue",
+      "results_empty_hint": "Pick a template under Run AI to get new proposals.",
+      "lane": {
+        "run_now": "Run now",
+        "add_to_queue": "Add to queue",
+        "now_cap": "Run now takes at most {max} products at a time. Add this run to the queue instead.",
+        "running_now": "Running now.",
+        "starts_next": "Queued — starts next.",
+        "queued_one": "Queued — 1 run ahead.",
+        "queued_few": "Queued — {count} runs ahead.",
+        "queued_many": "Queued — {count} runs ahead.",
+        "skipped_one": "1 product skipped, already running.",
+        "skipped_few": "{count} products skipped, already running.",
+        "skipped_many": "{count} products skipped, already running."
+      }
     },
     "video": {
       "download": "Download video",
@@ -2889,9 +2896,9 @@
       "loading": "Loading video…"
     },
     "correct": {
-      "open": "Correct with AI",
-      "instruction": "What to change",
-      "instruction_placeholder": "e.g. Mention the 2-year warranty",
+      "open": "Refine with AI",
+      "instruction": "Message to the AI",
+      "instruction_placeholder": "Tell the AI what to change…",
       "scope_all": "Whole text",
       "scope_selection": "Selected text",
       "quick": {
@@ -2900,40 +2907,52 @@
         "formal": "More formal",
         "casual": "More casual",
         "fit_limit": "Fit the limit",
-        "variants": "3 variants"
+        "variants": "3 variants",
+        "fix_warnings": "Fix warnings"
       },
-      "send": "Correct",
-      "send_all": "Correct all",
-      "busy": "AI is correcting the text — this can take up to 30 seconds.",
+      "send": "Send",
+      "send_all": "Correct {count} proposals",
+      "busy": "This can take up to 30 seconds.",
       "error": {
         "not_applicable": "AI could not apply the change — try a more specific instruction."
       },
-      "variants_title": "Pick a variant",
-      "variant_pick": "Use variant {number}",
-      "all": "Correct all {count} in this run (all products)",
+      "variants_title": "Variants ({count})",
+      "variant_pick": "Use this",
+      "all": "Correct all ({count})",
       "all_title": "Correct all {count} proposals of this run",
       "all_hint": "One instruction for every proposal still waiting for review. The corrections run in the background; each proposal gets a new version.",
-      "all_queued": "Correcting {count} proposals in the background — new versions appear as they finish."
+      "all_queued": "Correcting {count} proposals in the background — new versions appear as they finish.",
+      "batch_placeholder": "One instruction for every proposal…",
+      "suggestions": "Suggestions",
+      "enter_hint": "Enter sends · Shift+Enter adds a line",
+      "variants_hint": "Nothing changes until you pick one.",
+      "variant_keep": "Keep the current text"
     },
     "versions": {
-      "title": "Versions",
-      "number": "v{number}",
       "current": "Current",
-      "by_ai": "AI",
-      "by_you": "You",
-      "restored": "Restored from v{number}",
       "show_changes": "Show changes",
       "hide_changes": "Hide changes",
       "restore": "Restore",
-      "restored_toast": "Version restored.",
-      "empty": "No versions recorded yet."
+      "restored_toast": "Version restored."
+    },
+    "thread": {
+      "label": "Corrections",
+      "earlier": "Show earlier versions ({count})",
+      "first_draft": "First draft",
+      "version": "Version {number}",
+      "your_edit": "Your edit · version {number}",
+      "restored": "Back to version {number}",
+      "undo": "Undo",
+      "writing": "AI is writing",
+      "only_fragment": "Only: “{text}”",
+      "unchanged": "The AI returned the same text — try a more specific message."
     },
     "rules": {
-      "title": "Rules for this text",
+      "title": "Rules",
       "empty": "No rules yet — add one the AI must always follow.",
       "keep_menu": "Keep the rule: {rule}",
-      "keep_template": "Keep for this template",
-      "keep_worker": "Keep for this worker",
+      "keep_template": "Keep for every run of this template",
+      "keep_worker": "Keep for every AI run of this kind",
       "add": "Add rule",
       "add_placeholder": "e.g. Never mention the price",
       "error": {
@@ -2941,7 +2960,9 @@
         "too_many": "At most {count} rules."
       },
       "kept_template": "Rule kept for every run of this template.",
-      "kept_worker": "Rule kept for every run of this worker."
+      "kept_worker": "Rule kept for every AI run of this kind.",
+      "lead": "The AI always follows these rules in this text.",
+      "keep": "Always"
     },
     "editor": {
       "open": "Open editor",
@@ -2956,7 +2977,8 @@
       "save_version": "Save version",
       "no_text": "This proposal has no text to edit",
       "load_error": "Could not load this proposal",
-      "load_error_hint": "Try again in a moment, or go back to the review."
+      "load_error_hint": "Try again in a moment, or go back to the review.",
+      "back_to_review": "Back to the review"
     },
     "run": {
       "template": "Template",
@@ -2970,7 +2992,8 @@
       "scope_subject": "Separately for each product",
       "save_as_template": "Save as template",
       "template_name": "Template name",
-      "save_template": "Save template"
+      "save_template": "Save template",
+      "pick_worker": "Pick what the AI should make"
     },
     "templates": {
       "title": "AI templates",
@@ -2991,12 +3014,17 @@
       "saved": "Template saved",
       "deleted": "Template deleted",
       "confirm_delete_title": "Delete this template?",
-      "confirm_delete": "It disappears from Run AI. Runs already made from it and their proposals stay."
+      "confirm_delete": "It disappears from Run AI. Runs already made from it and their proposals stay.",
+      "missing_title": "This template no longer exists",
+      "missing_hint": "It may have been deleted or renamed. Pick one from the list.",
+      "back_to_list": "Back to templates",
+      "unfilled": "To save, fill in: {fields}"
     },
     "cost": {
       "label": "Cost",
       "unknown": "Cost not reported by the AI service",
-      "partial": "Some AI calls reported no cost, so the real total is higher"
+      "partial": "Some AI calls reported no cost, so the real total is higher",
+      "free": "Free"
     },
     "studio": {
       "title": "Studio",
@@ -3016,25 +3044,24 @@
       "steps": "Steps",
       "run_cost": "Cost so far",
       "run_status": {
-        "running": "Working",
-        "waiting": "Needs your review",
-        "done": "Finished",
+        "running": "AI is writing",
+        "waiting": "Your turn",
+        "done": "Done",
         "failed": "Failed",
         "cancelled": "Cancelled"
       },
       "step_status": {
         "waiting": "Waiting",
-        "running": "Working",
-        "review": "Needs review",
-        "approved": "Approved",
+        "running": "AI is writing",
+        "review": "Your turn",
+        "approved": "Done",
         "failed": "Failed"
       },
-      "waiting_for": "Starts once these steps are approved: {steps}.",
-      "running": "The AI is working on this step. The page refreshes by itself.",
-      "failed": "This step did not finish. Regenerate it, optionally with an instruction.",
-      "stale": "This is taking longer than usual. Regenerate the step to try again.",
+      "waiting_for": "Starts after: {steps}",
+      "running": "The AI is working on {step}…",
+      "failed": "This step did not finish",
+      "stale": "Taking longer than usual. Try again: the step starts over.",
       "stopped": "Stopped when the run was cancelled.",
-      "approve": "Approve",
       "approved_toast": "Step approved",
       "regenerate": "Regenerate",
       "regenerate_title": "Regenerate: {step}",
@@ -3063,18 +3090,20 @@
         "format": "Wrong format"
       },
       "questions": {
-        "intro": "Answer what you can — the answers make the article specific. Required questions are marked.",
         "required": "An answer is required",
-        "unsaved": "Unsaved answers"
+        "unsaved": "Unsaved changes",
+        "required_badge": "Required",
+        "saving": "Saving…",
+        "saved": "Saved",
+        "answered": "{count} of {total} answered",
+        "placeholder": "Your answer (leave empty to let the AI decide)",
+        "not_answered": "Not answered: the AI decides"
       },
       "keywords": {
         "primary": "Main phrase",
         "secondary": "Supporting phrases",
         "intent": "Search intent",
-        "phrase": "Phrase",
-        "volume": "Searches / month",
         "serp": "What ranks today",
-        "use": "Use as",
         "as_primary": "Main",
         "as_secondary": "Supporting",
         "pick_hint": "Pick one main phrase and up to {max} supporting ones. Each pick is saved at once.",
@@ -3083,7 +3112,14 @@
           "commercial": "Compare before buying",
           "transactional": "Buy",
           "navigational": "Find a site"
-        }
+        },
+        "list_title": "Phrases to choose from",
+        "volume_count": "{count} searches / month",
+        "volume_none": "No search data",
+        "serp_show": "What ranks today",
+        "as_skip": "Skip",
+        "use_label": "Use “{phrase}” as",
+        "none": "None picked"
       },
       "meta": {
         "title": "Page title",
@@ -3100,10 +3136,82 @@
         "language": "Language",
         "words": "Words",
         "faq": "FAQ questions",
-        "on_approve": "Approving this step creates an unpublished draft in Pages.",
-        "created": "The draft is in Pages, unpublished.",
-        "open": "Open draft in ContentDB"
-      }
+        "created": "It is in Pages as a draft. Check it there before you publish it.",
+        "open": "Open draft in Pages",
+        "created_title": "Draft created, not published",
+        "another": "Start new content"
+      },
+      "run_cost_final": "Cost",
+      "your_turn_on": "Your turn: {step}",
+      "failed_on": "Failed: {step}",
+      "next": {
+        "your_turn": "Review {step} and approve it. The next steps start after that.",
+        "writing": "Nothing to do now: the AI is writing {step}. You can leave this page.",
+        "failed": "{step} did not finish. Open it and try again.",
+        "waiting": "Nothing to do now.",
+        "done": "Done. The draft is in Pages, not published."
+      },
+      "open_draft_short": "Open draft",
+      "run_menu": "Run options",
+      "cancelled_banner": "Run cancelled. Steps already approved are kept.",
+      "start_same": "Start a new run with the same brief",
+      "brief": {
+        "label": "Brief",
+        "show": "Show brief",
+        "hide": "Hide brief",
+        "title": "Working title",
+        "angle": "Angle",
+        "audience": "Audience",
+        "notes": "Notes"
+      },
+      "step_of": "Step {number} of {total}",
+      "rail": {
+        "review": "Your turn",
+        "running": "AI is writing…",
+        "approved": "Done",
+        "failed": "Did not finish",
+        "waiting": "Starts after {step}",
+        "queued": "Starts soon",
+        "stopped": "Stopped"
+      },
+      "purpose": {
+        "questions": "Answer what you know. The AI uses your answers in every next step.",
+        "keywords": "Pick the phrase people search for. The outline and the text are built around it.",
+        "outline": "Check the structure. The draft follows it section by section.",
+        "draft": "Read the text and correct what is off. The metadata is written from it.",
+        "meta": "Check how the page reads in a search result.",
+        "compose": "Check what goes into the draft. Approving creates it in Pages, unpublished."
+      },
+      "purpose_output": {
+        "questions": "Answer what you know. The AI uses your answers in every next step.",
+        "artifact": "Check what the AI wrote and approve it to continue.",
+        "document": "Check what goes into the draft. Approving creates it in Pages, unpublished."
+      },
+      "approve_to": "Approve and go to {step}",
+      "create_draft": "Create draft",
+      "try_again": "Try again",
+      "try_instruction": "Try with an instruction",
+      "go_to": "Go to {step}",
+      "running_for": "Running for {time}. The page refreshes by itself; you can leave it and come back.",
+      "failed_hint": "Try again, or give the AI an instruction.",
+      "failure_service": "A service the AI uses did not answer",
+      "approved_bar": "Approved",
+      "text": {
+        "reading": "{words} words · {minutes} min read"
+      },
+      "details_show": "Add details (optional)",
+      "details_hide": "Hide details",
+      "filter_your_turn": "Your turn",
+      "filters": "Filters",
+      "list_step": {
+        "your_turn": "Your turn: {step}",
+        "writing": "AI writing: {step}",
+        "failed": "Failed: {step}"
+      },
+      "approve": "Approve",
+      "profile_fill": "Complete the profile",
+      "empty_your_turn": "Nothing is waiting for you right now.",
+      "show_all": "Show all runs"
     },
     "profile": {
       "title": "Company profile",
@@ -3250,7 +3358,9 @@
         "studio_run": "Studio article",
         "market": "Market data",
         "item": "Item"
-      }
+      },
+      "empty_filtered": "Nothing matches these filters.",
+      "clear_filters": "Clear filters"
     },
     "qa": {
       "code": {

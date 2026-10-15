@@ -4,16 +4,18 @@
       <h3 class="proposal-panel__field m-0" data-testid="proposal-field">{{ fieldName }}</h3>
       <Tag v-if="language" :label="language.toUpperCase()" data-testid="proposal-language" />
       <StatusBadge v-if="proposal.status !== 'pending'" :label="$t(`enrichment.status.${proposal.status}`)" size="sm" />
-      <CostLabel class="proposal-panel__cost" :cost="proposal.cost_usd" data-testid="proposal-cost" />
-      <BasicTooltip :text="metaLine">
-        <span class="proposal-panel__details-icon t-muted" tabindex="0" :aria-label="metaLine" data-testid="proposal-meta">
-          <FontAwesomeIcon :icon="$icons.info" aria-hidden="true" />
-        </span>
-      </BasicTooltip>
+      <span class="proposal-panel__cost flex ai-ct gap-2">
+        <CostLabel :cost="proposal.cost_usd" data-testid="proposal-cost" />
+        <BasicTooltip :text="metaLine">
+          <span class="proposal-panel__details-icon t-muted" tabindex="0" :aria-label="metaLine" data-testid="proposal-meta">
+            <FontAwesomeIcon :icon="$icons.info" aria-hidden="true" />
+          </span>
+        </BasicTooltip>
+      </span>
     </header>
 
     <div v-if="sourceLanguage" class="flex-column gap-2" data-testid="proposal-source">
-      <span class="field-label">{{ $t("enrichment.review.source_value", { language: sourceLanguage.toUpperCase() }) }}</span>
+      <span class="fs-200 fw-600 t-secondary">{{ $t("enrichment.review.source_value", { language: sourceLanguage.toUpperCase() }) }}</span>
       <div v-if="sourceIsHtml" class="proposal-panel__source" v-html="sanitizeHtml(source)" />
       <p v-else class="proposal-panel__source m-0">{{ source || "—" }}</p>
     </div>
@@ -49,7 +51,7 @@
       @busy="(value) => (correctionBusy = value)"
     />
 
-    <ActionBar :actions="actions" />
+    <ActionBar :actions="actions" :labelled="false" />
   </article>
 </template>
 
@@ -229,11 +231,18 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .proposal-panel {
   padding: var(--space-8);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--surface-base);
+
+  // A phone has the drawer's padding around the card already: the text keeps the width.
+  @include max-tablet {
+    padding: var(--space-5);
+  }
 }
 .proposal-panel__field {
   font-size: var(--fs-400);

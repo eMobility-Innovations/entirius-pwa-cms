@@ -1,23 +1,35 @@
 <template>
-  <div class="meta-cards flex-column gap-5" data-testid="meta-cards">
-    <section v-for="field in fields" :key="field.key" class="meta-cards__card flex-column gap-2" :data-testid="`meta-${field.key}`">
-      <div class="flex ai-ct flex-wrap gap-3">
-        <h4 class="meta-cards__name m-0">{{ $t(`enrichment.studio.meta.${field.key}`) }}</h4>
-        <LengthCounter v-if="field.rules" class="meta-cards__counter" :length="field.value.length" :rules="field.rules" />
-      </div>
-      <p class="m-0 meta-cards__value">{{ field.value || "—" }}</p>
+  <div class="meta-cards flex-column gap-6" data-testid="meta-cards">
+    <section class="flex-column gap-2">
+      <h3 class="meta-cards__heading m-0">{{ $t("enrichment.studio.meta.preview") }}</h3>
+      <SearchSnippet :title="data.title || ''" :url="data.slug ? `/${data.slug}` : ''" :text="data.description || ''" />
     </section>
 
-    <div class="flex-column gap-2">
-      <span class="field-label">{{ $t("enrichment.studio.meta.preview") }}</span>
-      <SearchSnippet :title="data.title || ''" :url="data.slug ? `/${data.slug}` : ''" :text="data.description || ''" />
-    </div>
+    <dl class="meta-cards__fields m-0 flex-column gap-4">
+      <div v-for="field in fields" :key="field.key" class="flex-column gap-1" :data-testid="`meta-${field.key}`">
+        <dt class="flex ai-ct flex-wrap gap-3">
+          <span class="meta-cards__name">{{ $t(`enrichment.studio.meta.${field.key}`) }}</span>
+          <LengthCounter v-if="field.rules" class="meta-cards__counter" :length="field.value.length" :rules="field.rules" />
+        </dt>
+        <dd class="m-0 meta-cards__value">{{ field.value || "—" }}</dd>
+      </div>
+    </dl>
 
     <section v-if="faq.length" class="flex-column gap-3" data-testid="meta-faq">
-      <h4 class="meta-cards__name m-0">{{ $t("enrichment.studio.meta.faq", { count: faq.length }) }}</h4>
-      <dl class="m-0 flex-column gap-3">
+      <div>
+        <BasicButton
+          variant="ghost"
+          :icon="showFaq ? 'collapse' : 'expand'"
+          :aria-expanded="String(showFaq)"
+          data-testid="meta-faq-toggle"
+          @click="showFaq = !showFaq"
+        >
+          {{ $t("enrichment.studio.meta.faq", { count: faq.length }) }}
+        </BasicButton>
+      </div>
+      <dl v-if="showFaq" class="m-0 flex-column gap-4">
         <div v-for="(item, index) in faq" :key="index" class="flex-column gap-1">
-          <dt class="fw-600">{{ item.question }}</dt>
+          <dt class="meta-cards__name">{{ item.question }}</dt>
           <dd class="m-0 meta-cards__value">{{ item.answer }}</dd>
         </div>
       </dl>
@@ -29,17 +41,26 @@
 import LengthCounter from "@/views/EnrichmentReview/LengthCounter.vue";
 import SearchSnippet from "@/views/EnrichmentReview/SearchSnippet.vue";
 
-// Search engines cut a title near 60 characters and a description near 160 (the meta template's limits).
-const LIMITS = { title: { max: 60 }, description: { min: 120, max: 160 }, og_title: { max: 90 }, og_description: { max: 200 } };
+// Search engines cut a title near 60 characters and a description near 160 (the meta template's limits). Each limit
+// is a target range, so a value that uses the room up to the limit reads positive, not as a warning.
+const LIMITS = {
+  title: { min: 30, max: 60 },
+  description: { min: 120, max: 160 },
+  og_title: { min: 30, max: 90 },
+  og_description: { min: 60, max: 200 },
+};
 const FIELDS = ["title", "description", "og_title", "og_description", "slug"];
 
-// The metadata step as field cards: each value with its length against the limit, how the page reads in a search
-// result, and the FAQ. Corrections go through Regenerate with an instruction.
+// The metadata step: how the page reads in a search result first, then each value with its length against the limit,
+// then the FAQ (folded, with its count). Corrections go through Regenerate with an instruction.
 export default {
   name: "MetaCards",
   components: { LengthCounter, SearchSnippet },
   props: {
     proposal: { type: Object, required: true },
+  },
+  data() {
+    return { showFaq: false };
   },
   computed: {
     data() {
@@ -60,13 +81,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.meta-cards__card {
-  padding: var(--space-5);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-}
+.meta-cards__heading,
 .meta-cards__name {
-  font-size: var(--fs-300);
+  font-size: var(--fs-250);
   font-weight: 600;
   color: var(--text-strong);
 }
@@ -75,7 +92,8 @@ export default {
 }
 .meta-cards__value {
   line-height: 1.6;
+  color: var(--text-body);
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 </style>

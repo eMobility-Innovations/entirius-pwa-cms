@@ -564,3 +564,34 @@ describe("BasicWysiwyg", () => {
     expect(wrapper.find(".ProseMirror").attributes("aria-describedby")).toBe(error.attributes("id"));
   });
 });
+
+describe("Studio extensions (FormField label slot, SegmentedControl option, BasicTextarea autogrow)", () => {
+  it("a label slot names the control with the caller's markup, without the caps field label", () => {
+    const Host = defineComponent({
+      render: () => h(FormField, {}, { label: () => h("span", { class: "q" }, "Since when?"), default: () => h(BasicTextarea) }),
+    });
+    const wrapper = mount(Host, { global: GLOBAL });
+    const label = wrapper.find("label");
+    expect(label.find(".q").text()).toBe("Since when?");
+    expect(label.classes()).not.toContain("field-label");
+    expect(label.attributes("for")).toBe(wrapper.find("textarea").attributes("id"));
+  });
+
+  it("an option of a segmented control can be taken out alone", () => {
+    const options = [{ label: "Main", value: "a" }, { label: "Skip", value: "b", disabled: true }];
+    const wrapper = mount(SegmentedControl, { props: { options, modelValue: "a" }, global: GLOBAL });
+    const buttons = wrapper.findAll("button");
+    expect(buttons[0].attributes("disabled")).toBeUndefined();
+    expect(buttons[1].attributes("disabled")).toBeDefined();
+  });
+
+  it("an autogrow textarea takes the height of its text", async () => {
+    const wrapper = mount(BasicTextarea, { props: { autogrow: true, modelValue: "a" }, global: GLOBAL, attachTo: document.body });
+    const field = wrapper.find("textarea").element;
+    Object.defineProperty(field, "scrollHeight", { configurable: true, value: 120 });
+    await wrapper.setProps({ modelValue: "a\nb\nc" });
+    await nextTick();
+    expect(field.style.height).toBe("120px");
+    wrapper.unmount();
+  });
+});

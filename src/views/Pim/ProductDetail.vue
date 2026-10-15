@@ -279,13 +279,6 @@
       @added="onAddedToChannel"
     />
 
-    <SpawnDialog
-      v-if="hasEnricherPanel"
-      :visible="showSpawnDialog"
-      :skus="product.sku ? [product.sku] : []"
-      @close="showSpawnDialog = false"
-    />
-
     <RunAiTaskDialog
       v-if="aiEnabled"
       :open="aiDialogOpen"
@@ -413,7 +406,7 @@ const T9N_TABS = {
 const DESCRIPTION_FIELDS = ["name", "description", "short_description"];
 const INHERIT_FLAGS = ["inherit_attributes", "inherit_descriptions", "inherit_images"];
 // The "more" menu items that open a dialog, by key (the inheritance flags toggle instead).
-const MORE_DIALOGS = { channels: "showAddToChannelDialog", copy: "showCopyDialog", enrich: "showSpawnDialog" };
+const MORE_DIALOGS = { channels: "showAddToChannelDialog", copy: "showCopyDialog" };
 const WYSIWYG = { is: "BasicWysiwyg", attrs: { variant: "lite" } };
 const TEXTAREA = { is: "BasicTextarea", attrs: { rows: 3 } };
 const INPUT = { is: "BasicInput", attrs: {} };
@@ -440,7 +433,6 @@ export default {
     StockTab: defineAsyncComponent(() => import("@/views/Stock/StockTab.vue")),
     SupplierTab: defineAsyncComponent(() => import("./components/SupplierTab.vue")),
     QualityTab: defineAsyncComponent(() => import("./components/QualityTab.vue")),
-    SpawnDialog: defineAsyncComponent(() => import("./components/enrichment/SpawnDialog.vue")),
     RunAiTaskDialog: defineAsyncComponent(() => import("./components/enrichment/RunAiTaskDialog.vue")),
     ProductAiResults: defineAsyncComponent(() => import("./components/enrichment/ProductAiResults.vue")),
     ProductLinks: defineAsyncComponent(() => import("./components/ProductLinks.vue")),
@@ -480,7 +472,6 @@ export default {
       changedCategoryIdxs: null,
       showCopyDialog: false,
       showAddToChannelDialog: false,
-      showSpawnDialog: false,
       aiDialogOpen: false,
       aiTemplate: "",
       mediaKey: 0,
@@ -523,9 +514,6 @@ export default {
     channelIdx() {
       return this.pimChannel.activeChannelIdx;
     },
-    hasEnricherPanel() {
-      return this.munin.isPanelEnabled("enricher");
-    },
     tabs() {
       const tabs = [
         { value: "attributes", label: this.$t("pim.tab_attributes") },
@@ -561,12 +549,6 @@ export default {
       const items = [
         { key: "channels", label: this.$t("pim.channels"), icon: "channels" },
         isChild && { key: "copy", label: this.$t("pim.copy_translations"), icon: "duplicate" },
-        this.hasEnricherPanel && {
-          key: "enrich",
-          label: this.$t("enrichment.spawn.send_single"),
-          icon: "enrich",
-          testid: "enrichment-spawn-button",
-        },
       ];
       if (isChild && this.pimChannel.activeChannelInheritanceEnabled) {
         items.push(

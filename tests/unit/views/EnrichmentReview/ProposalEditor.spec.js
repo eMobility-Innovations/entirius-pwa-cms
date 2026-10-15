@@ -40,7 +40,7 @@ const SegmentedControl = { name: "SegmentedControl", props: ["modelValue", "opti
 const stubs = {
   PageLayout, PageHeader, ActionBar, BasicTextarea, CorrectionBar, SegmentedControl,
   BasicCard: { template: "<section><slot /></section>" }, FormField: { template: "<div><slot /></div>" }, Tag: true, VariantPicker: true, RuleChips: true,
-  VersionTimeline: true, DriftModal: true, TextDiff: true,
+  CorrectionThread: { name: "CorrectionThread", props: ["revisions", "restorable", "landed"], template: "<div />" }, DriftModal: true, TextDiff: true,
 };
 const push = vi.fn();
 const back = vi.fn();
@@ -69,7 +69,7 @@ describe("ProposalEditor", () => {
     const w = await mountEditor();
     expect(api.GET_Proposal).toHaveBeenCalledWith("9");
     expect(w.find("textarea").element.value).toBe("<p>A red sofa</p>");
-    expect(w.findComponent({ name: "VersionTimeline" }).exists()).toBe(true);
+    expect(w.findComponent({ name: "CorrectionThread" }).props()).toMatchObject({ revisions: [{ number: 1 }], restorable: true });
     expect(action(w, "save").disabled).toBe(true);
   });
 

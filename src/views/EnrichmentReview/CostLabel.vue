@@ -10,8 +10,8 @@
 <script>
 import { formatUsd } from "@/utils/format";
 
-// What an AI run cost, after the fact: "$0.04"; "—" with a tooltip when the AI service reported no cost; a known
-// sum with a missing part says so in its tooltip (`partial`).
+// What an AI run cost, after the fact: "$0.04"; "Free" when nothing was paid (a step without AI calls); "—" with a
+// tooltip when the AI service reported no cost; a known sum with a missing part says so in its tooltip (`partial`).
 export default {
   name: "CostLabel",
   props: {
@@ -20,6 +20,7 @@ export default {
   },
   computed: {
     shown() {
+      if (formatUsd(this.cost) && Number(this.cost) === 0) return this.$t("enrichment.cost.free");
       return formatUsd(this.cost) || "—";
     },
     tip() {

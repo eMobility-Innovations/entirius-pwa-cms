@@ -1,13 +1,8 @@
-// Studio helpers (contract A4 § 6): the steps rail, the brief form from a workflow's inputs schema, the questions
-// form, the search-phrase pick and where a finished run's document opens. Pure functions — the views render them.
+// Studio helpers (contract A4 § 6): the steps rail, what the operator should do next, the brief form from a
+// workflow's inputs schema, the questions form, the search-phrase pick and where a finished run's document opens.
+// Pure functions — the views render them.
 
-const STEP_LOOK = {
-  waiting: { icon: "scheduled", tone: "neutral" },
-  running: { icon: "running", tone: "info" },
-  review: { icon: "preview", tone: "warning" },
-  approved: { icon: "success", tone: "positive" },
-  failed: { icon: "warning", tone: "negative" },
-};
+const STEP_TONES = { waiting: "neutral", running: "info", review: "warning", approved: "positive", failed: "negative" };
 
 const RUN_TONES = { running: "info", waiting: "warning", done: "positive", failed: "negative", cancelled: "neutral" };
 
@@ -19,19 +14,77 @@ const LONG_TEXT = 300;
 // A run that has not changed for this long while a step is marked running has likely lost its task.
 export const STALE_MS = 3 * 60 * 1000;
 const CLOSED_RUN = ["done", "cancelled"];
+const WORDS_PER_MINUTE = 200;
+// Runs waiting for the operator first, then failed ones, then the working ones; the rest keep their date order.
+const OPEN_RANK = { waiting: 0, failed: 1, running: 2 };
+// The brief field the channel's languages fill (a select instead of free text).
+export const LANGUAGE_FIELD = "language";
 
-/** The icon and tone of a step state. */
-export const stepLook = (status) => STEP_LOOK[status] || STEP_LOOK.waiting;
+/** The tone of a step state. */
+export const stepTone = (status) => STEP_TONES[status] || STEP_TONES.waiting;
 
-/** The rail: one item per step with its status icon and tone; `current` marks the run's first open step. */
+/** The steps a step still waits for (needed, not approved yet), in run order. */
+export function blockers(run, step) {
+  const needs = step?.needs || [];
+  return (run?.steps || []).filter((other) => needs.includes(other.key) && other.status !== "approved");
+}
+
+/** The rail's second line as a key under `enrichment.studio.rail` with its params: the step's state in words. */
+export function railLine(run, step) {
+  if (isStepStopped(run, step)) return { key: "stopped", params: {} };
+  if (step.status !== "waiting") return { key: step.status, params: {} };
+  const last = blockers(run, step).at(-1);
+  return last ? { key: "waiting", params: { step: last.label } } : { key: "queued", params: {} };
+}
+
+/** Whether a step stopped with its cancelled run (anything not approved by then). */
+export const isStepStopped = (run, step) => run?.status === "cancelled" && step.status !== "approved";
+
+/**
+ * The rail: one item per step with its number, tone, look (its status, or "stopped") and second line; `current` marks
+ * the run's first open step.
+ */
 export function railItems(run) {
-  return (run?.steps || []).map((step) => ({
-    key: step.key,
-    label: step.label,
-    status: step.status,
-    ...stepLook(step.status),
-    current: step.key === run.current_step,
-  }));
+  return (run?.steps || []).map((step, index) => {
+    const stopped = isStepStopped(run, step);
+    return {
+      key: step.key,
+      label: step.label,
+      status: step.status,
+      look: stopped ? "stopped" : step.status,
+      number: index + 1,
+      tone: stopped ? "neutral" : stepTone(step.status),
+      current: step.key === run.current_step,
+      line: railLine(run, step),
+    };
+  });
+}
+
+/**
+ * What the operator should do now: `your_turn` (a step waits for review), `failed`, `writing` (the AI works, nothing
+ * to do), `waiting`, `done` or `cancelled` — with the step it is about (null for a closed run).
+ */
+export function nextAction(run) {
+  if (isRunClosed(run)) return { kind: run.status, step: null };
+  const steps = run?.steps || [];
+  for (const [status, kind] of [["review", "your_turn"], ["failed", "failed"], ["running", "writing"]]) {
+    const step = steps.find((s) => s.status === status);
+    if (step) return { kind, step };
+  }
+  return { kind: "waiting", step: null };
+}
+
+/** The step after `key` in the run (what an approval leads to), or null after the last one. */
+export function nextStep(run, key) {
+  const steps = run?.steps || [];
+  const index = steps.findIndex((step) => step.key === key);
+  return index < 0 ? null : steps[index + 1] || null;
+}
+
+/** The runs of one list page, open ones first (waiting, failed, working); the order inside a group is kept. */
+export function openFirst(runs) {
+  const rank = (run) => OPEN_RANK[run.status] ?? Object.keys(OPEN_RANK).length;
+  return [...(runs || [])].sort((a, b) => rank(a) - rank(b));
 }
 
 export const runTone = (status) => RUN_TONES[status] || "neutral";
@@ -53,11 +106,6 @@ export const isRunStale = (run, now = Date.now()) => now - Date.parse(run?.modif
 export function isRunWorking(run, now = Date.now()) {
   if (isRunClosed(run) || isRunStale(run, now)) return false;
   return (run?.steps || []).some((step) => step.status === "running");
-}
-
-/** The label of the run's current step ("" when every step is approved). */
-export function currentStepLabel(run) {
-  return (run?.steps || []).find((step) => step.key === run.current_step)?.label || "";
 }
 
 /** What people call a run: its working title, else its topic, else the workflow's name. */
@@ -147,17 +195,17 @@ export function keywordRole(data, phrase) {
 }
 
 /**
- * The artifact with `phrase` picked as `role`: primary replaces the primary; secondary toggles (at most two). The same
- * object comes back when nothing changes (the caller saves nothing).
+ * The artifact with `phrase` picked as `role` (primary | secondary | skip): primary replaces the primary, secondary
+ * adds it (at most two), skip drops it. The main phrase changes only by picking another one. The same object comes
+ * back when nothing changes (the caller saves nothing).
  */
 export function pickKeyword(data, phrase, role) {
-  if (data?.primary === phrase) return data;
+  const current = keywordRole(data, phrase) || "skip";
+  if (current === "primary" || role === current) return data;
   const secondary = (data?.secondary || []).filter((item) => item !== phrase);
   if (role === "primary") return { ...data, primary: phrase, secondary };
-  if (role !== "secondary") return data;
-  const picked = keywordRole(data, phrase) === "secondary";
-  if (picked) return { ...data, secondary };
-  if (secondary.length >= MAX_SECONDARY) return data;
+  if (role === "skip") return { ...data, secondary };
+  if (role !== "secondary" || secondary.length >= MAX_SECONDARY) return data;
   return { ...data, secondary: [...secondary, phrase] };
 }
 
@@ -176,3 +224,22 @@ export function draftRoute(run) {
 
 /** Words of a markdown text (a document summary). */
 export const wordCount = (text) => (String(text || "").match(/[\p{L}\p{N}]+/gu) || []).length;
+
+/** Words and whole reading minutes (at least one) of a text step. */
+export function readingStats(text) {
+  const words = wordCount(text);
+  return { words, minutes: Math.max(1, Math.round(words / WORDS_PER_MINUTE)) };
+}
+
+/** How many questions have an answer. */
+export const answeredCount = (questions, answers) =>
+  (questions || []).filter((question) => String(answers?.[question.id] ?? "").trim()).length;
+
+/** "m:ss" of a duration in milliseconds (never negative). */
+export function elapsedLabel(ms) {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+/** The error code a failed step's task recorded, "" when none. */
+export const failureCode = (task) => task?.errors?.[0]?.code || "";

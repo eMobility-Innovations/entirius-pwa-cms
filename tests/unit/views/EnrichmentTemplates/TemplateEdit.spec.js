@@ -118,4 +118,18 @@ describe("TemplateEdit", () => {
     expect(api.DELETE_Template).toHaveBeenCalledWith("meta");
     expect(push).toHaveBeenCalledWith({ name: "EnrichmentTemplates" });
   });
+
+  it("a template that is gone shows a way back to the list, no form and no Delete", async () => {
+    api.GET_Template.mockRejectedValue({ response: { status: 404 } });
+    const w = await mountEdit("old-key");
+    expect(w.find("[data-testid='template-missing']").exists()).toBe(true);
+    expect(w.find("[data-testid='template-delete']").exists()).toBe(false);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("a new template names what still stops Save", async () => {
+    const w = await mountEdit();
+    expect(w.vm.unfilled).toContain(w.vm.$t("enrichment.templates.name"));
+    expect(w.find("[data-testid='template-unfilled']").exists()).toBe(true);
+  });
 });

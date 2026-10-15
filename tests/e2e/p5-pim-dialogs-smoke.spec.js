@@ -5,9 +5,9 @@ const en = require('../../src/i18n/locales/en.json');
 const pl = require('../../src/i18n/locales/pl.json');
 
 /**
- * P5 Pim dialogs smoke (plan 50): the product's channel and enrichment dialogs, the one translate dialog from the
+ * P5 Pim dialogs smoke (plan 50): the product's channel dialog, the one translate dialog from the
  * Pim wrapper („Tłumacz sklep”), the product list selection and the Pages content list („Przetłumacz wszystko”).
- * Read-only: every dialog is opened, checked and cancelled; nothing is estimated, added, spawned or translated.
+ * Read-only: every dialog is opened, checked and cancelled; nothing is estimated, added or translated.
  */
 
 // A product without a stock record answers 404 in the Stock tab.
@@ -54,7 +54,7 @@ test.describe('P5 Pim dialogs', () => {
     await login(page);
   });
 
-  test('product detail: channel presence and enrichment dialogs', async ({ page }) => {
+  test('product detail: channel presence dialog', async ({ page }) => {
     const collector = createErrorCollector(page, { ignoreNetwork: NO_STOCK });
     const rows = await openFirstProduct(page);
     await rows.first().click();
@@ -65,16 +65,6 @@ test.describe('P5 Pim dialogs', () => {
     await page.getByRole('menuitem', { name: either((t) => t.pim.channels) }).click();
     await expect(page.getByTestId('pim-add-to-channel-dialog')).toBeVisible();
     await expectDialogThenCancel(page, either((t) => t.pim.channel_presence));
-
-    await page.getByTestId('pim-product-more').click();
-    const enrich = page.getByTestId('enrichment-spawn-button');
-    if (await enrich.count()) {
-      await enrich.click();
-      await expect(page.getByTestId('enrichment-spawn-submit')).toBeVisible();
-      await expectDialogThenCancel(page, either((t) => t.enrichment.spawn.title));
-    } else {
-      await page.keyboard.press('Escape');
-    }
 
     collector.assertNoErrors(expect, 'Pim product dialogs');
   });

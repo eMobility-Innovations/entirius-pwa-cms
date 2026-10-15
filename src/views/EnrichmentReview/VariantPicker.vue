@@ -1,10 +1,8 @@
 <template>
-  <section class="variant-picker flex-column gap-4" :aria-label="$t('enrichment.correct.variants_title')" data-testid="variant-picker">
-    <div class="flex ai-ct jc-sb flex-wrap gap-3">
-      <span class="field-label">{{ $t("enrichment.correct.variants_title") }}</span>
-      <BasicButton size="sm" variant="ghost" :disabled="busy" data-testid="variant-cancel" @click="$emit('cancel')">
-        {{ $t("common.cancel") }}
-      </BasicButton>
+  <section class="variant-picker flex-column gap-3" :aria-label="title" data-testid="variant-picker">
+    <div class="flex ai-ct flex-wrap gap-3">
+      <span class="variant-picker__title">{{ title }}</span>
+      <span class="fs-200 t-muted">{{ $t("enrichment.correct.variants_hint") }}</span>
     </div>
     <div
       v-for="(candidate, index) in candidates"
@@ -21,9 +19,12 @@
         :data-testid="`variant-pick-${index}`"
         @click="$emit('pick', candidate)"
       >
-        {{ $t("enrichment.correct.variant_pick", { number: index + 1 }) }}
+        {{ $t("enrichment.correct.variant_pick") }}
       </BasicButton>
     </div>
+    <BasicButton class="variant-picker__keep" size="sm" variant="ghost" :disabled="busy" data-testid="variant-cancel" @click="$emit('cancel')">
+      {{ $t("enrichment.correct.variant_keep") }}
+    </BasicButton>
   </section>
 </template>
 
@@ -34,8 +35,8 @@ import { valueText } from "./correction";
 
 const escapeHtml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// "3 variants": the AI's candidates side by side in reading order; picking one saves it as the next version
-// (`pick` with the value). Nothing is saved until then.
+// The AI's answer to "3 variants", inside the correction thread: the candidates as cards in reading order, "Use this"
+// on each saves it as the next version (`pick` with the value), "Keep current" drops them. Nothing is saved until then.
 export default {
   name: "VariantPicker",
   props: {
@@ -43,6 +44,11 @@ export default {
     busy: { type: Boolean, default: false },
   },
   emits: ["pick", "cancel"],
+  computed: {
+    title() {
+      return this.$t("enrichment.correct.variants_title", { count: this.candidates.length });
+    },
+  },
   methods: {
     sanitizeHtml,
     asHtml(candidate) {
@@ -54,11 +60,21 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.variant-picker__title {
+  font-size: var(--fs-300);
+  font-weight: 600;
+  color: var(--text-strong);
+}
 .variant-picker__item {
-  padding: var(--space-5);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--surface-base);
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--accent);
+  }
 }
 .variant-picker__text {
   font-size: var(--fs-300);
@@ -69,5 +85,8 @@ export default {
 }
 .variant-picker__pick {
   align-self: flex-end;
+}
+.variant-picker__keep {
+  align-self: flex-start;
 }
 </style>

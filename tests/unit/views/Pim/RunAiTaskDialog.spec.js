@@ -121,6 +121,14 @@ describe("RunAiTaskDialog", () => {
     expect(w.vm.values).toEqual({ source_language: "pl", target_languages: ["en", "de"], prompt: "" });
   });
 
+  it("a custom run without a preset worker picks none: Run waits for the operator's choice", async () => {
+    const w = await openDialog({ initialWorker: "" });
+    expect(w.vm.workerKey).toBe("");
+    expect(w.vm.actions.filter((a) => ["now", "queue"].includes(a.key)).every((a) => a.disabled)).toBe(true);
+    const single = await openDialog({ initialWorker: "", workers: WORKERS.slice(0, 1) });
+    expect(single.vm.workerKey).toBe(WORKERS[0].key);
+  });
+
   it("switching the worker rebuilds the form", async () => {
     const w = await openDialog();
     w.vm.workerKey = "pim.description";
@@ -145,6 +153,7 @@ describe("RunAiTaskDialog", () => {
       type: "pim.translate",
       params: { source_language: "pl", target_languages: ["en", "de"], prompt: "Formal tone", channel: "default-europe" },
       scope_spec: { mode: "list", module: "pim", channel: "default-europe", refs: ["A", "B"] },
+      lane: "queue",
     });
     expect(w.emitted("created")[0][0].id).toBe(42);
     expect(w.findComponent({ name: "RouterLink" }).props("to")).toEqual({
@@ -207,6 +216,7 @@ describe("RunAiTaskDialog", () => {
         augment: ["seo_brief"], seo_scope: "subject", channel: "default-europe",
       },
       scope_spec: { mode: "list", module: "pim", channel: "default-europe", refs: ["A", "B"] },
+      lane: "queue",
     });
   });
 
@@ -252,5 +262,86 @@ describe("RunAiTaskDialog", () => {
     });
     expect(w.emitted("template-saved")[0][0]).toEqual({ key: "my-meta-2" });
     expect(w.vm.saving).toBe(false);
+  });
+
+  describe("lanes", () => {
+    const action = (w, key) => w.vm.actions.find((a) => a.key === key);
+    const conflict = (message) => Object.defineProperty({ error: "ALREADY_RUNNING", message }, "httpStatus", { value: 409 });
+
+    it("one product: Run now is the primary, Add to queue beside it", async () => {
+      const w = await openDialog({ skus: ["A"] });
+      expect(action(w, "now")).toMatchObject({ role: "primary", testid: "ai-task-run-now", disabled: false });
+      expect(action(w, "queue")).toMatchObject({ role: "secondary", testid: "ai-task-add-to-queue" });
+      expect(w.find("[data-testid='ai-task-now-cap']").exists()).toBe(false);
+    });
+
+    it("a phone shows only the scope's primary action", async () => {
+      const matchMedia = vi.spyOn(window, "matchMedia").mockReturnValue({ matches: true, addEventListener: vi.fn() });
+      try {
+        const one = await openDialog({ skus: ["A"] });
+        expect(action(one, "queue")).toBeUndefined();
+        expect(action(one, "now").role).toBe("primary");
+        const many = await openDialog({ skus: ["A", "B"] });
+        expect(action(many, "now")).toBeUndefined();
+        expect(action(many, "queue").role).toBe("primary");
+      } finally {
+        matchMedia.mockRestore();
+      }
+    });
+
+    it("a selection: Add to queue is the primary", async () => {
+      const w = await openDialog({ skus: ["A", "B", "C"] });
+      expect(action(w, "queue").role).toBe("primary");
+      expect(action(w, "now").role).toBe("secondary");
+    });
+
+    it("over 20 products Run now is off and the cap is said inline", async () => {
+      const skus = Array.from({ length: 21 }, (_, i) => `S${i}`);
+      const w = await openDialog({ skus });
+      expect(action(w, "now").disabled).toBe(true);
+      expect(action(w, "queue").disabled).toBe(false);
+      expect(w.find("[data-testid='ai-task-now-cap']").text()).toContain("enrichment.ai.lane.now_cap");
+    });
+
+    it("each action sends its lane", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 1, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await openDialog({ skus: ["A", "B"], background: true });
+      await action(w, "now").onClick();
+      expect(mockSpawn.mock.calls[0][0].lane).toBe("now");
+      await w.setProps({ open: false });
+      await w.setProps({ open: true });
+      await flushPromises();
+      await action(w, "queue").onClick();
+      expect(mockSpawn.mock.calls[1][0].lane).toBe("queue");
+    });
+
+    it("the toast says the run is queued and how many products were skipped", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 2, lane: "queue", queued_ahead: 2, skipped_in_flight: ["B"] } });
+      const w = await openDialog({ background: true });
+      await w.vm.run("queue");
+      expect(notify).toHaveBeenCalledWith({
+        type: "informative", msg: "Queued — 2 runs ahead. 1 product skipped, already running.",
+      });
+    });
+
+    it("the same run already going (409) is a calm note with the server's words, not a failure", async () => {
+      mockSpawn.mockRejectedValue(conflict("This run is already in progress for this item. Wait for it to finish."));
+      const w = await openDialog({ skus: ["A"] });
+      await w.vm.run("now");
+      expect(notify).toHaveBeenCalledWith({
+        type: "informative", msg: "This run is already in progress for this item. Wait for it to finish.",
+      });
+      expect(w.emitted("close")).toHaveLength(1);
+    });
+
+    it("the cap refusal (400) shows the server's description and keeps the dialog open", async () => {
+      const description = "Run now takes at most 20 items at a time. Add this run to the queue instead.";
+      const refusal = { error: "VALIDATION_ERROR", message: "Request validation failed.", details: [{ field: null, description }] };
+      mockSpawn.mockRejectedValue(Object.defineProperty(refusal, "httpStatus", { value: 400 }));
+      const w = await openDialog({ skus: ["A"] });
+      await w.vm.run("now");
+      expect(notify).toHaveBeenCalledWith({ type: "negative", msg: description });
+      expect(w.emitted("close")).toBeUndefined();
+    });
   });
 });

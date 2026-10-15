@@ -81,4 +81,10 @@ describe("ActionBar", () => {
     mountBar([action("primary", "Zapisz"), action("primary", "Publikuj")]);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("2 primary actions"));
   });
+
+  it("drops the actions caption where it sits in its own footer (a dialog)", () => {
+    expect(mountBar([action("primary", "Start")]).find(".action-bar__label").exists()).toBe(true);
+    const bare = mount(ActionBar, { props: { actions: [action("primary", "Start")], labelled: false }, global: { stubs } });
+    expect(bare.find(".action-bar__label").exists()).toBe(false);
+  });
 });

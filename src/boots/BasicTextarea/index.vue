@@ -1,6 +1,7 @@
 <template>
   <div class="basic-textarea flex-column gap-1">
     <textarea
+      ref="field"
       v-bind="attrs"
       class="basic-textarea__field"
       :rows="rows"
@@ -18,9 +19,10 @@
 
 <script setup>
 // Multi-line text (docs/ui-components.md § P3 inputs), replaces TextAreaBasic: `v-model`, `rows`, `maxlength` (with a
-// counter), `placeholder`, `disabled`, `readonly`. Inside a FormField it takes id, aria-describedby, aria-invalid,
-// required and disabled from the contract.
-import { computed } from "vue";
+// counter), `placeholder`, `disabled`, `readonly`, `autogrow` (the box grows with its text from `rows` up to the
+// max height, then scrolls). Inside a FormField it takes id, aria-describedby, aria-invalid, required and disabled
+// from the contract.
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useControlAttrs } from "@/boots/FormField/useControlAttrs";
 
 const props = defineProps({
@@ -30,8 +32,21 @@ const props = defineProps({
   placeholder: { type: String, default: "" },
   disabled: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
+  autogrow: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue"]);
+const field = ref(null);
+
+// Height from the content: reset first so the box can shrink; the border is outside scrollHeight.
+function grow() {
+  const el = field.value;
+  if (!props.autogrow || !el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+}
+
+onMounted(grow);
+watch(() => props.modelValue, () => nextTick(grow));
 
 const { attrs } = useControlAttrs({ disabled: () => props.disabled });
 const length = computed(() => String(props.modelValue ?? "").length);

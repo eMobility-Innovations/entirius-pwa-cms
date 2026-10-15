@@ -2,7 +2,7 @@
   <PageLayout class="template-edit fs-300 t-body">
     <template #header>
       <PageHeader :title="isCreate ? $t('enrichment.templates.create') : form.label || $t('enrichment.templates.title')" back="/enrichment/templates">
-        <template v-if="!loading" #actions>
+        <template v-if="!loading && !missing" #actions>
           <ActionBar>
             <IconButton
               v-if="!isCreate"
@@ -22,8 +22,22 @@
     </template>
 
     <Loader v-if="loading" block />
+    <EmptyState
+      v-else-if="missing"
+      icon="empty"
+      :title="$t('enrichment.templates.missing_title')"
+      :message="$t('enrichment.templates.missing_hint')"
+      data-testid="template-missing"
+    >
+      <router-link :to="{ name: 'EnrichmentTemplates' }" class="t-accent fw-600" data-testid="template-missing-back">
+        {{ $t("enrichment.templates.back_to_list") }}
+      </router-link>
+    </EmptyState>
 
     <div v-else class="template-edit__form flex-column gap-6">
+      <p v-if="unfilled.length" class="template-edit__unfilled fs-200 t-secondary m-0" role="status" data-testid="template-unfilled">
+        {{ $t("enrichment.templates.unfilled", { fields: unfilled.join(", ") }) }}
+      </p>
       <FormField :label="$t('enrichment.templates.name')" required>
         <BasicInput v-model="form.label" :maxlength="128" data-testid="template-label" />
       </FormField>
@@ -63,6 +77,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { withStoredOption } from "@/utils/options";
+import { isNotFound } from "@/api/createClient";
 import {
   DELETE_Template,
   GET_Template,
@@ -106,6 +121,7 @@ export default {
       loading: false,
       saving: false,
       confirmDelete: false,
+      missing: false,
     };
   },
   computed: {
@@ -128,8 +144,17 @@ export default {
     researchKeys() {
       return researchKeys(this.worker?.kind, this.stored?.params?.augment);
     },
+    // What still stops Save, by the names the form shows.
+    unfilled() {
+      const required = missingRequired(this.fields, this.values);
+      return [
+        !this.form.label.trim() && this.$t("enrichment.templates.name"),
+        !this.worker && this.$t("enrichment.ai.worker"),
+        ...this.fields.filter((field) => required.includes(field.name)).map((field) => field.title),
+      ].filter(Boolean);
+    },
     canSave() {
-      return !!this.form.label.trim() && !!this.worker && !missingRequired(this.fields, this.values).length && !this.saving;
+      return !this.unfilled.length && !this.saving;
     },
   },
   watch: {
@@ -159,7 +184,8 @@ export default {
         this.stored = data;
         this.form = { label: data.label, worker_key: data.worker_key, rules: data.rules.join("\n"), active: data.active };
       } catch (err) {
-        this.failed(err);
+        if (isNotFound(err)) this.missing = true;
+        else this.failed(err);
       }
     },
     // The stored params while the template keeps its worker; another worker starts from its defaults.

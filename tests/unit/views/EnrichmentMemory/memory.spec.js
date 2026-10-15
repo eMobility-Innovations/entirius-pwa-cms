@@ -181,4 +181,24 @@ describe("MemoryList", () => {
     await flushPromises();
     expect(api.GET_Memory).toHaveBeenLastCalledWith({ page: 1, page_size: 25, kind: "seo_brief", status: "active" });
   });
+
+  it("a filter with no hits says so and offers Clear filters, which goes back to the defaults", async () => {
+    api.GET_Memory.mockResolvedValue({ data: { count: 0, results: [] } });
+    const withEmpty = {
+      ...stubs,
+      EmptyState: { template: "<div><slot /></div>" },
+      BasicButton: { emits: ["click"], template: "<button @click=\"$emit('click')\"><slot /></button>" },
+    };
+    const w = mount(MemoryList, { global: { stubs: withEmpty } });
+    await flushPromises();
+    expect(w.vm.emptyTitle).toBe(w.vm.$t("enrichment.memory.empty"));
+    expect(w.find("[data-testid='memory-clear-filters']").exists()).toBe(false);
+    w.vm.kind = "seo_brief";
+    await flushPromises();
+    expect(w.vm.emptyTitle).toBe(w.vm.$t("enrichment.memory.empty_filtered"));
+    await w.find("[data-testid='memory-clear-filters']").trigger("click");
+    await flushPromises();
+    expect(w.vm.kind).toBe("");
+    expect(api.GET_Memory).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, status: "active" }));
+  });
 });

@@ -11,7 +11,7 @@
         <IconButton v-if="backTo" icon="back" :label="$t('common.back')" @click="goBack" />
         <h1
           class="page-header__title page-title"
-          :class="{ 'page-header__title--after-back': backTo }"
+          :class="{ 'page-header__title--after-back': backTo, 'page-header__title--wrap': wrapTitle }"
           :title="title"
         >
           {{ title }}
@@ -35,7 +35,7 @@
 // IconButton left of the H1 in any case; `description` is the page's help line under the title row (it wraps, never in
 // `meta`). The title goes to the shell too: the last crumb and the browser tab name the page by it. Slots: `meta` (chips beside the title) and `actions` (an ActionBar: in the title row on desktop, its
 // own row below 1024 px). `sticky` pins the head under the app header on a phone; the actions row scrolls away
-// (Figma S8). Mounting claims the shell's header slot; `claimShell` false keeps a demo instance (the UI catalogue) out
+// (Figma S8). `wrapTitle` lets a long title take two lines before its ellipsis. Mounting claims the shell's header slot; `claimShell` false keeps a demo instance (the UI catalogue) out
 // of it: no claim, no shell crumbs or back, the page keeps its own title. `data-fid="page-title"` marks the title row
 // (back, H1, meta): Figma's "Heading" frame is that row (S6: 837.5 wide beside the actions).
 import { computed } from "vue";
@@ -54,6 +54,8 @@ const props = defineProps({
   back: { type: [String, Object, Function], default: undefined },
   sticky: { type: Boolean, default: false },
   claimShell: { type: Boolean, default: true },
+  // A long name (an article topic): two lines, then the ellipsis.
+  wrapTitle: { type: Boolean, default: false },
 });
 
 const router = useRouter();
@@ -112,14 +114,28 @@ function goBack() {
   text-overflow: ellipsis;
 }
 
+// No descender padding here: it would show the top of a clamped third line.
+.page-header__title--wrap {
+  margin-block: 0;
+  padding-block: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 // It stays on the back arrow's line: its width leaves room for the arrow and the gap.
 .page-header__title--after-back {
   max-width: calc(100% - var(--elem-height) - var(--space-5));
 }
 
-// The chips keep their width.
+// The chips keep their width; more chips than the row holds wrap inside it (a phone), never past the page edge.
 .page-header__meta {
   flex: none;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .page-header__description {

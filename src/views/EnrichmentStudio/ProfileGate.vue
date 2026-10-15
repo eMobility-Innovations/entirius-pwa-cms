@@ -1,7 +1,12 @@
 <template>
   <p v-if="missing.length" class="profile-gate m-0 flex ai-ct gap-3" role="status" data-testid="profile-gate">
     <FontAwesomeIcon :icon="$icons.warning" class="profile-gate__icon" aria-hidden="true" />
-    <span>{{ $t("enrichment.studio.profile_incomplete", { sections: missingText }) }}</span>
+    <span>
+      {{ $t("enrichment.studio.profile_incomplete", { sections: missingText }) }}
+      <router-link :to="profileLink" class="t-accent fw-600" data-testid="profile-gate-link">
+        {{ $t("enrichment.studio.profile_fill") }}
+      </router-link>
+    </span>
   </p>
 </template>
 
@@ -9,7 +14,7 @@
 import { GET_ProfileStatus } from "@/api/enrichment/api";
 
 // The soft gate: when the company profile of the channel misses sections, the AI writes generic text — say so, and
-// which sections, but never block the work. A failed status check shows nothing.
+// which sections and a link to fill them in, but never block the work. A failed status check shows nothing.
 export default {
   name: "ProfileGate",
   props: {
@@ -19,6 +24,10 @@ export default {
     return { missing: [] };
   },
   computed: {
+    // The profile of this channel (its scope), where the missing sections are filled in.
+    profileLink() {
+      return { name: "EnrichmentProfile", query: this.channel ? { channel: this.channel } : {} };
+    },
     missingText() {
       return this.missing.map((key) => this.sectionName(key)).join(", ");
     },

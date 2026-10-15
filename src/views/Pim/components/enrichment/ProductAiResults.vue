@@ -3,14 +3,21 @@
     <IconButton icon="enrich" variant="outline" :label="triggerLabel" data-testid="ai-results" @click="open = true" />
     <span v-if="proposals.length" class="ai-results__count" aria-hidden="true" data-testid="ai-results-count">{{ countLabel }}</span>
     <span v-else-if="failing" class="ai-results__dot ai-results__dot--failed" data-testid="ai-results-failed" />
-    <span v-if="running" class="ai-results__dot ai-results__dot--running" data-testid="ai-results-running" />
+    <span v-if="working" class="ai-results__dot ai-results__dot--running" data-testid="ai-results-running" />
+    <span v-else-if="running" class="ai-results__dot ai-results__dot--queued" data-testid="ai-results-queued" />
   </span>
 
   <SideDrawer :visible="open" :title="$t('enrichment.ai.results_title', { sku })" width="720px" @close="open = false">
     <div class="flex-column gap-10" data-testid="ai-results-drawer">
       <section class="flex-column gap-3" aria-labelledby="ai-results-run-title">
-        <h3 id="ai-results-run-title" class="ai-results__heading m-0">{{ $t("enrichment.ai.run_title") }}</h3>
+        <div class="flex ai-ct jc-sb flex-wrap gap-3">
+          <h3 id="ai-results-run-title" class="ai-results__heading m-0">{{ $t("enrichment.ai.run_title") }}</h3>
+          <router-link :to="{ name: 'EnrichmentTemplates' }" class="ai-results__link" data-testid="ai-results-templates">
+            {{ $t("enrichment.ai.manage_templates") }}
+          </router-link>
+        </div>
         <AiToolboxHint />
+        <ProfileGate v-if="open" :channel="pimChannel.activeChannelIdx" />
         <p v-if="!workers.length" class="fs-200 t-muted m-0">{{ $t("enrichment.ai.no_workers") }}</p>
         <div v-else class="flex flex-wrap gap-3">
           <BasicButton
@@ -40,6 +47,9 @@
             {{ $t("enrichment.ai.to_review") }}
             <CountBadge v-if="shown.length" :count="shown.length" />
           </h3>
+          <router-link :to="{ name: 'EnrichmentReview' }" class="ai-results__link mr-auto" data-testid="ai-results-review">
+            {{ $t("enrichment.ai.open_review") }}
+          </router-link>
           <BasicButton
             v-if="shown.length > 1"
             mutates
@@ -61,9 +71,10 @@
         <EmptyState
           v-if="!loading && !shown.length"
           icon="enrich"
-          size="sm"
+          size="md"
           :title="$t(taskFilter ? 'enrichment.ai.filtered_empty' : 'enrichment.ai.results_empty')"
-          :message="running ? $t('enrichment.ai.results_running') : ''"
+          :message="emptyMessage"
+          data-testid="ai-results-empty"
         />
         <Loader v-else-if="loading && !shown.length" block />
         <ProposalPanel
@@ -93,19 +104,22 @@ import ProposalPanel from "@/views/EnrichmentReview/ProposalPanel.vue";
 import DriftModal from "@/views/EnrichmentReview/DriftModal.vue";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import BatchCorrection from "@/views/EnrichmentReview/BatchCorrection.vue";
+import ProfileGate from "@/views/EnrichmentStudio/ProfileGate.vue";
+import { usePimChannelStore } from "@/stores/pimChannel";
 import AiTaskList from "./AiTaskList.vue";
-import { groupTasks, taskLabel } from "./productAi";
+import { groupTasks, isActive, isQueued, taskLabel } from "./productAi";
 import { useProductAi } from "./useProductAi";
 
 // The AI of the product on screen: one header icon (the Enricher's) with the pending count, a pulsing dot while a
-// task runs or a warning dot after a failure, opening a drawer: Run AI (the templates in their order, then
-// "Custom…" — `run` with the template key, "" for custom), the
+// task runs (a still one while it only waits in the queue) or a warning dot after a failure, opening a drawer: Run AI (the templates in their order, then
+// "Custom…" — `run` with the template key, "" for custom; a link to manage the templates and the incomplete-profile
+// warning of the channel), the
 // product's tasks in plain words and its pending proposals as cards, reviewed in place (Apply all
 // when there are several). Picking a task shows only its proposals, with "Correct all" for the whole run. An applied proposal goes to the page
 // (`applied`) so the product form shows the new value.
 export default {
   name: "ProductAiResults",
-  components: { ProposalPanel, DriftModal, AiTaskList, AiToolboxHint, BatchCorrection },
+  components: { ProposalPanel, DriftModal, AiTaskList, AiToolboxHint, BatchCorrection, ProfileGate },
   props: {
     sku: { type: String, required: true },
     product: { type: Object, default: null },
@@ -120,18 +134,24 @@ export default {
   expose: ["track"],
   setup(props) {
     const ai = useProductAi(toRef(props, "sku"));
-    return { ...ai, notify: useNotifyStore() };
+    return { ...ai, notify: useNotifyStore(), pimChannel: usePimChannelStore() };
   },
   data() {
-    return { open: false, busy: false, drifted: null, taskFilter: null };
+    // `?ai=1`: the drawer is part of the product's URL — a reload or a shared link opens it again.
+    return { open: this.$route?.query?.ai === "1", busy: false, drifted: null, taskFilter: null };
   },
   computed: {
     // "AI / Enricher", with what waits: the pending count, a running task, a failure.
     triggerLabel() {
       const base = this.$t("enrichment.ai.trigger");
       if (this.proposals.length) return `${base} · ${this.$t("enrichment.ai.trigger_pending", { count: this.proposals.length })}`;
-      if (this.running) return `${base} · ${this.$t("enrichment.ai.outcome.running")}`;
+      if (this.working) return `${base} · ${this.$t("enrichment.ai.outcome.running")}`;
+      if (this.running) return `${base} · ${this.$t("enrichment.ai.outcome.queued")}`;
       return this.failing ? `${base} · ${this.$t("enrichment.ai.trigger_failed")}` : base;
+    },
+    // A task the worker is on; `running` (useProductAi) also counts the queued ones.
+    working() {
+      return this.tasks.some((task) => isActive(task) && !isQueued(task));
     },
     countLabel() {
       return this.proposals.length > 99 ? "99+" : String(this.proposals.length);
@@ -147,9 +167,21 @@ export default {
     correctable() {
       return this.shown.filter((p) => p.status === "pending");
     },
+    // While a task runs its proposals are on the way; otherwise the run buttons above are the next step.
+    emptyMessage() {
+      if (this.running) return this.$t("enrichment.ai.results_running");
+      return this.taskFilter ? "" : this.$t("enrichment.ai.results_empty_hint");
+    },
     filterLabel() {
       const task = this.tasks.find((t) => t.id === this.taskFilter);
       return taskLabel(task, this.workers, this.allTemplates) || `#${this.taskFilter}`;
+    },
+  },
+  watch: {
+    open(isOpen) {
+      if (!this.$router) return;
+      const query = { ...this.$route.query, ai: isOpen ? "1" : undefined };
+      this.$router.replace({ query, hash: this.$route.hash });
     },
   },
   methods: {
@@ -271,6 +303,11 @@ export default {
   background: var(--accent);
   animation: ai-results-pulse 1.4s ease-in-out infinite;
 }
+.ai-results__dot--queued {
+  top: auto;
+  bottom: calc(var(--space-1) * -1);
+  background: var(--info);
+}
 .ai-results__dot--failed {
   background: var(--warning);
 }
@@ -283,6 +320,11 @@ export default {
   .ai-results__dot--running {
     animation: none;
   }
+}
+.ai-results__link {
+  font-size: var(--fs-200);
+  font-weight: 600;
+  color: var(--text-accent);
 }
 .ai-results__heading {
   display: inline-flex;

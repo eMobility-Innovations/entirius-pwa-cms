@@ -32,6 +32,13 @@ describe("taskOutcome", () => {
     expect(taskOutcome(task({ status: "cancelled" })).state).toBe("cancelled");
   });
 
+  it("an open task waiting in the queue is queued with the runs ahead of it; an external worker's open task runs", () => {
+    expect(taskOutcome(task({ status: "open", queued_ahead: 2 }))).toEqual({ state: "queued", count: 2 });
+    expect(taskOutcome(task({ status: "open", queued_ahead: 0 }))).toEqual({ state: "queued", count: 0 });
+    expect(taskOutcome(task({ status: "open", queued_ahead: null }))).toEqual({ state: "running" });
+    expect(taskOutcome(task({ status: "in_progress", queued_ahead: null }))).toEqual({ state: "running" });
+  });
+
   it("a failure carries its first reason; a partial one keeps the result too", () => {
     const errors = [{ subject_ref: "A", code: "PROVIDER_NOT_CONFIGURED", error_id: "abc" }];
     expect(taskOutcome(task({ status: "failed", errors }))).toEqual({ state: "failed", code: "PROVIDER_NOT_CONFIGURED", errorId: "abc" });
@@ -49,9 +56,10 @@ describe("groupTasks", () => {
       task({ id: 4, status: "done", proposal_counts: { pending: 1 } }),
       task({ id: 3, status: "in_progress" }),
       task({ id: 2, type: "pim.translate", status: "failed" }),
+      task({ id: 7, status: "open", queued_ahead: 1 }),
     ];
     const { current, history } = groupTasks(tasks);
-    expect(current.map((t) => t.id)).toEqual([3, 4, 5]);
+    expect(current.map((t) => t.id)).toEqual([3, 7, 4, 5]);
     expect(history.map((t) => t.id)).toEqual([6, 2]);
   });
 });

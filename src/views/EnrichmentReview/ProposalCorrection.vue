@@ -1,51 +1,56 @@
 <template>
   <div class="proposal-correction flex-column gap-4" data-testid="proposal-correction">
-    <ReadonlyOff>
-      <div class="flex ai-ct flex-wrap gap-3">
+    <div class="proposal-correction__tools flex ai-ct flex-wrap gap-3">
+      <slot name="lead" />
+      <ReadonlyOff>
         <BasicButton
-          size="sm"
+          :size="size"
           variant="ghost"
-          :aria-expanded="String(correcting)"
+          icon="enrich"
+          :aria-expanded="String(open)"
           data-testid="correction-toggle"
-          @click="correcting = !correcting"
+          @click="toggle"
         >
-          <FontAwesomeIcon :icon="$icons.enrich" class="mr-2" aria-hidden="true" />
           {{ $t("enrichment.correct.open") }}
-          <CountBadge v-if="rules.length" :count="rules.length" class="ml-2" />
+          <CountBadge v-if="corrections" :count="corrections" class="ml-2" />
         </BasicButton>
-        <BasicButton
-          size="sm"
-          variant="ghost"
-          :aria-expanded="String(showVersions)"
-          data-testid="versions-toggle"
-          @click="toggleVersions"
-        >
-          <FontAwesomeIcon :icon="$icons.history" class="mr-2" aria-hidden="true" />
-          {{ $t("enrichment.versions.title") }}
-        </BasicButton>
-        <router-link v-if="shape === 'text'" :to="editorLink" class="proposal-correction__editor fs-300 t-accent fw-600" data-testid="open-editor">
+        <router-link v-if="shape === 'text'" :to="editorLink" class="proposal-correction__editor" data-testid="open-editor">
+          <FontAwesomeIcon :icon="$icons.edit" aria-hidden="true" />
           {{ $t("enrichment.editor.open") }}
         </router-link>
+      </ReadonlyOff>
+      <slot name="trail" />
+    </div>
+
+    <section v-if="open" class="proposal-correction__chat flex-column" :aria-label="$t('enrichment.correct.open')">
+      <div class="proposal-correction__thread">
+        <Loader v-if="!revisions" :size="32" />
+        <CorrectionThread
+          v-else
+          :revisions="revisions"
+          :busy="busy"
+          :asking="asking"
+          :candidates="candidates"
+          :landed="landed"
+          @restore="restore"
+          @pick="saveValue"
+          @dismiss="candidates = []"
+        />
       </div>
-    </ReadonlyOff>
-
-    <template v-if="correcting">
-      <CorrectionBar ref="bar" :shape="shape" :selection="selection" :busy="busy" @submit="correct" />
-      <VariantPicker v-if="candidates.length" :candidates="candidates" :busy="busy" @pick="pick" @cancel="candidates = []" />
-      <RuleChips
-        :rules="rules"
-        :busy="busy"
-        :has-template="!!task?.params?.template"
-        :has-worker="hasWorker"
-        @change="setRules"
-        @promote="promote"
-      />
-    </template>
-
-    <template v-if="showVersions">
-      <Loader v-if="!revisions" />
-      <VersionTimeline v-else :revisions="revisions" :busy="busy" @restore="restore" />
-    </template>
+      <div class="proposal-correction__composer">
+        <CorrectionBar ref="bar" :shape="shape" :selection="selection" :busy="busy" @submit="correct" />
+      </div>
+      <div class="proposal-correction__rules">
+        <RuleChips
+          :rules="rules"
+          :busy="busy"
+          :has-template="!!task?.params?.template"
+          :has-worker="hasWorker"
+          @change="setRules"
+          @promote="promote"
+        />
+      </div>
+    </section>
   </div>
 </template>
 
@@ -53,30 +58,33 @@
 import { toRef } from "vue";
 import { ReadonlyOff } from "@/composables/useReadonly";
 import CorrectionBar from "./CorrectionBar.vue";
+import CorrectionThread from "./CorrectionThread.vue";
 import RuleChips from "./RuleChips.vue";
-import VariantPicker from "./VariantPicker.vue";
-import VersionTimeline from "./VersionTimeline.vue";
 import { useProposalCorrection } from "./useProposalCorrection";
 import { valueShape } from "./correction";
 import { workerOf } from "./reviewLogic";
 
-// The correction tools under a pending proposal card: "Correct with AI" (the bar, the 3 variants to pick from and
-// the rules), "Versions" (v1…vN with restore) and, for text, the full-screen editor. `selection` is the fragment the
-// operator selected in the card's text view. Every new value goes up as `updated` with the proposal.
+// The correction tools under a pending proposal card: "Refine with AI" opens a small conversation — the versions as
+// a thread (each request and the AI's answer with its changes, Undo / Restore), the composer with the quick actions
+// as suggestions, and the rules folded under it — and, for text, the full-screen editor. One row of ghost buttons
+// (`size` sm or md), with the caller's own controls before them (`lead` slot) and after them (`trail` slot, the step
+// decision in Studio). `selection` is the fragment the operator selected in the card's text view. Every new value goes
+// up as `updated` with the proposal.
 export default {
   name: "ProposalCorrection",
-  components: { ReadonlyOff, CorrectionBar, RuleChips, VariantPicker, VersionTimeline },
+  components: { ReadonlyOff, CorrectionBar, CorrectionThread, RuleChips },
   props: {
     proposal: { type: Object, required: true },
     task: { type: Object, default: null },
     selection: { type: String, default: "" },
+    size: { type: String, default: "sm" },
   },
   emits: ["updated", "busy"],
   setup(props, { emit }) {
     return useProposalCorrection(toRef(props, "proposal"), (proposal) => emit("updated", proposal));
   },
   data() {
-    return { correcting: false, showVersions: false };
+    return { open: false };
   },
   computed: {
     shape() {
@@ -91,6 +99,10 @@ export default {
     editorLink() {
       return { name: "EnrichmentProposalEditor", params: { proposalId: String(this.proposal.id) } };
     },
+    // The versions after the first draft, once the thread has been opened.
+    corrections() {
+      return Math.max(0, (this.revisions?.length || 0) - 1);
+    },
   },
   watch: {
     busy(value) {
@@ -98,22 +110,69 @@ export default {
     },
   },
   methods: {
-    toggleVersions() {
-      this.showVersions = !this.showVersions;
-      if (this.showVersions) this.loadVersions();
+    toggle() {
+      this.open = !this.open;
+      if (this.open && !this.revisions) this.loadVersions();
     },
     async correct(request) {
-      if (await this.revise(request)) this.$refs.bar?.reset();
-    },
-    pick(candidate) {
-      return this.saveValue(candidate);
+      // A suggestion alone leaves what was typed for the next message.
+      if ((await this.revise(request)) && request.instruction.trim()) this.$refs.bar?.reset();
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .proposal-correction__editor {
-  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--space-6);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-base);
+  font-size: var(--fs-200);
+  font-weight: 500;
+  color: var(--text-body);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+// The conversation as one framed panel: the thread on a sunken surface, the composer and the rules under it.
+.proposal-correction__chat {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-base);
+}
+.proposal-correction__thread {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--surface-sunken);
+}
+.proposal-correction__composer {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+.proposal-correction__rules {
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+// On a phone the card is narrow already: no second frame, the bubbles and the composer take its full width.
+@include max-tablet {
+  .proposal-correction__chat {
+    border: 0;
+  }
+  .proposal-correction__thread {
+    padding: 0 0 var(--space-4);
+    background: none;
+  }
+  .proposal-correction__composer,
+  .proposal-correction__rules {
+    padding-inline: 0;
+  }
 }
 </style>

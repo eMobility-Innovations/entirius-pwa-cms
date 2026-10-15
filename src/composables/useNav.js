@@ -47,7 +47,8 @@ export function navTree(ctx, routes = buildNavRoutes()) {
   );
 }
 
-export function useNavTree() {
+// `everyViewport`: the desktop entries on a phone too — where a page belongs does not change with the screen.
+export function useNavTree({ everyViewport = false } = {}) {
   const munin = useMuninStore();
   const access = useAccessStore();
   const quality = useQualityStore();
@@ -59,7 +60,7 @@ export function useNavTree() {
       {
         qualityAvailable: quality.available,
         isModuleEnabled: munin.isModuleEnabled,
-        isDesktop: isDesktop.value,
+        isDesktop: everyViewport || isDesktop.value,
         canRead: access.can,
         counts: { memorySuggestions: enrichmentProfile.pendingSuggestions },
       },
@@ -91,11 +92,14 @@ export const tabBarShown = (entries, route) => entries.length > 1 && !route.meta
 
 export const activePanelOf = (route) => (route.path === HOME_ROUTE ? HOME : route.meta?.panel ?? null);
 
+// `tree` is what this screen lists (the phone tab bar drops `desktopOnly` entries); `entry` is resolved among every
+// entry, so a desktop-only page opened on a phone lights nothing and keeps its own crumb instead of its neighbour's.
 export function useActiveNav() {
   const route = useRoute();
   const tree = useNavTree();
+  const everyEntry = useNavTree({ everyViewport: true });
   const panelIdx = computed(() => activePanelOf(route));
-  const entry = computed(() => resolveNavEntry(tree.value[panelIdx.value] ?? [], route));
+  const entry = computed(() => resolveNavEntry(everyEntry.value[panelIdx.value] ?? [], route));
   return { panelIdx, entry, tree };
 }
 

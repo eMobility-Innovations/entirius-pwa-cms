@@ -1,4 +1,4 @@
-// Plan 52 (plan-50 review): the three Pim dialogs on BasicModal, mounted with the real modal, radio group and
+// Plan 52 (plan-50 review): the Pim channel dialogs on BasicModal, mounted with the real modal, radio group and
 // buttons — what the user picks reaches the API, the footer follows the state, a busy dialog does not close.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
@@ -6,9 +6,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 vi.mock("@/api/pim/api", () => ({
   POST_AddToChannel: vi.fn(() => Promise.resolve({ data: {} })),
   POST_CopyTranslations: vi.fn(() => Promise.resolve({ data: {} })),
-  GET_Features: vi.fn(() => Promise.resolve({ data: { results: [{ idx: "description", feature_type: 6 }] } })),
 }));
-vi.mock("@/api/enrichment/api", () => ({ POST_SpawnTask: vi.fn() }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({
     channels: [{ idx: "c1", name: "One" }, { idx: "c2", name: "Two" }],
@@ -28,13 +26,10 @@ import BasicCheckbox from "@/boots/BasicCheckbox/index.vue";
 import Tag from "@/boots/Tag/index.vue";
 import AddToChannelDialog from "@/views/Pim/components/AddToChannelDialog.vue";
 import CopyTranslationsDialog from "@/views/Pim/components/CopyTranslationsDialog.vue";
-import SpawnDialog from "@/views/Pim/components/enrichment/SpawnDialog.vue";
 import { POST_AddToChannel, POST_CopyTranslations } from "@/api/pim/api";
-import { POST_SpawnTask } from "@/api/enrichment/api";
 
 const components = { BasicModal, BasicButton, BasicRadioGroup, BasicCheckbox, Tag };
-const stubs = { BasicButton, FormField: { template: "<div><slot /></div>" }, BasicSelect: true,
-  ChannelMultiSelect: true };
+const stubs = { BasicButton, FormField: { template: "<div><slot /></div>" }, BasicSelect: true };
 const wrappers = [];
 
 // Mounted closed, then opened: the dialogs reset their form when `visible` turns on.
@@ -97,31 +92,5 @@ describe("CopyTranslationsDialog", () => {
     await flushPromises();
 
     expect(byTestId("pim-copy-translations-submit").disabled).toBe(true);
-  });
-});
-
-describe("SpawnDialog", () => {
-  it("closes from the header while idle", async () => {
-    const wrapper = await open(SpawnDialog, { skus: ["A"] });
-
-    byTestId("basic-modal-close").click();
-
-    expect(wrapper.emitted("close")).toHaveLength(1);
-  });
-
-  it("while the tasks are created, the header close button is disabled and Esc does nothing", async () => {
-    POST_SpawnTask.mockReturnValue(new Promise(() => {}));
-    const wrapper = await open(SpawnDialog, { skus: ["A"] });
-    Object.assign(wrapper.vm, { feature: "description" });
-    await flushPromises();
-
-    byTestId("enrichment-spawn-submit").click();
-    await flushPromises();
-    byTestId("basic-modal-close").click();
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-
-    expect(POST_SpawnTask).toHaveBeenCalledTimes(1);
-    expect(byTestId("basic-modal-close").disabled).toBe(true);
-    expect(wrapper.emitted("close")).toBeUndefined();
   });
 });

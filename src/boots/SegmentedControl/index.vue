@@ -10,7 +10,7 @@
       v-for="option in options"
       :key="option.value"
       type="button"
-      :disabled="controlDisabled"
+      :disabled="controlDisabled || option.disabled"
       :aria-pressed="String(modelValue === option.value)"
       class="segmented-control__option"
       :class="{
@@ -25,8 +25,8 @@
 </template>
 
 <script setup>
-// A mode switch of 2–4 options (docs/ui-components.md § P3 inputs): `options` [{ label, value, testid? }], `v-model`,
-// `disabled`. Inside a FormField it is named by the field's label and takes aria-describedby and disabled from the
+// A mode switch of 2–4 options (docs/ui-components.md § P3 inputs): `options` [{ label, value, testid?, disabled? }],
+// `v-model`, `disabled` (all options; an option's own `disabled` takes just that one out). Inside a FormField it is named by the field's label and takes aria-describedby and disabled from the
 // contract.
 import { useControlAttrs } from "@/boots/FormField/useControlAttrs";
 

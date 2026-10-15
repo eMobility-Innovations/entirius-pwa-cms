@@ -49,7 +49,7 @@
       </template>
     </div>
 
-    <ProfileHistory :visible="historyOpen" :versions="versions" :busy="saving" :dirty="dirty" @close="historyOpen = false" @restore="restore" />
+    <ProfileHistory :visible="historyOpen" :versions="versions" :busy="saving" :dirty="dirty" @close="setHistory(false)" @restore="restore" />
 
     <ConfirmDialog
       :open="pendingChannel !== null"
@@ -108,7 +108,8 @@ export default {
       apiErrors: {},
       loading: true,
       saving: false,
-      historyOpen: false,
+      // `?history=1`: the versions drawer is part of the URL — a reload or a shared link opens it again.
+      historyOpen: this.$route.query.history === "1",
       pendingChannel: null,
       loadSeq: 0,
     };
@@ -138,7 +139,7 @@ export default {
     actions() {
       return [
         { key: "history", role: "secondary", mutates: false, label: this.$t("enrichment.profile.history"),
-          testid: "profile-history-open", onClick: () => (this.historyOpen = true) },
+          testid: "profile-history-open", onClick: () => this.setHistory(true) },
         { key: "json", role: "secondary", mutates: false, expanded: this.jsonMode, testid: "profile-json-toggle",
           label: this.$t(this.jsonMode ? "enrichment.profile.edit_form" : "enrichment.profile.edit_json"), onClick: this.toggleJson },
         { key: "save", role: "primary", mutates: true, label: this.$t("common.save"), loading: this.saving,
@@ -151,6 +152,10 @@ export default {
     this.loadAll();
   },
   methods: {
+    setHistory(open) {
+      this.historyOpen = open;
+      this.$router.replace({ query: { ...this.$route.query, history: open ? "1" : undefined } });
+    },
     jsonMessage({ code, arg }) {
       return this.$t(`enrichment.profile.json_error.${code}`, { arg });
     },

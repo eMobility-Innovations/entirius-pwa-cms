@@ -45,12 +45,17 @@
           class="enrichment-review__task flex ai-ct flex-wrap gap-3 fs-300"
           data-testid="enrichment-task-filter"
         >
-          <span>{{ $t("enrichment.review.task_filter") }}</span>
+          <span>
+            {{ $t("enrichment.review.task_filter_of") }}
+            <router-link :to="taskLink" class="t-accent fw-600" data-testid="enrichment-task-filter-link">
+              {{ $t("enrichment.tasks.single", { id: filters.task }) }}
+            </router-link>
+          </span>
           <BasicButton variant="ghost" size="sm" data-testid="enrichment-task-filter-clear" @click="clearTask">
             {{ $t("enrichment.ai.show_all") }}
           </BasicButton>
           <BatchCorrection
-            v-if="filters.status === 'pending'"
+            v-if="filters.status === 'pending' && rows.length"
             class="ml-auto"
             :task-id="Number(filters.task)"
             @queued="fetchRows"
@@ -128,7 +133,26 @@
       @reconfirm="openDrift"
       @row-open="openDetail"
       @preview-product="openProductPreview"
-    />
+    >
+      <template #empty>
+        <EmptyState icon="enrich" :title="$t('enrichment.review.empty')" :message="$t('enrichment.review.empty_message')" data-testid="review-empty">
+          <div class="flex jc-ct flex-wrap gap-3">
+            <BasicButton v-if="narrowed" data-testid="review-empty-clear" @click="clearFilters">
+              {{ $t("enrichment.review.clear_filters") }}
+            </BasicButton>
+            <BasicButton v-if="filters.status !== 'pending'" data-testid="review-empty-pending" @click="onFilterChange('status', 'pending')">
+              {{ $t("enrichment.review.show_pending") }}
+            </BasicButton>
+            <BasicButton v-else-if="filters.task" data-testid="review-empty-applied" @click="onFilterChange('status', 'applied')">
+              {{ $t("enrichment.review.show_applied") }}
+            </BasicButton>
+            <router-link v-if="!narrowed" to="/pim/products" class="enrichment-review__run-link t-accent fw-600" data-testid="review-empty-run">
+              {{ $t("enrichment.review.run_ai") }}
+            </router-link>
+          </div>
+        </EmptyState>
+      </template>
+    </ListMode>
     <ProductMode
       v-else-if="mode === 'product'"
       :rows="rows"
@@ -228,6 +252,7 @@ import {
 const FocusMode = defineAsyncComponent(() => import("./FocusMode.vue"));
 
 const MODES = ["list", "product", "focus"];
+const DEFAULT_NARROWING = { target_module: "__all", target_kind: "__all", source: "__all", batch_id: "", confidence_min: "", search: "" };
 
 const STATUS_VALUES = [
   "pending",
@@ -312,6 +337,15 @@ export default {
         },
       ];
     },
+    taskLink() {
+      return { name: "EnrichmentTasks", query: { status: "__all", task: String(this.filters.task) } };
+    },
+    // A filter beyond the status chips narrows the list: its empty state offers to clear them.
+    narrowed() {
+      const f = this.filters;
+      return [f.target_module, f.target_kind, f.source].some((v) => v !== "__all") ||
+        !!(f.batch_id || f.search || f.task) || (f.confidence_min !== "" && f.confidence_min != null);
+    },
     statusOptions() {
       return [
         { value: "__all", label: this.$t("common.all") },
@@ -368,8 +402,9 @@ export default {
         page_size: this.pageSize,
         ordering: "-created_at",
       };
-      if (this.filters.status && this.filters.status !== "__all")
-        params.status = this.filters.status;
+      // The "All" chip asks for every status: no status param would mean only pending.
+      if (this.filters.status)
+        params.status = this.filters.status === "__all" ? "all" : this.filters.status;
       if (this.filters.target_module !== "__all")
         params.target_module = this.filters.target_module;
       if (this.filters.target_kind !== "__all")
@@ -431,6 +466,10 @@ export default {
         });
       }
       this.fetchRows();
+    },
+    clearFilters() {
+      Object.assign(this.filters, DEFAULT_NARROWING);
+      this.clearTask();
     },
     clearTask() {
       const query = { ...this.$route.query };

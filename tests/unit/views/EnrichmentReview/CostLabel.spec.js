@@ -23,4 +23,10 @@ describe("CostLabel", () => {
     expect(w.text()).toBe("$0.10");
     expect(w.findComponent(BasicTooltip).props("text")).toBe("enrichment.cost.partial");
   });
+
+  it("nothing paid reads as free, not as $0.00", () => {
+    const w = mountCost({ cost: "0.0000" });
+    expect(w.text()).toBe("enrichment.cost.free");
+    expect(w.findComponent(BasicTooltip).exists()).toBe(false);
+  });
 });

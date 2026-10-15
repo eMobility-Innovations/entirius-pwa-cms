@@ -20,12 +20,16 @@ import ProposalCorrection from "@/views/EnrichmentReview/ProposalCorrection.vue"
 import BatchCorrection from "@/views/EnrichmentReview/BatchCorrection.vue";
 
 const CorrectionBar = { name: "CorrectionBar", props: { shape: String, selection: String, busy: Boolean, batch: Boolean }, emits: ["submit"], template: "<div />", methods: { reset() {} } };
-const VariantPicker = { name: "VariantPicker", props: ["candidates", "busy"], emits: ["pick", "cancel"], template: "<div />" };
 const RuleChips = { name: "RuleChips", props: ["rules", "hasTemplate", "hasWorker", "busy"], emits: ["change", "promote"], template: "<div />" };
-const VersionTimeline = { name: "VersionTimeline", props: ["revisions", "busy"], emits: ["restore"], template: "<div />" };
+const CorrectionThread = {
+  name: "CorrectionThread",
+  props: ["revisions", "busy", "asking", "candidates", "landed"],
+  emits: ["restore", "pick", "dismiss"],
+  template: "<div />",
+};
 const BasicButton = { props: ["disabled"], emits: ["click"], template: "<button :disabled='disabled' @click=\"$emit('click')\"><slot /></button>" };
-const BasicModal = { name: "BasicModal", props: ["open", "title", "persistent"], template: "<div v-if='open'><slot /></div>" };
-const stubs = { CorrectionBar, VariantPicker, RuleChips, VersionTimeline, BasicButton, BasicModal, CountBadge: true, RouterLink: { props: ["to"], template: "<a><slot /></a>" } };
+const BasicModal = { name: "BasicModal", props: ["open", "title", "persistent", "actions"], template: "<div v-if='open'><slot /></div>" };
+const stubs = { CorrectionBar, RuleChips, CorrectionThread, BasicButton, BasicModal, CountBadge: true, RouterLink: { props: ["to"], template: "<a><slot /></a>" } };
 
 const PROPOSAL = { id: 7, status: "pending", source: "worker:pim.writer@v2", proposed_value: { text: "A red sofa" }, rules: ["No prices"] };
 
@@ -35,13 +39,17 @@ function mountCorrection(props = {}) {
 
 async function openBar(w) {
   await w.find("[data-testid='correction-toggle']").trigger("click");
+  await flushPromises();
   return w.findComponent({ name: "CorrectionBar" });
 }
+
+const thread = (w) => w.findComponent({ name: "CorrectionThread" });
 
 describe("ProposalCorrection", () => {
   beforeEach(() => {
     Object.values(api).forEach((fn) => fn.mockReset());
     notify.mockReset();
+    api.GET_ProposalRevisions.mockResolvedValue({ data: [{ number: 1 }] });
   });
 
   it("an AI correction becomes the proposal's new value", async () => {
@@ -53,7 +61,24 @@ describe("ProposalCorrection", () => {
     await flushPromises();
     expect(api.POST_ReviseProposal).toHaveBeenCalledWith(7, { quick_action: "shorten", scope: { type: "selection", text: "red" } });
     expect(w.emitted("updated")[0][0]).toMatchObject({ id: 7, proposed_value: { text: "A sofa" } });
-    expect(w.emitted("busy").map(([b]) => b)).toEqual([true, false]);
+    expect(w.emitted("busy").map(([b]) => b)).toEqual([true, false, true, false]);
+  });
+
+  it("the thread shows the request while the AI writes, then the new version with its changes", async () => {
+    let answer;
+    api.POST_ReviseProposal.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    const w = mountCorrection();
+    const bar = await openBar(w);
+    expect(api.GET_ProposalRevisions).toHaveBeenCalledWith(7);
+    const request = { instruction: "Say crimson", quickAction: null, selection: "" };
+    bar.vm.$emit("submit", request);
+    await flushPromises();
+    expect(thread(w).props()).toMatchObject({ asking: request, busy: true });
+    answer({ data: { number: 2, value: { text: "A crimson sofa" } } });
+    await flushPromises();
+    expect(thread(w).props("asking")).toBeNull();
+    expect(thread(w).props("landed")).toBe(2);
+    expect(thread(w).props("revisions").map((r) => r.number)).toEqual([1, 2]);
   });
 
   it("REVISION_NOT_APPLICABLE is told in plain words and nothing changes", async () => {
@@ -69,15 +94,12 @@ describe("ProposalCorrection", () => {
     const stale = { code: "NUMBER_NOT_IN_FACTS", message: "120 cm" };
     const fresh = { code: "TOO_LONG", message: "over 160" };
     api.POST_ReviseProposal.mockResolvedValue({ data: { number: 2, value: { text: "A sofa" }, warnings: [] } });
-    api.GET_ProposalRevisions.mockResolvedValue({ data: [{ number: 1 }] });
     api.POST_RestoreRevision.mockResolvedValue({ data: { number: 3, value: { text: "A red sofa, 120 cm" }, warnings: [fresh] } });
     const w = mountCorrection({ proposal: { ...PROPOSAL, warnings: [stale] } });
     (await openBar(w)).vm.$emit("submit", { instruction: "", quickAction: "shorten", selection: "" });
     await flushPromises();
     expect(w.emitted("updated")[0][0].warnings).toEqual([]);
-    await w.find("[data-testid='versions-toggle']").trigger("click");
-    await flushPromises();
-    w.findComponent({ name: "VersionTimeline" }).vm.$emit("restore", 1);
+    thread(w).vm.$emit("restore", 1);
     await flushPromises();
     expect(w.emitted("updated")[1][0]).toMatchObject({ proposed_value: { text: "A red sofa, 120 cm" }, warnings: [fresh] });
   });
@@ -88,23 +110,22 @@ describe("ProposalCorrection", () => {
     const w = mountCorrection();
     (await openBar(w)).vm.$emit("submit", { instruction: "", quickAction: "variants", selection: "" });
     await flushPromises();
-    const picker = w.findComponent({ name: "VariantPicker" });
-    expect(picker.props("candidates")).toHaveLength(3);
-    picker.vm.$emit("pick", { text: "B" });
+    expect(thread(w).props("candidates")).toHaveLength(3);
+    thread(w).vm.$emit("pick", { text: "B" });
     await flushPromises();
     expect(api.PATCH_Proposal).toHaveBeenCalledWith(7, { proposed_value: { text: "B" } });
-    expect(w.findComponent({ name: "VariantPicker" }).exists()).toBe(false);
+    expect(thread(w).props("candidates")).toEqual([]);
+    expect(thread(w).props("landed")).toBe("latest");
     expect(w.emitted("updated")[0][0].proposed_value).toEqual({ text: "B" });
   });
 
   it("versions load when opened, follow a new value and restore", async () => {
-    api.GET_ProposalRevisions.mockResolvedValue({ data: [{ number: 1 }] });
     api.POST_RestoreRevision.mockResolvedValue({ data: { number: 3, value: { text: "old" } } });
     const w = mountCorrection();
-    await w.find("[data-testid='versions-toggle']").trigger("click");
-    await flushPromises();
-    expect(w.findComponent({ name: "VersionTimeline" }).props("revisions")).toEqual([{ number: 1 }]);
-    w.findComponent({ name: "VersionTimeline" }).vm.$emit("restore", 1);
+    expect(w.find("[data-testid='versions-toggle']").exists()).toBe(false);
+    await openBar(w);
+    expect(thread(w).props("revisions")).toEqual([{ number: 1 }]);
+    thread(w).vm.$emit("restore", 1);
     await flushPromises();
     expect(api.POST_RestoreRevision).toHaveBeenCalledWith(7, 1);
     await w.setProps({ proposal: w.emitted("updated")[0][0] });
@@ -159,6 +180,23 @@ describe("BatchCorrection", () => {
     expect(api.POST_ReviseTask).toHaveBeenCalledWith(5, { instruction: "Use 'you'" });
     expect(w.emitted("queued")[0]).toEqual([4]);
     expect(w.findComponent({ name: "CorrectionBar" }).exists()).toBe(false);
+  });
+
+  it("the footer sends: Correct N proposals waits for an instruction or a picked suggestion", async () => {
+    api.POST_ReviseTask.mockResolvedValue({ data: { queued: 4 } });
+    const w = await mountBatch(4);
+    await w.find("[data-testid='batch-correct']").trigger("click");
+    const send = () => w.findComponent({ name: "BasicModal" }).props("actions").find((a) => a.key === "send");
+    expect(send().label).toBe('enrichment.correct.send_all::{"count":4}');
+    w.findComponent({ name: "CorrectionBar" }).vm.$emit("draft", { instruction: "", quickAction: null, ready: false });
+    await flushPromises();
+    expect(send().disabled).toBe(true);
+    w.findComponent({ name: "CorrectionBar" }).vm.$emit("draft", { instruction: "", quickAction: "formal", selection: "", ready: true });
+    await flushPromises();
+    expect(send().disabled).toBe(false);
+    send().onClick();
+    await flushPromises();
+    expect(api.POST_ReviseTask).toHaveBeenCalledWith(5, { quick_action: "formal" });
   });
 
   it("N is the task-wide pending count, re-read when the dialog opens", async () => {

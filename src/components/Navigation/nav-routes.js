@@ -350,17 +350,15 @@ export function buildNavRoutes() {
       icon: "building",
       query: {},
       app: ["enricher"],
-      desktopOnly: true, // a long form; the phone tab bar keeps the panel's five daily pages
     },
     {
-      // `badge`: the pending suggestions count (useNav `counts`)
+      // `badge`: the pending suggestions count (useNav `counts`) — on the phone tab bar too
       route: "/enrichment/memory",
       labelKey: "nav.enrichment_memory",
       icon: "folder",
       query: {},
       app: ["enricher"],
       badge: "memorySuggestions",
-      desktopOnly: true,
     },
     {
       route: "/enrichment/spawn-rules",
@@ -368,6 +366,7 @@ export function buildNavRoutes() {
       icon: "gears",
       query: {},
       app: ["enricher"],
+      desktopOnly: true, // setup screens: the phone tab bar keeps the panel's five daily pages
     },
     {
       route: "/enrichment/templates",
@@ -375,6 +374,7 @@ export function buildNavRoutes() {
       icon: "layer-group",
       query: {},
       app: ["enricher"],
+      desktopOnly: true,
     },
     {
       route: "/enrichment/tasks",

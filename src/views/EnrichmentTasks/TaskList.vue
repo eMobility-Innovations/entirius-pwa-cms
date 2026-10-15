@@ -10,7 +10,7 @@
           :label="$t('enrichment.tasks.single', { id: taskFilter })"
           active
           data-testid="enrichment-task-single"
-          @click="onFilterChange('__all')"
+          @click="onFilterChange(ALL)"
         />
         <FilterChip
           v-for="opt in statusOptions"
@@ -37,10 +37,20 @@
         :empty-text="$t('enrichment.tasks.empty')"
         @row-click="openQueue"
       >
-        <template #cell-status="{ value }">
+        <template v-if="statusFilter !== ALL || taskFilter" #empty>
+          <EmptyState icon="empty" size="md" :title="$t('enrichment.tasks.empty_filtered')" data-testid="tasks-empty-filtered">
+            <BasicButton data-testid="tasks-show-all" @click="onFilterChange(ALL)">{{ $t("enrichment.tasks.show_all") }}</BasicButton>
+          </EmptyState>
+        </template>
+        <template #cell-status="{ row }">
+          <span v-if="isQueued(row)" class="flex-column gap-1" data-testid="enrichment-task-queued">
+            <StatusBadge :label="$t('enrichment.task_status.queued')" tone="info" />
+            <span class="fs-200 t-muted">{{ queuedText(row.queued_ahead) }}</span>
+          </span>
           <StatusBadge
-            :label="$t(`enrichment.task_status.${value}`)"
-            :tone="statusVariant(value)"
+            v-else
+            :label="$t(`enrichment.task_status.${row.status}`)"
+            :tone="statusVariant(row.status)"
           />
         </template>
         <template #cell-progress="{ row }">
@@ -77,6 +87,8 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { GET_Task, GET_Tasks } from "@/api/enrichment/api";
 import { formatDate } from "@/utils/format";
 import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
+import { isQueued } from "@/views/Pim/components/enrichment/productAi";
+import { pluralKey } from "@/utils/plural";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
 import { needsRefresh, orderedCounts, taskStatusTone } from "./taskProgress";
 
@@ -84,12 +96,13 @@ const REFRESH_MS = 5000;
 
 // Mirrors django_enrichment.enums.TaskStatus.
 const TASK_STATUSES = ["open", "in_progress", "done", "cancelled", "failed"];
+const ALL = "__all";
 export default {
   name: "TaskList",
   components: { CostLabel, TaskQueueDrawer },
   setup() {
     const notify = useNotifyStore();
-    return { notify, formatDate };
+    return { notify, formatDate, ALL, isQueued };
   },
   data() {
     return {
@@ -97,7 +110,8 @@ export default {
       totalCount: 0,
       currentPage: 1,
       pageSize: 20,
-      statusFilter: this.$route.query.status || "open",
+      // Every task by default: a first visit shows what has run, not an empty "Open" filter.
+      statusFilter: this.$route.query.status || ALL,
       // `?task=<id>`: the one task the "Run AI task" dialog links to.
       taskFilter: this.$route.query.task || "",
       refreshTimer: null,
@@ -110,7 +124,7 @@ export default {
   computed: {
     statusOptions() {
       return [
-        { value: "__all", label: this.$t("common.all") },
+        { value: ALL, label: this.$t("common.all") },
         ...TASK_STATUSES.map((s) => ({
           value: s,
           label: this.$t(`enrichment.task_status.${s}`),
@@ -161,6 +175,7 @@ export default {
           id: t.id,
           type: t.type,
           status: t.status,
+          queued_ahead: t.queued_ahead,
           counts: t.counts,
           created_at: t.created_at,
           check: t.scope_spec?.check ?? "—",
@@ -183,13 +198,18 @@ export default {
         return { results: [data], count: 1 };
       }
       const params = { page: this.currentPage, page_size: this.pageSize };
-      if (this.statusFilter !== "__all") params.status = this.statusFilter;
+      if (this.statusFilter !== ALL) params.status = this.statusFilter;
       const { data } = await GET_Tasks(params);
       return { results: data.results || [], count: data.count || 0 };
     },
     scheduleRefresh() {
       if (!needsRefresh(this.tasks, !!this.taskFilter)) return;
       this.refreshTimer = setTimeout(() => this.fetchTasks({ silent: true }), REFRESH_MS);
+    },
+    // "N ahead" in the queue, or "starts next".
+    queuedText(ahead) {
+      if (!ahead) return this.$t("enrichment.tasks.starts_next");
+      return this.$t(`enrichment.tasks.ahead_${pluralKey(ahead)}`, { count: ahead });
     },
     statusVariant(status) {
       return taskStatusTone(status);

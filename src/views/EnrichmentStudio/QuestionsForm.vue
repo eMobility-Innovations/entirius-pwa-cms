@@ -1,69 +1,84 @@
 <template>
-  <form class="questions-form flex-column gap-6" data-testid="questions-form" @submit.prevent>
-    <p class="m-0 t-secondary">{{ $t("enrichment.studio.questions.intro") }}</p>
+  <form v-if="editable" class="questions-form flex-column gap-4" data-testid="questions-form" @submit.prevent @focusout="save">
     <FormField
       v-for="(question, index) in questions"
       :key="question.id"
-      :label="`${index + 1}. ${question.question}`"
-      :hint="question.why"
+      class="questions-form__question"
       :required="!question.optional"
       :error="errors[question.id] ? $t('enrichment.studio.questions.required') : ''"
       :data-testid="`question-${index}`"
     >
+      <template #label>
+        <span class="questions-form__head flex gap-3">
+          <span class="questions-form__number" aria-hidden="true">{{ index + 1 }}</span>
+          <span class="questions-form__text">{{ question.question }}</span>
+          <StatusBadge
+            v-if="!question.optional"
+            class="questions-form__required"
+            :label="$t('enrichment.studio.questions.required_badge')"
+            tone="warning"
+            size="sm"
+            :dot="false"
+          />
+        </span>
+      </template>
+      <p v-if="question.why" class="questions-form__why">{{ question.why }}</p>
       <BasicRadioGroup
         v-if="isChoice(question) && question.choices.length <= RADIO_MAX"
         :model-value="answers[question.id] || ''"
         :name="`question-${index}`"
         :options="choiceOptions(question)"
-        :disabled="!editable"
-        @update:model-value="(value) => answer(question.id, value)"
+        @update:model-value="(value) => pick(question.id, value)"
       />
       <BasicSelect
         v-else-if="isChoice(question)"
         :model-value="answers[question.id] || null"
         :options="choiceOptions(question)"
-        :disabled="!editable"
-        @update:model-value="(value) => answer(question.id, value)"
+        @update:model-value="(value) => pick(question.id, value)"
       />
       <BasicTextarea
         v-else
         :model-value="answers[question.id] || ''"
-        :rows="2"
-        :disabled="!editable"
+        :rows="3"
+        autogrow
+        :placeholder="$t('enrichment.studio.questions.placeholder')"
         @update:model-value="(value) => answer(question.id, value)"
       />
     </FormField>
-    <div v-if="editable" class="flex ai-ct jc-fe gap-3">
-      <span v-if="dirty" class="fs-200 t-secondary" data-testid="answers-dirty">{{ $t("enrichment.studio.questions.unsaved") }}</span>
-      <BasicButton mutates :disabled="!dirty || saving" :loading="saving" data-testid="answers-save" @click="save">
-        {{ $t("common.save") }}
-      </BasicButton>
-    </div>
   </form>
+
+  <dl v-else class="questions-form__answers m-0 flex-column gap-5" data-testid="questions-answers">
+    <div v-for="(question, index) in questions" :key="question.id" class="flex-column gap-1" :data-testid="`question-${index}`">
+      <dt class="questions-form__answered-question">{{ index + 1 }}. {{ question.question }}</dt>
+      <dd v-if="answerOf(question)" class="questions-form__answer m-0">{{ answerOf(question) }}</dd>
+      <dd v-else class="m-0 t-muted">{{ $t("enrichment.studio.questions.not_answered") }}</dd>
+    </div>
+  </dl>
 </template>
 
 <script>
 import { PATCH_Proposal } from "@/api/enrichment/api";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { isChoice, missingAnswers } from "./studioLogic";
+import { answeredCount, isChoice, missingAnswers } from "./studioLogic";
 
 const RADIO_MAX = 5;
 
-// The questions step: every question with why it is asked (the hint) and whether it must be answered; free text or a
-// pick. Save keeps the answers on the step; Approve (the step panel) calls `prepare()`, which marks what is missing
-// and saves unsaved answers first.
+// The questions step: each question as its own block — number, the question, why the AI asks, "Required" where it
+// applies — with free text or a pick. Answers save by themselves when a field is left (a pick at once); Approve (the
+// step panel) calls `prepare()`, which marks what is missing and saves what is not saved yet. Once approved the
+// answers read as text. The form's progress goes up as `state` (answered, total, dirty, saving, saved).
 export default {
   name: "QuestionsForm",
   props: {
     proposal: { type: Object, required: true },
   },
-  emits: ["updated"],
+  emits: ["updated", "state"],
   setup() {
     return { notify: useNotifyStore(), isChoice, RADIO_MAX };
   },
   data() {
-    return { answers: {}, errors: {}, dirty: false, saving: false };
+    return { answers: {}, errors: {}, dirty: false, saving: false, saved: false, inflight: null };
   },
   computed: {
     questions() {
@@ -72,9 +87,18 @@ export default {
     editable() {
       return this.proposal.status === "pending";
     },
+    state() {
+      const { dirty, saving, saved } = this;
+      return { answered: answeredCount(this.questions, this.answers), total: this.questions.length, dirty, saving, saved };
+    },
   },
   watch: {
-    "proposal.proposed_value": { immediate: true, handler: "reset" },
+    "proposal.id": { immediate: true, handler: "reset" },
+    // A saved value comes back from the server; edits made while it was on the way win.
+    "proposal.proposed_value"() {
+      if (!this.dirty) this.reset();
+    },
+    state: { immediate: true, handler(state) { this.$emit("state", state); } },
   },
   methods: {
     reset() {
@@ -82,26 +106,47 @@ export default {
       this.errors = {};
       this.dirty = false;
     },
+    answerOf(question) {
+      return String(this.proposal.proposed_value?.answers?.[question.id] ?? "").trim();
+    },
     choiceOptions(question) {
       return question.choices.map((choice) => ({ label: choice, value: choice }));
     },
     answer(id, value) {
       this.answers = { ...this.answers, [id]: value ?? "" };
       this.dirty = true;
+      this.saved = false;
       if (String(value ?? "").trim()) delete this.errors[id];
+    },
+    pick(id, value) {
+      this.answer(id, value);
+      this.save();
     },
     validate() {
       const missing = missingAnswers(this.questions, this.answers);
       this.errors = Object.fromEntries(missing.map((id) => [id, true]));
       return missing.length === 0;
     },
+    // One save at a time: a second call waits for the first, then saves only what is still unsaved.
     async save() {
+      if (this.inflight) await this.inflight;
+      if (!this.dirty) return true;
+      this.inflight = this.persist();
+      try {
+        return await this.inflight;
+      } finally {
+        this.inflight = null;
+      }
+    },
+    async persist() {
+      const answers = this.answers;
       this.saving = true;
       try {
-        const value = { ...this.proposal.proposed_value, answers: this.answers };
+        const value = { ...this.proposal.proposed_value, answers };
         const { data } = await PATCH_Proposal(this.proposal.id, { proposed_value: value });
+        if (this.answers === answers) this.dirty = false;
+        this.saved = true;
         this.$emit("updated", data);
-        this.dirty = false;
         return true;
       } catch (err) {
         this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
@@ -113,8 +158,79 @@ export default {
     // Before an approval: every required answer given and saved.
     async prepare() {
       if (!this.validate()) return false;
-      return this.dirty ? this.save() : true;
+      return this.save();
     },
   },
 };
 </script>
+
+<style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
+// More specific than FormField's own gap: 12 px between the question and its field.
+.questions-form .questions-form__question {
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  gap: var(--space-3);
+}
+.questions-form__head {
+  align-items: flex-start;
+}
+.questions-form__number {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle);
+  color: var(--text-strong);
+  font-size: var(--fs-200);
+  font-weight: 600;
+}
+.questions-form__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-400);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+.questions-form__required {
+  flex: none;
+  margin-top: 2px;
+}
+.questions-form__why {
+  // Under the question text, past the number circle.
+  margin: 0 0 var(--space-2);
+  padding-left: calc(var(--space-6) + var(--space-3));
+  font-size: var(--fs-250);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.questions-form__answered-question {
+  font-weight: 600;
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+.questions-form__answer {
+  color: var(--text-body);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// A phone gives the text the width: less padding, the reason under the number instead of beside it.
+@include max-tablet {
+  .questions-form .questions-form__question {
+    padding: var(--space-4);
+  }
+  .questions-form__why {
+    padding-left: 0;
+  }
+}
+</style>

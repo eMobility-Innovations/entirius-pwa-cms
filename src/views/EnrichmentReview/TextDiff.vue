@@ -3,7 +3,7 @@
     <span v-if="isNew" class="text-diff__label fs-200 t-secondary" data-testid="text-diff-new">
       {{ $t("enrichment.review.new_text") }}
     </span>
-    <ReadonlyOff v-else>
+    <ReadonlyOff v-else-if="switchable">
       <SegmentedControl v-model="view" :options="viewOptions" class="text-diff__switch" />
     </ReadonlyOff>
 
@@ -51,6 +51,7 @@ const WRAP = { added: "mark", removed: "del" };
 // A text proposal. Empty before → the new text alone. Otherwise one flow of the changes (inserted / removed words),
 // or the text before or after; side by side only where there is room (`wide`). HTML renders sanitised with real
 // typography; a long text is capped behind "Show more". `rules` adds a length counter, `snippet` a search preview.
+// `switchable` false keeps the changes flow alone (a correction thread's turn).
 export default {
   name: "TextDiff",
   components: { ReadonlyOff, LengthCounter, SearchSnippet },
@@ -60,6 +61,7 @@ export default {
     wide: { type: Boolean, default: false },
     rules: { type: Object, default: null },
     snippet: { type: Object, default: null },
+    switchable: { type: Boolean, default: true },
   },
   data() {
     return { view: "changes", expanded: false };
@@ -119,10 +121,6 @@ export default {
 <style lang="scss" scoped>
 .text-diff__switch {
   align-self: flex-start;
-}
-.text-diff__label {
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 .text-diff__split {
   display: grid;

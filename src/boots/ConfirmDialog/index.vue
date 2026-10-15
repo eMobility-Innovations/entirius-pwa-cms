@@ -13,7 +13,7 @@
       <p class="confirm-dialog__message t-secondary">{{ message }}</p>
     </slot>
     <template #footer>
-      <ActionBar>
+      <ActionBar :labelled="false">
         <BasicButton variant="secondary" :disabled="loading" data-testid="confirm-dialog-cancel" @click="cancel">
           {{ cancelLabel || $t("common.cancel") }}
         </BasicButton>

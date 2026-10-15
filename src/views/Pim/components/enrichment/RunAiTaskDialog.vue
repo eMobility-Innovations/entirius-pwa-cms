@@ -23,7 +23,12 @@
         <BasicSelect v-model="templateKey" :options="templateOptions" data-testid="ai-task-template" />
       </FormField>
       <FormField v-if="!template" :label="$t('enrichment.ai.worker')" required>
-        <BasicSelect v-model="workerKey" :options="workerOptions" data-testid="ai-task-worker" />
+        <BasicSelect
+          v-model="workerKey"
+          :options="workerOptions"
+          :placeholder="$t('enrichment.run.pick_worker')"
+          data-testid="ai-task-worker"
+        />
       </FormField>
 
       <AiParamsForm
@@ -36,6 +41,9 @@
       />
 
       <p class="fs-200 t-muted m-0">{{ $t("enrichment.ai.summary", { count: skus.length, channel: channel }) }}</p>
+      <p v-if="!nowAllowed" class="fs-200 t-secondary m-0" data-testid="ai-task-now-cap">
+        {{ $t("enrichment.ai.lane.now_cap", { max: runNowMax }) }}
+      </p>
 
       <div v-if="saving" class="ai-task__save flex-column gap-3" data-testid="ai-task-save-template">
         <FormField :label="$t('enrichment.run.template_name')" required>
@@ -63,6 +71,7 @@ import { usePimChannelStore } from "@/stores/pimChannel";
 import { useNotifyStore } from "@/stores/notify";
 import { useConfigHealthStore } from "@/stores/configHealth";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isConflict } from "@/api/createClient";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import { GET_Templates, POST_SpawnTask, POST_Template } from "@/api/enrichment/api";
 import { fieldOptions, loadCatalog } from "@/views/EnrichmentReview/fieldCatalog";
@@ -78,11 +87,16 @@ import {
   researchKeys,
 } from "./aiTaskForm";
 import { newTemplateBody } from "./templateForm";
+import { LANE_NOW, LANE_QUEUE, RUN_NOW_MAX, canRunNow, defaultLane, spawnToast } from "./runLane";
+import { useMediaQuery } from "@/composables/useMediaQuery";
+import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 
 // One "Run AI task" dialog for a single product and a list selection: pick a template (its worker, fields,
 // languages, instructions and research preset) or "Custom…" and a worker, adjust the form, POST one task over the
 // SKUs of the active channel, then link to the task (or, with `background`, close at once and leave the progress to
 // the page). The run as set up can be kept as a new template (`template-saved`). No cost estimate: costs show after.
+// Two ways to send it: Run now (the express lane, at most RUN_NOW_MAX products) and Add to queue; the primary one
+// follows the scope — one product runs now, a selection is queued. A phone shows only the primary one (one footer row).
 export default {
   name: "RunAiTaskDialog",
   components: { AiToolboxHint, AiParamsForm },
@@ -99,7 +113,10 @@ export default {
   },
   emits: ["close", "created", "template-saved"],
   setup() {
-    return { pimChannel: usePimChannelStore(), notify: useNotifyStore(), health: useConfigHealthStore() };
+    return {
+      pimChannel: usePimChannelStore(), notify: useNotifyStore(), health: useConfigHealthStore(),
+      isPhone: useMediaQuery(MAX_TABLET_QUERY),
+    };
   },
   data() {
     return {
@@ -112,6 +129,8 @@ export default {
       createdTask: null,
       saving: false,
       templateLabel: "",
+      runNowMax: RUN_NOW_MAX,
+      sendingLane: "",
     };
   },
   computed: {
@@ -159,6 +178,9 @@ export default {
     reviewLink() {
       return { name: "EnrichmentReview", query: { task: String(this.createdTask?.id) } };
     },
+    nowAllowed() {
+      return canRunNow(this.skus.length);
+    },
     actions() {
       if (this.createdTask) {
         return [{ key: "close", role: "secondary", label: this.$t("common.close"), onClick: () => this.$emit("close") }];
@@ -168,8 +190,7 @@ export default {
           onClick: () => this.$emit("close") },
         { key: "save_template", role: "secondary", mutates: true, label: this.$t("enrichment.run.save_as_template"),
           testid: "ai-task-save-as-template", disabled: this.busy || !this.worker, onClick: this.startSaving },
-        { key: "run", role: "primary", mutates: true, label: this.$t("enrichment.ai.run"), testid: "ai-task-run",
-          disabled: this.busy || !this.canRun, loading: this.busy, onClick: this.run },
+        ...this.laneActions(),
       ];
     },
   },
@@ -185,7 +206,8 @@ export default {
     async reset() {
       this.createdTask = null;
       this.saving = false;
-      this.workerKey = this.initialWorker || this.workers[0]?.key || "";
+      // A custom run starts with no worker picked: Run waits until the operator chose what the AI makes.
+      this.workerKey = this.initialWorker || (this.workers.length === 1 ? this.workers[0].key : "");
       this.templateKey = this.initialTemplate;
       this.applyDefaults();
       this.catalog = await loadCatalog(this.channel);
@@ -200,28 +222,44 @@ export default {
       this.templateLabel = "";
       this.saving = true;
     },
-    startedInBackground() {
-      this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.ai.started") });
-      this.$emit("close");
+    // Run now and Add to queue, the scope's default as the primary (rightmost); Run now off above the cap.
+    laneActions() {
+      const primary = defaultLane(this.skus.length);
+      const disabled = this.busy || !this.canRun;
+      const lane = (key, label, testid, extra = {}) => ({
+        key, label, testid, mutates: true, role: key === primary ? "primary" : "secondary",
+        disabled, loading: this.busy && key === this.sendingLane, onClick: () => this.run(key), ...extra,
+      });
+      const lanes = [
+        lane(LANE_NOW, this.$t("enrichment.ai.lane.run_now"), "ai-task-run-now", { disabled: disabled || !this.nowAllowed }),
+        lane(LANE_QUEUE, this.$t("enrichment.ai.lane.add_to_queue"), "ai-task-add-to-queue"),
+      ];
+      return this.isPhone ? lanes.filter((action) => action.key === primary) : lanes;
     },
-    async run() {
+    async run(lane = defaultLane(this.skus.length)) {
       if (this.busy || !this.canRun) return;
       this.busy = true;
+      this.sendingLane = lane;
       try {
         const payload = buildTaskPayload({
           worker: this.worker, params: this.params, channel: this.channel, skus: this.skus, template: this.templateKey,
         });
-        const { data } = await POST_SpawnTask(payload);
+        const { data } = await POST_SpawnTask({ ...payload, lane });
         this.$emit("created", data);
-        if (this.background) return this.startedInBackground();
+        this.notify.spawnNotification(spawnToast(data));
+        if (this.background) return this.$emit("close");
         this.createdTask = data;
       } catch (err) {
-        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
-        // A refusal of the form (400) keeps it open to fix; anything else closes it.
-        if (err?.httpStatus !== 400) this.$emit("close");
+        this.refused(err);
       } finally {
         this.busy = false;
       }
+    },
+    // The same run already going (409) is news, not a failure; a refusal of the form (400) keeps it open to fix.
+    refused(err) {
+      const msg = extractApiMessage(err, this.$t("notifications.error"));
+      this.notify.spawnNotification({ type: isConflict(err) ? "informative" : "negative", msg });
+      if (err?.httpStatus !== 400) this.$emit("close");
     },
     async saveTemplate() {
       this.busy = true;

@@ -12,6 +12,7 @@ vi.mock("@/api/enrichment/api", () => ({
 }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 vi.mock("@/views/Pim/components/enrichment/useProductAi", () => ({ useProductAi: () => ai }));
+vi.mock("@/stores/pimChannel", () => ({ usePimChannelStore: () => ({ activeChannelIdx: "eu" }) }));
 vi.mock("@/components/ConfigHealth/AiToolboxHint.vue", () => ({ default: { name: "AiToolboxHint", render: () => null } }));
 
 import ProductAiResults from "@/views/Pim/components/enrichment/ProductAiResults.vue";
@@ -26,6 +27,7 @@ const stubs = {
   IconButton: { name: "IconButton", props: ["icon", "label"], template: "<button :aria-label='label' />" },
   BasicButton: { props: ["disabled"], template: "<button :disabled='disabled'><slot /></button>" },
   RouterLink: { props: ["to"], template: "<a><slot /></a>" },
+  ProfileGate: { name: "ProfileGate", props: ["channel"], template: "<div />" },
   BatchCorrection: { name: "BatchCorrection", props: ["taskId"], emits: ["queued"], template: "<div />" },
 };
 
@@ -69,6 +71,13 @@ describe("ProductAiResults", () => {
     expect(trigger.props("label")).toContain("enrichment.ai.trigger");
     expect(w.find("[data-testid='ai-results-count']").text()).toBe("2");
     expect(w.find("[data-testid='ai-results-running']").exists()).toBe(true);
+  });
+
+  it("a task waiting in the queue shows a still dot and says Queued, not the running pulse", () => {
+    const w = mountResults({ tasks: [{ id: 5, status: "open", queued_ahead: 1 }], running: true });
+    expect(w.find("[data-testid='ai-results-queued']").exists()).toBe(true);
+    expect(w.find("[data-testid='ai-results-running']").exists()).toBe(false);
+    expect(w.findComponent({ name: "IconButton" }).props("label")).toContain("enrichment.ai.outcome.queued");
   });
 
   it("a product with nothing waiting shows the bare icon; a failed latest run a warning dot", () => {
@@ -204,5 +213,13 @@ describe("ProductAiResults", () => {
     expect(batch.props()).toEqual({ taskId: 6 });
     batch.vm.$emit("queued", 2);
     expect(ai.refresh).toHaveBeenCalled();
+  });
+
+  it("the drawer links onwards: the templates, the review queue and the channel's profile warning", async () => {
+    const w = mountResults({ proposals: [proposal(1)] });
+    await w.find("[data-testid='ai-results']").trigger("click");
+    expect(w.find("[data-testid='ai-results-templates']").exists()).toBe(true);
+    expect(w.find("[data-testid='ai-results-review']").exists()).toBe(true);
+    expect(w.findComponent({ name: "ProfileGate" }).props("channel")).toBe("eu");
   });
 });

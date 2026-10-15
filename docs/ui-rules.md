@@ -269,7 +269,7 @@ Traps:
   under a field, no `description` / `tooltip` (removed, lint). The error replaces the hint in `aria-describedby`.
 - Hints are optional help: users can turn them off in the account menu. Never put information a user must see only
   in a hint — a state that blocks the form („brak języków”) or a live value is content, shown under the control.
-  A note that explains a disabled or empty control (TranslateDialog / SpawnDialog „no languages”) is visible, has an
+  A note that explains a disabled or empty control (TranslateDialog „no languages”) is visible, has an
   id and is linked from the control's `aria-describedby`, where it joins the field's own description (BasicSelect
   and BasicInput merge them: `"<field id> <caller id>"`).
 - One label style: `FormField` renders `.field-label` —

@@ -58,7 +58,7 @@ const mountList = () =>
         Pagination: true,
         FloatingActions: true,
         BulkActionBar: true,
-        SpawnDialog: true, PimTranslateDialog: true,
+        PimTranslateDialog: true,
       },
     },
   });
@@ -113,7 +113,7 @@ describe("ProductList — quality column", () => {
           Pagination: true,
           FloatingActions: true,
           BulkActionBar: true,
-          SpawnDialog: true, PimTranslateDialog: true,
+          PimTranslateDialog: true,
         },
       },
     });

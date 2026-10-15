@@ -46,9 +46,10 @@ import { formatRelative } from "@/utils/format";
 import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
 import { pluralKey } from "@/utils/plural";
 import { ALL_LANGUAGES } from "./aiTaskForm";
-import { taskLanguages, taskOutcome } from "./productAi";
+import { isActive, taskLanguages, taskOutcome } from "./productAi";
 
 const LOOK = {
+  queued: { icon: "scheduled", tone: "info" },
   running: { icon: "running", tone: "accent" },
   review: { icon: "info", tone: "accent" },
   applied: { icon: "success", tone: "positive" },
@@ -74,8 +75,9 @@ export default {
     outcome() {
       return taskOutcome(this.task);
     },
+    // Queued or running: no cost yet.
     running() {
-      return this.outcome.state === "running";
+      return isActive(this.task);
     },
     look() {
       if (this.outcome.failed) return { icon: "warning", tone: "warning" };
@@ -93,6 +95,7 @@ export default {
     outcomeText() {
       const { state, count = 0, failed } = this.outcome;
       if (state === "failed") return this.$t("enrichment.ai.outcome.failed", { reason: this.reason() });
+      if (state === "queued") return this.queuedText(count);
       const key = state === "review" ? `review_${pluralKey(count)}` : state;
       const text = this.$t(`enrichment.ai.outcome.${key}`, { count });
       if (!failed) return text;
@@ -100,6 +103,10 @@ export default {
     },
   },
   methods: {
+    queuedText(ahead) {
+      if (!ahead) return this.$t("enrichment.ai.outcome.queued_next");
+      return this.$t(`enrichment.ai.outcome.queued_${pluralKey(ahead)}`, { count: ahead });
+    },
     // "*" is a writer's "All languages".
     languageLabel(lang) {
       return lang === ALL_LANGUAGES ? this.$t("enrichment.run.all_languages") : lang.toUpperCase();

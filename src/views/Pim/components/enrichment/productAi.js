@@ -26,9 +26,15 @@ function finishedState(counts) {
   return { state: "nothing" };
 }
 
-/** { state, count?, failed?, code?, errorId? } — state: running · review · applied · rejected · replaced · nothing ·
- * cancelled · failed. A done task with failed subjects carries `failed` and the first reason. */
+/** An open task the internal worker has not picked up yet: `queued_ahead` counts the runs before it in its lane
+ * (null once it runs, and for an external worker — that one shows as running). */
+export const isQueued = (task) => task?.status === "open" && Number.isInteger(task?.queued_ahead);
+
+/** { state, count?, failed?, code?, errorId? } — state: queued · running · review · applied · rejected · replaced ·
+ * nothing · cancelled · failed. A queued task's `count` is the runs ahead of it; a done task with failed subjects
+ * carries `failed` and the first reason. */
 export function taskOutcome(task) {
+  if (isQueued(task)) return { state: "queued", count: task.queued_ahead };
   if (isActive(task)) return { state: "running" };
   if (task.status === "cancelled") return { state: "cancelled" };
   const [error] = task.errors || [];
@@ -41,16 +47,17 @@ export function taskOutcome(task) {
   return failed ? { ...base, failed, ...reason } : base;
 }
 
-const RANK = { running: 0, review: 1, failed: 2 };
+const RANK = { running: 0, queued: 1, review: 2, failed: 3 };
 
-/** `current`: running, waiting for review, or the latest run of its worker that failed — in that order.
+/** `current`: running, queued, waiting for review, or the latest run of its worker that failed — in that order.
  * `history`: everything already handled. Tasks come newest first. */
 export function groupTasks(tasks) {
   const latestOfType = new Map();
   for (const task of tasks) if (!latestOfType.has(task.type)) latestOfType.set(task.type, task.id);
   const matters = (task) => {
     const { state } = taskOutcome(task);
-    return state === "running" || state === "review" || (state === "failed" && latestOfType.get(task.type) === task.id);
+    if (state === "failed") return latestOfType.get(task.type) === task.id;
+    return state in RANK;
   };
   const current = tasks.filter(matters).sort((a, b) => RANK[taskOutcome(a).state] - RANK[taskOutcome(b).state]);
   return { current, history: tasks.filter((task) => !matters(task)) };

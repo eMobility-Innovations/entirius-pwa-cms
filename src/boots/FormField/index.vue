@@ -1,8 +1,15 @@
 <template>
   <div class="form-field" :class="[`form-field--${layout}`, { 'form-field--invalid': !!shownError }]">
-    <div v-if="label || hintShown" class="form-field__head">
+    <div v-if="labelled || hintShown" class="form-field__head">
       <label
-        v-if="label"
+        v-if="$slots.label"
+        :id="labelId"
+        :for="controlId"
+        class="form-field__label form-field__label--custom"
+        ><slot name="label"
+      /></label>
+      <label
+        v-else-if="label"
         :id="labelId"
         :for="controlId"
         class="form-field__label field-label"
@@ -29,7 +36,9 @@
 // `labelId` for a control a `for` cannot name (a radio group, a segmented control), and `reportError` for a control that
 // checks its own format (BasicInput `format`, plan 61) — the caller's `error` wins over it. `layout="inline"`: label
 // left, control right from 1024 px, stacked below. On a read-only page (useReadonly, plan 19) `disabled` is always on.
-import { computed, provide, ref, useId } from "vue";
+// The `label` slot replaces the caps field label with the caller's own markup (a numbered question): it keeps the
+// label's `for` and id, and the caller marks a required field itself.
+import { computed, provide, ref, useId, useSlots } from "vue";
 import { FORM_FIELD } from "@/composables/formField";
 import { useReadonly } from "@/composables/useReadonly";
 import BasicTooltip from "@/boots/BasicTooltip/index.vue";
@@ -47,6 +56,8 @@ const props = defineProps({
   layout: { type: String, default: "stacked", validator: (value) => ["stacked", "inline"].includes(value) },
 });
 
+const slots = useSlots();
+const labelled = computed(() => Boolean(props.label || slots.label));
 const generatedId = useId();
 const controlId = computed(() => props.id || `${generatedId}-control`);
 const labelId = `${generatedId}-label`;
@@ -77,7 +88,7 @@ provide(FORM_FIELD, {
   invalid: computed(() => !!shownError.value),
   required: computed(() => props.required),
   disabled: computed(() => props.disabled || readonly.value),
-  labelId: computed(() => (props.label ? labelId : "")),
+  labelId: computed(() => (labelled.value ? labelId : "")),
   reportError: (message) => (controlError.value = message),
 });
 </script>
@@ -115,6 +126,11 @@ provide(FORM_FIELD, {
       min-width: 0;
     }
   }
+}
+
+.form-field__label--custom {
+  flex: 1;
+  min-width: 0;
 }
 
 .form-field__error {
