@@ -52,13 +52,15 @@ export function useProposalCorrection(proposal, onUpdated) {
     { deep: true }
   );
 
-  const landed = (value) => onUpdated({ ...proposal.value, proposed_value: value });
+  // A new version: its value, and its QA warnings, recomputed per revision (contract A4 § 4).
+  const landed = (revision) =>
+    onUpdated({ ...proposal.value, proposed_value: revision.value, warnings: revision.warnings ?? proposal.value.warnings });
 
   const revise = (request) =>
     act(async () => {
       const { data } = await POST_ReviseProposal(id(), reviseBody(request));
       if (data.candidates) candidates.value = data.candidates;
-      else landed(data.value);
+      else landed(data);
     });
 
   const saveValue = (value, toastKey = "enrichment.review.toast.edited") =>
@@ -71,7 +73,7 @@ export function useProposalCorrection(proposal, onUpdated) {
   const restore = (number) =>
     act(async () => {
       const { data } = await POST_RestoreRevision(id(), number);
-      landed(data.value);
+      landed(data);
     }, "enrichment.versions.restored_toast");
 
   const setRules = (rules) =>

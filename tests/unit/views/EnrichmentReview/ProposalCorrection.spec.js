@@ -65,6 +65,23 @@ describe("ProposalCorrection", () => {
     expect(w.emitted("updated")).toBeUndefined();
   });
 
+  it("a new version brings its own QA warnings: stale ones go, new ones show", async () => {
+    const stale = { code: "NUMBER_NOT_IN_FACTS", message: "120 cm" };
+    const fresh = { code: "TOO_LONG", message: "over 160" };
+    api.POST_ReviseProposal.mockResolvedValue({ data: { number: 2, value: { text: "A sofa" }, warnings: [] } });
+    api.GET_ProposalRevisions.mockResolvedValue({ data: [{ number: 1 }] });
+    api.POST_RestoreRevision.mockResolvedValue({ data: { number: 3, value: { text: "A red sofa, 120 cm" }, warnings: [fresh] } });
+    const w = mountCorrection({ proposal: { ...PROPOSAL, warnings: [stale] } });
+    (await openBar(w)).vm.$emit("submit", { instruction: "", quickAction: "shorten", selection: "" });
+    await flushPromises();
+    expect(w.emitted("updated")[0][0].warnings).toEqual([]);
+    await w.find("[data-testid='versions-toggle']").trigger("click");
+    await flushPromises();
+    w.findComponent({ name: "VersionTimeline" }).vm.$emit("restore", 1);
+    await flushPromises();
+    expect(w.emitted("updated")[1][0]).toMatchObject({ proposed_value: { text: "A red sofa, 120 cm" }, warnings: [fresh] });
+  });
+
   it("3 variants wait for a pick, which is saved as a manual version", async () => {
     api.POST_ReviseProposal.mockResolvedValue({ data: { candidates: [{ text: "A" }, { text: "B" }, { text: "C" }] } });
     api.PATCH_Proposal.mockResolvedValue({ data: { ...PROPOSAL, proposed_value: { text: "B" } } });
