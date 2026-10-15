@@ -375,6 +375,20 @@ describe("BasicRadioGroup", () => {
     expect(wrapper.find("[role=radiogroup]").attributes("aria-labelledby")).toBe(label.attributes("id"));
     expect(wrapper.findAll("input").every((r) => r.attributes("disabled") !== undefined)).toBe(true);
   });
+
+  it("tiles: the option slot draws each tile, the radios stay the choice", async () => {
+    const wrapper = mount(BasicRadioGroup, {
+      props: { options, modelValue: 1, layout: "tiles" },
+      slots: { option: "<template #option='{ option, checked }'><img :alt='option.label' :data-checked='checked' /></template>" },
+    });
+    expect(wrapper.classes()).toContain("radio-group--tiles");
+    expect(wrapper.findAll("img").map((img) => [img.attributes("alt"), img.attributes("data-checked")])).toEqual([
+      ["One", "true"],
+      ["Two", "false"],
+    ]);
+    await wrapper.findAll("input[type=radio]")[1].trigger("change");
+    expect(wrapper.emitted("update:modelValue").at(-1)).toEqual([2]);
+  });
 });
 
 describe("BasicSwitch", () => {

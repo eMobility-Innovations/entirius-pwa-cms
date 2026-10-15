@@ -162,6 +162,10 @@ export const GET_Languages = (params) =>
 export const POST_ResolveSubjects = (data) =>
   enrichmentApi.post(`${ENR}/subjects/resolve/`, data);
 
+// params { module, channel, ref } → [{ ref, label, url, is_main }] — one item's pictures, main first.
+export const GET_SubjectPictures = (params) =>
+  enrichmentApi.get(`${ENR}/subjects/pictures/`, { params });
+
 // --- Workflows (contract A4 § 6) ---
 
 // Active workflows: [{ key, label, target_module, inputs_schema, steps: [{ key, label, needs, gate, output }] }].

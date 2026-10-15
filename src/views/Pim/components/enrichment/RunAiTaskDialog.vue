@@ -31,6 +31,17 @@
 
       <TaskTargetPicker v-if="pickTargets" v-model="target" />
 
+      <PicturePicker
+        v-if="pictureSubject"
+        v-model="pictureRef"
+        :channel="channel"
+        :subject-ref="pictureSubject"
+        :label="$t('enrichment.ai.picture.video_label')"
+      />
+      <p v-else-if="kind === 'video' && runCount > 1" class="fs-200 t-secondary m-0" data-testid="ai-task-main-pictures">
+        {{ $t("enrichment.ai.picture.several_video") }}
+      </p>
+
       <AiParamsForm
         v-model="values"
         v-model:research="research"
@@ -90,6 +101,7 @@ import {
 } from "./aiTaskForm";
 import { newTemplateBody } from "./templateForm";
 import TaskTargetPicker from "./TaskTargetPicker.vue";
+import PicturePicker from "./PicturePicker.vue";
 import QaCheckToggle from "./QaCheckToggle.vue";
 import { qaCheckParams } from "./qaCheck";
 import { LANE_NOW, LANE_QUEUE, RUN_NOW_MAX, canRunNow, defaultLane, spawnToast } from "./runLane";
@@ -104,10 +116,12 @@ import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 // Two ways to send it: Run now (the express lane, at most RUN_NOW_MAX products) and Add to queue; the primary one
 // follows the scope — one product runs now, a selection is queued. A phone shows only the primary one (one footer row).
 // `pickTargets` (Studio): the products are picked in the dialog (TaskTargetPicker: pasted SKUs or a category) instead of
-// coming in as `skus`; a big category is a filter scope, queued only.
+// coming in as `skus`; a big category is a filter scope, queued only. A `video` worker on one product asks which picture
+// it animates (PicturePicker → `params.picture_ref`, run only, never saved in a template); on several products each one
+// uses its main picture.
 export default {
   name: "RunAiTaskDialog",
-  components: { AiToolboxHint, AiParamsForm, QaCheckToggle, TaskTargetPicker },
+  components: { AiToolboxHint, AiParamsForm, PicturePicker, QaCheckToggle, TaskTargetPicker },
   props: {
     open: { type: Boolean, default: false },
     workers: { type: Array, default: () => [] },
@@ -146,6 +160,7 @@ export default {
       openSeq: 0,
       reloading: false,
       target: { skus: [], filters: null, count: 0, pending: false },
+      pictureRef: "",
     };
   },
   computed: {
@@ -182,6 +197,11 @@ export default {
     runCount() {
       return this.pickTargets ? this.target.count : this.skus.length;
     },
+    // The one product a `video` run animates a chosen picture of; "" = several products (each uses its main picture).
+    pictureSubject() {
+      if (this.kind !== "video" || this.runFilters || this.runSkus.length !== 1) return "";
+      return this.runSkus[0];
+    },
     // A filter scope has no list of products: the server queues it (Run now takes a list).
     primaryLane() {
       return this.runFilters ? LANE_QUEUE : defaultLane(this.runCount);
@@ -211,7 +231,9 @@ export default {
     },
     canRun() {
       const targeted = this.runCount > 0 && !(this.pickTargets && this.target.pending);
-      return this.ready && !this.reloading && !!this.worker && targeted && this.health.aiUsable && !missingRequired(this.fields, this.values).length;
+      const pictured = !this.pictureSubject || !!this.pictureRef;
+      return this.ready && !this.reloading && !!this.worker && targeted && pictured && this.health.aiUsable
+        && !missingRequired(this.fields, this.values).length;
     },
     // The run on Runs: its progress, then what it proposed, in one place.
     taskLink() {
@@ -302,7 +324,7 @@ export default {
       this.sendingLane = lane;
       try {
         const payload = buildTaskPayload({
-          worker: this.worker, params: this.params, channel: this.channel, skus: this.runSkus, template: this.templateKey,
+          worker: this.worker, params: this.runParams(), channel: this.channel, skus: this.runSkus, template: this.templateKey,
           filters: this.runFilters,
         });
         const { data } = await POST_SpawnTask({ ...payload, lane });
@@ -315,6 +337,9 @@ export default {
       } finally {
         this.busy = false;
       }
+    },
+    runParams() {
+      return this.pictureSubject ? { ...this.params, picture_ref: this.pictureRef } : this.params;
     },
     // The same run already going (409) is news, not a failure; a refusal of the form (400) keeps it open to fix.
     refused(err) {

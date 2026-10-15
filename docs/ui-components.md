@@ -416,7 +416,9 @@ Catalogue: `#selects` (`#basic-select`, `#entity-search-picker`, `#channel-multi
   is `BasicSelect multiple`.
 - **`BasicRadioGroup`** — `options` `[{ label, value, disabled?, testid? }]`, `v-model`, `name`, `disabled`; native
   radios in a `role="radiogroup"` (one Tab stop, the arrow keys move and select), named by the FormField label. An
-  option's `testid` lands on its radio input.
+  option's `testid` lands on its radio input. `layout="tiles"` draws the options as a grid of square tiles from the
+  `option` slot (`{ option, checked }` — a thumbnail; keep `label` as its accessible name), the picked one in the
+  accent border (`PicturePicker`).
 - **`BasicSwitch`** — replaces `Switcher`: `v-model`, `label`, `hint` + `hintLevel` (the field-hint mark), `disabled`; a
   `role="switch"` button with `aria-checked`, styles scoped to it.
 - **`BasicDatePicker`** — an input-looking trigger with the `calendar` icon opens an inline flatpickr; `v-model` (the

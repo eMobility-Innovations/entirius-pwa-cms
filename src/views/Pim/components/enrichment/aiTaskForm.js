@@ -1,9 +1,10 @@
 // The "Run AI task" form, generated from a worker's `params_schema` (a pydantic JSON schema). Kept small on
 // purpose: a string, a string enum, an array of strings (`fields` = the field picker, else a language list), the
 // free-text `prompt`. `channel` is never asked — the dialog fills it from the active PIM channel; `rules` live on
-// the template. Other types keep the backend default. Research (augmentations, contract A4 § 5) sits next to it.
+// the template; `picture_ref` comes from the dialog's picture picker. Other types keep the backend default. Research
+// (augmentations, contract A4 § 5) sits next to it.
 
-const HIDDEN = new Set(["channel", "rules"]);
+const HIDDEN = new Set(["channel", "rules", "picture_ref"]);
 export const ALL_LANGUAGES = "*";
 
 // `str | None` arrives as anyOf [{type: string}, {type: null}]; an Enum class as a $ref into $defs.

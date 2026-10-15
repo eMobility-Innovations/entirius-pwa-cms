@@ -74,6 +74,16 @@ const WORKERS = [
   },
 ];
 
+const VIDEO = {
+  key: "pim.social_video",
+  label: "Social video",
+  kind: "video",
+  params_schema: {
+    properties: { channel: { type: "string" }, prompt: { type: "string", default: "" }, picture_ref: { type: "string", default: "" } },
+    required: ["channel"],
+  },
+};
+
 const TEMPLATES = [
   {
     key: "meta", label: "Meta descriptions", worker_key: "pim.writer", kind: "write", position: 10, active: true,
@@ -98,6 +108,7 @@ const stubs = {
   FormField: { template: "<div><slot /></div>" },
   RouterLink: { name: "RouterLink", props: ["to"], template: "<a><slot /></a>" },
   TaskTargetPicker: { name: "TaskTargetPicker", props: ["modelValue"], template: "<div />" },
+  PicturePicker: { name: "PicturePicker", props: ["modelValue", "channel", "subjectRef", "label"], template: "<div />" },
   QaCheckToggle: { name: "QaCheckToggle", props: ["modelValue", "disabled"], template: "<div data-testid='qa-check-toggle' />" },
 };
 
@@ -460,6 +471,49 @@ describe("RunAiTaskDialog", () => {
       await w.setProps({ open: true });
       await flushPromises();
       expect(w.vm.runCount).toBe(0);
+    });
+  });
+
+  describe("video: which picture it animates", () => {
+    const video = (props = {}) => openDialog({ workers: [...WORKERS, VIDEO], initialWorker: VIDEO.key, ...props });
+    const picker = (w) => w.findComponent({ name: "PicturePicker" });
+    const runAction = (w) => w.vm.actions.find((a) => a.key === "now");
+
+    it("one product: a required picture choice that rides in the run, never in the form", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 7, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await video({ skus: ["A"] });
+      expect(picker(w).props()).toMatchObject({ subjectRef: "A", channel: "default-europe", label: "enrichment.ai.picture.video_label" });
+      expect(w.vm.fields.map((f) => f.name)).toEqual(["prompt"]);
+      expect(runAction(w).disabled).toBe(true);
+      picker(w).vm.$emit("update:modelValue", "12");
+      await flushPromises();
+      expect(runAction(w).disabled).toBe(false);
+      await w.vm.run();
+      expect(mockSpawn.mock.calls[0][0].params).toEqual({ prompt: "", channel: "default-europe", picture_ref: "12" });
+      expect(w.vm.params).not.toHaveProperty("picture_ref");
+    });
+
+    it("several products: no choice, a note that each uses its main picture", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 8, lane: "queue", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await video({ skus: ["A", "B"] });
+      expect(picker(w).exists()).toBe(false);
+      expect(w.find("[data-testid='ai-task-main-pictures']").text()).toBe("enrichment.ai.picture.several_video");
+      await w.vm.run();
+      expect(mockSpawn.mock.calls[0][0].params).not.toHaveProperty("picture_ref");
+    });
+
+    it("other workers ask for no picture", async () => {
+      const w = await openDialog({ skus: ["A"] });
+      expect(picker(w).exists()).toBe(false);
+      expect(w.find("[data-testid='ai-task-main-pictures']").exists()).toBe(false);
+    });
+
+    it("Studio: one picked product asks for its picture", async () => {
+      const w = await video({ skus: [], pickTargets: true });
+      expect(picker(w).exists()).toBe(false);
+      w.findComponent({ name: "TaskTargetPicker" }).vm.$emit("update:modelValue", { skus: ["S1"], filters: null, count: 1, pending: false });
+      await flushPromises();
+      expect(picker(w).props("subjectRef")).toBe("S1");
     });
   });
 });

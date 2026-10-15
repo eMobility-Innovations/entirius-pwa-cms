@@ -2946,7 +2946,8 @@
         "BUDGET_EXCEEDED": "Budżet AI się wyczerpał",
         "HARD_CAP_REACHED": "Osiągnięto limit wydatków na AI",
         "SPEND_CAP_EXCEEDED": "Osiągnięto limit wydatków na AI",
-        "QUOTA_EXCEEDED": "Limit AI się wyczerpał"
+        "QUOTA_EXCEEDED": "Limit AI się wyczerpał",
+        "PICTURE_NOT_FOUND": "Wybranego zdjęcia nie ma już przy tym produkcie"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",
@@ -2971,7 +2972,11 @@
       },
       "summary_one": "Obejmie 1 produkt w kanale {channel}.",
       "summary_few": "Obejmie {count} produkty w kanale {channel}.",
-      "summary_many": "Obejmie {count} produktów w kanale {channel}."
+      "summary_many": "Obejmie {count} produktów w kanale {channel}.",
+      "picture": {
+        "video_label": "Zdjęcie do animacji",
+        "several_video": "Każdy produkt użyje swojego głównego zdjęcia. Aby wybrać inne zdjęcie, uruchom to dla jednego produktu."
+      }
     },
     "video": {
       "download": "Pobierz wideo",
@@ -3523,6 +3528,13 @@
       "nobody_taking": "Nikt nie przyjmuje pracy {label} — czeka {count} od {minutes} min",
       "resume": "Wznów",
       "resumed": "{label} znów pracuje"
+    },
+    "picture_picker": {
+      "main": "Główne",
+      "loading": "Wczytuję zdjęcia…",
+      "none": "Ten produkt nie ma zdjęć. Najpierw dodaj zdjęcie na stronie produktu.",
+      "failed": "Nie udało się wczytać zdjęć. Zamknij okno i spróbuj ponownie.",
+      "untitled": "Zdjęcie {n}"
     }
   },
   "promo": {

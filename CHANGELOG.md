@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Run AI with a video worker on one product (product page or a Studio task with one SKU) asks which picture to
+  animate: thumbnails of the product's pictures, the main one picked first (`PicturePicker`, sent as
+  `params.picture_ref`). On several products a note says each uses its main picture. `BasicRadioGroup` takes
+  `layout="tiles"` with an `option` slot.
 - Enricher menu: Review, Studio, Settings. Review has two tabs, Proposals and Runs (`/enrichment/runs`): a finished
   run's proposals are reviewed right under it (`?task=<id>`), a run still going or failed opens its products and what
   it came to. Settings holds Company profile, Memory, AI templates and Spawn rules as tabs. The old addresses redirect.
