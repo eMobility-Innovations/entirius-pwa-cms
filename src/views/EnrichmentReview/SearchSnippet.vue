@@ -1,15 +1,16 @@
 <template>
   <div class="search-snippet flex-column gap-1" data-testid="search-snippet">
     <span class="search-snippet__url fs-200 t-secondary">{{ url || "—" }}</span>
-    <span class="search-snippet__title">{{ title }}</span>
-    <p class="search-snippet__text fs-200 m-0">{{ shown }}</p>
+    <span class="search-snippet__title">{{ cut(title, TITLE_CUT) }}</span>
+    <p class="search-snippet__text fs-200 m-0">{{ cut(text, CUT) }}</p>
   </div>
 </template>
 
 <script>
-// How a meta description reads in a search result: the page URL, the product name as the title and the text cut
-// where a search engine cuts it.
+// How a page reads in a search result: the URL, the title and the description, each cut where a search engine cuts
+// it. A meta description shows under the product's name; a meta title over the product's meta description.
 const CUT = 160;
+const TITLE_CUT = 60;
 
 export default {
   name: "SearchSnippet",
@@ -18,9 +19,12 @@ export default {
     url: { type: String, default: "" },
     text: { type: String, default: "" },
   },
-  computed: {
-    shown() {
-      return this.text.length > CUT ? `${this.text.slice(0, CUT - 1).trimEnd()}…` : this.text;
+  data() {
+    return { CUT, TITLE_CUT };
+  },
+  methods: {
+    cut(text, at) {
+      return text.length > at ? `${text.slice(0, at - 1).trimEnd()}…` : text;
     },
   },
 };

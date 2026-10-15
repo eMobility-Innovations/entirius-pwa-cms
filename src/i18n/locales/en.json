@@ -36,7 +36,7 @@
     "atlas_review_queue": "Review Queue",
     "atlas_find": "Find product",
     "enrichment_review": "Enrichment Review",
-    "enrichment_spawn_rules": "Spawn Rules",
+    "enrichment_spawn_rules": "Spawn rules",
     "enrichment_tasks": "Tasks",
     "translation_jobs": "Translation Jobs",
     "promo_list": "Promotions",
@@ -2586,7 +2586,7 @@
   },
   "enrichment": {
     "spawn_rules": {
-      "title": "Spawn Rules",
+      "title": "Spawn rules",
       "create": "Create spawn rule",
       "empty": "No spawn rules yet",
       "only_active": "Only active",
@@ -2629,13 +2629,9 @@
       "confirm_delete_title": "Delete spawn rule"
     },
     "tasks": {
-      "title": "Enrichment Tasks",
+      "title": "AI tasks",
       "empty": "No tasks",
       "matching": "{count} matching",
-      "col_id": "ID",
-      "col_type": "Type",
-      "col_check": "Quality check",
-      "col_rule": "Rule",
       "col_status": "Status",
       "col_progress": "Progress",
       "col_created": "Created",
@@ -2649,7 +2645,15 @@
       "starts_next": "starts next",
       "ahead_one": "1 ahead",
       "ahead_few": "{count} ahead",
-      "ahead_many": "{count} ahead"
+      "ahead_many": "{count} ahead",
+      "col_task": "Task",
+      "open": "Open the task",
+      "studio_step": "Article: {step}",
+      "generic": "AI task",
+      "from_rule": "Started by a rule",
+      "products_one": "1 product",
+      "products_few": "{count} products",
+      "products_many": "{count} products"
     },
     "task_status": {
       "open": "Open",
@@ -2674,16 +2678,16 @@
       "not_found": "Product not found"
     },
     "queue": {
-      "title": "Queue",
-      "sku": "SKU",
-      "kind": "Kind",
-      "locator": "Locator",
+      "title": "AI task",
+      "sku": "Product",
+      "locator": "Language",
       "priority": "Priority",
       "empty": "Queue is empty",
       "page": "Page {page}",
       "prev": "Previous",
       "next": "Next",
-      "end": "End of queue"
+      "end": "End of queue",
+      "review": "Review what it proposed"
     },
     "import": {
       "open": "Import CSV",
@@ -2729,9 +2733,15 @@
         "product": "Product"
       },
       "bulk": {
-        "matching": "{count} proposals match this filter",
-        "accept_all": "Accept all matching",
-        "reject_all": "Reject all matching"
+        "accept_all": "Apply all ({count})",
+        "reject_all": "Reject all ({count})",
+        "undo_all": "Undo all ({count})",
+        "confirm_accept": "Apply all {count} proposals?",
+        "confirm_accept_message": "Every proposal in this filter is written to its product now.",
+        "confirm_reject": "Reject all {count} proposals?",
+        "confirm_reject_message": "They leave the queue. You will find them under Rejected.",
+        "confirm_undo": "Undo all {count} applied proposals?",
+        "confirm_undo_message": "The previous values come back. Proposals changed since they were applied are skipped."
       },
       "undo": "Undo",
       "undo_hint": "Revert the applied proposals in this filter (single-level undo). Items changed since apply are skipped.",
@@ -2766,7 +2776,9 @@
       "length": "{count} / {target} characters",
       "kind": {
         "video": "Product video",
-        "picture": "Product picture"
+        "picture": "Product picture",
+        "document": "Article",
+        "artifact": "Studio step"
       },
       "search_preview": "In search results",
       "change_new": "New",
@@ -2785,7 +2797,18 @@
       "clear_filters": "Clear filters",
       "show_pending": "Show pending",
       "show_applied": "Show applied",
-      "run_ai": "Run AI on products"
+      "run_ai": "Run AI on products",
+      "step": {
+        "questions": "Questions",
+        "keywords": "Search phrases",
+        "outline": "Outline",
+        "draft": "Draft",
+        "meta": "Metadata",
+        "compose": "Document"
+      },
+      "studio_article": "Studio article",
+      "studio_note": "This text is a step of a Studio article. Read and change it in the Studio, where the whole article is.",
+      "open_in_studio": "Open in the Studio"
     },
     "status": {
       "pending": "Pending",
@@ -2802,12 +2825,11 @@
     },
     "ai": {
       "menu": "AI",
-      "title": "Run AI task",
-      "worker": "Worker",
+      "title": "Run AI",
+      "worker": "What the AI does",
       "no_workers": "No AI workers configured",
-      "prompt_placeholder": "Extra instructions for this run (optional)",
-      "summary": "One task over {count} product(s) in channel {channel}.",
-      "created": "Task #{id} created. Proposals appear in the review as the worker finishes products.",
+      "prompt_placeholder": "Extra instructions for the AI (optional)",
+      "created": "Sent to the AI. Its proposals appear in the review as each product is finished.",
       "open_task": "Open the task",
       "params": {
         "prompt": "Instructions",
@@ -2816,7 +2838,7 @@
         "languages": "Languages",
         "fields": "Fields"
       },
-      "results_title": "AI for {sku}",
+      "results_title": "AI for {name}",
       "recent_tasks": "Recent tasks",
       "results_empty": "No AI proposals waiting for this product",
       "results_running": "The task runs in the background — its proposals appear here when it finishes.",
@@ -2888,7 +2910,10 @@
         "skipped_one": "1 product skipped, already running.",
         "skipped_few": "{count} products skipped, already running.",
         "skipped_many": "{count} products skipped, already running."
-      }
+      },
+      "summary_one": "Runs on 1 product in {channel}.",
+      "summary_few": "Runs on {count} products in {channel}.",
+      "summary_many": "Runs on {count} products in {channel}."
     },
     "video": {
       "download": "Download video",
@@ -2987,7 +3012,7 @@
       "no_fields": "No fields available for this kind of work",
       "all_languages": "All languages",
       "research": "Research before writing",
-      "research_seo_brief": "SEO research (DataForSEO)",
+      "research_seo_brief": "Search research (what people search for, what ranks)",
       "scope_category": "Shared by the product's category",
       "scope_subject": "Separately for each product",
       "save_as_template": "Save as template",
@@ -3000,7 +3025,7 @@
       "create": "New template",
       "empty": "No templates yet. Create one here, or set up a run in Run AI and save it as a template.",
       "col_label": "Name",
-      "col_worker": "AI worker",
+      "col_worker": "What the AI does",
       "col_fields": "Fields",
       "col_active": "In Run AI",
       "on": "Offered",
@@ -3018,7 +3043,8 @@
       "missing_title": "This template no longer exists",
       "missing_hint": "It may have been deleted or renamed. Pick one from the list.",
       "back_to_list": "Back to templates",
-      "unfilled": "To save, fill in: {fields}"
+      "unfilled": "To save, fill in: {fields}",
+      "description": "Ready-made AI runs offered under Run AI on a product, in this order. Open one to change what it writes or to stop offering it."
     },
     "cost": {
       "label": "Cost",
@@ -3236,7 +3262,7 @@
       "write": "Write",
       "preview": "Preview",
       "no_rows": "Nothing here yet.",
-      "active": "Checked",
+      "active": "Rule is on",
       "map_placeholder": "pl: tekst; de: Text",
       "remove_row": "Remove row",
       "add_row": "Add row",
@@ -3248,7 +3274,7 @@
       "compare_to": "with",
       "restore_title": "Restore version {n}?",
       "restore_message": "Its content becomes the current profile as a new version. Nothing is lost: the current version stays in the history.",
-      "used": "Likely used from profile: {sections}",
+      "used": "Likely from the company profile: {sections}",
       "sections": {
         "brand": "Brand",
         "persona": "Audience",
@@ -3310,7 +3336,14 @@
       },
       "restore_discards": "Your unsaved changes on this page will be lost.",
       "switch_discards": "Switching the scope discards your unsaved changes to this profile.",
-      "used_hint": "Worked out from the profile versions this task used."
+      "used_hint": "Worked out from the profile versions this task used.",
+      "no_changes": "These two versions are the same.",
+      "current": "Current",
+      "row_off": "off",
+      "json_blocked": "Fix the errors in the JSON first, then go back to the form.",
+      "row": "Row {n}",
+      "from_company": "From the company",
+      "inherited_label": "Empty here, so this channel uses the whole company's:"
     },
     "memory": {
       "title": "Memory",
@@ -3318,7 +3351,7 @@
       "subject_search": "Product or subject",
       "kind_filter": "Kind",
       "status_filter": "State",
-      "expiry_filter": "Expiry (this page)",
+      "expiry_filter": "Expiry",
       "empty": "Nothing remembered here yet.",
       "delete_title": "Delete this memory entry?",
       "all_kinds": "All kinds",
@@ -3360,7 +3393,11 @@
         "item": "Item"
       },
       "empty_filtered": "Nothing matches these filters.",
-      "clear_filters": "Clear filters"
+      "clear_filters": "Clear filters",
+      "open_run": "Open the Studio article",
+      "open_proposal": "Open the proposal",
+      "open_product": "Open the product",
+      "open_profile": "Open the company profile"
     },
     "qa": {
       "code": {
@@ -4275,6 +4312,18 @@
       "load_error": "Could not load the saved footers — reload the page before editing"
     }
   },
+  "ai_usage": {
+    "title": "AI usage this month",
+    "prefix": "AI this month",
+    "tokens": "{count} tokens",
+    "label": "AI usage this month: {tokens} tokens, cost {cost}",
+    "tokens_row": "Tokens",
+    "cost_row": "Cost",
+    "cost_billed": "Cost as billed by the AI service, its margin included.",
+    "cost_since": "Cost as billed by the AI service, its margin included, counted since {date} (when billing started).",
+    "cost_off": "No cost yet: billing is not switched on for this account in the AI service.",
+    "unavailable": "AI usage can't be read right now. It refreshes on its own."
+  },
   "config_health": {
     "title": "Configuration health",
     "open": "Configuration problems: {count}",
@@ -4292,7 +4341,7 @@
       "communicator_smtp": "Outreach mail (SMTP)",
       "siteintel_sources": "Site audit sources",
       "siteintel_keys": "Site audit API keys",
-      "enrichment_profile": "Communication profile"
+      "enrichment_profile": "Company profile"
     },
     "checks": {
       "toolbox_status": {
@@ -4317,7 +4366,7 @@
         "auth_failed": "The {scope} API rejects the key — site audits of this source fail"
       },
       "enrichment_profile": {
-        "incomplete": "The communication profile is incomplete: {scope} — AI texts stay generic there"
+        "incomplete": "The company profile is incomplete: {scope} — AI texts stay generic there"
       }
     }
   },

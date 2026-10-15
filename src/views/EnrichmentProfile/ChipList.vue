@@ -47,5 +47,11 @@ export default {
 .chip-list__items {
   padding: 0;
   list-style: none;
+
+  // A long chip wraps to the card's width (the Tag's ellipsis needs a bounded item), so its remove stays in reach.
+  > li {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 </style>

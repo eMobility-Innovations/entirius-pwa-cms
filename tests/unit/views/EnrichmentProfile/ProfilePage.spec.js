@@ -20,7 +20,7 @@ vi.mock("@/views/EnrichmentProfile/useProfileChannels", () => ({
 
 import ProfilePage from "@/views/EnrichmentProfile/ProfilePage.vue";
 
-const ProfileSection = { name: "ProfileSection", props: ["section", "modelValue", "status", "errors"], template: "<div />" };
+const ProfileSection = { name: "ProfileSection", props: ["section", "modelValue", "status", "errors", "inherited"], template: "<div />" };
 const ActionBar = { name: "ActionBar", props: ["actions"], template: "<div />" };
 const ProfileHistory = { name: "ProfileHistory", props: ["visible", "versions", "busy", "dirty"], emits: ["restore", "close"], template: "<div />" };
 const ConfirmDialog = { name: "ConfirmDialog", props: ["open"], emits: ["confirm"], template: "<div />" };
@@ -96,7 +96,10 @@ describe("ProfilePage", () => {
     expect(JSON.parse(w.vm.jsonText)).toEqual(PROFILE.data);
     w.vm.jsonText = JSON.stringify({ brand: { differentiators: [1] } });
     await w.vm.$nextTick();
-    expect(w.find("[data-testid='profile-json-errors']").text()).toContain("brand.differentiators.0");
+    // The place in words, never the code path "brand.differentiators.0".
+    expect(w.find("[data-testid='profile-json-errors']").text()).toContain(
+      'brand › differentiators › enrichment.profile.row::{"n":1}'
+    );
     await action(w, "save").onClick();
     expect(api.PUT_Profile).not.toHaveBeenCalled();
     action(w, "json").onClick();
@@ -154,8 +157,12 @@ describe("ProfilePage", () => {
     const w = mountPage();
     await flushPromises();
     let slow;
-    api.GET_Profile.mockImplementationOnce(() => new Promise((resolve) => (slow = resolve)));
-    api.GET_Profile.mockImplementationOnce(() => Promise.resolve({ data: { channel: "us", version: 1, data: { tone: { text: "US." } } } }));
+    // By scope: a channel scope also reads the whole company's profile (what its empty sections use).
+    api.GET_Profile.mockImplementation(({ channel }) => {
+      if (channel === "eu") return new Promise((resolve) => (slow = resolve));
+      if (channel === "us") return Promise.resolve({ data: { channel: "us", version: 1, data: { tone: { text: "US." } } } });
+      return Promise.resolve({ data: PROFILE });
+    });
     w.vm.setChannel("eu");
     w.vm.setChannel("us");
     await flushPromises();
@@ -164,5 +171,7 @@ describe("ProfilePage", () => {
     expect(w.vm.channel).toBe("us");
     expect(w.vm.form.tone).toEqual({ text: "US." });
     expect(w.vm.loading).toBe(false);
+    // The channel's empty sections get the company's value to show; the company scope gets none.
+    expect(section(w, "brand").props("inherited")).toEqual(PROFILE.data.brand);
   });
 });

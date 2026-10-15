@@ -35,8 +35,14 @@
         <CostLabel v-if="!running" :cost="task.cost_usd" :partial="!task.cost_complete" data-testid="ai-task-cost" />
       </span>
     </div>
-    <router-link class="ai-task__id fs-200 t-muted" :to="taskLink" :aria-label="$t('enrichment.tasks.single', { id: task.id })">
-      #{{ task.id }}
+    <router-link
+      class="ai-task__id t-muted"
+      :to="taskLink"
+      :aria-label="$t('enrichment.tasks.open')"
+      :title="$t('enrichment.tasks.open')"
+      data-testid="ai-task-open"
+    >
+      <FontAwesomeIcon :icon="$icons.next" aria-hidden="true" />
     </router-link>
   </li>
 </template>
@@ -59,7 +65,7 @@ const LOOK = {
 const QUIET = { icon: "info", tone: "neutral" };
 
 // One AI task in plain words — a task waiting for review shows its count in an accent pill (the call to act): the template or worker, its languages, when, what it cost once done, and what came of it — proposals to review, applied,
-// nothing to do, or why it failed (the toolbox error code, named for people). The id links to the task, small.
+// nothing to do, or why it failed (the toolbox error code, named for people). A chevron links to the task.
 export default {
   name: "AiTaskRow",
   components: { CostLabel },
@@ -215,6 +221,7 @@ export default {
 }
 .ai-task__id {
   flex-shrink: 0;
-  padding: var(--space-4) var(--space-3) 0 0;
+  align-self: center;
+  padding: var(--space-3);
 }
 </style>

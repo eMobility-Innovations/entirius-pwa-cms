@@ -90,6 +90,9 @@ const isEmpty = (value) =>
   (Array.isArray(value) && !value.length) ||
   (typeof value === "object" && !Array.isArray(value) && !Object.keys(value).length);
 
+/** Nothing filled in: the value is empty once its empty strings, lists and objects are dropped. */
+export const isBlankValue = (value) => isEmpty(pruneEmpty(value));
+
 /** The data without empty strings, lists and objects ("empty = missing"); `false` and 0 stay. */
 export function pruneEmpty(value) {
   if (Array.isArray(value)) return value.map(pruneEmpty).filter((item) => !isEmpty(item));
@@ -137,4 +140,40 @@ export function errorsInside(errors, key) {
     .filter(([path]) => path.startsWith(prefix))
     .map(([path, message]) => [path.slice(prefix.length), message]);
   return Object.fromEntries(pairs);
+}
+
+const isRecord = (value) => value && typeof value === "object";
+
+/** A table row as one line: its values joined, ids left out, translations as "pl: …; de: …", a row that is off marked. */
+function rowLine(row, offLabel) {
+  const parts = Object.entries(row)
+    .filter(([key, value]) => key !== "id" && key !== "active" && !isEmpty(value))
+    .map(([, value]) => (isRecord(value) ? mapToText(value) : String(value)));
+  return `• ${parts.join(" · ")}${row.active === false ? ` (${offLabel})` : ""}`;
+}
+
+/** A profile value as plain text for the version diff — text as written, rows as lines, fields under their names. */
+export function readableText(value, { label = (key) => key, offLabel = "off" } = {}) {
+  if (value == null) return "";
+  if (!isRecord(value)) return String(value);
+  if (Array.isArray(value)) return value.map((item) => (isRecord(item) ? rowLine(item, offLabel) : `• ${item}`)).join("\n");
+  return Object.entries(value)
+    .map(([key, item]) => `${label(key)}:\n${readableText(item, { label, offLabel })}`)
+    .join("\n\n");
+}
+
+/** The sections that differ between two versions' data, in the schema's order: [{ key, before, after }]. */
+export function changedSections(before = {}, after = {}, order = []) {
+  const keys = [...new Set([...order, ...Object.keys(before || {}), ...Object.keys(after || {})])];
+  return keys
+    .filter((key) => prettyJson(before?.[key]) !== prettyJson(after?.[key]))
+    .map((key) => ({ key, before: before?.[key], after: after?.[key] }));
+}
+
+/** An error path in words: "facts.2.value" → ["facts", "row 3", "value"] named by `name`, joined with " › ". */
+export function pathWords(path, name) {
+  return path
+    .split(".")
+    .map((part, index) => (/^\d+$/.test(part) ? name("row", Number(part) + 1) : name(index ? "field" : "section", part)))
+    .join(" › ");
 }

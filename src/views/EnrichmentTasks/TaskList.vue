@@ -4,23 +4,25 @@
       <PageHeader :title="$t('enrichment.tasks.title')" />
     </template>
     <template #toolbar>
-      <div class="flex ai-ct flex-wrap gap-2">
-        <FilterChip
-          v-if="taskFilter"
-          :label="$t('enrichment.tasks.single', { id: taskFilter })"
-          active
-          data-testid="enrichment-task-single"
-          @click="onFilterChange(ALL)"
-        />
-        <FilterChip
-          v-for="opt in statusOptions"
-          :key="opt.value"
-          :label="opt.label"
-          :active="!taskFilter && statusFilter === opt.value"
-          :data-testid="`enrichment-task-status-${opt.value}`"
-          @click="onFilterChange(opt.value)"
-        />
-        <span class="fs-200 t-muted ml-auto">
+      <div class="flex ai-ct gap-5">
+        <div class="filter-chip-row" role="group" :aria-label="$t('enrichment.tasks.col_status')">
+          <FilterChip
+            v-if="taskFilter"
+            :label="$t('enrichment.tasks.single', { id: taskFilter })"
+            active
+            data-testid="enrichment-task-single"
+            @click="onFilterChange(ALL)"
+          />
+          <FilterChip
+            v-for="opt in statusOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :active="!taskFilter && statusFilter === opt.value"
+            :data-testid="`enrichment-task-status-${opt.value}`"
+            @click="onFilterChange(opt.value)"
+          />
+        </div>
+        <span class="task-list__count fs-200 t-muted ml-auto">
           {{ $t("enrichment.tasks.matching", { count: totalCount }) }}
         </span>
       </div>
@@ -42,6 +44,12 @@
             <BasicButton data-testid="tasks-show-all" @click="onFilterChange(ALL)">{{ $t("enrichment.tasks.show_all") }}</BasicButton>
           </EmptyState>
         </template>
+        <template #cell-task="{ row }">
+          <span class="task-list__task flex-column">
+            <span class="task-list__name fw-600 t-strong" :title="nameOf(row)">{{ nameOf(row) }}</span>
+            <span v-if="scopeOf(row)" class="task-list__name fs-200 t-muted" :title="scopeOf(row)">{{ scopeOf(row) }}</span>
+          </span>
+        </template>
         <template #cell-status="{ row }">
           <span v-if="isQueued(row)" class="flex-column gap-1" data-testid="enrichment-task-queued">
             <StatusBadge :label="$t('enrichment.task_status.queued')" tone="info" />
@@ -61,6 +69,15 @@
         </template>
         <template #cell-created="{ row }">
           <span class="fs-200 t-muted">{{ formatDate(row.created_at) }}</span>
+        </template>
+        <template #cell-actions="{ row }">
+          <IconButton
+            icon="next"
+            size="sm"
+            :label="$t('enrichment.tasks.open')"
+            :data-testid="`enrichment-task-open-${row.id}`"
+            @click="openQueue(row)"
+          />
         </template>
       </DataTable>
 
@@ -84,10 +101,10 @@
 <script>
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { GET_Task, GET_Tasks } from "@/api/enrichment/api";
+import { GET_Task, GET_Tasks, GET_Templates, GET_Workers } from "@/api/enrichment/api";
 import { formatDate } from "@/utils/format";
 import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
-import { isQueued } from "@/views/Pim/components/enrichment/productAi";
+import { isQueued, taskLabel } from "@/views/Pim/components/enrichment/productAi";
 import { pluralKey } from "@/utils/plural";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
 import { needsRefresh, orderedCounts, taskStatusTone } from "./taskProgress";
@@ -97,6 +114,7 @@ const REFRESH_MS = 5000;
 // Mirrors django_enrichment.enums.TaskStatus.
 const TASK_STATUSES = ["open", "in_progress", "done", "cancelled", "failed"];
 const ALL = "__all";
+const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
 export default {
   name: "TaskList",
   components: { CostLabel, TaskQueueDrawer },
@@ -119,6 +137,8 @@ export default {
       queueVisible: false,
       queueTaskId: null,
       queueLabel: "",
+      workers: [],
+      templates: [],
     };
   },
   computed: {
@@ -133,14 +153,12 @@ export default {
     },
     columns() {
       return [
-        { key: "id", label: this.$t("enrichment.tasks.col_id"), width: "70px" },
-        { key: "type", label: this.$t("enrichment.tasks.col_type"), width: "1fr" },
-        { key: "check", label: this.$t("enrichment.tasks.col_check"), width: "1.2fr" },
-        { key: "rule", label: this.$t("enrichment.tasks.col_rule"), width: "1.2fr" },
-        { key: "status", label: this.$t("enrichment.tasks.col_status"), width: "120px" },
-        { key: "progress", label: this.$t("enrichment.tasks.col_progress"), width: "1fr" },
+        { key: "task", label: this.$t("enrichment.tasks.col_task"), width: "minmax(180px, 2fr)" },
+        { key: "status", label: this.$t("enrichment.tasks.col_status"), width: "max-content" },
+        { key: "progress", label: this.$t("enrichment.tasks.col_progress"), width: "1fr", priority: 2 },
         { key: "cost", label: this.$t("enrichment.cost.label"), width: "90px", priority: 2 },
-        { key: "created", label: this.$t("enrichment.tasks.col_created"), width: "170px" },
+        { key: "created", label: this.$t("enrichment.tasks.col_created"), width: "max-content", priority: 2 },
+        { key: "actions", label: "", actions: true },
       ];
     },
     paginationState() {
@@ -159,6 +177,7 @@ export default {
   mounted() {
     this.currentPage = parseInt(this.$route.query.page) || 1;
     this.fetchTasks();
+    this.loadNames();
   },
   beforeUnmount() {
     clearTimeout(this.refreshTimer);
@@ -178,6 +197,12 @@ export default {
           queued_ahead: t.queued_ahead,
           counts: t.counts,
           created_at: t.created_at,
+          cost_usd: t.cost_usd,
+          cost_complete: t.cost_complete,
+          template: t.params?.template || "",
+          step: t.params?.step || "",
+          topic: t.params?.brief?.topic || "",
+          products: (t.scope_spec?.refs || []).length,
           check: t.scope_spec?.check ?? "—",
           rule: t.params?.spawn_rule ?? "—",
         }));
@@ -201,6 +226,32 @@ export default {
       if (this.statusFilter !== ALL) params.status = this.statusFilter;
       const { data } = await GET_Tasks(params);
       return { results: data.results || [], count: data.count || 0 };
+    },
+    // Worker and template names for the task column; without them a row still reads in plain words.
+    async loadNames() {
+      try {
+        const [workers, templates] = await Promise.all([GET_Workers(), GET_Templates()]);
+        this.workers = listOf(workers.data);
+        this.templates = listOf(templates.data);
+      } catch {
+        this.workers = [];
+        this.templates = [];
+      }
+    },
+    // A task by what it did: its template or worker, else its Studio step, never its key.
+    nameOf(row) {
+      const named = taskLabel({ type: row.type, params: { template: row.template } }, this.workers, this.templates);
+      if (named) return named;
+      const stepKey = `enrichment.review.step.${row.step}`;
+      const step = this.$t(stepKey);
+      if (step !== stepKey) return this.$t("enrichment.tasks.studio_step", { step });
+      return this.$t("enrichment.tasks.generic");
+    },
+    // What it ran on: the article's topic, the products, or a rule that started it.
+    scopeOf(row) {
+      if (row.topic) return row.topic;
+      if (row.products) return this.$t(`enrichment.tasks.products_${pluralKey(row.products)}`, { count: row.products });
+      return row.rule !== "—" ? this.$t("enrichment.tasks.from_rule") : "";
     },
     scheduleRefresh() {
       if (!needsRefresh(this.tasks, !!this.taskFilter)) return;
@@ -242,7 +293,7 @@ export default {
     },
     openQueue(row) {
       this.queueTaskId = row.id;
-      this.queueLabel = row.rule !== "—" ? row.rule : row.type;
+      this.queueLabel = this.nameOf(row);
       this.queueVisible = true;
     },
     closeQueue() {
@@ -256,5 +307,17 @@ export default {
 .task-list {
   display: flex;
   flex-direction: column;
+}
+.task-list__count {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.task-list__task {
+  min-width: 0;
+}
+.task-list__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 </style>

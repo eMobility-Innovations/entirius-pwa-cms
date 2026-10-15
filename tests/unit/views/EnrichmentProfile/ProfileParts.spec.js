@@ -101,9 +101,10 @@ describe("ProfileHistory", () => {
 
   it("compares the previous version with the latest and restores after a confirmation", async () => {
     const w = mount(ProfileHistory, { props: { visible: true, versions }, global: { stubs } });
-    const diff = w.findComponent({ name: "TextDiff" });
-    expect(JSON.parse(diff.props("before"))).toEqual({ tone: { text: "A" } });
-    expect(JSON.parse(diff.props("after"))).toEqual({ tone: { text: "B" } });
+    // Section by section, as text: never the stored JSON.
+    const diff = w.find("[data-testid='profile-diff-tone']").findComponent({ name: "TextDiff" });
+    expect(diff.props("before")).toBe("text:\nA");
+    expect(diff.props("after")).toBe("text:\nB");
     expect(w.find("[data-testid='profile-restore-3']").exists()).toBe(false);
     await w.find("[data-testid='profile-restore-2']").trigger("click");
     expect(w.findComponent({ name: "ConfirmDialog" }).props("open")).toBe(true);

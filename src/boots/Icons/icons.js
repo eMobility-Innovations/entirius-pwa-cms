@@ -74,7 +74,6 @@ export const ICONS = Object.freeze({
   author: "user-pen",
   clear: "broom",
   checkboxOn: "square-check",
-  checkboxOff: "square",
   fullscreen: "expand",
   exitFullscreen: "compress",
   // Empty states (EmptyState)

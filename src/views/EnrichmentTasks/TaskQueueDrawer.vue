@@ -5,7 +5,15 @@
     width="680px"
     @close="$emit('close')"
   >
-    <div class="task-queue">
+    <div class="task-queue flex-column gap-5">
+      <router-link
+        v-if="taskId"
+        :to="{ path: '/enrichment', query: { task: String(taskId), status: '__all' } }"
+        class="task-queue__review t-accent fw-600"
+        data-testid="queue-review-link"
+      >
+        {{ $t("enrichment.queue.review") }}
+      </router-link>
       <Loader v-show="loading" />
 
       <DataTable
@@ -16,7 +24,15 @@
         :empty-text="$t('enrichment.queue.empty')"
       >
         <template #cell-sku="{ row }">
+          <router-link
+            v-if="row.run"
+            :to="{ name: 'EnrichmentStudioRun', params: { uid: row.run } }"
+            class="task-queue__review t-accent"
+          >
+            {{ $t("enrichment.review.studio_article") }}
+          </router-link>
           <BasicButton
+            v-else
             variant="ghost"
             size="sm"
             class="task-queue__sku"
@@ -67,6 +83,7 @@
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { GET_TaskTargets } from "@/api/enrichment/api";
+import { runUidOf } from "@/views/EnrichmentReview/reviewLogic";
 
 export default {
   name: "TaskQueueDrawer",
@@ -89,27 +106,27 @@ export default {
   },
   computed: {
     drawerTitle() {
-      return this.taskLabel
-        ? `${this.$t("enrichment.queue.title")} — ${this.taskLabel}`
-        : this.$t("enrichment.queue.title");
+      return this.taskLabel || this.$t("enrichment.queue.title");
     },
+    // A list task's targets are bare refs; a gap task's carry a language and a priority. Columns no row fills are left out.
     columns() {
-      return [
+      const all = [
         { key: "sku", label: this.$t("enrichment.queue.sku"), width: "1.4fr" },
-        { key: "kind", label: this.$t("enrichment.queue.kind"), width: "1fr" },
         { key: "locator", label: this.$t("enrichment.queue.locator"), width: "1fr" },
         { key: "priority", label: this.$t("enrichment.queue.priority"), width: "90px" },
       ];
+      return all.filter((col) => col.key === "sku" || this.rows.some((row) => row[col.key] != null));
     },
     rows() {
-      return this.targets.map((t, i) => {
-        const loc = t.target_locator || {};
+      return this.targets.map((raw, i) => {
+        const t = typeof raw === "string" ? { subject_ref: raw } : raw;
+        const language = t.target_locator?.language;
         return {
-          key: `${t.subject_ref}__${t.target_kind}__${i}`,
+          key: `${t.subject_ref}__${t.target_kind || ""}__${i}`,
           sku: t.subject_ref,
-          kind: t.target_kind || "—",
-          locator: loc.language || loc.channel || "—",
-          priority: t.priority,
+          run: runUidOf(t),
+          locator: language ? language.toUpperCase() : null,
+          priority: t.priority ?? null,
         };
       });
     },
@@ -177,6 +194,13 @@ export default {
 // The SKU opens the product: accent text, which the ghost variant rule (0,3,1) would otherwise override.
 .task-queue button.button-basic.task-queue__sku {
   color: var(--text-accent);
+}
+.task-queue__review {
+  align-self: flex-start;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
 }
 .task-queue__pager {
   padding: var(--space-8);

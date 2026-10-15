@@ -67,6 +67,14 @@
         :data-testid="`ai-task-param-${field.name}`"
         @update:model-value="(value) => set(field.name, value)"
       />
+      <!-- The closed select says only "2 selected": the picked fields are named under it. -->
+      <p
+        v-if="field.kind === 'fields' && pickedFields(field).length > 1"
+        class="fs-200 t-secondary m-0 mt-2"
+        data-testid="ai-task-picked-fields"
+      >
+        {{ pickedFields(field).join(", ") }}
+      </p>
     </FormField>
 
     <FormField v-if="researchKeys.length" :label="$t('enrichment.run.research')">
@@ -131,6 +139,10 @@ export default {
       const key = `enrichment.ai.params.${field.name}`;
       const label = this.$t(key);
       return label === key ? field.title : label;
+    },
+    pickedFields(field) {
+      const picked = this.modelValue[field.name] || [];
+      return this.fieldChoices.filter((choice) => picked.includes(choice.value)).map((choice) => choice.label);
     },
     set(name, value) {
       this.$emit("update:modelValue", { ...this.modelValue, [name]: value });

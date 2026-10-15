@@ -229,8 +229,10 @@ function clear() {
     min-width: 0;
   }
 
+  // The list is at least as wide as the control (the panel's min-width): a wide field never gets a narrower menu.
   :deep(.basic-menu__popover--panel) {
     align-self: stretch;
+    max-width: calc(100vw - var(--space-4));
     padding: var(--space-1);
   }
 }

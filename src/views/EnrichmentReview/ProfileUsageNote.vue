@@ -34,7 +34,7 @@ export default {
     text() {
       if (!this.sections.length) return "";
       const names = this.sections.map(({ key, count }) => (count ? `${this.sectionName(key)} (${count})` : this.sectionName(key)));
-      return this.$t("enrichment.profile.used", { sections: names.join(", ") });
+      return this.$t("enrichment.profile.used", { sections: names.join(" · ") });
     },
   },
   watch: {

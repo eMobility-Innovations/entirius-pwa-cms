@@ -20,6 +20,7 @@
         @click="close"
       />
       <div class="mobile-menu__panel" data-fid="mobile-menu" @click="onPanelClick">
+        <AiUsageLine v-if="showAiUsage && !inline" />
         <SidebarNav flat />
       </div>
     </div>
@@ -30,12 +31,15 @@
 // The phone navigation (r05 §8.5, Figma S3): a full-screen modal dialog below the header with the flat sidebar list
 // (Home + panels, locked ones dimmed). The header stays visible but inert; the dialog's own close button sits exactly
 // over the header's menu button, so the pressed "close" state of S3 is this button. Focus moves to it on open, Tab
-// cycles inside (useFocusTrap), Esc closes, focus returns to the menu button, a navigation closes it. `inline`
+// cycles inside (useFocusTrap), Esc closes, focus returns to the menu button, a navigation closes it. Above the list,
+// this month's AI usage (AiUsageLine) when the counter is visible: the phone header has no room for it. `inline`
 // renders the list in the page flow with no trap (catalogue).
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import IconButton from "@/boots/IconButton/index.vue";
 import SidebarNav from "@/boots/SidebarNav/index.vue";
+import AiUsageLine from "@/components/AiUsage/AiUsageLine.vue";
+import { useAiUsageVisible } from "@/components/AiUsage/useAiUsage";
 import { useFocusTrap } from "@/composables/useFocusTrap";
 
 const props = defineProps({
@@ -46,6 +50,7 @@ const props = defineProps({
 const emit = defineEmits(["update:open"]);
 
 const route = useRoute();
+const showAiUsage = useAiUsageVisible();
 const root = ref(null);
 const close = () => emit("update:open", false);
 

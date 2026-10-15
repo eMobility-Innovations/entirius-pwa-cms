@@ -350,7 +350,9 @@ Catalogue: `#page-frame` (`#page-header`, `#breadcrumbs`, `#page-layout`).
   `role="combobox"` button, `--elem-height`, `--radius-base`, `border-control`, 12 px Inter 500, `expand` caret;
   `multiple` shows the one label or „Wybrano: N”. The list opens in BasicMenu's panel (position, flip = drop-up,
   outside click, Esc, focus return) as a `listbox` driven by `aria-activedescendant`: arrows (wrap), Home / End,
-  type-ahead, Enter / Space; checkboxes when `multiple`, a check on the chosen option otherwise. Inside a FormField
+  type-ahead, Enter / Space; checkboxes when `multiple` (an unticked one is an empty `border-control` box, never a
+  filled glyph), a check on the chosen option otherwise. The list is at least as wide as the control (no 22rem cap),
+  so the filter input never runs past it. Inside a FormField
   it takes the field's id, `aria-describedby`, invalid, required and disabled (`useFormFieldControl()`); outside one,
   `aria-label` / `aria-labelledby` on the tag name the control. `placement` and `inline` go to BasicMenu.
   `floatingLabel` (plan 53) names a select that stands without a FormField (toolbar, filter row, card header): empty,

@@ -1,7 +1,7 @@
 <template>
   <PageLayout class="template-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('enrichment.templates.title')" />
+      <PageHeader :title="$t('enrichment.templates.title')" :description="$t('enrichment.templates.description')" />
     </template>
 
     <Loader v-show="loading" block />
@@ -19,12 +19,12 @@
       <template #cell-fields="{ row }">
         <span class="t-secondary">{{ row.fieldsText || "—" }}</span>
       </template>
+      <!-- Plain text, not a pill: a bordered pill read as a switch. Offering is changed in the template. -->
       <template #cell-active="{ value }">
-        <StatusBadge
-          :tone="value ? 'positive' : 'neutral'"
-          :dot="false"
-          :label="value ? $t('enrichment.templates.on') : $t('enrichment.templates.off')"
-        />
+        <span class="flex ai-ct gap-2" :class="value ? 't-positive' : 't-muted'">
+          <FontAwesomeIcon v-if="value" :icon="$icons.success" aria-hidden="true" />
+          {{ value ? $t("enrichment.templates.on") : $t("enrichment.templates.off") }}
+        </span>
       </template>
       <template #cell-actions="{ row, index }">
         <div class="flex gap-2">

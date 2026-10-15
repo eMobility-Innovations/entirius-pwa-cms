@@ -4,6 +4,7 @@
       <BasicLogo variant="full" :size="isMobile ? 24 : 32" />
     </router-link>
     <div class="app-header__tools flex ai-ct gap-3">
+      <AiUsageButton v-if="showAiUsage && !isMobile" />
       <ConfigHealthButton v-if="munin.healthAvailable" :show-icon="!isMobile" />
       <NotificationBell v-if="munin.isModuleEnabled('notifications')" />
       <UserMenu />
@@ -24,8 +25,9 @@
 </template>
 
 <script setup>
-// The app bar (R1, R2; r05 §5, Figma S1/S2): the wordmark (home link) and, on the right, configuration health and the
-// notification bell (both conditional, as before) and the user menu, 12 px apart. A phone keeps the bell and reaches
+// The app bar (R1, R2; r05 §5, Figma S1/S2): the wordmark (home link) and, on the right, the AI-usage counter (desktop;
+// a phone shows it in the MobileMenu), configuration health and the notification bell (both conditional, as
+// before) and the user menu, 12 px apart. A phone keeps the bell and reaches
 // configuration health through the user menu (no room for the icon). No page title, no panel switcher. Desktop 88 px
 // (wordmark 206 × 32 at x 40); below the shell breakpoint 81 px (wordmark 154 × 24) with the menu button after a
 // hairline separator: it toggles `menuOpen` (v-model) and controls the MobileMenu `menuId`. `mobile` forces a layout
@@ -34,6 +36,8 @@ import { computed } from "vue";
 import BasicLogo from "@/boots/BasicLogo/index.vue";
 import IconButton from "@/boots/IconButton/index.vue";
 import UserMenu from "@/boots/UserMenu/index.vue";
+import AiUsageButton from "@/components/AiUsage/AiUsageButton.vue";
+import { useAiUsageVisible } from "@/components/AiUsage/useAiUsage";
 import ConfigHealthButton from "@/components/ConfigHealth/ConfigHealthButton.vue";
 import NotificationBell from "@/components/NotificationBar/NotificationBell.vue";
 import { useMuninStore } from "@/stores/munin";
@@ -49,6 +53,7 @@ defineEmits(["update:menuOpen"]);
 const munin = useMuninStore();
 const isDesktop = useIsDesktop();
 const isMobile = computed(() => props.mobile ?? !isDesktop.value);
+const showAiUsage = useAiUsageVisible();
 </script>
 
 <style lang="scss" scoped>

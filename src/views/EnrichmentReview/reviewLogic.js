@@ -107,11 +107,13 @@ export function htmlDiff(before, after) {
 }
 
 const META_DESCRIPTION = { min: 120, max: 155, snippet: true };
+const META_TITLE = { min: 30, max: 60, snippet: true };
 const VARCHAR255_T9N = 4;
 
 /** Length rules of a PIM text field: the meta description target, else the column limit of a short text. */
 export function textRules(featureIdx, feature) {
   if (featureIdx === "meta_description") return META_DESCRIPTION;
+  if (featureIdx === "meta_title") return META_TITLE;
   if (feature?.feature_type === VARCHAR255_T9N) return { max: 255 };
   return null;
 }
@@ -160,6 +162,28 @@ export function optionChanges(proposed, current) {
 
 /** One list row's change, never the full preview: media → { media: icon, duration }; select → { tags: { added,
  * removed } } counts; text → { state, excerpt, length } with state new (nothing there before) or changed. */
+const READ_FIRST = ["title", "topic", "text", "description", "question"];
+
+/** The first readable text inside a structured value (a Studio step's output), never its JSON. */
+function firstText(value) {
+  if (typeof value === "string") return value;
+  if (!value || typeof value !== "object") return "";
+  const preferred = Array.isArray(value) ? [] : READ_FIRST.filter((key) => key in value).map((key) => value[key]);
+  for (const part of [...preferred, ...Object.values(value)]) {
+    const text = firstText(part);
+    if (text.trim()) return text;
+  }
+  return "";
+}
+
+const RUN_PREFIX = "run:";
+
+/** The Studio run uid of a proposal written by a Studio step (`subject_ref` "run:<uid>"), else "". */
+export function runUidOf(proposal) {
+  const ref = proposal?.subject_ref || "";
+  return ref.startsWith(RUN_PREFIX) ? ref.slice(RUN_PREFIX.length) : "";
+}
+
 export function changeSummary(proposal) {
   const icon = MEDIA_KINDS[proposal.target_kind];
   if (icon) return { media: icon, duration: proposal.proposed_value?.duration_s ?? null };
@@ -167,7 +191,9 @@ export function changeSummary(proposal) {
     const { added, removed } = optionChanges(proposal.proposed_value, proposal.current_snapshot);
     return { tags: { added: added.length, removed: removed.length } };
   }
-  const after = plainText(textOf(proposal.proposed_value)).replace(/\s+/g, " ").trim();
+  const text = textOf(proposal.proposed_value);
+  const readable = typeof text === "string" && text ? text : firstText(proposal.proposed_value);
+  const after = plainText(readable).replace(/\s+/g, " ").trim();
   const before = textOf(proposal.current_snapshot);
   return { state: isBlank(before) ? "new" : "changed", excerpt: after.slice(0, EXCERPT), length: after.length };
 }

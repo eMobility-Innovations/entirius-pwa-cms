@@ -7,7 +7,7 @@
     <span v-else-if="running" class="ai-results__dot ai-results__dot--queued" data-testid="ai-results-queued" />
   </span>
 
-  <SideDrawer :visible="open" :title="$t('enrichment.ai.results_title', { sku })" width="720px" @close="open = false">
+  <SideDrawer :visible="open" :title="$t('enrichment.ai.results_title', { name: product?.name || sku })" width="720px" @close="open = false">
     <div class="flex-column gap-10" data-testid="ai-results-drawer">
       <section class="flex-column gap-3" aria-labelledby="ai-results-run-title">
         <div class="flex ai-ct jc-sb flex-wrap gap-3">

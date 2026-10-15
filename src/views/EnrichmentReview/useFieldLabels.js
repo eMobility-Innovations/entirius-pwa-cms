@@ -32,10 +32,13 @@ export function useFieldLabels() {
     return label === key ? idx : label;
   }
 
-  /** The heading of a proposal: its field's name, else its kind ("Product video"), else the raw kind. */
+  /** The heading of a proposal: its field's name, else its Studio step ("Outline"), else its kind ("Product video"). */
   function proposalField(proposal) {
     const label = fieldLabel(proposal.target_locator?.feature_idx);
     if (label) return label;
+    const stepKey = `enrichment.review.step.${proposal.target_locator?.step}`;
+    const step = t(stepKey);
+    if (step !== stepKey) return step;
     const key = `enrichment.review.kind.${proposal.target_kind}`;
     const kind = t(key);
     return kind === key ? proposal.target_kind : kind;

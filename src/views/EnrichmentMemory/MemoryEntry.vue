@@ -22,6 +22,17 @@
     <p v-else-if="entry.text" class="memory-entry__text m-0">{{ entry.text }}</p>
 
     <div class="flex ai-ct flex-wrap gap-3">
+      <router-link v-if="origin" :to="origin.to" class="memory-entry__link t-accent fw-600" data-testid="memory-origin">
+        {{ $t(`enrichment.memory.${origin.label}`) }}
+      </router-link>
+      <router-link
+        v-if="suggestion"
+        :to="{ name: 'EnrichmentProfile', query: entry.channel ? { channel: entry.channel } : {} }"
+        class="memory-entry__link t-accent fw-600"
+        data-testid="memory-profile-link"
+      >
+        {{ $t("enrichment.memory.open_profile") }}
+      </router-link>
       <BasicButton v-if="target" size="sm" mutates :disabled="busy" data-testid="memory-promote" @click="$emit('promote', entry)">
         {{ $t("enrichment.memory.promote") }}
       </BasicButton>
@@ -48,12 +59,13 @@
 <script>
 import { formatDate } from "@/utils/format";
 import { useProfileChannels } from "@/views/EnrichmentProfile/useProfileChannels";
-import { briefOf, isExpired, isPendingSuggestion, promoteTarget, subjectKey } from "./memoryLogic";
+import { briefOf, isExpired, isPendingSuggestion, originLink, promoteTarget, subjectKey } from "./memoryLogic";
 
 const TONES = { active: "positive", dismissed: "neutral", promoted: "accent" };
 
 // One memory entry: what kind, its state, what it is about, the text (an SEO brief as its phrases, intent and
-// expiry), and the operator's actions — "Add to profile" for a waiting suggestion, Dismiss / Use again, Delete.
+// expiry), links back to where it came from (Studio article, proposal, product) and, for a suggestion, to the profile
+// it lands in, and the operator's actions — "Add to profile" for a waiting suggestion, Dismiss / Use again, Delete.
 export default {
   name: "MemoryEntry",
   props: {
@@ -81,6 +93,12 @@ export default {
     brief() {
       return briefOf(this.entry);
     },
+    origin() {
+      return originLink(this.entry);
+    },
+    suggestion() {
+      return promoteTarget(this.entry) !== null;
+    },
     subject() {
       return this.$t(`enrichment.memory.subject.${subjectKey(this.entry)}`);
     },
@@ -101,6 +119,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .memory-entry {
   padding: var(--space-5);
   border: 1px solid var(--border-subtle);
@@ -128,6 +148,22 @@ export default {
   grid-template-columns: max-content 1fr;
   gap: var(--space-2) var(--space-4);
   align-items: baseline;
+
+  // A phone gives each phrase the full width: the label above its value.
+  @include max-tablet {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+
+    dd + dt {
+      margin-top: var(--space-3);
+    }
+  }
+}
+.memory-entry__link {
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
 }
 .memory-entry__delete {
   margin-left: auto;

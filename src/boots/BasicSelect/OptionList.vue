@@ -15,12 +15,11 @@
       @pointermove="option.disabled || $emit('hover', i)"
       @click="option.disabled || $emit('choose', option)"
     >
-      <FontAwesomeIcon
-        v-if="multiple && !option.action"
-        :icon="isSelected(option) ? ICONS.checkboxOn : ICONS.checkboxOff"
-        class="option-list__box"
-        aria-hidden="true"
-      />
+      <template v-if="multiple && !option.action">
+        <FontAwesomeIcon v-if="isSelected(option)" :icon="ICONS.checkboxOn" class="option-list__box" aria-hidden="true" />
+        <!-- An empty box, drawn like BasicCheckbox: a filled glyph would read as ticked. -->
+        <span v-else class="option-list__box option-list__box--off" aria-hidden="true" />
+      </template>
       <span class="option-list__text flex-column">
         <span class="option-list__label">{{ option.label }}</span>
         <span v-if="option.description" class="option-list__description">{{ option.description }}</span>
@@ -130,5 +129,13 @@ watch(
 
 [aria-selected="true"] > .option-list__box {
   color: var(--accent);
+}
+
+.option-list__box--off {
+  box-sizing: border-box;
+  height: var(--space-4);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-base);
+  background: var(--surface-sunken);
 }
 </style>

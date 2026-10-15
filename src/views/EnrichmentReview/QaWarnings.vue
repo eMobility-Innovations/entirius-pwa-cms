@@ -19,7 +19,8 @@
       </li>
     </ul>
     <div v-if="checkable" class="flex ai-ct flex-wrap gap-3">
-      <BasicButton size="sm" mutates :disabled="busy" data-testid="qa-check-standard" @click="checkStandard">
+      <!-- A tool, not a decision: quieter than the card's Apply. -->
+      <BasicButton size="sm" variant="ghost" mutates :disabled="busy" data-testid="qa-check-standard" @click="checkStandard">
         {{ $t("enrichment.qa.check_standard") }}
       </BasicButton>
       <BasicButton v-if="warnings.length" size="sm" mutates :disabled="busy" data-testid="qa-fix-warnings" @click="fixWarnings">

@@ -2628,13 +2628,9 @@
       "confirm_delete_title": "Usuń regułę spawnu"
     },
     "tasks": {
-      "title": "Zadania wzbogacania",
+      "title": "Zadania AI",
       "empty": "Brak zadań",
       "matching": "{count} pasujących",
-      "col_id": "ID",
-      "col_type": "Typ",
-      "col_check": "Reguła jakości",
-      "col_rule": "Reguła",
       "col_status": "Status",
       "col_progress": "Postęp",
       "col_created": "Utworzono",
@@ -2648,7 +2644,15 @@
       "starts_next": "rusza jako następne",
       "ahead_one": "1 przed nim",
       "ahead_few": "{count} przed nim",
-      "ahead_many": "{count} przed nim"
+      "ahead_many": "{count} przed nim",
+      "col_task": "Zadanie",
+      "open": "Otwórz zadanie",
+      "studio_step": "Artykuł: {step}",
+      "generic": "Zadanie AI",
+      "from_rule": "Uruchomione przez regułę",
+      "products_one": "1 produkt",
+      "products_few": "{count} produkty",
+      "products_many": "{count} produktów"
     },
     "task_status": {
       "open": "Otwarte",
@@ -2673,16 +2677,16 @@
       "not_found": "Nie znaleziono produktu"
     },
     "queue": {
-      "title": "Kolejka",
-      "sku": "SKU",
-      "kind": "Rodzaj",
-      "locator": "Lokalizator",
+      "title": "Zadanie AI",
+      "sku": "Produkt",
+      "locator": "Język",
       "priority": "Priorytet",
       "empty": "Kolejka jest pusta",
       "page": "Strona {page}",
       "prev": "Poprzednia",
       "next": "Następna",
-      "end": "Koniec kolejki"
+      "end": "Koniec kolejki",
+      "review": "Przejrzyj, co zaproponowało"
     },
     "import": {
       "open": "Import CSV",
@@ -2728,9 +2732,15 @@
         "product": "Produkt"
       },
       "bulk": {
-        "matching": "Propozycji pasujących do filtra: {count}",
-        "accept_all": "Akceptuj wszystkie pasujące",
-        "reject_all": "Odrzuć wszystkie pasujące"
+        "accept_all": "Zastosuj wszystkie ({count})",
+        "reject_all": "Odrzuć wszystkie ({count})",
+        "undo_all": "Cofnij wszystkie ({count})",
+        "confirm_accept": "Zastosować wszystkie propozycje ({count})?",
+        "confirm_accept_message": "Każda propozycja z tego filtra trafi teraz do swojego produktu.",
+        "confirm_reject": "Odrzucić wszystkie propozycje ({count})?",
+        "confirm_reject_message": "Znikną z kolejki. Znajdziesz je w filtrze „Odrzucona”.",
+        "confirm_undo": "Cofnąć wszystkie zastosowane propozycje ({count})?",
+        "confirm_undo_message": "Wrócą poprzednie wartości. Propozycje zmienione po zastosowaniu zostaną pominięte."
       },
       "undo": "Cofnij",
       "undo_hint": "Przywróć zastosowane propozycje z tego filtra (cofnięcie jednopoziomowe). Pozycje zmienione po zastosowaniu są pomijane.",
@@ -2765,7 +2775,9 @@
       "length": "{count} / {target} znaków",
       "kind": {
         "video": "Wideo produktu",
-        "picture": "Zdjęcie produktu"
+        "picture": "Zdjęcie produktu",
+        "document": "Artykuł",
+        "artifact": "Krok Studia"
       },
       "search_preview": "W wynikach wyszukiwania",
       "change_new": "Nowe",
@@ -2784,7 +2796,18 @@
       "clear_filters": "Wyczyść filtry",
       "show_pending": "Pokaż oczekujące",
       "show_applied": "Pokaż zastosowane",
-      "run_ai": "Uruchom AI dla produktów"
+      "run_ai": "Uruchom AI dla produktów",
+      "step": {
+        "questions": "Pytania",
+        "keywords": "Frazy wyszukiwania",
+        "outline": "Konspekt",
+        "draft": "Szkic",
+        "meta": "Metadane",
+        "compose": "Dokument"
+      },
+      "studio_article": "Artykuł ze Studia",
+      "studio_note": "Ten tekst to krok artykułu ze Studia. Przeczytasz i zmienisz go w Studiu, razem z całym artykułem.",
+      "open_in_studio": "Otwórz w Studiu"
     },
     "status": {
       "pending": "Oczekująca",
@@ -2801,12 +2824,11 @@
     },
     "ai": {
       "menu": "AI",
-      "title": "Uruchom zadanie AI",
-      "worker": "Worker",
+      "title": "Uruchom AI",
+      "worker": "Co robi AI",
       "no_workers": "Brak skonfigurowanych workerów AI",
-      "prompt_placeholder": "Dodatkowe instrukcje dla tego uruchomienia (opcjonalnie)",
-      "summary": "Jedno zadanie dla produktów: {count}, kanał {channel}.",
-      "created": "Utworzono zadanie #{id}. Propozycje pojawią się w przeglądzie, gdy worker skończy kolejne produkty.",
+      "prompt_placeholder": "Dodatkowe wskazówki dla AI (opcjonalnie)",
+      "created": "Wysłano do AI. Propozycje pojawią się w przeglądzie, gdy AI skończy kolejne produkty.",
       "open_task": "Otwórz zadanie",
       "params": {
         "prompt": "Instrukcje",
@@ -2815,7 +2837,7 @@
         "languages": "Języki",
         "fields": "Pola"
       },
-      "results_title": "AI dla {sku}",
+      "results_title": "AI dla {name}",
       "recent_tasks": "Ostatnie zadania",
       "results_empty": "Brak propozycji AI czekających na ten produkt",
       "results_running": "Zadanie działa w tle — jego propozycje pojawią się tutaj, gdy się zakończy.",
@@ -2887,7 +2909,10 @@
         "skipped_one": "Pominięto 1 produkt — już w toku.",
         "skipped_few": "Pominięto {count} produkty — już w toku.",
         "skipped_many": "Pominięto {count} produktów — już w toku."
-      }
+      },
+      "summary_one": "Obejmie 1 produkt w kanale {channel}.",
+      "summary_few": "Obejmie {count} produkty w kanale {channel}.",
+      "summary_many": "Obejmie {count} produktów w kanale {channel}."
     },
     "video": {
       "download": "Pobierz wideo",
@@ -2986,7 +3011,7 @@
       "no_fields": "Brak pól dla tego rodzaju pracy",
       "all_languages": "Wszystkie języki",
       "research": "Research przed pisaniem",
-      "research_seo_brief": "Research SEO (DataForSEO)",
+      "research_seo_brief": "Analiza wyszukiwań (czego ludzie szukają, co jest wysoko)",
       "scope_category": "Wspólny dla kategorii produktu",
       "scope_subject": "Osobno dla każdego produktu",
       "save_as_template": "Zapisz jako szablon",
@@ -2999,7 +3024,7 @@
       "create": "Nowy szablon",
       "empty": "Nie ma jeszcze szablonów. Utwórz go tutaj albo ustaw uruchomienie w „Uruchom AI” i zapisz je jako szablon.",
       "col_label": "Nazwa",
-      "col_worker": "Pracownik AI",
+      "col_worker": "Co robi AI",
       "col_fields": "Pola",
       "col_active": "W „Uruchom AI”",
       "on": "Widoczny",
@@ -3017,7 +3042,8 @@
       "missing_title": "Ten szablon już nie istnieje",
       "missing_hint": "Mógł zostać usunięty lub przemianowany. Wybierz szablon z listy.",
       "back_to_list": "Wróć do szablonów",
-      "unfilled": "Aby zapisać, uzupełnij: {fields}"
+      "unfilled": "Aby zapisać, uzupełnij: {fields}",
+      "description": "Gotowe uruchomienia AI dostępne w „Uruchom AI” na produkcie, w tej kolejności. Otwórz szablon, aby zmienić, co pisze, albo przestać go oferować."
     },
     "cost": {
       "label": "Koszt",
@@ -3235,7 +3261,7 @@
       "write": "Pisz",
       "preview": "Podgląd",
       "no_rows": "Na razie pusto.",
-      "active": "Sprawdzana",
+      "active": "Reguła włączona",
       "map_placeholder": "pl: tekst; de: Text",
       "remove_row": "Usuń wiersz",
       "add_row": "Dodaj wiersz",
@@ -3247,7 +3273,7 @@
       "compare_to": "z",
       "restore_title": "Przywrócić wersję {n}?",
       "restore_message": "Jej treść stanie się bieżącym profilem jako nowa wersja. Nic nie ginie: bieżąca wersja zostaje w historii.",
-      "used": "Prawdopodobnie użyto z profilu: {sections}",
+      "used": "Prawdopodobnie z profilu firmy: {sections}",
       "sections": {
         "brand": "Marka",
         "persona": "Odbiorcy",
@@ -3309,7 +3335,14 @@
       },
       "restore_discards": "Niezapisane zmiany na tej stronie zostaną utracone.",
       "switch_discards": "Zmiana zakresu odrzuci niezapisane zmiany w tym profilu.",
-      "used_hint": "Ustalone na podstawie wersji profilu użytych przez to zadanie."
+      "used_hint": "Ustalone na podstawie wersji profilu użytych przez to zadanie.",
+      "no_changes": "Te dwie wersje są takie same.",
+      "current": "Aktualna",
+      "row_off": "wyłączone",
+      "json_blocked": "Najpierw popraw błędy w JSON-ie, potem wróć do formularza.",
+      "row": "Wiersz {n}",
+      "from_company": "Z profilu firmy",
+      "inherited_label": "Puste tutaj, więc ten kanał używa profilu całej firmy:"
     },
     "memory": {
       "title": "Pamięć",
@@ -3317,7 +3350,7 @@
       "subject_search": "Produkt lub temat",
       "kind_filter": "Rodzaj",
       "status_filter": "Stan",
-      "expiry_filter": "Ważność (ta strona)",
+      "expiry_filter": "Ważność",
       "empty": "Nic tu jeszcze nie zapamiętano.",
       "delete_title": "Usunąć ten wpis pamięci?",
       "all_kinds": "Wszystkie rodzaje",
@@ -3359,7 +3392,11 @@
         "item": "Element"
       },
       "empty_filtered": "Nic nie pasuje do tych filtrów.",
-      "clear_filters": "Wyczyść filtry"
+      "clear_filters": "Wyczyść filtry",
+      "open_run": "Otwórz artykuł w Studiu",
+      "open_proposal": "Otwórz propozycję",
+      "open_product": "Otwórz produkt",
+      "open_profile": "Otwórz profil firmy"
     },
     "qa": {
       "code": {
@@ -4274,6 +4311,18 @@
       "load_error": "Nie udało się wczytać zapisanych stopek — odśwież stronę przed edycją"
     }
   },
+  "ai_usage": {
+    "title": "Zużycie AI w tym miesiącu",
+    "prefix": "AI w tym miesiącu",
+    "tokens": "{count} tokenów",
+    "label": "Zużycie AI w tym miesiącu: {tokens} tokenów, koszt {cost}",
+    "tokens_row": "Tokeny",
+    "cost_row": "Koszt",
+    "cost_billed": "Koszt naliczony przez usługę AI, z jej marżą.",
+    "cost_since": "Koszt naliczony przez usługę AI, z jej marżą, liczony od {date} (od włączenia rozliczeń).",
+    "cost_off": "Brak kosztu: rozliczenia nie są jeszcze włączone dla tego konta w usłudze AI.",
+    "unavailable": "Nie udało się teraz odczytać zużycia AI. Odświeży się samo."
+  },
   "config_health": {
     "title": "Stan konfiguracji",
     "open": "Problemy z konfiguracją: {count}",
@@ -4291,7 +4340,7 @@
       "communicator_smtp": "Poczta outreach (SMTP)",
       "siteintel_sources": "Źródła audytów stron",
       "siteintel_keys": "Klucze API audytów stron",
-      "enrichment_profile": "Profil komunikacji"
+      "enrichment_profile": "Profil firmy"
     },
     "checks": {
       "toolbox_status": {
@@ -4316,7 +4365,7 @@
         "auth_failed": "API {scope} odrzuca klucz — audyty stron z tego źródła kończą się błędem"
       },
       "enrichment_profile": {
-        "incomplete": "Profil komunikacji jest niepełny: {scope} — teksty AI będą tam ogólnikowe"
+        "incomplete": "Profil firmy jest niepełny: {scope} — teksty AI będą tam ogólnikowe"
       }
     }
   },

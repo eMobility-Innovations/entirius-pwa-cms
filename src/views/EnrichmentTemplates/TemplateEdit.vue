@@ -62,6 +62,7 @@
 
     <ConfirmDialog
       tone="danger"
+      :confirm-label="$t('common.delete')"
       :title="$t('enrichment.templates.confirm_delete_title')"
       :open="confirmDelete"
       @confirm="remove"

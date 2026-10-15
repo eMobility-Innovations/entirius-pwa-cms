@@ -8,6 +8,8 @@ const mockNotify = vi.fn();
 vi.mock("@/api/enrichment/api", () => ({
   GET_Tasks: (...a) => mockGetTasks(...a),
   GET_Task: (...a) => mockGetTask(...a),
+  GET_Workers: () => Promise.resolve({ data: [{ key: "pim.writer", label: "Product texts" }] }),
+  GET_Templates: () => Promise.resolve({ data: [{ key: "meta", label: "Meta descriptions" }] }),
 }));
 vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification: mockNotify }),
@@ -121,11 +123,23 @@ describe("TaskList", () => {
     const wrapper = mountList();
     await flushPromises();
 
-    wrapper.vm.openQueue({ id: 7, rule: "classify-featureset", type: "assign-featureset" });
+    wrapper.vm.openQueue({ id: 7, rule: "classify-featureset", type: "pim.writer" });
 
     expect(wrapper.vm.queueVisible).toBe(true);
     expect(wrapper.vm.queueTaskId).toBe(7);
-    expect(wrapper.vm.queueLabel).toBe("classify-featureset");
+    expect(wrapper.vm.queueLabel).toBe("Product texts");
+  });
+
+  it("names a task in plain words: its template, its worker, its Studio step, never its key", async () => {
+    const wrapper = mountList();
+    await flushPromises();
+
+    expect(wrapper.vm.nameOf({ type: "pim.writer", template: "meta" })).toBe("Meta descriptions");
+    expect(wrapper.vm.nameOf({ type: "pim.writer", template: "" })).toBe("Product texts");
+    // The test $t has no step names: an unknown step reads as a plain "AI task", never "article.outline".
+    expect(wrapper.vm.nameOf({ type: "article.outline", step: "outline" })).toBe("enrichment.tasks.generic");
+    expect(wrapper.vm.scopeOf({ topic: "", products: 2, rule: "—" })).toBe('enrichment.tasks.products_few::{"count":2}');
+    expect(wrapper.vm.scopeOf({ topic: "Sofas", products: 1, rule: "—" })).toBe("Sofas");
   });
 
   it("progress reads proposed and failed first (a count without a label keeps its key)", async () => {

@@ -125,11 +125,12 @@
       :total-count="totalCount"
       :busy="busy"
       :bulk="!filters.task"
+      :status-filter="filters.status"
       @accept="acceptOne"
       @reject="rejectOne"
-      @bulk-accept="bulkAccept"
-      @bulk-reject="bulkReject"
-      @bulk-undo="bulkUndo"
+      @bulk-accept="bulkAsk = 'accept'"
+      @bulk-reject="bulkAsk = 'reject'"
+      @bulk-undo="bulkAsk = 'undo'"
       @reconfirm="openDrift"
       @row-open="openDetail"
       @preview-product="openProductPreview"
@@ -199,9 +200,20 @@
       @close="importVisible = false"
     />
 
+    <ConfirmDialog
+      :open="!!bulkAsk"
+      :tone="bulkAsk === 'reject' ? 'danger' : 'default'"
+      :title="bulkAsk ? $t(`enrichment.review.bulk.confirm_${bulkAsk}`, { count: totalCount }) : ''"
+      :message="bulkAsk ? $t(`enrichment.review.bulk.confirm_${bulkAsk}_message`) : ''"
+      :confirm-label="bulkAsk ? $t(`enrichment.review.bulk.${bulkAsk}_all`, { count: totalCount }) : ''"
+      confirm-testid="enrichment-bulk-confirm"
+      @confirm="runBulk"
+      @cancel="bulkAsk = null"
+    />
+
     <SideDrawer
       :visible="!!detail"
-      :title="detail ? detail.subject_label || detail.subject_ref : ''"
+      :title="detail ? detailTitle : ''"
       width="720px"
       @close="detail = null"
     >
@@ -239,6 +251,7 @@ import ImportCsvDialog from "./ImportCsvDialog.vue";
 import ProductPreviewDrawer from "./ProductPreviewDrawer.vue";
 import ProposalPanel from "./ProposalPanel.vue";
 import BatchCorrection from "./BatchCorrection.vue";
+import { runUidOf } from "./reviewLogic";
 import {
   GET_Task,
   GET_Proposals,
@@ -291,6 +304,7 @@ export default {
       searchTimer: null,
       driftVisible: false,
       detail: null,
+      bulkAsk: null,
       detailTask: null,
       driftProposal: null,
       importVisible: false,
@@ -299,6 +313,11 @@ export default {
     };
   },
   computed: {
+    // A Studio step's proposal has no product: the drawer names its article.
+    detailTitle() {
+      if (runUidOf(this.detail)) return this.detail.subject_label || this.$t("enrichment.review.studio_article");
+      return this.detail.subject_label || this.detail.subject_ref;
+    },
     // Count of the filters in the filter panel (status lives in its own always-visible
     // chip row, so it's excluded) — the badge on the panel's phone trigger.
     activeFilterCount() {
@@ -580,6 +599,14 @@ export default {
       } finally {
         this.busy = false;
       }
+    },
+    // The confirmed bulk action: the dialog closes first, the toast reports what ran.
+    runBulk() {
+      const action = this.bulkAsk;
+      this.bulkAsk = null;
+      if (action === "accept") return this.bulkAccept();
+      if (action === "reject") return this.bulkReject("");
+      return this.bulkUndo();
     },
     async bulkAccept() {
       if (this.busy) return;

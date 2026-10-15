@@ -63,3 +63,16 @@ export function memoryParams({ kind, status, subject, page, pageSize }) {
   if (subject?.trim()) params.subject_ref = subject.trim();
   return params;
 }
+
+const RUN_REF = /^run:([0-9a-f]+)$/;
+const PROPOSAL_REF = /^proposal:(\d+)$/;
+
+/** Where an entry came from, as a link: its Studio article, the proposal it was taken from, or its product; else null. */
+export function originLink(entry) {
+  const run = RUN_REF.exec(entry.subject_ref || "")?.[1] || RUN_REF.exec(entry.source || "")?.[1] || entry.data?.run;
+  if (run) return { label: "open_run", to: { name: "EnrichmentStudioRun", params: { uid: run } } };
+  const proposal = PROPOSAL_REF.exec(entry.source || "")?.[1];
+  if (proposal) return { label: "open_proposal", to: { name: "EnrichmentProposalEditor", params: { proposalId: proposal } } };
+  const sku = entry.subject_module === "pim" && !String(entry.subject_ref || "").includes(":") ? entry.subject_ref : "";
+  return sku ? { label: "open_product", to: { name: "PimProductDetail", params: { sku } } } : null;
+}

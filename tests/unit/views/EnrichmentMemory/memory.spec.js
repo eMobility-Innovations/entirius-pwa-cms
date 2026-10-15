@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
-import { briefOf, byExpiry, memoryParams, pinnedKinds, promoteTarget, subjectKey } from "@/views/EnrichmentMemory/memoryLogic";
+import { briefOf, byExpiry, memoryParams, originLink, pinnedKinds, promoteTarget, subjectKey } from "@/views/EnrichmentMemory/memoryLogic";
 
 const api = vi.hoisted(() => ({ GET_Memory: vi.fn(), PATCH_Memory: vi.fn(), DELETE_Memory: vi.fn(), POST_PromoteMemory: vi.fn() }));
 const refresh = vi.hoisted(() => vi.fn());
@@ -41,6 +41,15 @@ describe("memory logic", () => {
     expect(subjectKey({ ...BRIEF, subject_module: "pim" })).toBe("catalogue");
     expect(subjectKey({ ...BRIEF, subject_module: "enrichment", subject_ref: "run:3f2a" })).toBe("studio_run");
     expect(subjectKey(RULE)).toBe("general");
+  });
+
+  it("links an entry back to its Studio article, proposal or product, never naming its ref", () => {
+    expect(originLink({ subject_ref: "run:ab12" }).to).toEqual({ name: "EnrichmentStudioRun", params: { uid: "ab12" } });
+    expect(originLink({ subject_ref: "", source: "run:cd34" }).to.params.uid).toBe("cd34");
+    expect(originLink({ subject_ref: "", source: "proposal:7" }).to).toEqual({ name: "EnrichmentProposalEditor", params: { proposalId: "7" } });
+    expect(originLink({ subject_module: "pim", subject_ref: "ENT-S001" }).label).toBe("open_product");
+    expect(originLink({ subject_module: "pim", subject_ref: "category:bedroom" })).toBeNull();
+    expect(originLink({ subject_ref: "" })).toBeNull();
   });
 
   it("filters by expiry", () => {

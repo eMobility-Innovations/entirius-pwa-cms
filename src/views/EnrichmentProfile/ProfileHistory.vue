@@ -8,16 +8,31 @@
             <BasicSelect v-model="to" :options="options" :floating-label="$t('enrichment.profile.compare_to')" data-testid="profile-diff-to" />
           </div>
         </ReadonlyOff>
-        <TextDiff :before="jsonOf(from)" :after="jsonOf(to)" wide />
+        <!-- What changed, section by section, as text people read: never the stored JSON. -->
+        <p v-if="!changes.length" class="m-0 fs-300 t-secondary" data-testid="profile-diff-none">
+          {{ $t("enrichment.profile.no_changes") }}
+        </p>
+        <section
+          v-for="change in changes"
+          :key="change.key"
+          class="flex-column gap-2"
+          :data-testid="`profile-diff-${change.key}`"
+        >
+          <h3 class="profile-history__section m-0">{{ name("sections", change.key) }}</h3>
+          <TextDiff :before="readable(change.before)" :after="readable(change.after)" wide />
+        </section>
       </template>
       <p v-if="!versions.length" class="m-0 fs-300 t-secondary">{{ $t("enrichment.profile.no_versions") }}</p>
       <ol v-else class="profile-history__list m-0 flex-column gap-3">
-        <li v-for="item in versions" :key="item.version" class="profile-history__item flex ai-ct flex-wrap gap-3" :data-testid="`profile-version-${item.version}`">
-          <span class="fw-600">{{ $t("enrichment.profile.version", { n: item.version }) }}</span>
-          <span class="fs-200 t-muted">{{ formatDate(item.created_at) }}</span>
-          <span class="profile-history__note fs-300 t-secondary">{{ item.note || "—" }}</span>
+        <li v-for="item in versions" :key="item.version" class="profile-history__item" :data-testid="`profile-version-${item.version}`">
+          <span class="profile-history__head flex ai-ct flex-wrap gap-3">
+            <span class="fw-600">{{ $t("enrichment.profile.version", { n: item.version }) }}</span>
+            <span class="fs-200 t-muted">{{ formatDate(item.created_at) }}</span>
+          </span>
+          <StatusBadge v-if="item.version === latest" class="profile-history__action" :label="$t('enrichment.profile.current')" tone="positive" />
           <BasicButton
-            v-if="item.version !== latest"
+            v-else
+            class="profile-history__action"
             size="sm"
             mutates
             :disabled="busy"
@@ -26,6 +41,7 @@
           >
             {{ $t("enrichment.profile.restore") }}
           </BasicButton>
+          <span v-if="item.note" class="profile-history__note fs-300 t-secondary">{{ item.note }}</span>
         </li>
       </ol>
     </div>
@@ -45,11 +61,11 @@
 import { ReadonlyOff } from "@/composables/useReadonly";
 import { formatDate } from "@/utils/format";
 import TextDiff from "@/views/EnrichmentReview/TextDiff.vue";
-import { prettyJson } from "./profileLogic";
+import { changedSections, readableText } from "./profileLogic";
 
-// The saved versions of one profile scope: first the difference between any two of them as text (pretty JSON), the
-// previous against the latest at first — on top, so comparing never needs a scroll past the list — then the versions
-// newest first: when, the note, Restore (a new version with the old data).
+// The saved versions of one profile scope: first the difference between any two of them, section by section as plain
+// text, the previous against the latest at first — on top, so comparing never needs a scroll past the list — then the
+// versions newest first: when, the note, Restore (a new version with the old data); the latest is marked Current.
 export default {
   name: "ProfileHistory",
   components: { ReadonlyOff, TextDiff },
@@ -74,6 +90,9 @@ export default {
       const message = this.$t("enrichment.profile.restore_message");
       return this.dirty ? `${message} ${this.$t("enrichment.profile.restore_discards")}` : message;
     },
+    changes() {
+      return changedSections(this.dataOf(this.from), this.dataOf(this.to));
+    },
     options() {
       return this.versions.map((v) => ({ value: v.version, label: this.$t("enrichment.profile.version", { n: v.version }) }));
     },
@@ -86,8 +105,19 @@ export default {
       this.to = this.latest;
       this.from = this.versions[1]?.version ?? null;
     },
-    jsonOf(version) {
-      return prettyJson(this.versions.find((v) => v.version === version)?.data);
+    dataOf(version) {
+      return this.versions.find((v) => v.version === version)?.data || {};
+    },
+    // A section, field or column by its name in the profile editor, else its key.
+    name(group, key) {
+      for (const path of [`enrichment.profile.${group}.${key}`, `enrichment.profile.columns.${key}`]) {
+        const label = this.$t(path);
+        if (label !== path) return label;
+      }
+      return key;
+    },
+    readable(value) {
+      return readableText(value, { label: (key) => this.name("fields", key), offLabel: this.$t("enrichment.profile.row_off") });
     },
     confirmRestore() {
       this.$emit("restore", this.restoring);
@@ -102,13 +132,23 @@ export default {
   padding: 0;
   list-style: none;
 }
+// Version and date, Restore (or Current) at the right; the note on a full line under them, never under the button.
 .profile-history__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
 }
 .profile-history__note {
-  flex: 1;
-  min-width: 0;
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+.profile-history__section {
+  font-size: var(--fs-300);
+  font-weight: 600;
+  color: var(--text-strong);
 }
 </style>

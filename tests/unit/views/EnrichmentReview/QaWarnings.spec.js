@@ -105,7 +105,7 @@ describe("profile usage", () => {
     const task = { id: 1, type: "pim.writer", params: { channel: "eu" }, profile_versions: [4, 9] };
     const w = mount(ProfileUsageNote, { props: { proposal: proposal(), task }, global: { mocks: { $t } } });
     await flushPromises();
-    expect(w.text()).toBe("enrichment.profile.used:T:enrichment.profile.sections.facts (4), T:enrichment.profile.sections.brand, T:enrichment.profile.sections.tone");
+    expect(w.text()).toBe("enrichment.profile.used:T:enrichment.profile.sections.facts (4) · T:enrichment.profile.sections.brand · T:enrichment.profile.sections.tone");
     expect(w.find("[data-testid='profile-usage']").attributes("title")).toBe("T:enrichment.profile.used_hint");
     expect(api.GET_ProfileVersions).toHaveBeenCalledWith({ channel: "eu" });
     const none = mount(ProfileUsageNote, { props: { proposal: proposal(), task: { ...task, profile_versions: [] } } });

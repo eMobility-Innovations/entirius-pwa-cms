@@ -75,6 +75,9 @@
 <script>
 import { emptyRow, mapToText, textToMap } from "./profileLogic";
 
+// The schema validator's message for a missing key of a row.
+const MISSING = /'([a-z_]+)' is a required property/;
+
 // A list of records (facts, rules, personas, spellings, glossary): one bordered row per record, its fields labelled
 // by the profile's column names; ids are generated, never shown. `errors` are the API's, keyed "<index>.<column>".
 export default {
@@ -100,8 +103,16 @@ export default {
       const label = this.$t(path);
       return label === path ? key : label;
     },
+    // A cell's own error; a row's error ("'value' is a required property") goes to the cell it names, else to the
+    // row's first field — never to every field of the row.
     errorAt(index, key) {
-      return this.errors[`${index}.${key}`] || this.errors[`${index}`] || "";
+      const own = this.errors[`${index}.${key}`];
+      if (own) return own;
+      const row = this.errors[`${index}`];
+      if (!row) return "";
+      const missing = MISSING.exec(row)?.[1];
+      if (missing) return missing === key ? this.$t("enrichment.profile.json_error.required") : "";
+      return key === this.visibleColumns[0]?.key ? row : "";
     },
     set(index, key, value) {
       this.$emit(

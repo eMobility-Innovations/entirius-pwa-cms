@@ -24,6 +24,17 @@
       <BasicTextarea v-model="draft" :rows="8" data-testid="proposal-edit-text" />
       <LengthCounter v-if="rules" :length="draftLength" :rules="rules" />
     </FormField>
+    <!-- A Studio step's output is read and edited on its run, never here as raw data. -->
+    <div v-else-if="runUid" class="flex-column gap-3" data-testid="proposal-studio">
+      <p class="m-0 fs-300">{{ $t("enrichment.review.studio_note") }}</p>
+      <router-link
+        :to="{ name: 'EnrichmentStudioRun', params: { uid: runUid } }"
+        class="proposal-panel__studio t-accent fw-600"
+        data-testid="proposal-studio-link"
+      >
+        {{ $t("enrichment.review.open_in_studio") }}
+      </router-link>
+    </div>
     <div v-else ref="view" class="flex-column" data-testid="proposal-view" @mouseup="captureSelection" @keyup="captureSelection">
       <DiffRenderer
         :target-kind="proposal.target_kind"
@@ -70,7 +81,7 @@ import ProposalCorrection from "./ProposalCorrection.vue";
 import QaWarnings from "./QaWarnings.vue";
 import { revisable, uniqueFragment, valueText } from "./correction";
 import { useFieldLabels } from "./useFieldLabels";
-import { editableText, isHtml, plainText, sourceText, textRules, translationSource, workerOf } from "./reviewLogic";
+import { editableText, isHtml, plainText, runUidOf, sourceText, textRules, translationSource, workerOf } from "./reviewLogic";
 
 const ACTIONABLE = ["pending", "drifted"];
 
@@ -104,6 +115,9 @@ export default {
     language() {
       return this.locator.language || "";
     },
+    runUid() {
+      return runUidOf(this.proposal);
+    },
     fieldName() {
       return this.proposalField(this.proposal);
     },
@@ -125,10 +139,14 @@ export default {
       const p = this.productData;
       return p?.name_t9n?.[this.language] || p?.name || this.proposal.subject_label || this.proposal.subject_ref;
     },
+    // A meta description reads under the product's name; a meta title is the result's title over its description.
     snippet() {
       if (!this.rules?.snippet) return null;
       const urlKey = this.productData?.url_key_t9n?.[this.language] || this.productData?.url_key || "";
-      return { title: this.productName, url: urlKey ? `/${urlKey}` : "" };
+      const url = urlKey ? `/${urlKey}` : "";
+      if (this.locator.feature_idx !== "meta_title") return { title: this.productName, url };
+      const description = sourceText(this.productData, "meta_description", this.language);
+      return { url, text: plainText(description) };
     },
     source() {
       return sourceText(this.productData, this.locator.feature_idx, this.sourceLanguage);
@@ -257,6 +275,13 @@ export default {
   padding: var(--space-1);
   border-radius: var(--radius-full);
   cursor: help;
+}
+.proposal-panel__studio {
+  align-self: flex-start;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
 }
 .proposal-panel__source {
   padding: var(--space-5);

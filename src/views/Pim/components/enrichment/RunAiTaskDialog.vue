@@ -8,7 +8,7 @@
     @close="$emit('close')"
   >
     <div v-if="createdTask" class="flex-column gap-4" data-testid="ai-task-created">
-      <p class="m-0">{{ $t("enrichment.ai.created", { id: createdTask.id }) }}</p>
+      <p class="m-0">{{ $t("enrichment.ai.created") }}</p>
       <router-link :to="taskLink" class="t-accent fw-600" data-testid="ai-task-link" @click="$emit('close')">
         {{ $t("enrichment.ai.open_task") }}
       </router-link>
@@ -40,7 +40,7 @@
         :research-keys="researchKeys"
       />
 
-      <p class="fs-200 t-muted m-0">{{ $t("enrichment.ai.summary", { count: skus.length, channel: channel }) }}</p>
+      <p class="fs-200 t-muted m-0">{{ summary }}</p>
       <p v-if="!nowAllowed" class="fs-200 t-secondary m-0" data-testid="ai-task-now-cap">
         {{ $t("enrichment.ai.lane.now_cap", { max: runNowMax }) }}
       </p>
@@ -89,6 +89,7 @@ import {
 import { newTemplateBody } from "./templateForm";
 import { LANE_NOW, LANE_QUEUE, RUN_NOW_MAX, canRunNow, defaultLane, spawnToast } from "./runLane";
 import { useMediaQuery } from "@/composables/useMediaQuery";
+import { pluralKey } from "@/utils/plural";
 import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 
 // One "Run AI task" dialog for a single product and a list selection: pick a template (its worker, fields,
@@ -156,6 +157,12 @@ export default {
     },
     channel() {
       return this.pimChannel.activeChannelIdx;
+    },
+    // "Runs on 3 products in Default Europe": the channel by its name, the count in its plural form.
+    summary() {
+      const count = this.skus.length;
+      const channel = this.pimChannel.activeChannel?.name || this.channel;
+      return this.$t(`enrichment.ai.summary_${pluralKey(count)}`, { count, channel });
     },
     languages() {
       return this.catalog.languages.length ? this.catalog.languages : this.pimChannel.activeChannelLanguages;

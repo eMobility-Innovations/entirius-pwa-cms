@@ -24,7 +24,7 @@
 
     <div v-if="snippet" class="flex-column gap-2">
       <span class="text-diff__label fs-200 t-secondary">{{ $t("enrichment.review.search_preview") }}</span>
-      <SearchSnippet :title="snippet.title" :url="snippet.url" :text="afterText" />
+      <SearchSnippet :title="snippet.text == null ? snippet.title : afterText" :url="snippet.url" :text="snippet.text ?? afterText" />
     </div>
 
     <div v-if="long || rules" class="flex ai-ct jc-sb flex-wrap gap-3">

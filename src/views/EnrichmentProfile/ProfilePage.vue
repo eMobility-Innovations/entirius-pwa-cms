@@ -29,13 +29,14 @@
         </FormField>
       </BasicCard>
 
-      <BasicCard v-if="jsonMode" :title="$t('enrichment.profile.json')">
+      <BasicCard v-if="jsonMode">
+        <!-- The errors sit above the text, in view while typing; each names its place in words. -->
+        <ul v-if="jsonList.length" class="profile-page__errors m-0 mb-4 flex-column gap-1" role="alert" data-testid="profile-json-errors">
+          <li v-for="error in jsonList" :key="error.path">{{ pathName(error.path) }}: {{ error.message }}</li>
+        </ul>
         <FormField :label="$t('enrichment.profile.json')" :error="jsonErrors.$ || ''">
           <BasicTextarea v-model="jsonText" :rows="30" data-testid="profile-json" />
         </FormField>
-        <ul v-if="jsonList.length" class="profile-page__errors m-0 mt-4 flex-column gap-1" role="alert" data-testid="profile-json-errors">
-          <li v-for="error in jsonList" :key="error.path"><code>{{ error.path }}</code>: {{ error.message }}</li>
-        </ul>
       </BasicCard>
       <template v-else>
         <ProfileSection
@@ -45,6 +46,7 @@
           :section="section"
           :status="summary.byKey[section.key] || null"
           :errors="sectionErrors(section.key)"
+          :inherited="channel ? company[section.key] ?? null : null"
         />
       </template>
     </div>
@@ -80,7 +82,7 @@ import ProfileCompleteness from "./ProfileCompleteness.vue";
 import ProfileHistory from "./ProfileHistory.vue";
 import ProfileSection from "./ProfileSection.vue";
 import { checkProfileJson } from "./jsonCheck";
-import { completeness, errorsByPath, errorsInside, prettyJson, pruneEmpty, sectionsFrom } from "./profileLogic";
+import { completeness, errorsByPath, errorsInside, pathWords, prettyJson, pruneEmpty, sectionsFrom } from "./profileLogic";
 import { useProfileChannels } from "./useProfileChannels";
 
 // The company profile (contract A4 § 2): what the AI is told about the company, per scope — the whole company or a
@@ -100,6 +102,8 @@ export default {
       schema: null,
       saved: {},
       form: {},
+      // The whole company's profile, read in a channel scope: what an empty channel section uses.
+      company: {},
       status: null,
       versions: [],
       note: "",
@@ -198,12 +202,14 @@ export default {
     },
     fetchScope() {
       const params = { channel: this.channel };
-      return Promise.all([GET_Profile(params), GET_ProfileStatus(params), GET_ProfileVersions(params)]);
+      const company = this.channel ? GET_Profile({ channel: "" }) : Promise.resolve({ data: {} });
+      return Promise.all([GET_Profile(params), GET_ProfileStatus(params), GET_ProfileVersions(params), company]);
     },
-    showScope([profile, status, versions]) {
+    showScope([profile, status, versions, company]) {
       this.showProfile(profile.data);
       this.status = status.data;
       this.versions = versions.data || [];
+      this.company = company.data?.data || {};
     },
     showProfile(profile) {
       this.saved = profile.data || {};
@@ -218,9 +224,31 @@ export default {
         return;
       }
       const { data, errors } = checkProfileJson(this.schema, this.jsonText);
-      if (Object.keys(errors).length) return;
+      if (Object.keys(errors).length) {
+        this.notify.spawnNotification({ type: "warning", msg: this.$t("enrichment.profile.json_blocked") });
+        this.showFirstError();
+        return;
+      }
       this.form = data;
       this.jsonMode = false;
+    },
+    // A JSON path in the editor's words: "facts › Row 3 › Value".
+    pathName(path) {
+      const words = { section: "sections", field: "fields" };
+      return pathWords(path, (kind, part) => {
+        if (kind === "row") return this.$t("enrichment.profile.row", { n: part });
+        for (const group of [words[kind], "fields", "columns"]) {
+          const key = `enrichment.profile.${group}.${part}`;
+          if (this.$t(key) !== key) return this.$t(key);
+        }
+        return part;
+      });
+    },
+    // After a refused save the first field in error comes into view (a long profile hides it far below).
+    async showFirstError() {
+      await this.$nextTick();
+      const target = this.$el.querySelector?.("[role='alert'], .form-field__error");
+      target?.scrollIntoView({ block: "center", behavior: "smooth" });
     },
     payload() {
       if (!this.jsonMode) return pruneEmpty(this.form);
@@ -229,7 +257,7 @@ export default {
     },
     async save() {
       const data = this.payload();
-      if (!data) return;
+      if (!data) return this.showFirstError();
       this.saving = true;
       try {
         const { data: profile } = await PUT_Profile({ channel: this.channel }, { data, note: this.note.trim() });
@@ -238,6 +266,7 @@ export default {
       } catch (err) {
         this.apiErrors = errorsByPath(err);
         this.toastError(err);
+        this.showFirstError();
       } finally {
         this.saving = false;
       }

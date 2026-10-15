@@ -68,7 +68,7 @@ const appliedRow = {
 describe("EnrichmentReview bulk undo (etap-09)", () => {
   it("ListMode shows the undo button for applied rows and emits bulk-undo", async () => {
     const w = mount(ListMode, {
-      props: { rows: [appliedRow], totalCount: 1 },
+      props: { rows: [appliedRow], totalCount: 1, statusFilter: "applied" },
       global: { stubs },
     });
     const undo = w.find('[data-testid="enrichment-undo"]');

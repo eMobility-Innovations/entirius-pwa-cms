@@ -226,3 +226,10 @@ export const POST_CheckProposal = (proposalId) =>
 // "Add to facts": body { value, label? } → 201 memory fact_suggestion.
 export const POST_SuggestFact = (proposalId, data) =>
   enrichmentApi.post(`${ENR}/proposals/${proposalId}/facts/suggest/`, data);
+
+// --- AI usage (header counter) ---
+
+// This month's AI usage of the instance → { period: "YYYY-MM", tokens, cost_usd: "3.40" | null, cost_since, currency };
+// 503 while the toolbox is down (the caller stays quiet).
+export const GET_UsageMonth = () =>
+  enrichmentApi.get(`${ENR}/usage/month/`);

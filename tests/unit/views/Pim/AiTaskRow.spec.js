@@ -83,10 +83,11 @@ describe("AiTaskRow", () => {
     expect(w.find(".ai-task__label").text()).toBe("enrichment.ai.task_generic");
   });
 
-  it("clicking the row selects the task; the id is a small link of its own", async () => {
+  it("clicking the row selects the task; a chevron of its own opens the task, never showing its id", async () => {
     const w = mountRow();
     await w.find(".ai-task__select").trigger("click");
     expect(w.emitted("select")[0]).toEqual([9]);
-    expect(w.find(".ai-task__id").text()).toBe("#9");
+    expect(w.find(".ai-task__id").text()).toBe("");
+    expect(w.find(".ai-task__id").attributes("aria-label")).toBe("enrichment.tasks.open");
   });
 });
