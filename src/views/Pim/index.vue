@@ -1,5 +1,6 @@
 <template>
-  <router-view />
+  <!-- One product after another (a link from one product page to the next) is a new view: same route, new SKU. -->
+  <router-view :key="$route.params.sku" />
 </template>
 
 <script>

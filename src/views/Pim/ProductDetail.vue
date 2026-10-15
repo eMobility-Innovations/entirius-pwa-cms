@@ -440,6 +440,12 @@ export default {
   beforeRouteLeave(to, from, next) {
     this.guardNavigation(to, from, next);
   },
+  // Another product replaces this one (the panel remounts its view on a new SKU): unsaved edits ask first, as when
+  // leaving; a hash or query change (a tab, the AI drawer) stays on the page.
+  beforeRouteUpdate(to, from, next) {
+    if (to.params.sku === from.params.sku) return next();
+    this.guardNavigation(to, from, next);
+  },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();

@@ -54,6 +54,8 @@ All notable changes to this project will be documented in this file.
 
 - Product page: an Attributes tab that cannot load (the backend restarting) says so in a toast instead of an
   uncaught "Network Error".
+- Product page: opening another product from a product page (same address, new SKU) shows that product instead of
+  the previous one; unsaved edits ask first, as when leaving the page.
 
 ## [3.2.0] (2026-10-12)
 
