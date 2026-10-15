@@ -17,12 +17,14 @@ export function isHtml(value) {
   return typeof value === "string" && /<([a-z][a-z0-9]*)\b[^>]*>/i.test(value);
 }
 
-/** Proposals grouped by their subject (a PIM SKU), in the order the list has them. */
+/** Proposals grouped by their subject (a PIM SKU), in the order the list has them; a product is titled by its name
+ * and SKU, as on a list row ("Orion lamp · ENT-S001"), a Studio article by its title. */
 export function groupBySubject(rows) {
   const groups = new Map();
   for (const row of rows) {
     if (!groups.has(row.subject_ref)) {
-      groups.set(row.subject_ref, { subjectRef: row.subject_ref, label: row.subject_label || row.subject_ref, proposals: [] });
+      const label = runUidOf(row) ? row.subject_label || row.subject_ref : subjectName(row);
+      groups.set(row.subject_ref, { subjectRef: row.subject_ref, label, proposals: [] });
     }
     groups.get(row.subject_ref).proposals.push(row);
   }

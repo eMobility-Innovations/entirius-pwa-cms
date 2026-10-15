@@ -58,16 +58,18 @@ describe("isHtml", () => {
 });
 
 describe("groupBySubject", () => {
-  it("groups by subject_ref in list order", () => {
+  it("groups by subject_ref in list order, a product titled by name and SKU as on a list row", () => {
     const rows = [
       proposal({ id: 1 }),
       proposal({ id: 2, subject_ref: "SKU-2", subject_label: "" }),
       proposal({ id: 3 }),
+      proposal({ id: 4, subject_ref: "run:abc", subject_label: "Crew bunks" }),
     ];
     const groups = groupBySubject(rows);
     expect(groups.map((g) => [g.subjectRef, g.label, g.proposals.map((p) => p.id)])).toEqual([
-      ["SKU-1", "Chair", [1, 3]],
+      ["SKU-1", "Chair · SKU-1", [1, 3]],
       ["SKU-2", "SKU-2", [2]],
+      ["run:abc", "Crew bunks", [4]],
     ]);
   });
 });
