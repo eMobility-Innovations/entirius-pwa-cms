@@ -42,6 +42,18 @@
       </div>
     </template>
 
+    <BulkActionBar
+      v-if="selected.length"
+      :count="selected.length"
+      selected-label-key="gallery.images_selected"
+      clear-label-key="gallery.clear_selection"
+      :actions="bulkActions"
+      data-testid="gallery-bulk-bar"
+      @action="handleBulkAction"
+      @clear="selected = []"
+    />
+    <AiToolboxHint v-if="selected.length && !aiUsable" />
+
     <Loader v-if="!gallery" block />
     <template v-else>
       <div v-if="currentImages.length" class="gallery__grid">
@@ -51,11 +63,19 @@
           :src="thumbnailOf(image.set)"
           :alt="image.meta?.alt || ''"
           :caption="image.meta?.fileName || ''"
+          :selected="isSelected(image)"
         >
           <template v-if="image.tags?.length" #overlay>
             <Tag v-for="tag in image.tags" :key="`img-tag-${image.uid}-${tag.slug}`" :label="tag.label" />
           </template>
           <template #actions>
+            <BasicCheckbox
+              v-if="selectable"
+              :model-value="isSelected(image)"
+              :aria-label="$t('gallery.select_photo')"
+              :data-testid="`gallery-select-${image.uid}`"
+              @update:model-value="toggleSelected(image)"
+            />
             <IconButton icon="tag" size="sm" :label="$t('gallery.edit_tags')" @click="openTagEditor(image)" />
             <IconButton
               icon="delete"
@@ -175,6 +195,20 @@
       </div>
     </BasicModal>
 
+    <RunAiTaskDialog
+      v-if="selectable"
+      :open="aiDialogOpen"
+      :workers="imageWorkers"
+      :templates="imageTemplates"
+      :initial-template="aiTemplate"
+      :skus="aiRefs"
+      module="contentdb"
+      :subject-channel="galleryChannel"
+      @close="aiDialogOpen = false"
+      @created="selected = []"
+      @template-saved="reloadAiTemplates"
+    />
+
     <ConfirmDialog
       :open="!!confirm"
       tone="danger"
@@ -188,6 +222,7 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from "vue";
 import {
   _METHOD_content,
   DELETE_ImageTags,
@@ -196,13 +231,34 @@ import {
 import { useNotifyStore } from "@/stores/notify";
 import { slugBuilder } from "@/utils/normalizers/assets-normalizers";
 import { thumbnailOf } from "@/utils/thumbnail";
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
+import { useAiWorkers } from "@/views/Pim/components/enrichment/useAiWorkers";
 
 const PAGE_SIZES = [18, 36, 54];
+// Gallery images belong to no channel: the AI run names this one (the ContentDB adapter ignores it).
+const GALLERY_CHANNEL = "gallery";
+const CUSTOM_RUN = "__custom";
+const IMAGE_KIND = "image";
 
+// AI on gallery images (plan 26): with the enrichment module on and its proposals writable, each tile has a select
+// box; the selection (kept across pages) opens the run dialog on `image:<uid>` subjects with a gallery template or a
+// custom run. Results land in Review, where Apply adds the new image to the gallery or replaces the original. No video:
+// the gallery stores images only.
 export default {
+  components: {
+    AiToolboxHint,
+    RunAiTaskDialog: defineAsyncComponent(() => import("@/views/Pim/components/enrichment/RunAiTaskDialog.vue")),
+  },
   setup() {
     const notify = useNotifyStore();
-    return { notify };
+    const {
+      workers: aiWorkers,
+      templates: aiTemplates,
+      writable: aiWritable,
+      usable: aiUsable,
+      reloadTemplates: reloadAiTemplates,
+    } = useAiWorkers("contentdb");
+    return { notify, aiWorkers, aiTemplates, aiWritable, aiUsable, reloadAiTemplates };
   },
   data() {
     return {
@@ -234,9 +290,36 @@ export default {
       uploading: false,
       tag_img_uid: "",
       edited_image_tags: null,
+      // uids of the images picked for an AI run
+      selected: [],
+      aiDialogOpen: false,
+      aiTemplate: "",
+      galleryChannel: GALLERY_CHANNEL,
     };
   },
   computed: {
+    // Only image processing works on a gallery image (the module's article worker writes documents).
+    imageWorkers() {
+      return this.aiWorkers.filter((worker) => worker.kind === IMAGE_KIND);
+    },
+    imageTemplates() {
+      const keys = new Set(this.imageWorkers.map((worker) => worker.key));
+      return this.aiTemplates.filter((template) => keys.has(template.worker_key));
+    },
+    selectable() {
+      return this.aiWritable && this.imageWorkers.length > 0;
+    },
+    aiRefs() {
+      return this.selected.map((uid) => `image:${uid}`);
+    },
+    bulkActions() {
+      if (!this.aiUsable) return [];
+      const options = [
+        ...this.imageTemplates.map((template) => ({ label: template.label, value: template.key })),
+        { label: this.$t("enrichment.run.custom"), value: CUSTOM_RUN },
+      ];
+      return [{ key: "ai_images", labelKey: "gallery.ai_process", options }];
+    },
     fabActions() {
       return [
         {
@@ -299,6 +382,17 @@ export default {
   },
   methods: {
     thumbnailOf,
+    isSelected({ uid }) {
+      return this.selected.includes(uid);
+    },
+    toggleSelected({ uid }) {
+      this.selected = this.isSelected({ uid }) ? this.selected.filter((picked) => picked !== uid) : [...this.selected, uid];
+    },
+    handleBulkAction(key, templateKey) {
+      if (key !== "ai_images") return;
+      this.aiTemplate = templateKey === CUSTOM_RUN ? "" : templateKey;
+      this.aiDialogOpen = true;
+    },
     openDialog(name) {
       this.selected_tags = [];
       this.new_tag_input = "";
@@ -346,7 +440,10 @@ export default {
       this.confirm = {
         title: this.$t("gallery.delete_photo"),
         message: this.$t("gallery.confirm_delete"),
-        run: () => this.DELETE_Image({ url: `/images/${uid}/`, method: "delete" }),
+        run: () => {
+          this.selected = this.selected.filter((picked) => picked !== uid);
+          this.DELETE_Image({ url: `/images/${uid}/`, method: "delete" });
+        },
       };
     },
     askDeleteTags() {
@@ -708,7 +805,6 @@ export default {
     this.init();
   },
   mounted() {},
-  components: {},
 };
 </script>
 <style lang="scss" scoped>

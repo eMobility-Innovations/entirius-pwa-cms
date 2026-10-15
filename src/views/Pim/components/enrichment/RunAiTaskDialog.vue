@@ -8,7 +8,7 @@
     @close="$emit('close')"
   >
     <div v-if="createdTask" class="flex-column gap-4" data-testid="ai-task-created">
-      <p class="m-0">{{ $t("enrichment.ai.created") }}</p>
+      <p class="m-0">{{ $t(isPim ? "enrichment.ai.created" : "enrichment.ai.gallery.created") }}</p>
       <router-link :to="taskLink" class="t-accent fw-600" data-testid="ai-task-link" @click="$emit('close')">
         {{ $t("enrichment.ai.open_task") }}
       </router-link>
@@ -34,11 +34,12 @@
       <PicturePicker
         v-if="pictureSubject"
         v-model="pictureRef"
+        :module="module"
         :channel="channel"
         :subject-ref="pictureSubject"
         :label="$t(`enrichment.ai.picture.${kind}_label`)"
       />
-      <p v-else-if="startsFromPicture && runCount > 1" class="fs-200 t-secondary m-0" data-testid="ai-task-main-pictures">
+      <p v-else-if="isPim && startsFromPicture && runCount > 1" class="fs-200 t-secondary m-0" data-testid="ai-task-main-pictures">
         {{ $t(`enrichment.ai.picture.several_${kind}`) }}
       </p>
 
@@ -55,7 +56,7 @@
 
       <p class="fs-200 t-muted m-0">{{ summary }}</p>
       <p v-if="!nowAllowed" class="fs-200 t-secondary m-0" data-testid="ai-task-now-cap">
-        {{ $t("enrichment.ai.lane.now_cap", { max: runNowMax }) }}
+        {{ $t(isPim ? "enrichment.ai.lane.now_cap" : "enrichment.ai.gallery.now_cap", { max: runNowMax }) }}
       </p>
 
       <div v-if="saving" class="ai-task__save flex-column gap-3" data-testid="ai-task-save-template">
@@ -112,6 +113,7 @@ import { pluralKey } from "@/utils/plural";
 import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 
 const PICTURE_KINDS = ["video", "image"];
+const NO_CATALOG = { fields: [], languages: [] };
 
 // One "Run AI task" dialog for a single product and a list selection: pick a template (its worker, fields,
 // languages, instructions and research preset) or "Custom…" and a worker, adjust the form, POST one task over the
@@ -123,7 +125,8 @@ const PICTURE_KINDS = ["video", "image"];
 // coming in as `skus`; a big category is a filter scope, queued only. A `video` or `image` worker on one product asks
 // which picture it starts from (PicturePicker → `params.picture_ref`, run only, never saved in a template); on several
 // products each one uses its main picture. An `image` run says what to do (operation), how many variants, and — for a
-// custom instruction — the instruction itself.
+// custom instruction — the instruction itself. `module` (default "pim") names whose subjects `skus` are: the gallery
+// opens it with "contentdb", `image:<uid>` refs and its own `subject-channel` — no PIM field catalog, image wording.
 export default {
   name: "RunAiTaskDialog",
   components: { AiToolboxHint, AiParamsForm, PicturePicker, QaCheckToggle, TaskTargetPicker },
@@ -135,6 +138,9 @@ export default {
     initialTemplate: { type: String, default: "" },
     initialWorker: { type: String, default: "" },
     skus: { type: Array, default: () => [] },
+    module: { type: String, default: "pim" },
+    // The channel of a module other than PIM (the active PIM channel otherwise).
+    subjectChannel: { type: String, default: "" },
     pickTargets: { type: Boolean, default: false },
     // The page shows the task's progress itself: close on spawn with a toast instead of the task link.
     background: { type: Boolean, default: false },
@@ -189,8 +195,11 @@ export default {
     workerOptions() {
       return this.workers.map((w) => ({ label: w.label || w.key, value: w.key }));
     },
+    isPim() {
+      return this.module === "pim";
+    },
     channel() {
-      return this.pimChannel.activeChannelIdx;
+      return this.subjectChannel || this.pimChannel.activeChannelIdx;
     },
     // The products of the run: the `skus` prop, or (pickTargets) the picked SKUs or filter.
     runSkus() {
@@ -218,6 +227,7 @@ export default {
     // "Runs on 3 products in Default Europe": the channel by its name, the count in its plural form.
     summary() {
       const count = this.runCount;
+      if (!this.isPim) return this.$t(`enrichment.ai.gallery.summary_${pluralKey(count)}`, { count });
       const channel = this.pimChannel.activeChannel?.name || this.channel;
       return this.$t(`enrichment.ai.summary_${pluralKey(count)}`, { count, channel });
     },
@@ -288,7 +298,7 @@ export default {
       // A custom run starts with no worker picked: Run waits until the operator chose what the AI makes.
       this.workerKey = this.initialWorker || (this.workers.length === 1 ? this.workers[0].key : "");
       this.templateKey = this.initialTemplate;
-      this.catalog = await loadCatalog(this.channel);
+      this.catalog = this.isPim ? await loadCatalog(this.channel) : NO_CATALOG;
       if (mine !== this.openSeq || !this.open) return;
       this.applyDefaults();
       this.ready = true;
@@ -334,7 +344,7 @@ export default {
       try {
         const payload = buildTaskPayload({
           worker: this.worker, params: this.runParams(), channel: this.channel, skus: this.runSkus, template: this.templateKey,
-          filters: this.runFilters,
+          filters: this.runFilters, module: this.module,
         });
         const { data } = await POST_SpawnTask({ ...payload, lane });
         this.$emit("created", data);

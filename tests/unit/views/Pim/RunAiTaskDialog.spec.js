@@ -130,7 +130,7 @@ const stubs = {
   FormField: { template: "<div><slot /></div>" },
   RouterLink: { name: "RouterLink", props: ["to"], template: "<a><slot /></a>" },
   TaskTargetPicker: { name: "TaskTargetPicker", props: ["modelValue"], template: "<div />" },
-  PicturePicker: { name: "PicturePicker", props: ["modelValue", "channel", "subjectRef", "label"], template: "<div />" },
+  PicturePicker: { name: "PicturePicker", props: ["modelValue", "module", "channel", "subjectRef", "label"], template: "<div />" },
   QaCheckToggle: { name: "QaCheckToggle", props: ["modelValue", "disabled"], template: "<div data-testid='qa-check-toggle' />" },
 };
 
@@ -582,6 +582,34 @@ describe("RunAiTaskDialog", () => {
       w.vm.templateLabel = "Mine";
       await w.vm.saveTemplate();
       expect(mockSaveTemplate.mock.calls[0][0].params).toMatchObject({ operation: "packshot", preset: "packshot-white" });
+    });
+  });
+
+  describe("gallery images (module contentdb)", () => {
+    const GALLERY_IMAGE = { ...IMAGE, key: "contentdb.image" };
+    const gallery = (props = {}) =>
+      openDialog({
+        workers: [GALLERY_IMAGE], initialWorker: GALLERY_IMAGE.key, module: "contentdb", subjectChannel: "gallery",
+        skus: ["image:u-1", "image:u-2"], ...props,
+      });
+
+    it("sends the contentdb scope on the gallery channel, with image wording and no PIM catalog", async () => {
+      catalog.fields = CATALOG_FIELDS;
+      mockSpawn.mockResolvedValue({ data: { id: 9, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await gallery();
+      expect(w.vm.catalog.fields).toEqual([]);
+      expect(w.vm.summary).toBe(`enrichment.ai.gallery.summary_few::${JSON.stringify({ count: 2 })}`);
+      expect(w.find("[data-testid='ai-task-main-pictures']").exists()).toBe(false);
+      await w.vm.run();
+      const body = mockSpawn.mock.calls[0][0];
+      expect(body.scope_spec).toEqual({ mode: "list", refs: ["image:u-1", "image:u-2"], module: "contentdb", channel: "gallery" });
+      expect(body.params.channel).toBe("gallery");
+    });
+
+    it("one image: the picker lists that image's own picture through the contentdb module", async () => {
+      const w = await gallery({ skus: ["image:u-1"] });
+      const picker = w.findComponent({ name: "PicturePicker" });
+      expect(picker.props()).toMatchObject({ module: "contentdb", channel: "gallery", subjectRef: "image:u-1" });
     });
   });
 });

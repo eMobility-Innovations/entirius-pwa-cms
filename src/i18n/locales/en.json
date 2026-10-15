@@ -239,7 +239,11 @@
     "page_size": "Photos per page",
     "edit_tags": "Edit tags",
     "alt_text": "Alt text",
-    "confirm_delete_tags": "Are you sure you want to delete the selected tags?"
+    "confirm_delete_tags": "Are you sure you want to delete the selected tags?",
+    "select_photo": "Select for AI",
+    "images_selected": "images selected",
+    "ai_process": "AI: process images",
+    "clear_selection": "Clear selection"
   },
   "images": {
     "library": "Library",
@@ -2990,6 +2994,13 @@
           "enhance": "Improve the photo",
           "instruct": "Custom instruction"
         }
+      },
+      "gallery": {
+        "created": "Sent to the AI. Its results appear in the review as each image is finished. Apply adds the new image to the gallery or replaces the original.",
+        "summary_one": "Runs on 1 image.",
+        "summary_few": "Runs on {count} images.",
+        "summary_many": "Runs on {count} images.",
+        "now_cap": "Run now takes at most {max} images at a time. Add this run to the queue instead."
       }
     },
     "video": {

@@ -239,7 +239,11 @@
     "page_size": "Liczba zdjęć na stronie",
     "edit_tags": "Edytuj tagi",
     "alt_text": "Tekst alternatywny",
-    "confirm_delete_tags": "Czy na pewno chcesz usunąć wybrane tagi?"
+    "confirm_delete_tags": "Czy na pewno chcesz usunąć wybrane tagi?",
+    "select_photo": "Zaznacz do AI",
+    "images_selected": "zdjęć zaznaczonych",
+    "ai_process": "AI: przetwórz zdjęcia",
+    "clear_selection": "Wyczyść zaznaczenie"
   },
   "images": {
     "library": "Biblioteka",
@@ -2989,6 +2993,13 @@
           "enhance": "Popraw zdjęcie",
           "instruct": "Własne polecenie"
         }
+      },
+      "gallery": {
+        "created": "Wysłano do AI. Wyniki pojawią się w przeglądzie, gdy każde zdjęcie będzie gotowe. Zastosuj doda nowe zdjęcie do galerii albo zastąpi oryginał.",
+        "summary_one": "Uruchomi się na 1 zdjęciu.",
+        "summary_few": "Uruchomi się na {count} zdjęciach.",
+        "summary_many": "Uruchomi się na {count} zdjęciach.",
+        "now_cap": "Uruchom teraz obsłuży najwyżej {max} zdjęć naraz. Dodaj to uruchomienie do kolejki."
       }
     },
     "video": {

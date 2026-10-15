@@ -9,8 +9,6 @@ import { useAiUsageVisible } from "@/components/AiUsage/useAiUsage";
 import { GET_Templates, GET_Workers } from "@/api/enrichment/api";
 import { listOf } from "@/api/enrichment/listOf";
 
-const MODULE = "pim";
-
 /** The templates a run can start from: active, of an active worker, in their order. */
 export function runnableTemplates(templates, workers) {
   const known = new Set(workers.map((w) => w.key));
@@ -23,8 +21,8 @@ export function runnableTemplates(templates, workers) {
 // counter; hidden otherwise, nothing loads, nothing toasts), `writable` with write on that area, usable while the AI toolbox is
 // (configHealth.aiUsable — the hint is <AiToolboxHint />). Workers and templates load once the module is known to be
 // on; a failed worker load is toasted, so an empty menu is never a silent misconfiguration. `reloadTemplates` after one is
-// saved from the run dialog.
-export function useAiWorkers() {
+// saved from the run dialog. `module` = whose workers (the gallery asks for "contentdb").
+export function useAiWorkers(module = "pim") {
   const access = useAccessStore();
   const health = useConfigHealthStore();
   const workers = ref([]);
@@ -36,7 +34,7 @@ export function useAiWorkers() {
 
   async function reloadTemplates() {
     try {
-      // Every template, not only pim's: a task's label resolves from any template it ran from.
+      // Every template, not only this module's: a task's label resolves from any template it ran from.
       const { data } = await GET_Templates();
       allTemplates.value = listOf(data);
     } catch {
@@ -47,7 +45,7 @@ export function useAiWorkers() {
 
   async function load() {
     try {
-      const { data } = await GET_Workers({ target_module: MODULE });
+      const { data } = await GET_Workers({ target_module: module });
       workers.value = listOf(data);
     } catch (err) {
       workers.value = [];

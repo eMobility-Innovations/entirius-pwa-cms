@@ -9,6 +9,26 @@ vi.mock("@/api/contentDB/api", () => ({
   DELETE_ImageTags: vi.fn(),
 }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
+const ai = vi.hoisted(() => ({ module: null, writable: true, usable: true }));
+vi.mock("@/views/Pim/components/enrichment/useAiWorkers", async () => {
+  const { ref } = await import("vue");
+  return {
+    useAiWorkers: (module) => {
+      ai.module = module;
+      return {
+        workers: ref([{ key: "contentdb.image", kind: "image" }, { key: "article.compose", kind: "compose" }]),
+        templates: ref([
+          { key: "gallery-image-packshot", label: "Packshot", worker_key: "contentdb.image" },
+          { key: "article.compose", label: "Article", worker_key: "article.compose" },
+        ]),
+        writable: ref(ai.writable),
+        usable: ref(ai.usable),
+        reloadTemplates: vi.fn(),
+      };
+    },
+  };
+});
+vi.mock("@/components/ConfigHealth/AiToolboxHint.vue", () => ({ default: { name: "AiToolboxHint", render: () => null } }));
 
 import Gallery from "@/views/Gallery.vue";
 
@@ -25,11 +45,19 @@ const answer = ({ url }) =>
 const PageLayout = { template: "<div><slot name='header' /><slot name='toolbar' /><slot /></div>" };
 const FilterChip = { props: ["label", "active"], emits: ["click"], template: "<button class='chip' @click=\"$emit('click')\">{{ label }}</button>" };
 
+const BulkActionBar = { name: "BulkActionBar", props: ["count", "actions"], emits: ["action", "clear"], template: "<div />" };
+const RunAiTaskDialog = {
+  name: "RunAiTaskDialog",
+  props: ["open", "workers", "templates", "initialTemplate", "skus", "module", "subjectChannel"],
+  emits: ["close", "created", "template-saved"],
+  template: "<div />",
+};
+
 const mountGallery = async () => {
   const wrapper = mount(Gallery, {
     global: {
       components: { PageLayout, FilterChip },
-      stubs: { FilterChip: false, PageHeader: true, BasicSelect: true, MediaTile: true, IconButton: true, Tag: true, Pagination: true, FloatingActions: true, BasicModal: true, ConfirmDialog: true },
+      stubs: { RunAiTaskDialog, BulkActionBar, BasicCheckbox: true, FilterChip: false, PageHeader: true, BasicSelect: true, MediaTile: true, IconButton: true, Tag: true, Pagination: true, FloatingActions: true, BasicModal: true, ConfirmDialog: true },
     },
   });
   await flushPromises();
@@ -42,6 +70,55 @@ describe("Gallery", () => {
   beforeEach(() => {
     mockContent.mockReset().mockImplementation(async (arg) => answer(arg));
     mockPutTags.mockReset().mockResolvedValue({});
+    Object.assign(ai, { module: null, writable: true, usable: true });
+  });
+
+  describe("AI on selected images", () => {
+    it("loads the contentdb image workers only; the picked images open the run dialog as image refs with the template", async () => {
+      const wrapper = await mountGallery();
+      expect(ai.module).toBe("contentdb");
+      wrapper.vm.toggleSelected(IMAGE);
+      wrapper.vm.toggleSelected({ uid: "img-2" });
+      await flushPromises();
+      const bar = wrapper.findComponent({ name: "BulkActionBar" });
+      expect(bar.props("count")).toBe(2);
+      expect(bar.props("actions")[0].options.map((o) => o.value)).toEqual(["gallery-image-packshot", "__custom"]);
+      bar.vm.$emit("action", "ai_images", "gallery-image-packshot");
+      await flushPromises();
+      const dialog = wrapper.findComponent({ name: "RunAiTaskDialog" });
+      expect(dialog.props("workers").map((w) => w.key)).toEqual(["contentdb.image"]);
+      expect(dialog.props()).toMatchObject({
+        open: true, module: "contentdb", subjectChannel: "gallery", initialTemplate: "gallery-image-packshot",
+        skus: ["image:img-1", "image:img-2"],
+      });
+    });
+
+    it("a second click unselects; a spawned run clears the selection", async () => {
+      const wrapper = await mountGallery();
+      wrapper.vm.toggleSelected(IMAGE);
+      wrapper.vm.toggleSelected({ uid: "img-2" });
+      wrapper.vm.toggleSelected(IMAGE);
+      expect(wrapper.vm.selected).toEqual(["img-2"]);
+      wrapper.vm.handleBulkAction("ai_images", "__custom");
+      await flushPromises();
+      expect(wrapper.findComponent({ name: "RunAiTaskDialog" }).props("initialTemplate")).toBe("");
+      wrapper.findComponent({ name: "RunAiTaskDialog" }).vm.$emit("created", {});
+      expect(wrapper.vm.selected).toEqual([]);
+    });
+
+    it("without write on AI proposals there is no selection and no dialog", async () => {
+      ai.writable = false;
+      const wrapper = await mountGallery();
+      expect(wrapper.vm.selectable).toBe(false);
+      expect(wrapper.findComponent({ name: "RunAiTaskDialog" }).exists()).toBe(false);
+    });
+
+    it("with the AI toolbox down the bar offers no AI action", async () => {
+      ai.usable = false;
+      const wrapper = await mountGallery();
+      wrapper.vm.toggleSelected(IMAGE);
+      expect(wrapper.vm.bulkActions).toEqual([]);
+    });
   });
 
   it("a tag chip filters the grid by its slug from page 1, a second click clears it", async () => {
