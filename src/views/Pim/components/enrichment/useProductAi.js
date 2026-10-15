@@ -4,6 +4,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { t } from "@/i18n";
 import { pluralKey } from "@/utils/plural";
 import { GET_Proposals, GET_Tasks } from "@/api/enrichment/api";
+import { runName } from "@/views/EnrichmentReview/runLabel";
 import { finishedTasks, isActive } from "./productAi";
 
 export const POLL_MS = 4000;
@@ -12,8 +13,8 @@ const MAX_PROPOSALS = 50;
 
 // The AI work of one PIM product (`sku` a ref): its pending proposals and its recent tasks. While a task runs the tasks are
 // polled; a task that finishes reloads the proposals and says so in a toast. Once the product's view is gone nothing
-// polls or toasts any more, also for a read that was on its way.
-export function useProductAi(sku) {
+// polls or toasts any more, also for a read that was on its way. `nameOf(task)` names a run in the toasts.
+export function useProductAi(sku, nameOf = (task) => runName(task)) {
   const notify = useNotifyStore();
   const proposals = ref([]);
   const tasks = ref([]);
@@ -40,7 +41,7 @@ export function useProductAi(sku) {
 
   function announce(task) {
     const done = task.status === "done";
-    const msg = done ? doneMessage(task.counts || {}) : t("enrichment.ai.task_failed", { id: task.id });
+    const msg = done ? doneMessage(task.counts || {}) : t("enrichment.ai.task_failed", { name: nameOf(task) });
     notify.spawnNotification({ type: done ? "positive" : "negative", msg });
   }
 

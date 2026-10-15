@@ -12,7 +12,7 @@
         <div class="filter-chip-row" role="group" :aria-label="$t('enrichment.tasks.col_status')">
           <FilterChip
             v-if="taskFilter"
-            :label="$t('enrichment.tasks.single', { id: taskFilter })"
+            :label="pickedLabel"
             active
             data-testid="enrichment-task-single"
             @click="onFilterChange(ALL)"
@@ -187,6 +187,10 @@ export default {
         { key: "actions", label: "", actions: true },
       ];
     },
+    // The picked run's chip: the run as it reads everywhere, "AI task" until its row is in.
+    pickedLabel() {
+      return this.selected ? runTitle(this.selected.raw, this.workers, this.templates) : this.$t("enrichment.tasks.generic");
+    },
     // The picked run, once its row is loaded.
     selected() {
       return this.tasks.find((row) => String(row.id) === String(this.taskFilter)) || null;
@@ -296,14 +300,14 @@ export default {
     },
     formatCounts(counts) {
       const entries = orderedCounts(counts);
-      return entries.length
-        ? entries.map(([k, v]) => `${this.countLabel(k)}: ${v}`).join(", ")
-        : "—";
+      const named = entries.map(([k, v]) => [this.countLabel(k), v]).filter(([label]) => label);
+      return named.length ? named.map(([label, v]) => `${label}: ${v}`).join(", ") : "—";
     },
+    // A count the CMS has no words for is left out, never shown by its key.
     countLabel(key) {
       const path = `enrichment.tasks.counts.${key}`;
       const label = this.$t(path);
-      return label === path ? key : label;
+      return label === path ? "" : label;
     },
     onFilterChange(value) {
       this.statusFilter = value;

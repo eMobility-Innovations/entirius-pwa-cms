@@ -2635,10 +2635,10 @@
       "col_status": "Status",
       "col_progress": "Progress",
       "col_created": "Created",
-      "single": "Task #{id}",
       "counts": {
         "proposed": "Proposed",
-        "failed": "Failed"
+        "failed": "Failed",
+        "kept_edited": "Kept your edits"
       },
       "empty_filtered": "No tasks with this status",
       "show_all": "Show all tasks",
@@ -2852,7 +2852,7 @@
       "kept_edited_one": "1 field skipped — you edited it.",
       "kept_edited_few": "{count} fields skipped — you edited them.",
       "kept_edited_many": "{count} fields skipped — you edited them.",
-      "task_failed": "AI task #{id} failed.",
+      "task_failed": "AI task failed: {name}.",
       "applied_reload": "Proposal applied. The product shows it after the next reload.",
       "applied_conflict": "Proposal applied, but you have unsaved edits in the same field. Saving now overwrites the AI value.",
       "tasks_idle": "Nothing running or waiting for review.",

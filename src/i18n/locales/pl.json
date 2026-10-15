@@ -2634,10 +2634,10 @@
       "col_status": "Status",
       "col_progress": "Postęp",
       "col_created": "Utworzono",
-      "single": "Zadanie #{id}",
       "counts": {
         "proposed": "Zaproponowano",
-        "failed": "Błędy"
+        "failed": "Błędy",
+        "kept_edited": "Zachowano Twoje zmiany"
       },
       "empty_filtered": "Brak zadań o tym statusie",
       "show_all": "Pokaż wszystkie zadania",
@@ -2851,7 +2851,7 @@
       "kept_edited_one": "1 pole pominięte — masz w nim swoje zmiany.",
       "kept_edited_few": "{count} pola pominięte — masz w nich swoje zmiany.",
       "kept_edited_many": "{count} pól pominiętych — masz w nich swoje zmiany.",
-      "task_failed": "Zadanie AI #{id} nie powiodło się.",
+      "task_failed": "Zadanie AI nie powiodło się: {name}.",
       "applied_reload": "Propozycja zastosowana. Produkt pokaże ją po ponownym wczytaniu.",
       "applied_conflict": "Propozycja zastosowana, ale masz niezapisane zmiany w tym samym polu. Zapisanie teraz nadpisze wartość AI.",
       "tasks_idle": "Nic nie działa ani nie czeka na przegląd.",

@@ -73,13 +73,13 @@ describe("useProductAi", () => {
     });
   });
 
-  it("a failed task is toasted as an error", async () => {
-    const ai = useProductAi(ref("ENT-1"));
+  it("a failed task is toasted as an error, the run named in words, never by its number", async () => {
+    const ai = useProductAi(ref("ENT-1"), () => "Meta descriptions");
     await flushPromises();
     ai.track({ id: 6, status: "in_progress" });
     mockTasks.mockResolvedValueOnce(page([{ id: 6, status: "failed", counts: { failed: 1 } }]));
     await vi.advanceTimersByTimeAsync(POLL_MS);
-    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ type: "negative" }));
+    expect(notify).toHaveBeenCalledWith({ type: "negative", msg: "AI task failed: Meta descriptions." });
   });
 
   it("a failed poll keeps polling", async () => {

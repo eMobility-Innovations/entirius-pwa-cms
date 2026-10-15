@@ -107,7 +107,8 @@ import BatchCorrection from "@/views/EnrichmentReview/BatchCorrection.vue";
 import ProfileGate from "@/views/EnrichmentStudio/ProfileGate.vue";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import AiTaskList from "./AiTaskList.vue";
-import { groupTasks, isActive, isQueued, taskLabel } from "./productAi";
+import { runName } from "@/views/EnrichmentReview/runLabel";
+import { groupTasks, isActive, isQueued } from "./productAi";
 import { useProductAi } from "./useProductAi";
 
 // The AI of the product on screen: one header icon (the Enricher's) with the pending count, a pulsing dot while a
@@ -134,7 +135,8 @@ export default {
   emits: ["applied", "run"],
   expose: ["track"],
   setup(props, { emit }) {
-    const { track: watchTask, ...ai } = useProductAi(toRef(props, "sku"));
+    const nameOf = (task) => runName(task, props.workers, props.allTemplates);
+    const { track: watchTask, ...ai } = useProductAi(toRef(props, "sku"), nameOf);
     const drop = (proposal) => (ai.proposals.value = ai.proposals.value.filter((p) => p.id !== proposal.id));
     const applied = (proposal) => {
       drop(proposal);
@@ -181,7 +183,7 @@ export default {
     },
     filterLabel() {
       const task = this.tasks.find((t) => t.id === this.taskFilter);
-      return taskLabel(task, this.workers, this.allTemplates) || `#${this.taskFilter}`;
+      return runName(task, this.workers, this.allTemplates);
     },
   },
   watch: {

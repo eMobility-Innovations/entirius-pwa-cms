@@ -30,10 +30,15 @@ const task = (over = {}) => ({
   ...over,
 });
 
+// The count words this page has (the setup.js $t knows none); anything else reads as its key, as there.
+const WORDS = { "enrichment.tasks.counts.proposed": "Proposed", "enrichment.tasks.counts.failed": "Failed" };
+const $t = (key, params = {}) => WORDS[key] ?? (Object.keys(params).length ? `${key}::${JSON.stringify(params)}` : key);
+
 const mountList = (routerMock = {}, query = {}) =>
   mount(RunsPage, {
     global: {
       mocks: {
+        $t,
         $route: { query, path: "/enrichment/runs" },
         $router: { push() {}, replace() {}, ...routerMock },
       },
@@ -132,7 +137,7 @@ describe("RunsPage", () => {
     await flushPromises();
     const drawer = wrapper.findComponent({ name: "TaskQueueDrawer" });
     expect(drawer.props()).toMatchObject({
-      visible: true, taskId: 7, outcome: "Failed: The AI provider did not answer in time", progress: "failed: 2",
+      visible: true, taskId: 7, outcome: "Failed: The AI provider did not answer in time", progress: "Failed: 2",
     });
     expect(wrapper.vm.queueLabel).toBe("Product texts · Started by a rule");
 
@@ -199,11 +204,21 @@ describe("RunsPage", () => {
     expect(wrapper.vm.queueLabel).toBe("Product texts · Orion Sofa");
   });
 
-  it("progress reads proposed and failed first (a count without a label keeps its key)", async () => {
+  it("progress reads proposed and failed first; a count without words is left out, never shown by its key", async () => {
     const wrapper = mountList();
     await flushPromises();
-    expect(wrapper.vm.formatCounts({ skipped: 2, failed: 1, proposed: 4 })).toBe("proposed: 4, failed: 1, skipped: 2");
+    expect(wrapper.vm.formatCounts({ skipped: 2, failed: 1, proposed: 4 })).toBe("Proposed: 4, Failed: 1");
+    expect(wrapper.vm.formatCounts({ skipped: 2 })).toBe("—");
     expect(wrapper.vm.formatCounts({})).toBe("—");
+  });
+
+  it("the picked run's chip names the run, never its number", async () => {
+    mockGetTask.mockResolvedValue({ data: task({ id: 42, type: "pim.writer", status: "done", params: { template: "meta" } }) });
+    const wrapper = mountList({}, { task: "42" });
+    await flushPromises();
+    const chip = wrapper.find("[data-testid='enrichment-task-single']");
+    expect(chip.attributes("label")).toBe("Meta descriptions");
+    expect(chip.attributes("label")).not.toContain("42");
   });
 
   it("?task=<id> shows that one task and clears it when a status is picked", async () => {

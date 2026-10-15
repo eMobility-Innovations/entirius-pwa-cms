@@ -51,7 +51,7 @@
           <span>
             {{ $t("enrichment.review.task_filter_of") }}
             <router-link :to="taskLink" class="t-accent fw-600" data-testid="enrichment-task-filter-link">
-              {{ runLabels[filters.task]?.title || $t("enrichment.tasks.single", { id: filters.task }) }}
+              {{ runLabels[filters.task]?.title || $t("enrichment.tasks.generic") }}
             </router-link>
           </span>
           <BasicButton variant="ghost" size="sm" data-testid="enrichment-task-filter-clear" @click="clearTask">
