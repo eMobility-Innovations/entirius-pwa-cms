@@ -25,6 +25,22 @@ describe("extractApiMessage", () => {
     expect(extractApiMessage(V2_BODY)).toBe(V2_BODY.message)
   })
 
+  it("a v2 400 tells the service's own reason, not the fixed summary", () => {
+    const body = {
+      error: "VALIDATION_ERROR",
+      message: "Request validation failed.",
+      debug_id: "ab12cd34",
+      details: [{ field: null, location: "body", issue: "INVALID", description: "only pending or drifted proposals can be revised" }],
+    }
+    expect(extractApiMessage(body)).toBe("only pending or drifted proposals can be revised")
+    expect(extractApiMessage({ response: { data: body } })).toBe("only pending or drifted proposals can be revised")
+  })
+
+  it("a v2 400 with field errors only keeps the summary (the fields show their own)", () => {
+    const body = { error: "VALIDATION_ERROR", message: "Request validation failed.", details: [{ field: "name", description: "too short" }] }
+    expect(extractApiMessage(body)).toBe("Request validation failed.")
+  })
+
   it("falls back to details[0].description when no top-level message", () => {
     const body = { error: "X", details: [{ description: "field is required" }] }
     expect(extractApiMessage(body)).toBe("field is required")

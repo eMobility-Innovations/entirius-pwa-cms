@@ -51,6 +51,19 @@ function resolveErrorBody(err) {
   return null
 }
 
+// The v2 handler's fixed summary of every DRF ValidationError (django_utils v2_errors).
+const GENERIC_VALIDATION_MESSAGE = "Request validation failed."
+
+/**
+ * A v2 400's own reason in place of the fixed summary: a service refusal (a ValueError, no field) carries its
+ * reason only in `details`. A message the endpoint wrote itself stays first.
+ */
+function validationReason(data) {
+  if (data.message && data.message !== GENERIC_VALIDATION_MESSAGE) return ""
+  if (!Array.isArray(data.details)) return ""
+  return data.details.find((d) => !d?.field && d?.description)?.description || ""
+}
+
 /**
  * Extract a human-readable message from an API error response.
  * v2 shape: `{ error, message, debug_id, details: [...] }`
@@ -63,6 +76,8 @@ export function extractApiMessage(err, fallback = "") {
   if (!data) return fallback
   // An access refusal already has its standard toast (createClient): the same text, so the view's toast is covered.
   if (data.accessHandled) return t("access.denied_action")
+  const reason = validationReason(data)
+  if (reason) return reason
   if (typeof data.message === "string" && data.message) return data.message
   if (typeof data.detail === "string" && data.detail) return data.detail
   if (Array.isArray(data.details) && data.details[0]?.description) return data.details[0].description
