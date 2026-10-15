@@ -155,6 +155,8 @@ export default {
       // `?task=<id>`: the one run picked here, or the one the "Run AI task" dialog links to.
       taskFilter: this.$route.query.task || "",
       refreshTimer: null,
+      // Bumped by every list read and on leaving: only the latest read lands (a late refresh never undoes a filter).
+      fetchSeq: 0,
       loading: false,
       queueVisible: false,
       queueTaskId: null,
@@ -214,15 +216,18 @@ export default {
     this.loadNames();
   },
   beforeUnmount() {
+    this.fetchSeq += 1;
     clearTimeout(this.refreshTimer);
   },
   methods: {
     // `silent`: the auto-refresh of a running task updates the rows in place, without the loader.
     async fetchTasks({ silent = false } = {}) {
       clearTimeout(this.refreshTimer);
+      const mine = ++this.fetchSeq;
       if (!silent) this.loading = true;
       try {
         const { results, count } = await this.loadPage();
+        if (mine !== this.fetchSeq) return;
         // Flatten nested fields the DataTable can't reach via row[col.key].
         this.tasks = results.map((t) => ({
           raw: t,
@@ -240,12 +245,13 @@ export default {
         loadProductNames(results); // a one-product run reads by its product once the name is in
         this.scheduleRefresh();
       } catch (err) {
+        if (mine !== this.fetchSeq) return;
         this.notify.spawnNotification({
           type: "negative",
           msg: extractApiMessage(err, this.$t("notifications.error")),
         });
       } finally {
-        this.loading = false;
+        if (mine === this.fetchSeq) this.loading = false;
       }
     },
     async loadPage() {

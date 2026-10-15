@@ -242,6 +242,38 @@ describe("RunsPage", () => {
       expect(mockGetTasks).toHaveBeenCalledTimes(2);
     });
 
+    it("leaving while a refresh is on its way stops refreshing for good", async () => {
+      mockGetTasks.mockResolvedValueOnce({ data: { results: [task({ status: "in_progress" })], count: 1 } });
+      let answer;
+      mockGetTasks.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+      const wrapper = mountList();
+      await flushPromises();
+      await vi.advanceTimersByTimeAsync(5000); // the refresh is on its way
+      wrapper.unmount();
+      answer({ data: { results: [task({ status: "in_progress" })], count: 1 } });
+      await flushPromises();
+      expect(vi.getTimerCount()).toBe(0);
+      await vi.advanceTimersByTimeAsync(20000);
+      expect(mockGetTasks).toHaveBeenCalledTimes(2);
+    });
+
+    it("a refresh that lands after a newer filter does not undo it", async () => {
+      mockGetTasks.mockResolvedValueOnce({ data: { results: [task({ status: "in_progress" })], count: 1 } });
+      let lateRefresh;
+      mockGetTasks.mockReturnValueOnce(new Promise((resolve) => (lateRefresh = resolve)));
+      mockGetTasks.mockResolvedValueOnce({ data: { results: [task({ id: 9, status: "failed" })], count: 1 } });
+      const wrapper = mountList();
+      await flushPromises();
+      await vi.advanceTimersByTimeAsync(5000); // the silent refresh of every run is on its way
+      await wrapper.find("[data-testid='enrichment-task-status-failed']").trigger("click");
+      await flushPromises();
+      lateRefresh({ data: { results: [task({ status: "in_progress" }), task({ id: 2, status: "done" })], count: 2 } });
+      await flushPromises();
+      expect(wrapper.vm.tasks.map((t) => t.id)).toEqual([9]);
+      expect(wrapper.vm.totalCount).toBe(1);
+      expect(wrapper.vm.loading).toBe(false);
+    });
+
     it("stops on unmount", async () => {
       mockGetTasks.mockResolvedValue({ data: { results: [task({ status: "in_progress" })], count: 1 } });
       const wrapper = mountList();
