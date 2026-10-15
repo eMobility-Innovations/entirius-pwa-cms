@@ -125,13 +125,13 @@ import RunProposals from "./RunProposals.vue";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
 import { loadProductNames, runName, runScope, runTitle } from "./runLabel";
 import { needsRefresh, opensDrawer, orderedCounts, taskStatusTone } from "./taskProgress";
+import { listOf } from "@/api/enrichment/listOf";
 
 const REFRESH_MS = 5000;
 
 // Mirrors django_enrichment.enums.TaskStatus.
 const TASK_STATUSES = ["open", "in_progress", "done", "cancelled", "failed"];
 const ALL = "__all";
-const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
 
 // Enricher → Review → Runs: every AI run, newest first. A finished run is picked in place (`?task=<id>`, the list
 // narrows to it) and its proposals are reviewed below it; a run still going or failed opens its drawer (its products,

@@ -72,6 +72,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { isConflict } from "@/api/createClient";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import { GET_Templates, POST_SpawnTask, POST_Template } from "@/api/enrichment/api";
+import { listOf } from "@/api/enrichment/listOf";
 import { fieldOptions, loadCatalog } from "@/views/EnrichmentReview/fieldCatalog";
 import AiParamsForm from "./AiParamsForm.vue";
 import {
@@ -281,7 +282,7 @@ export default {
           worker: this.worker,
           params: this.params,
           rules: this.template?.rules || [],
-          templates: Array.isArray(all) ? all : all?.results || [],
+          templates: listOf(all),
         });
         const { data } = await POST_Template(body);
         this.saving = false;

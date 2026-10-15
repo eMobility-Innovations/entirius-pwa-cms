@@ -12,8 +12,7 @@
 
 <script>
 import { GET_Workers } from "@/api/enrichment/api";
-
-const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
+import { listOf } from "@/api/enrichment/listOf";
 
 // Which profile sections each AI task reads, in plain words: the task by its worker's name ("Product writer"), the
 // sections by their headings. A key no worker names stays as it is. Edited only in "Edit JSON".

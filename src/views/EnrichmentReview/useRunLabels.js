@@ -1,8 +1,7 @@
 import { computed, ref } from "vue";
 import { GET_Task, GET_Templates, GET_Workers } from "@/api/enrichment/api";
 import { runName, runTitle } from "./runLabel";
-
-const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
+import { listOf } from "@/api/enrichment/listOf";
 
 // The AI runs behind the proposals on a page, labelled for people (runLabel.js): `load(ids)` fetches the runs not
 // known yet (a failed one stays unlabelled, never asked again here); `labels` = { [taskId]: { name, title, at } } —

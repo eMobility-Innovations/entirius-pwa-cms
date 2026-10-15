@@ -7,6 +7,7 @@ import { AREAS } from "@/configs/areas";
 import { useAccessStore } from "@/stores/access";
 import { useAiUsageVisible } from "@/components/AiUsage/useAiUsage";
 import { GET_Templates, GET_Workers } from "@/api/enrichment/api";
+import { listOf } from "@/api/enrichment/listOf";
 
 const MODULE = "pim";
 
@@ -17,8 +18,6 @@ export function runnableTemplates(templates, workers) {
     .filter((template) => template.active && known.has(template.worker_key))
     .sort((a, b) => a.position - b.position);
 }
-
-const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
 
 // The PIM AI actions: present while the enrichment module is on and its proposals area is readable (as the AI usage
 // counter; hidden otherwise, nothing loads, nothing toasts), `writable` with write on that area, usable while the AI toolbox is
