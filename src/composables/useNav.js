@@ -47,12 +47,18 @@ export function navTree(ctx, routes = buildNavRoutes()) {
   );
 }
 
+// The numbers of the `badge` keys (a nav entry's, a RouteTabs tab's): the Memory suggestions waiting for the operator.
+export function useNavCounts() {
+  const enrichmentProfile = useEnrichmentProfileStore();
+  return computed(() => ({ memorySuggestions: enrichmentProfile.pendingSuggestions }));
+}
+
 // `everyViewport`: the desktop entries on a phone too — where a page belongs does not change with the screen.
 export function useNavTree({ everyViewport = false } = {}) {
   const munin = useMuninStore();
   const access = useAccessStore();
   const quality = useQualityStore();
-  const enrichmentProfile = useEnrichmentProfileStore();
+  const counts = useNavCounts();
   const isDesktop = useIsDesktop();
   const routes = withAreas(buildNavRoutes(), useRouter());
   return computed(() =>
@@ -62,7 +68,7 @@ export function useNavTree({ everyViewport = false } = {}) {
         isModuleEnabled: munin.isModuleEnabled,
         isDesktop: everyViewport || isDesktop.value,
         canRead: access.can,
-        counts: { memorySuggestions: enrichmentProfile.pendingSuggestions },
+        counts: counts.value,
       },
       routes
     )

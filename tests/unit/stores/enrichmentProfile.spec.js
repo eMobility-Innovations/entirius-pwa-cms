@@ -71,10 +71,10 @@ describe("company profile health", () => {
     expect(health.passing.map((row) => row.code)).toEqual(["enrichment.profile"]);
   });
 
-  it("the Memory nav entry carries the waiting suggestions as its count", () => {
+  it("the Settings nav entry carries the waiting suggestions as its count", () => {
     const routes = [
-      { route: "/enrichment/memory", app: ["enricher"], badge: "memorySuggestions" },
-      { route: "/enrichment/profile", app: ["enricher"] },
+      { route: "/enrichment/settings", app: ["enricher"], badge: "memorySuggestions" },
+      { route: "/enrichment/studio", app: ["enricher"] },
     ];
     const entries = navTree({ isDesktop: true, counts: { memorySuggestions: 3 } }, routes).enricher;
     expect(entries.map((e) => e.count)).toEqual([3, undefined]);

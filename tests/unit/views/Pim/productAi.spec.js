@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { finishedTasks, groupTasks, isActive, taskLabel, taskLanguages, taskOutcome } from "@/views/Pim/components/enrichment/productAi";
+import {
+  finishedTasks, groupTasks, isActive, outcomeText, taskLabel, taskLanguages, taskOutcome,
+} from "@/views/Pim/components/enrichment/productAi";
 
 const task = (over = {}) => ({ id: 1, type: "pim.meta", status: "done", counts: {}, errors: [], proposal_counts: {}, ...over });
 
@@ -73,5 +75,31 @@ describe("taskLabel", () => {
     expect(taskLabel({ type: "pim.writer", params: {} }, workers, templates)).toBe("Writer");
     expect(taskLabel({ type: "pim.other" }, workers, templates)).toBe("");
     expect(taskLabel(undefined)).toBe("");
+  });
+});
+
+describe("outcomeText", () => {
+  const translator = { key: "pim.translate", kind: "translate" };
+  const failure = (code) => [{ code, error_id: "e1" }];
+
+  it("what a run came to, in plain words", () => {
+    expect(outcomeText(task({ status: "open", queued_ahead: 0 }))).toBe("Queued — starts next");
+    expect(outcomeText(task({ status: "open", queued_ahead: 1 }))).toBe("Queued — 1 run ahead");
+    expect(outcomeText(task({ status: "in_progress" }))).toBe("Working on it…");
+    expect(outcomeText(task({ proposal_counts: { pending: 2 } }))).toBe("2 proposals to review");
+    expect(outcomeText(task({ proposal_counts: { applied: 3 } }))).toBe("Applied");
+    expect(outcomeText(task())).toBe("Nothing to do — no proposals");
+  });
+
+  it("names a failure by its kind, then the generic reason, never the code", () => {
+    const failed = (code) => task({ status: "failed", errors: failure(code) });
+    expect(outcomeText(failed("PROVIDER_NOT_CONFIGURED"), translator)).toBe("Failed: Translator not configured on the AI toolbox");
+    expect(outcomeText(failed("PROVIDER_NOT_CONFIGURED"))).toBe("Failed: AI provider not configured on the AI toolbox");
+    expect(outcomeText(failed("WEIRD"))).toBe("Failed: The AI service reported an error");
+  });
+
+  it("a done run with failed products says so after what it proposed", () => {
+    const partly = task({ proposal_counts: { pending: 1 }, counts: { failed: 2 }, errors: failure("UPSTREAM_TIMEOUT") });
+    expect(outcomeText(partly)).toBe("1 proposal to review · 2 failed: The AI provider did not answer in time");
   });
 });

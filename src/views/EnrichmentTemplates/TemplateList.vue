@@ -1,54 +1,57 @@
 <template>
   <PageLayout class="template-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('enrichment.templates.title')" :description="$t('enrichment.templates.description')" />
+      <PageHeader :title="$t('nav.enrichment_settings')" :description="$t('enrichment.templates.description')" :crumbs="[]" />
+      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
     </template>
 
-    <Loader v-show="loading" block />
+    <div v-bind="tabPanel">
+      <Loader v-show="loading" block />
 
-    <DataTable
-      v-show="!loading"
-      empty-size="md"
-      :columns="columns"
-      :rows="rows"
-      row-key="key"
-      :empty-text="$t('enrichment.templates.empty')"
-      data-testid="templates-table"
-      @row-click="open"
-    >
-      <template #cell-fields="{ row }">
-        <span class="t-secondary">{{ row.fieldsText || "—" }}</span>
-      </template>
-      <!-- Plain text, not a pill: a bordered pill read as a switch. Offering is changed in the template. -->
-      <template #cell-active="{ value }">
-        <span class="flex ai-ct gap-2" :class="value ? 't-positive' : 't-muted'">
-          <FontAwesomeIcon v-if="value" :icon="$icons.success" aria-hidden="true" />
-          {{ value ? $t("enrichment.templates.on") : $t("enrichment.templates.off") }}
-        </span>
-      </template>
-      <template #cell-actions="{ row, index }">
-        <div class="flex gap-2">
-          <IconButton
-            mutates
-            icon="moveUp"
-            size="sm"
-            :label="$t('enrichment.templates.move_up')"
-            :disabled="busy || index === 0"
-            :data-testid="`template-up-${row.key}`"
-            @click="move(index, -1)"
-          />
-          <IconButton
-            mutates
-            icon="moveDown"
-            size="sm"
-            :label="$t('enrichment.templates.move_down')"
-            :disabled="busy || index === rows.length - 1"
-            :data-testid="`template-down-${row.key}`"
-            @click="move(index, 1)"
-          />
-        </div>
-      </template>
-    </DataTable>
+      <DataTable
+        v-show="!loading"
+        empty-size="md"
+        :columns="columns"
+        :rows="rows"
+        row-key="key"
+        :empty-text="$t('enrichment.templates.empty')"
+        data-testid="templates-table"
+        @row-click="open"
+      >
+        <template #cell-fields="{ row }">
+          <span class="t-secondary">{{ row.fieldsText || "—" }}</span>
+        </template>
+        <!-- Plain text, not a pill: a bordered pill read as a switch. Offering is changed in the template. -->
+        <template #cell-active="{ value }">
+          <span class="flex ai-ct gap-2" :class="value ? 't-positive' : 't-muted'">
+            <FontAwesomeIcon v-if="value" :icon="$icons.success" aria-hidden="true" />
+            {{ value ? $t("enrichment.templates.on") : $t("enrichment.templates.off") }}
+          </span>
+        </template>
+        <template #cell-actions="{ row, index }">
+          <div class="flex gap-2">
+            <IconButton
+              mutates
+              icon="moveUp"
+              size="sm"
+              :label="$t('enrichment.templates.move_up')"
+              :disabled="busy || index === 0"
+              :data-testid="`template-up-${row.key}`"
+              @click="move(index, -1)"
+            />
+            <IconButton
+              mutates
+              icon="moveDown"
+              size="sm"
+              :label="$t('enrichment.templates.move_down')"
+              :disabled="busy || index === rows.length - 1"
+              :data-testid="`template-down-${row.key}`"
+              @click="move(index, 1)"
+            />
+          </div>
+        </template>
+      </DataTable>
+    </div>
 
     <FloatingActions :actions="fabActions" />
   </PageLayout>
@@ -60,14 +63,20 @@ import { usePimChannelStore } from "@/stores/pimChannel";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { GET_Templates, PATCH_Template } from "@/api/enrichment/api";
 import { loadCatalog } from "@/views/EnrichmentReview/fieldCatalog";
+import RouteTabs from "@/components/Navigation/RouteTabs.vue";
+import { ENRICHMENT_SETTINGS_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import { fieldsSummary, reorder } from "./templateList";
 
 // The AI templates of the product catalog in the order the Run AI menu offers them: name, kind of work, fields,
 // whether it is offered. Arrows move a template up or down (positions saved at once); a row opens its editor.
 export default {
   name: "TemplateList",
+  components: { RouteTabs },
   setup() {
-    return { notify: useNotifyStore(), pimChannel: usePimChannelStore() };
+    return {
+      notify: useNotifyStore(), pimChannel: usePimChannelStore(), ENRICHMENT_SETTINGS_TABS,
+      tabPanel: routeTabPanel(ENRICHMENT_SETTINGS_TABS, "EnrichmentTemplates"),
+    };
   },
   data() {
     return { templates: [], catalogFields: [], loading: false, busy: false };

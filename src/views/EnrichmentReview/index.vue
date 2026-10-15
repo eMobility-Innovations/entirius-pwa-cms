@@ -13,6 +13,7 @@
           <ActionBar :actions="pageActions" />
         </template>
       </PageHeader>
+      <RouteTabs :tabs="ENRICHMENT_REVIEW_TABS" />
     </template>
 
     <template #toolbar>
@@ -118,62 +119,64 @@
       </div>
     </template>
 
-    <ListMode
-      v-if="mode === 'list'"
-      :rows="rows"
-      :loading="loading"
-      :total-count="totalCount"
-      :busy="busy"
-      :bulk="!filters.task"
-      :status-filter="filters.status"
-      @accept="acceptOne"
-      @reject="rejectOne"
-      @bulk-accept="bulkAsk = 'accept'"
-      @bulk-reject="bulkAsk = 'reject'"
-      @bulk-undo="bulkAsk = 'undo'"
-      @reconfirm="openDrift"
-      @row-open="openDetail"
-      @preview-product="openProductPreview"
-    >
-      <template #empty>
-        <EmptyState icon="enrich" :title="$t('enrichment.review.empty')" :message="$t('enrichment.review.empty_message')" data-testid="review-empty">
-          <div class="flex jc-ct flex-wrap gap-3">
-            <BasicButton v-if="narrowed" data-testid="review-empty-clear" @click="clearFilters">
-              {{ $t("enrichment.review.clear_filters") }}
-            </BasicButton>
-            <BasicButton v-if="filters.status !== 'pending'" data-testid="review-empty-pending" @click="onFilterChange('status', 'pending')">
-              {{ $t("enrichment.review.show_pending") }}
-            </BasicButton>
-            <BasicButton v-else-if="filters.task" data-testid="review-empty-applied" @click="onFilterChange('status', 'applied')">
-              {{ $t("enrichment.review.show_applied") }}
-            </BasicButton>
-            <router-link v-if="!narrowed" to="/pim/products" class="enrichment-review__run-link t-accent fw-600" data-testid="review-empty-run">
-              {{ $t("enrichment.review.run_ai") }}
-            </router-link>
-          </div>
-        </EmptyState>
-      </template>
-    </ListMode>
-    <ProductMode
-      v-else-if="mode === 'product'"
-      :rows="rows"
-      :loading="loading"
-      :busy="busy"
-      @accept="acceptOne"
-      @reject="rejectOne"
-      @updated="patchRow"
-      @preview-product="openProductPreview"
-    />
-    <FocusMode
-      v-else
-      :rows="rows"
-      :loading="loading"
-      :page="page"
-      :page-size="pageSize"
-      :total-count="totalCount"
-      @need-more="loadNextPage"
-      @exit="exitFocus"
-    />
+    <div v-bind="tabPanel">
+      <ListMode
+        v-if="mode === 'list'"
+        :rows="rows"
+        :loading="loading"
+        :total-count="totalCount"
+        :busy="busy"
+        :bulk="!filters.task"
+        :status-filter="filters.status"
+        @accept="acceptOne"
+        @reject="rejectOne"
+        @bulk-accept="bulkAsk = 'accept'"
+        @bulk-reject="bulkAsk = 'reject'"
+        @bulk-undo="bulkAsk = 'undo'"
+        @reconfirm="openDrift"
+        @row-open="openDetail"
+        @preview-product="openProductPreview"
+      >
+        <template #empty>
+          <EmptyState icon="enrich" :title="$t('enrichment.review.empty')" :message="$t('enrichment.review.empty_message')" data-testid="review-empty">
+            <div class="flex jc-ct flex-wrap gap-3">
+              <BasicButton v-if="narrowed" data-testid="review-empty-clear" @click="clearFilters">
+                {{ $t("enrichment.review.clear_filters") }}
+              </BasicButton>
+              <BasicButton v-if="filters.status !== 'pending'" data-testid="review-empty-pending" @click="onFilterChange('status', 'pending')">
+                {{ $t("enrichment.review.show_pending") }}
+              </BasicButton>
+              <BasicButton v-else-if="filters.task" data-testid="review-empty-applied" @click="onFilterChange('status', 'applied')">
+                {{ $t("enrichment.review.show_applied") }}
+              </BasicButton>
+              <router-link v-if="!narrowed" to="/pim/products" class="enrichment-review__run-link t-accent fw-600" data-testid="review-empty-run">
+                {{ $t("enrichment.review.run_ai") }}
+              </router-link>
+            </div>
+          </EmptyState>
+        </template>
+      </ListMode>
+      <ProductMode
+        v-else-if="mode === 'product'"
+        :rows="rows"
+        :loading="loading"
+        :busy="busy"
+        @accept="acceptOne"
+        @reject="rejectOne"
+        @updated="patchRow"
+        @preview-product="openProductPreview"
+      />
+      <FocusMode
+        v-else
+        :rows="rows"
+        :loading="loading"
+        :page="page"
+        :page-size="pageSize"
+        :total-count="totalCount"
+        @need-more="loadNextPage"
+        @exit="exitFocus"
+      />
+    </div>
 
     <!-- Mounted while the list loads (no footer jump); a page change waits for the running fetch or action. -->
     <template v-if="mode !== 'focus' && totalCount > pageSize" #footer>
@@ -244,6 +247,8 @@ import { defineAsyncComponent } from "vue";
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import RouteTabs from "@/components/Navigation/RouteTabs.vue";
+import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import ListMode from "./ListMode.vue";
 import ProductMode from "./ProductMode.vue";
 import DriftModal from "./DriftModal.vue";
@@ -279,9 +284,12 @@ const STATUS_VALUES = [
 
 export default {
   name: "EnrichmentReview",
-  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection, RunCorrections },
+  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection, RunCorrections, RouteTabs },
   setup() {
-    return { notify: useNotifyStore(), pimChannel: usePimChannelStore() };
+    return {
+      notify: useNotifyStore(), pimChannel: usePimChannelStore(), ENRICHMENT_REVIEW_TABS,
+      tabPanel: routeTabPanel(ENRICHMENT_REVIEW_TABS, "EnrichmentReview"),
+    };
   },
   data() {
     return {
@@ -358,7 +366,7 @@ export default {
       ];
     },
     taskLink() {
-      return { name: "EnrichmentTasks", query: { status: "__all", task: String(this.filters.task) } };
+      return { name: "EnrichmentRuns", query: { task: String(this.filters.task) } };
     },
     // A filter beyond the status chips narrows the list: its empty state offers to clear them.
     narrowed() {

@@ -21,3 +21,9 @@ const STATUS_TONE = { open: "info", in_progress: "warning", done: "positive", ca
 export function taskStatusTone(status) {
   return STATUS_TONE[status] || "neutral";
 }
+
+const DRAWER_STATUSES = ["open", "in_progress", "failed"];
+
+/** A run still going or failed opens its queue drawer (its products, why it failed); a finished one shows what it
+ * proposed in place. */
+export const opensDrawer = (task) => DRAWER_STATUSES.includes(task?.status);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { needsRefresh, orderedCounts, taskStatusTone } from "@/views/EnrichmentTasks/taskProgress";
+import { needsRefresh, opensDrawer, orderedCounts, taskStatusTone } from "@/views/EnrichmentReview/taskProgress";
 
 describe("orderedCounts", () => {
   it("puts proposed and failed first", () => {
@@ -34,5 +34,14 @@ describe("taskStatusTone", () => {
     expect(["open", "in_progress", "done", "failed", "cancelled", "weird"].map(taskStatusTone)).toEqual([
       "info", "warning", "positive", "negative", "neutral", "neutral",
     ]);
+  });
+});
+
+describe("opensDrawer", () => {
+  it("a run still going or failed opens its drawer; a done or cancelled one shows its proposals in place", () => {
+    expect(["open", "in_progress", "failed", "done", "cancelled"].map((status) => opensDrawer({ status }))).toEqual([
+      true, true, true, false, false,
+    ]);
+    expect(opensDrawer(null)).toBe(false);
   });
 });

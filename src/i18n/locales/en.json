@@ -37,7 +37,6 @@
     "atlas_find": "Find product",
     "enrichment_review": "Enrichment Review",
     "enrichment_spawn_rules": "Spawn rules",
-    "enrichment_tasks": "Tasks",
     "translation_jobs": "Translation Jobs",
     "promo_list": "Promotions",
     "pricefighter_gap_table": "Gap Table",
@@ -63,7 +62,8 @@
     "enrichment_templates": "AI templates",
     "enrichment_studio": "Studio",
     "enrichment_profile": "Company profile",
-    "enrichment_memory": "Memory"
+    "enrichment_memory": "Memory",
+    "enrichment_settings": "Settings"
   },
   "login": {
     "welcome": "Sign in",
@@ -2630,7 +2630,6 @@
       "confirm_delete_title": "Delete spawn rule"
     },
     "tasks": {
-      "title": "AI tasks",
       "empty": "No tasks",
       "matching": "{count} matching",
       "col_status": "Status",
@@ -2655,6 +2654,9 @@
       "products_one": "1 product",
       "products_few": "{count} products",
       "products_many": "{count} products"
+    },
+    "runs": {
+      "show_all": "Show all {count} in Proposals"
     },
     "task_status": {
       "open": "Open",
@@ -2687,8 +2689,7 @@
       "page": "Page {page}",
       "prev": "Previous",
       "next": "Next",
-      "end": "End of queue",
-      "review": "Review what it proposed"
+      "end": "End of queue"
     },
     "import": {
       "open": "Import CSV",
@@ -2711,6 +2712,10 @@
     },
     "review": {
       "title": "Enrichment Review",
+      "tabs": {
+        "proposals": "Proposals",
+        "runs": "Runs"
+      },
       "filters": "Filters",
       "search_placeholder": "Search by name or SKU…",
       "matching": "{count} matching",
@@ -2831,7 +2836,7 @@
       "no_workers": "No AI workers configured",
       "prompt_placeholder": "Extra instructions for the AI (optional)",
       "created": "Sent to the AI. Its proposals appear in the review as each product is finished.",
-      "open_task": "Open the task",
+      "open_task": "Open the run",
       "params": {
         "prompt": "Instructions",
         "source_language": "Source language",
@@ -2897,7 +2902,6 @@
       "trigger_pending": "{count} to review",
       "trigger_failed": "last run failed",
       "run_title": "Run AI",
-      "review_task": "Review its proposals",
       "task_generic": "AI task",
       "manage_templates": "Manage templates",
       "open_review": "Open the review queue",

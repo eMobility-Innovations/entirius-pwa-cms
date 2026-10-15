@@ -3,7 +3,7 @@
     <template #header>
       <PageHeader
         :title="isCreate ? $t('enrichment.spawn_rules.create') : String(form.key || '')"
-        back="/enrichment/spawn-rules"
+        :back="{ name: 'EnrichmentSpawnRules' }"
       >
         <template v-if="!loading" #actions>
           <ActionBar>
@@ -339,7 +339,7 @@ export default {
           type: "positive",
           msg: this.$t("enrichment.spawn_rules.saved"),
         });
-        this.$router.push("/enrichment/spawn-rules");
+        this.$router.push({ name: "EnrichmentSpawnRules" });
       } catch (err) {
         this.handleApiError(err);
         this.notify.spawnNotification({
@@ -379,7 +379,7 @@ export default {
           type: "positive",
           msg: this.$t("enrichment.spawn_rules.deleted"),
         });
-        this.$router.push("/enrichment/spawn-rules");
+        this.$router.push({ name: "EnrichmentSpawnRules" });
       } catch (err) {
         this.notify.spawnNotification({
           type: "negative",

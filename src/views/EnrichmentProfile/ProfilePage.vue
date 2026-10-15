@@ -1,7 +1,7 @@
 <template>
   <PageLayout class="profile-page fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('enrichment.profile.title')" :description="$t('enrichment.profile.description')">
+      <PageHeader :title="$t('nav.enrichment_settings')" :description="$t('enrichment.profile.description')" :crumbs="[]">
         <template #meta>
           <BasicSelect
             :model-value="channel"
@@ -16,39 +16,42 @@
           <ActionBar v-if="!loading && schema" :actions="actions" />
         </template>
       </PageHeader>
+      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
     </template>
 
-    <Loader v-if="loading" block />
-    <div v-else-if="schema" class="flex-column gap-8">
-      <p v-if="channel" class="m-0 t-secondary" data-testid="profile-overlay-note">{{ $t("enrichment.profile.overlay_note") }}</p>
-      <ProfileCompleteness :status="status" />
+    <div v-bind="tabPanel">
+      <Loader v-if="loading" block />
+      <div v-else-if="schema" class="flex-column gap-8">
+        <p v-if="channel" class="m-0 t-secondary" data-testid="profile-overlay-note">{{ $t("enrichment.profile.overlay_note") }}</p>
+        <ProfileCompleteness :status="status" />
 
-      <BasicCard :title="$t('enrichment.profile.save_note')">
-        <FormField :label="$t('enrichment.profile.note')" :hint="$t('enrichment.profile.note_hint')">
-          <BasicInput v-model="note" :maxlength="200" data-testid="profile-note" />
-        </FormField>
-      </BasicCard>
+        <BasicCard :title="$t('enrichment.profile.save_note')">
+          <FormField :label="$t('enrichment.profile.note')" :hint="$t('enrichment.profile.note_hint')">
+            <BasicInput v-model="note" :maxlength="200" data-testid="profile-note" />
+          </FormField>
+        </BasicCard>
 
-      <BasicCard v-if="jsonMode">
-        <!-- The errors sit above the text, in view while typing; each names its place in words. -->
-        <ul v-if="jsonList.length" class="profile-page__errors m-0 mb-4 flex-column gap-1" role="alert" data-testid="profile-json-errors">
-          <li v-for="error in jsonList" :key="error.path">{{ pathName(error.path) }}: {{ error.message }}</li>
-        </ul>
-        <FormField :label="$t('enrichment.profile.json')" :error="jsonErrors.$ || ''">
-          <BasicTextarea v-model="jsonText" :rows="30" data-testid="profile-json" />
-        </FormField>
-      </BasicCard>
-      <template v-else>
-        <ProfileSection
-          v-for="section in sections"
-          :key="section.key"
-          v-model="form[section.key]"
-          :section="section"
-          :status="summary.byKey[section.key] || null"
-          :errors="sectionErrors(section.key)"
-          :inherited="channel ? company[section.key] ?? null : null"
-        />
-      </template>
+        <BasicCard v-if="jsonMode">
+          <!-- The errors sit above the text, in view while typing; each names its place in words. -->
+          <ul v-if="jsonList.length" class="profile-page__errors m-0 mb-4 flex-column gap-1" role="alert" data-testid="profile-json-errors">
+            <li v-for="error in jsonList" :key="error.path">{{ pathName(error.path) }}: {{ error.message }}</li>
+          </ul>
+          <FormField :label="$t('enrichment.profile.json')" :error="jsonErrors.$ || ''">
+            <BasicTextarea v-model="jsonText" :rows="30" data-testid="profile-json" />
+          </FormField>
+        </BasicCard>
+        <template v-else>
+          <ProfileSection
+            v-for="section in sections"
+            :key="section.key"
+            v-model="form[section.key]"
+            :section="section"
+            :status="summary.byKey[section.key] || null"
+            :errors="sectionErrors(section.key)"
+            :inherited="channel ? company[section.key] ?? null : null"
+          />
+        </template>
+      </div>
     </div>
 
     <ProfileHistory :visible="historyOpen" :versions="versions" :busy="saving" :dirty="dirty" @close="setHistory(false)" @restore="restore" />
@@ -78,6 +81,8 @@ import {
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { useNotifyStore } from "@/stores/notify";
 import { useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
+import RouteTabs from "@/components/Navigation/RouteTabs.vue";
+import { ENRICHMENT_SETTINGS_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import ProfileCompleteness from "./ProfileCompleteness.vue";
 import ProfileHistory from "./ProfileHistory.vue";
 import ProfileSection from "./ProfileSection.vue";
@@ -91,10 +96,13 @@ import { useProfileChannels } from "./useProfileChannels";
 // restores versions. Validation errors from the server show at their fields (or as a list in JSON mode).
 export default {
   name: "ProfilePage",
-  components: { ProfileCompleteness, ProfileHistory, ProfileSection },
+  components: { ProfileCompleteness, ProfileHistory, ProfileSection, RouteTabs },
   setup() {
     const { options: channelOptions, load: loadChannels } = useProfileChannels();
-    return { notify: useNotifyStore(), profileStore: useEnrichmentProfileStore(), channelOptions, loadChannels };
+    return {
+      notify: useNotifyStore(), profileStore: useEnrichmentProfileStore(), channelOptions, loadChannels,
+      ENRICHMENT_SETTINGS_TABS, tabPanel: routeTabPanel(ENRICHMENT_SETTINGS_TABS, "EnrichmentProfile"),
+    };
   },
   data() {
     return {

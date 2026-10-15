@@ -1,7 +1,8 @@
 <template>
   <PageLayout class="memory-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('enrichment.memory.title')" :description="$t('enrichment.memory.description')" />
+      <PageHeader :title="$t('nav.enrichment_settings')" :description="$t('enrichment.memory.description')" :crumbs="[]" />
+      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
     </template>
     <template #toolbar>
       <div class="flex ai-ct flex-wrap gap-8 rg-6">
@@ -12,19 +13,21 @@
       </div>
     </template>
 
-    <Loader v-if="loading" block />
-    <EmptyState v-else-if="!pinned.length && !shown.length" icon="empty" :title="emptyTitle" size="md" data-testid="memory-empty">
-      <BasicButton v-if="filtered" variant="secondary" data-testid="memory-clear-filters" @click="clearFilters">
-        {{ $t("enrichment.memory.clear_filters") }}
-      </BasicButton>
-    </EmptyState>
-    <div v-else class="flex-column gap-6">
-      <section v-if="pinned.length" class="flex-column gap-4" data-testid="memory-pinned">
-        <h2 class="memory-list__heading m-0">{{ $t("enrichment.memory.waiting") }}</h2>
-        <MemoryEntry v-for="entry in pinned" :key="entry.id" :entry="entry" :busy="busy" v-on="entryEvents" />
-      </section>
-      <div v-if="shown.length" class="flex-column gap-4" data-testid="memory-entries">
-        <MemoryEntry v-for="entry in shown" :key="entry.id" :entry="entry" :busy="busy" v-on="entryEvents" />
+    <div v-bind="tabPanel">
+      <Loader v-if="loading" block />
+      <EmptyState v-else-if="!pinned.length && !shown.length" icon="empty" :title="emptyTitle" size="md" data-testid="memory-empty">
+        <BasicButton v-if="filtered" variant="secondary" data-testid="memory-clear-filters" @click="clearFilters">
+          {{ $t("enrichment.memory.clear_filters") }}
+        </BasicButton>
+      </EmptyState>
+      <div v-else class="flex-column gap-6">
+        <section v-if="pinned.length" class="flex-column gap-4" data-testid="memory-pinned">
+          <h2 class="memory-list__heading m-0">{{ $t("enrichment.memory.waiting") }}</h2>
+          <MemoryEntry v-for="entry in pinned" :key="entry.id" :entry="entry" :busy="busy" v-on="entryEvents" />
+        </section>
+        <div v-if="shown.length" class="flex-column gap-4" data-testid="memory-entries">
+          <MemoryEntry v-for="entry in shown" :key="entry.id" :entry="entry" :busy="busy" v-on="entryEvents" />
+        </div>
       </div>
     </div>
 
@@ -51,6 +54,8 @@ import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { useNotifyStore } from "@/stores/notify";
 import { useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
 import { useProfileChannels } from "@/views/EnrichmentProfile/useProfileChannels";
+import RouteTabs from "@/components/Navigation/RouteTabs.vue";
+import { ENRICHMENT_SETTINGS_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import MemoryEntry from "./MemoryEntry.vue";
 import {
   EXPIRY, KINDS, STATUSES, byExpiry, isPendingSuggestion, memoryParams, newestFirst, pinnedKinds, promoteTarget,
@@ -66,11 +71,14 @@ const DEFAULT_EXPIRY = "all";
 // or "Dismiss". Filters: subject, kind, state (server side), expiry (the API has no such filter: this page only).
 export default {
   name: "MemoryList",
-  components: { MemoryEntry },
+  components: { MemoryEntry, RouteTabs },
   setup() {
     const { search, debouncedFetch } = useSearchDebounce();
     const { load: loadChannels } = useProfileChannels();
-    return { notify: useNotifyStore(), profileStore: useEnrichmentProfileStore(), search, debouncedFetch, loadChannels };
+    return {
+      notify: useNotifyStore(), profileStore: useEnrichmentProfileStore(), search, debouncedFetch, loadChannels,
+      ENRICHMENT_SETTINGS_TABS, tabPanel: routeTabPanel(ENRICHMENT_SETTINGS_TABS, "EnrichmentMemory"),
+    };
   },
   data() {
     return { entries: [], suggestions: [], count: 0, page: 1, kind: "", status: DEFAULT_STATUS, expiry: DEFAULT_EXPIRY, loading: false, busy: false, deleting: null };

@@ -1271,7 +1271,7 @@
     },
     {
       "id": "enrichment-rules-list",
-      "route": "/enrichment/spawn-rules",
+      "route": "/enrichment/settings/spawn-rules",
       "resolver": "fixed",
       "state": "default",
       "viewports": [
@@ -1286,7 +1286,7 @@
     },
     {
       "id": "enrichment-rule-detail",
-      "route": "/enrichment/spawn-rules/atlas-duplicate-in-pim",
+      "route": "/enrichment/settings/spawn-rules/atlas-duplicate-in-pim",
       "resolver": "fixed",
       "state": "default",
       "viewports": [
@@ -1301,7 +1301,7 @@
     },
     {
       "id": "enrichment-rule-create",
-      "route": "/enrichment/spawn-rules/new",
+      "route": "/enrichment/settings/spawn-rules/new",
       "resolver": "fixed",
       "state": "default",
       "viewports": [
@@ -1316,7 +1316,7 @@
     },
     {
       "id": "enrichment-tasks",
-      "route": "/enrichment/tasks",
+      "route": "/enrichment/runs",
       "resolver": "fixed",
       "state": "default",
       "viewports": [

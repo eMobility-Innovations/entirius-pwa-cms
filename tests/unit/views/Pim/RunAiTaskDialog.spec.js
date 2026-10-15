@@ -142,7 +142,7 @@ describe("RunAiTaskDialog", () => {
     expect(w.vm.values.target_languages).toEqual(["de"]);
   });
 
-  it("runs one task over the SKUs and shows the link to it", async () => {
+  it("runs one task over the SKUs and shows one link: the run on Runs, where its proposals show once it is done", async () => {
     mockSpawn.mockResolvedValue({ data: { id: 42, status: "open" } });
     const w = await openDialog();
     w.findComponent("[data-testid='ai-task-param-prompt']").vm.$emit("update:modelValue", "Formal tone");
@@ -156,10 +156,8 @@ describe("RunAiTaskDialog", () => {
       lane: "queue",
     });
     expect(w.emitted("created")[0][0].id).toBe(42);
-    expect(w.findComponent({ name: "RouterLink" }).props("to")).toEqual({
-      name: "EnrichmentTasks",
-      query: { status: "__all", task: "42" },
-    });
+    const links = w.findAllComponents({ name: "RouterLink" });
+    expect(links.map((link) => link.props("to"))).toEqual([{ name: "EnrichmentRuns", query: { task: "42" } }]);
   });
 
   it("in the background mode it closes at once with a toast instead of the task link", async () => {

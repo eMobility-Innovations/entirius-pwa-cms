@@ -6,7 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- AI templates (`/enrichment/templates`): saved runs of a worker — fields, languages, instructions, rules and an SEO
+- Enricher menu: Review, Studio, Settings. Review has two tabs, Proposals and Runs (`/enrichment/runs`): a finished
+  run's proposals are reviewed right under it (`?task=<id>`), a run still going or failed opens its products and what
+  it came to. Settings holds Company profile, Memory, AI templates and Spawn rules as tabs. The old addresses redirect.
+  After Run now on a product, its AI drawer opens again on that run.
+
+- AI templates (`/enrichment/settings/templates`): saved runs of a worker — fields, languages, instructions, rules and an SEO
   research preset — in the order Run AI offers them; create, edit, reorder, hide, delete, or "Save as template" from
   the run dialog.
 - Run AI: the product drawer and the product-list bulk action offer the templates first, then "Custom…". The run
@@ -22,18 +27,18 @@ All notable changes to this project will be documented in this file.
   "Open draft in ContentDB" once approved. Approve and Regenerate (optional instruction) per step, Cancel run, run
   cost in the header, auto-refresh while a step works (it stops on a cancelled run, and a step quiet for 3 minutes
   offers Regenerate), and a notice when the company profile is incomplete.
-- Company profile (`/enrichment/profile`): what the AI is told about the company, for the whole company or as a
+- Company profile (`/enrichment/settings/profile`): what the AI is told about the company, for the whole company or as a
   channel overlay. A form built from the profile's schema — markdown texts with a preview, facts, rules (DO / DON'T,
   on / off), spellings, personas and glossary as editable rows, lists as chips — or "Edit JSON", checked as it is
   typed. Completeness per section, Save with a version note, History with the difference of any two versions and
   Restore. Errors from the server show at their fields. Switching the scope or restoring with unsaved edits asks
   first; only the newest scope load fills the form.
-- Memory (`/enrichment/memory`): SEO research, answers and suggestions, filtered by subject, kind and state (expiry
-  filters the page shown); every waiting suggestion is pinned above the list with "Add to profile" or "Dismiss";
+- Memory (`/enrichment/settings/memory`): SEO research, answers and suggestions, filtered by subject, kind and state
+  (expiry filters the page shown); every waiting suggestion is pinned above the list with "Add to profile" or "Dismiss";
   SEO research reads as main and supporting phrases, intent and expiry; entries name their channel and the kind of
   subject, never ids.
-- Configuration health lists the communication profile (missing sections, link to the profile); the Memory nav entry
-  shows the number of waiting suggestions.
+- Configuration health lists the communication profile (missing sections, link to the profile); the Settings nav entry
+  and its Memory tab show the number of waiting suggestions.
 - Proposal cards list the quality warnings (a rule, a number the facts do not back with "Add to facts", a failed
   checklist item) with "Check against the standard" and "Fix warnings", and say what the AI likely used from the
   profile versions its task recorded ("Likely used from profile: Facts (4), Brand, Tone of voice").

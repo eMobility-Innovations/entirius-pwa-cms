@@ -1,7 +1,8 @@
 <template>
   <PageLayout class="spawn-rules-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('enrichment.spawn_rules.title')" />
+      <PageHeader :title="$t('nav.enrichment_settings')" :crumbs="[]" />
+      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
     </template>
     <template #toolbar>
       <div class="spawn-rules-list__toolbar">
@@ -21,6 +22,7 @@
       </div>
     </template>
 
+    <div v-bind="tabPanel">
       <Loader block v-show="loading" />
 
       <DataTable
@@ -65,6 +67,7 @@
           </BasicButton>
         </template>
       </DataTable>
+    </div>
 
       <FloatingActions :actions="fabActions" />
     <template v-if="totalCount > pageSize" #footer>
@@ -82,6 +85,8 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import RouteTabs from "@/components/Navigation/RouteTabs.vue";
+import { ENRICHMENT_SETTINGS_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import { GET_SpawnRules, GET_Tasks, POST_SpawnRuleRun } from "@/api/enrichment/api";
 
 // Batch key prefix owned by the backend (spawn_rule_service.GAP_RULE_BATCH_PREFIX).
@@ -89,11 +94,13 @@ const GAP_RULE_PREFIX = "gaprule:";
 
 export default {
   name: "SpawnRuleList",
+  components: { RouteTabs },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
     const { search, debouncedFetch } = useSearchDebounce();
-    return { loader, notify, search, debouncedFetch };
+    const tabPanel = routeTabPanel(ENRICHMENT_SETTINGS_TABS, "EnrichmentSpawnRules");
+    return { loader, notify, search, debouncedFetch, ENRICHMENT_SETTINGS_TABS, tabPanel };
   },
   data() {
     return {
@@ -113,7 +120,7 @@ export default {
         {
           icon: "add",
           label: this.$t("enrichment.spawn_rules.create"),
-          handler: () => this.$router.push("/enrichment/spawn-rules/new"),
+          handler: () => this.$router.push({ name: "EnrichmentSpawnRuleCreate" }),
         },
       ];
     },
@@ -226,7 +233,7 @@ export default {
       });
     },
     onRowClick(row) {
-      this.$router.push(`/enrichment/spawn-rules/${row.key}`);
+      this.$router.push({ name: "EnrichmentSpawnRuleEdit", params: { key: row.key } });
     },
   },
 };

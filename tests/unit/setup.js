@@ -29,4 +29,6 @@ config.global.stubs = {
   BasicButton: true,
   BasicInput: true,
   FormField: true,
+  // A page's route tabs need the router and the access store; RouteTabs.spec mounts the real one.
+  RouteTabs: true,
 };

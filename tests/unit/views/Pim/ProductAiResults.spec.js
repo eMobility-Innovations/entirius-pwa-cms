@@ -197,10 +197,15 @@ describe("ProductAiResults", () => {
     expect(notify).toHaveBeenLastCalledWith(expect.objectContaining({ type: "negative" }));
   });
 
-  it("exposes track for the page", () => {
-    const w = mountResults();
+  it("a run the page just started (track) is watched and the drawer opens on it", async () => {
+    const w = mountResults({ proposals: [proposal(1), proposal(2, { task_id: 9 })], tasks: [{ id: 9, status: "in_progress" }], running: true });
     w.vm.track({ id: 9 });
+    await flushPromises();
+
     expect(ai.track).toHaveBeenCalledWith({ id: 9 });
+    expect(w.find("[data-testid='ai-results-drawer']").exists()).toBe(true);
+    expect(w.findComponent({ name: "AiTaskList" }).props("selected")).toBe(9);
+    expect(w.findAllComponents({ name: "ProposalPanel" }).map((c) => c.props("proposal").id)).toEqual([2]);
   });
 
   it("a picked task offers Correct all for its pending proposals", async () => {

@@ -6,7 +6,7 @@ const pl = require('../../src/i18n/locales/pl.json');
 
 /**
  * P5 pilot B smoke (plan 32): logged out, the login wall and the password-reset page; logged in, the enrichment
- * task list, the spawn-rule list and its first rule, Docs.
+ * runs list, the spawn-rule list and its first rule, Docs.
  * Read-only: renders and opens, never submits, saves, runs, confirms or deletes.
  */
 
@@ -70,28 +70,28 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await login(page);
     });
 
-    test('enrichment task list renders', async ({ page }) => {
+    test('enrichment runs list renders', async ({ page }) => {
       const collector = createErrorCollector(page);
-      await openPage(page, '/enrichment/tasks');
+      await openPage(page, '/enrichment/runs');
 
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(either((t) => t.enrichment.tasks.title));
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(either((t) => t.enrichment.review.title));
       await expectListOrEmpty(page);
 
-      collector.assertNoErrors(expect, 'Enrichment tasks');
+      collector.assertNoErrors(expect, 'Enrichment runs');
     });
 
     test('spawn-rule list opens the first rule', async ({ page }) => {
       const collector = createErrorCollector(page);
-      await openPage(page, '/enrichment/spawn-rules');
+      await openPage(page, '/enrichment/settings/spawn-rules');
 
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(either((t) => t.enrichment.spawn_rules.title));
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(either((t) => t.nav.enrichment_settings));
       await expectListOrEmpty(page);
 
       // The first cell, not the row's middle: the row ends in a "Run now" button.
       const firstCell = page.locator('.data-table__row .data-table__cell').first();
       if (await firstCell.count()) {
         await firstCell.click();
-        await page.waitForURL(/\/enrichment\/spawn-rules\/[^/]+$/);
+        await page.waitForURL(/\/enrichment\/settings\/spawn-rules\/[^/]+$/);
         await page.waitForLoadState('networkidle');
         await expect(page.getByRole('heading', { level: 1 })).not.toBeEmpty();
         await expect(page.locator('[data-test="spawn-rule-save-btn"]')).toBeVisible();

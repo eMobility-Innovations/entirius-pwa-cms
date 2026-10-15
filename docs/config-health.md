@@ -27,7 +27,7 @@ action reads `aiUsable` and renders the hint, never its own state check or text.
 The company profile adds one row of its own, read from django-enrichment, not munin: `src/stores/enrichmentProfile.js`
 polls `GET profile/status/` (the whole company) and counts the active `rule_suggestion` / `fact_suggestion` memory
 entries (60 s) while the `enrichment` module is on and the user can read `enrichment.profile` (App.vue). Its row
-(`enrichment.profile`, state `incomplete` or `configured`, `scope` = the missing sections, fix `/enrichment/profile`)
+(`enrichment.profile`, state `incomplete` or `configured`, `scope` = the missing sections, fix `/enrichment/settings/profile`)
 joins the munin rows in `failing` / `passing`; text in `config_health.checks.enrichment_profile.incomplete`. The
-suggestions count is the Memory nav entry's badge (`badge: "memorySuggestions"` in `nav-routes.js`, `counts` in
-`useNav`). The profile and memory pages call `refresh()` after a change.
+suggestions count is the badge of the Enricher Settings nav entry and of its Memory tab (`badge: "memorySuggestions"` in
+`nav-routes.js`, `useNavCounts` in `useNav`). The profile and memory pages call `refresh()` after a change.

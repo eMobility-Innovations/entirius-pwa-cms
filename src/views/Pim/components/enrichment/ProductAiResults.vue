@@ -98,8 +98,8 @@
 <script>
 import { toRef } from "vue";
 import { useNotifyStore } from "@/stores/notify";
-import { extractApiMessage } from "@/composables/useFormErrors";
-import { POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
+import { POST_AcceptProposal } from "@/api/enrichment/api";
+import { useProposalActions } from "@/views/EnrichmentReview/useProposalActions";
 import ProposalPanel from "@/views/EnrichmentReview/ProposalPanel.vue";
 import DriftModal from "@/views/EnrichmentReview/DriftModal.vue";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
@@ -116,7 +116,8 @@ import { useProductAi } from "./useProductAi";
 // warning of the channel), the
 // product's tasks in plain words and its pending proposals as cards, reviewed in place (Apply all
 // when there are several). Picking a task shows only its proposals, with "Correct all" for the whole run. An applied proposal goes to the page
-// (`applied`) so the product form shows the new value.
+// (`applied`) so the product form shows the new value. A run the page just started (`track`) opens the drawer on it:
+// its proposals land there when it finishes.
 export default {
   name: "ProductAiResults",
   components: { ProposalPanel, DriftModal, AiTaskList, AiToolboxHint, BatchCorrection, ProfileGate },
@@ -132,13 +133,19 @@ export default {
   },
   emits: ["applied", "run"],
   expose: ["track"],
-  setup(props) {
-    const ai = useProductAi(toRef(props, "sku"));
-    return { ...ai, notify: useNotifyStore(), pimChannel: usePimChannelStore() };
+  setup(props, { emit }) {
+    const { track: watchTask, ...ai } = useProductAi(toRef(props, "sku"));
+    const drop = (proposal) => (ai.proposals.value = ai.proposals.value.filter((p) => p.id !== proposal.id));
+    const applied = (proposal) => {
+      drop(proposal);
+      emit("applied", proposal);
+    };
+    const actions = useProposalActions({ onApplied: applied, onRejected: drop, afterAction: ai.syncTasks });
+    return { ...ai, ...actions, watchTask, applied, notify: useNotifyStore(), pimChannel: usePimChannelStore() };
   },
   data() {
     // `?ai=1`: the drawer is part of the product's URL — a reload or a shared link opens it again.
-    return { open: this.$route?.query?.ai === "1", busy: false, drifted: null, taskFilter: null };
+    return { open: this.$route?.query?.ai === "1", taskFilter: null };
   },
   computed: {
     // "AI / Enricher", with what waits: the pending count, a running task, a failure.
@@ -190,21 +197,17 @@ export default {
       this.open = false;
       this.$emit("run", templateKey);
     },
+    // A task just started from the page: watched, and the drawer opens on it.
+    track(task) {
+      this.watchTask(task);
+      this.taskFilter = task.id;
+      this.open = true;
+    },
     taskOf(proposal) {
       return this.tasks.find((t) => t.id === proposal.task_id) || null;
     },
     replace(proposal) {
       this.proposals = this.proposals.map((p) => (p.id === proposal.id ? proposal : p));
-    },
-    drop(proposal) {
-      this.proposals = this.proposals.filter((p) => p.id !== proposal.id);
-    },
-    async accept(proposal) {
-      await this.act(async () => {
-        const { data } = await POST_AcceptProposal(proposal.id);
-        if (data.status === "drifted") this.drifted = data;
-        else this.applied(data, this.$t("enrichment.review.toast.accepted"));
-      });
     },
     // One by one: each is drift-checked; a drifted one stays in the list for its own conscious re-confirm.
     async applyAll() {
@@ -225,40 +228,6 @@ export default {
       }
       this.applied(data);
       return true;
-    },
-    async confirmDrift(proposal) {
-      await this.act(async () => {
-        const { data } = await POST_AcceptProposal(proposal.id);
-        this.drifted = null;
-        this.applied(data, this.$t("enrichment.review.toast.accepted"));
-      });
-    },
-    applied(proposal, toast = "") {
-      this.drop(proposal);
-      if (toast) this.notify.spawnNotification({ type: "positive", msg: toast });
-      this.$emit("applied", proposal);
-    },
-    async reject({ proposal, reason }) {
-      await this.act(async () => {
-        await POST_RejectProposal(proposal.id, reason ? { reason } : {});
-        this.drop(proposal);
-        this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.review.toast.rejected") });
-      });
-    },
-    rejectDrift(payload) {
-      this.drifted = null;
-      return this.reject(payload);
-    },
-    async act(work) {
-      this.busy = true;
-      try {
-        await work();
-        this.syncTasks();
-      } catch (err) {
-        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
-      } finally {
-        this.busy = false;
-      }
     },
   },
 };

@@ -1,7 +1,8 @@
 <template>
   <PageLayout class="task-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('enrichment.tasks.title')" />
+      <PageHeader :title="$t('enrichment.review.title')" :crumbs="[]" />
+      <RouteTabs :tabs="ENRICHMENT_REVIEW_TABS" />
     </template>
     <template #toolbar>
       <div class="flex ai-ct gap-5">
@@ -28,6 +29,7 @@
       </div>
     </template>
 
+    <div class="flex-column gap-8" v-bind="tabPanel">
       <Loader block v-show="loading" />
 
       <DataTable
@@ -37,7 +39,7 @@
         :rows="tasks"
         row-key="id"
         :empty-text="$t('enrichment.tasks.empty')"
-        @row-click="openQueue"
+        @row-click="onRowClick"
       >
         <template v-if="statusFilter !== ALL || taskFilter" #empty>
           <EmptyState icon="empty" size="md" :title="$t('enrichment.tasks.empty_filtered')" data-testid="tasks-empty-filtered">
@@ -81,6 +83,12 @@
         </template>
       </DataTable>
 
+      <RunProposals v-if="selectedDone" :task="selected.raw" @changed="fetchTasks({ silent: true })" />
+      <p v-else-if="selectedRunning" class="m-0 t-secondary" data-testid="enrichment-task-running">
+        {{ $t("enrichment.ai.results_running") }}
+      </p>
+    </div>
+
     <template v-if="totalCount > pageSize" #footer>
       <Pagination
         :page="paginationState.page"
@@ -93,6 +101,8 @@
       :visible="queueVisible"
       :task-id="queueTaskId"
       :task-label="queueLabel"
+      :outcome="queueOutcome"
+      :progress="queueProgress"
       @close="closeQueue"
     />
   </PageLayout>
@@ -103,11 +113,14 @@ import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { GET_Task, GET_Tasks, GET_Templates, GET_Workers } from "@/api/enrichment/api";
 import { formatDate } from "@/utils/format";
-import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
-import { isQueued, taskLabel } from "@/views/Pim/components/enrichment/productAi";
+import RouteTabs from "@/components/Navigation/RouteTabs.vue";
+import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
+import { isActive, isQueued, outcomeText, taskLabel } from "@/views/Pim/components/enrichment/productAi";
 import { pluralKey } from "@/utils/plural";
+import CostLabel from "./CostLabel.vue";
+import RunProposals from "./RunProposals.vue";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
-import { needsRefresh, orderedCounts, taskStatusTone } from "./taskProgress";
+import { needsRefresh, opensDrawer, orderedCounts, taskStatusTone } from "./taskProgress";
 
 const REFRESH_MS = 5000;
 
@@ -115,12 +128,17 @@ const REFRESH_MS = 5000;
 const TASK_STATUSES = ["open", "in_progress", "done", "cancelled", "failed"];
 const ALL = "__all";
 const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
+
+// Enricher → Review → Runs: every AI run, newest first. A finished run is picked in place (`?task=<id>`, the list
+// narrows to it) and its proposals are reviewed below it; a run still going or failed opens its drawer (its products,
+// what it came to). Each run reads in plain words: its template or worker, what it ran on, never its key.
 export default {
-  name: "TaskList",
-  components: { CostLabel, TaskQueueDrawer },
+  name: "RunsPage",
+  components: { CostLabel, RouteTabs, RunProposals, TaskQueueDrawer },
   setup() {
     const notify = useNotifyStore();
-    return { notify, formatDate, ALL, isQueued };
+    const tabPanel = routeTabPanel(ENRICHMENT_REVIEW_TABS, "EnrichmentRuns");
+    return { notify, formatDate, ALL, isQueued, ENRICHMENT_REVIEW_TABS, tabPanel };
   },
   data() {
     return {
@@ -130,13 +148,15 @@ export default {
       pageSize: 20,
       // Every task by default: a first visit shows what has run, not an empty "Open" filter.
       statusFilter: this.$route.query.status || ALL,
-      // `?task=<id>`: the one task the "Run AI task" dialog links to.
+      // `?task=<id>`: the one run picked here, or the one the "Run AI task" dialog links to.
       taskFilter: this.$route.query.task || "",
       refreshTimer: null,
       loading: false,
       queueVisible: false,
       queueTaskId: null,
       queueLabel: "",
+      queueOutcome: "",
+      queueProgress: "",
       workers: [],
       templates: [],
     };
@@ -160,6 +180,16 @@ export default {
         { key: "created", label: this.$t("enrichment.tasks.col_created"), width: "max-content", priority: 2 },
         { key: "actions", label: "", actions: true },
       ];
+    },
+    // The picked run, once its row is loaded.
+    selected() {
+      return this.tasks.find((row) => String(row.id) === String(this.taskFilter)) || null;
+    },
+    selectedDone() {
+      return !!this.selected && !opensDrawer(this.selected.raw);
+    },
+    selectedRunning() {
+      return !!this.selected && isActive(this.selected.raw);
     },
     paginationState() {
       return {
@@ -191,6 +221,7 @@ export default {
         const { results, count } = await this.loadPage();
         // Flatten nested fields the DataTable can't reach via row[col.key].
         this.tasks = results.map((t) => ({
+          raw: t,
           id: t.id,
           type: t.type,
           status: t.status,
@@ -291,9 +322,18 @@ export default {
         query: { ...this.$route.query, page: String(page) },
       });
     },
+    // A finished run shows its proposals here; one still going or failed opens its drawer.
+    onRowClick(row) {
+      if (opensDrawer(row.raw)) return this.openQueue(row);
+      this.taskFilter = String(row.id);
+      this.$router.replace({ path: this.$route.path, query: { ...this.$route.query, task: this.taskFilter } });
+      this.fetchTasks({ silent: true });
+    },
     openQueue(row) {
       this.queueTaskId = row.id;
       this.queueLabel = this.nameOf(row);
+      this.queueOutcome = outcomeText(row.raw, this.workers.find((w) => w.key === row.type));
+      this.queueProgress = orderedCounts(row.counts).length ? this.formatCounts(row.counts) : "";
       this.queueVisible = true;
     },
     closeQueue() {

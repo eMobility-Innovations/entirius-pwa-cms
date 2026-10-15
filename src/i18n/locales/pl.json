@@ -37,7 +37,6 @@
     "atlas_find": "Znajdź produkt",
     "enrichment_review": "Wzbogacanie treści",
     "enrichment_spawn_rules": "Reguły spawnu",
-    "enrichment_tasks": "Zadania",
     "translation_jobs": "Zadania tłumaczenia",
     "promo_list": "Promocje",
     "pricefighter_gap_table": "Tabela luk cenowych",
@@ -63,7 +62,8 @@
     "enrichment_templates": "Szablony AI",
     "enrichment_studio": "Studio",
     "enrichment_profile": "Profil firmy",
-    "enrichment_memory": "Pamięć"
+    "enrichment_memory": "Pamięć",
+    "enrichment_settings": "Ustawienia"
   },
   "login": {
     "welcome": "Zaloguj się",
@@ -2629,7 +2629,6 @@
       "confirm_delete_title": "Usuń regułę spawnu"
     },
     "tasks": {
-      "title": "Zadania AI",
       "empty": "Brak zadań",
       "matching": "{count} pasujących",
       "col_status": "Status",
@@ -2654,6 +2653,9 @@
       "products_one": "1 produkt",
       "products_few": "{count} produkty",
       "products_many": "{count} produktów"
+    },
+    "runs": {
+      "show_all": "Pokaż wszystkie ({count}) w Propozycjach"
     },
     "task_status": {
       "open": "Otwarte",
@@ -2686,8 +2688,7 @@
       "page": "Strona {page}",
       "prev": "Poprzednia",
       "next": "Następna",
-      "end": "Koniec kolejki",
-      "review": "Przejrzyj, co zaproponowało"
+      "end": "Koniec kolejki"
     },
     "import": {
       "open": "Import CSV",
@@ -2710,6 +2711,10 @@
     },
     "review": {
       "title": "Wzbogacanie treści",
+      "tabs": {
+        "proposals": "Propozycje",
+        "runs": "Uruchomienia"
+      },
       "filters": "Filtry",
       "search_placeholder": "Szukaj po nazwie lub SKU…",
       "matching": "Pasujących: {count}",
@@ -2830,7 +2835,7 @@
       "no_workers": "Brak skonfigurowanych workerów AI",
       "prompt_placeholder": "Dodatkowe wskazówki dla AI (opcjonalnie)",
       "created": "Wysłano do AI. Propozycje pojawią się w przeglądzie, gdy AI skończy kolejne produkty.",
-      "open_task": "Otwórz zadanie",
+      "open_task": "Otwórz uruchomienie",
       "params": {
         "prompt": "Instrukcje",
         "source_language": "Język źródłowy",
@@ -2896,7 +2901,6 @@
       "trigger_pending": "{count} do przejrzenia",
       "trigger_failed": "ostatnie uruchomienie nie powiodło się",
       "run_title": "Uruchom AI",
-      "review_task": "Przejrzyj jego propozycje",
       "task_generic": "Zadanie AI",
       "manage_templates": "Zarządzaj szablonami",
       "open_review": "Otwórz kolejkę przeglądu",

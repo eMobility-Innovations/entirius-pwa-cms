@@ -1,7 +1,7 @@
 <template>
   <PageLayout class="template-edit fs-300 t-body">
     <template #header>
-      <PageHeader :title="isCreate ? $t('enrichment.templates.create') : form.label || $t('enrichment.templates.title')" back="/enrichment/templates">
+      <PageHeader :title="isCreate ? $t('enrichment.templates.create') : form.label || $t('enrichment.templates.title')" :back="{ name: 'EnrichmentTemplates' }">
         <template v-if="!loading && !missing" #actions>
           <ActionBar>
             <IconButton

@@ -6,14 +6,10 @@
     @close="$emit('close')"
   >
     <div class="task-queue flex-column gap-5">
-      <router-link
-        v-if="taskId"
-        :to="{ path: '/enrichment', query: { task: String(taskId), status: '__all' } }"
-        class="task-queue__review t-accent fw-600"
-        data-testid="queue-review-link"
-      >
-        {{ $t("enrichment.queue.review") }}
-      </router-link>
+      <div v-if="outcome || progress" class="flex-column gap-1">
+        <p v-if="outcome" class="task-queue__outcome m-0 fw-600 t-strong" data-testid="queue-outcome">{{ outcome }}</p>
+        <p v-if="progress" class="m-0 fs-200 t-secondary" data-testid="queue-progress">{{ progress }}</p>
+      </div>
       <Loader v-show="loading" />
 
       <DataTable
@@ -91,6 +87,9 @@ export default {
     visible: { type: Boolean, default: false },
     taskId: { type: Number, default: null },
     taskLabel: { type: String, default: "" },
+    // What the run came to and its counts, in plain words (productAi.outcomeText, RunsPage.formatCounts).
+    outcome: { type: String, default: "" },
+    progress: { type: String, default: "" },
   },
   emits: ["close"],
   setup() {

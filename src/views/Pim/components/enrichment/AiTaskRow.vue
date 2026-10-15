@@ -27,7 +27,7 @@
           :title="outcome.code || null"
           data-testid="ai-task-outcome"
         >
-          {{ outcomeText }}
+          {{ outcomeLine }}
         </span>
       </span>
       <span class="ai-task__aside flex-column gap-1">
@@ -35,24 +35,14 @@
         <CostLabel v-if="!running" :cost="task.cost_usd" :partial="!task.cost_complete" data-testid="ai-task-cost" />
       </span>
     </div>
-    <router-link
-      class="ai-task__id t-muted"
-      :to="taskLink"
-      :aria-label="$t('enrichment.tasks.open')"
-      :title="$t('enrichment.tasks.open')"
-      data-testid="ai-task-open"
-    >
-      <FontAwesomeIcon :icon="$icons.next" aria-hidden="true" />
-    </router-link>
   </li>
 </template>
 
 <script>
 import { formatRelative } from "@/utils/format";
 import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
-import { pluralKey } from "@/utils/plural";
 import { ALL_LANGUAGES } from "./aiTaskForm";
-import { isActive, taskLanguages, taskOutcome } from "./productAi";
+import { isActive, outcomeText, taskLanguages, taskOutcome } from "./productAi";
 
 const LOOK = {
   queued: { icon: "scheduled", tone: "info" },
@@ -65,7 +55,7 @@ const LOOK = {
 const QUIET = { icon: "info", tone: "neutral" };
 
 // One AI task in plain words — a task waiting for review shows its count in an accent pill (the call to act): the template or worker, its languages, when, what it cost once done, and what came of it — proposals to review, applied,
-// nothing to do, or why it failed (the toolbox error code, named for people). A chevron links to the task.
+// nothing to do, or why it failed (the toolbox error code, named for people; the code itself in the tooltip).
 export default {
   name: "AiTaskRow",
   components: { CostLabel },
@@ -95,36 +85,14 @@ export default {
     relative() {
       return formatRelative(this.task.created_at);
     },
-    taskLink() {
-      return { name: "EnrichmentTasks", query: { status: "__all", task: String(this.task.id) } };
-    },
-    outcomeText() {
-      const { state, count = 0, failed } = this.outcome;
-      if (state === "failed") return this.$t("enrichment.ai.outcome.failed", { reason: this.reason() });
-      if (state === "queued") return this.queuedText(count);
-      const key = state === "review" ? `review_${pluralKey(count)}` : state;
-      const text = this.$t(`enrichment.ai.outcome.${key}`, { count });
-      if (!failed) return text;
-      return `${text} · ${this.$t("enrichment.ai.outcome.partly_failed", { count: failed, reason: this.reason() })}`;
+    outcomeLine() {
+      return outcomeText(this.task, this.worker);
     },
   },
   methods: {
-    queuedText(ahead) {
-      if (!ahead) return this.$t("enrichment.ai.outcome.queued_next");
-      return this.$t(`enrichment.ai.outcome.queued_${pluralKey(ahead)}`, { count: ahead });
-    },
     // "*" is a writer's "All languages".
     languageLabel(lang) {
       return lang === ALL_LANGUAGES ? this.$t("enrichment.run.all_languages") : lang.toUpperCase();
-    },
-    // The kind-specific name of the code (translate + PROVIDER_NOT_CONFIGURED = the translator), else a code-free
-    // sentence; the code itself stays in the outcome's tooltip.
-    reason() {
-      const { code, errorId } = this.outcome;
-      const known = [`${this.worker?.kind}_${code}`, code]
-        .map((key) => `enrichment.ai.error.${key}`)
-        .find((path) => this.$t(path) !== path);
-      return this.$t(known || "enrichment.ai.error.unknown", { id: errorId });
     },
   },
 };
@@ -218,10 +186,5 @@ export default {
   flex-shrink: 0;
   align-items: flex-end;
   white-space: nowrap;
-}
-.ai-task__id {
-  flex-shrink: 0;
-  align-self: center;
-  padding: var(--space-3);
 }
 </style>

@@ -12,9 +12,6 @@
       <router-link :to="taskLink" class="t-accent fw-600" data-testid="ai-task-link" @click="$emit('close')">
         {{ $t("enrichment.ai.open_task") }}
       </router-link>
-      <router-link :to="reviewLink" class="t-accent fw-600" data-testid="ai-task-review-link" @click="$emit('close')">
-        {{ $t("enrichment.ai.review_task") }}
-      </router-link>
     </div>
 
     <div v-else class="flex-column gap-4">
@@ -94,7 +91,7 @@ import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 
 // One "Run AI task" dialog for a single product and a list selection: pick a template (its worker, fields,
 // languages, instructions and research preset) or "Custom…" and a worker, adjust the form, POST one task over the
-// SKUs of the active channel, then link to the task (or, with `background`, close at once and leave the progress to
+// SKUs of the active channel, then link to the run (or, with `background`, close at once and leave the progress to
 // the page). The run as set up can be kept as a new template (`template-saved`). No cost estimate: costs show after.
 // Two ways to send it: Run now (the express lane, at most RUN_NOW_MAX products) and Add to queue; the primary one
 // follows the scope — one product runs now, a selection is queued. A phone shows only the primary one (one footer row).
@@ -179,11 +176,9 @@ export default {
     canRun() {
       return !!this.worker && !!this.skus.length && this.health.aiUsable && !missingRequired(this.fields, this.values).length;
     },
+    // The run on Runs: its progress, then what it proposed, in one place.
     taskLink() {
-      return { name: "EnrichmentTasks", query: { status: "__all", task: String(this.createdTask?.id) } };
-    },
-    reviewLink() {
-      return { name: "EnrichmentReview", query: { task: String(this.createdTask?.id) } };
+      return { name: "EnrichmentRuns", query: { task: String(this.createdTask?.id) } };
     },
     nowAllowed() {
       return canRunNow(this.skus.length);

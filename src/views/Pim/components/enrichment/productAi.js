@@ -1,3 +1,6 @@
+import { t } from "@/i18n";
+import { pluralKey } from "@/utils/plural";
+
 // The AI work of one product: which tasks still run or just finished, what each one came to in plain words, and
 // which of them still matter (the rest is history).
 
@@ -45,6 +48,32 @@ export function taskOutcome(task) {
   const base = review ? { state: "review", count: review } : finishedState(task.proposal_counts || {});
   const failed = task.counts?.failed || 0;
   return failed ? { ...base, failed, ...reason } : base;
+}
+
+function queuedText(ahead) {
+  if (!ahead) return t("enrichment.ai.outcome.queued_next");
+  return t(`enrichment.ai.outcome.queued_${pluralKey(ahead)}`, { count: ahead });
+}
+
+// The kind-specific name of the code (translate + PROVIDER_NOT_CONFIGURED = the translator), else the generic one,
+// else a code-free sentence — never the code itself.
+function failureReason({ code, errorId }, worker) {
+  const known = [`${worker?.kind}_${code}`, code]
+    .map((key) => `enrichment.ai.error.${key}`)
+    .find((path) => t(path) !== path);
+  return t(known || "enrichment.ai.error.unknown", { id: errorId });
+}
+
+/** What a task came to, in plain words: "3 proposals to review", "Queued — 2 runs ahead", "Failed: <reason>"; a done
+ * task with failed products says so after it. `worker` names the reason by its kind. */
+export function outcomeText(task, worker = null) {
+  const outcome = taskOutcome(task);
+  const { state, count = 0, failed } = outcome;
+  if (state === "failed") return t("enrichment.ai.outcome.failed", { reason: failureReason(outcome, worker) });
+  if (state === "queued") return queuedText(count);
+  const text = t(`enrichment.ai.outcome.${state === "review" ? `review_${pluralKey(count)}` : state}`, { count });
+  if (!failed) return text;
+  return `${text} · ${t("enrichment.ai.outcome.partly_failed", { count: failed, reason: failureReason(outcome, worker) })}`;
 }
 
 const RANK = { running: 0, queued: 1, review: 2, failed: 3 };

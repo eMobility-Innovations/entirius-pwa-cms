@@ -2,9 +2,8 @@ import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
 import AiTaskRow from "@/views/Pim/components/enrichment/AiTaskRow.vue";
 
-// The global $t stub returns the key, so these name only real (known) error keys.
-const KNOWN = new Set(["enrichment.ai.error.translate_PROVIDER_NOT_CONFIGURED", "enrichment.ai.error.UPSTREAM_TIMEOUT"]);
-const $t = (key, params) => (KNOWN.has(key) && !params ? `T:${key}` : params ? `${key}::${JSON.stringify(params)}` : key);
+// The outcome line is productAi.outcomeText, in the real English texts; the rest of the row goes through the $t stub.
+const $t = (key, params) => (params ? `${key}::${JSON.stringify(params)}` : key);
 
 const task = (over = {}) => ({
   id: 9, type: "pim.translate", status: "done", created_at: new Date().toISOString(),
@@ -39,10 +38,10 @@ describe("AiTaskRow", () => {
 
   it("a queued task says how many runs wait before it, or that it starts next; no cost yet", () => {
     const waiting = mountRow({ status: "open", queued_ahead: 2 });
-    expect(outcome(waiting)).toBe('enrichment.ai.outcome.queued_few::{"count":2}');
+    expect(outcome(waiting)).toBe("Queued — 2 runs ahead");
     expect(waiting.find(".ai-task__icon--info").exists()).toBe(true);
     expect(waiting.find("[data-testid='ai-task-cost']").exists()).toBe(false);
-    expect(outcome(mountRow({ status: "open", queued_ahead: 0 }))).toBe("enrichment.ai.outcome.queued_next");
+    expect(outcome(mountRow({ status: "open", queued_ahead: 0 }))).toBe("Queued — starts next");
   });
 
   it("shows the worker label, its languages as chips and a relative time", () => {
@@ -54,7 +53,7 @@ describe("AiTaskRow", () => {
 
   it("says how many proposals wait for review, with the plural form, and marks it with an accent count pill", () => {
     const w = mountRow({ proposal_counts: { pending: 3 } });
-    expect(outcome(w)).toBe('enrichment.ai.outcome.review_few::{"count":3}');
+    expect(outcome(w)).toBe("3 proposals to review");
     expect(w.find("[data-testid='ai-task-review']").text()).toBe("3");
     expect(w.find(".ai-task__icon").exists()).toBe(false);
   });
@@ -67,13 +66,12 @@ describe("AiTaskRow", () => {
 
   it("names a failure by the kind-specific reason, then the generic one, then a code-free sentence", () => {
     const errors = (code) => [{ subject_ref: "A", code, error_id: "e1" }];
-    expect(outcome(mountRow({ status: "failed", errors: errors("PROVIDER_NOT_CONFIGURED") }))).toContain(
-      "enrichment.ai.error.translate_PROVIDER_NOT_CONFIGURED"
+    expect(outcome(mountRow({ status: "failed", errors: errors("PROVIDER_NOT_CONFIGURED") }))).toBe(
+      "Failed: Translator not configured on the AI toolbox"
     );
-    expect(outcome(mountRow({ status: "failed", errors: errors("UPSTREAM_TIMEOUT") }))).toContain("enrichment.ai.error.UPSTREAM_TIMEOUT");
+    expect(outcome(mountRow({ status: "failed", errors: errors("UPSTREAM_TIMEOUT") }))).toBe("Failed: The AI provider did not answer in time");
     const unknown = mountRow({ status: "failed", errors: errors("WEIRD") });
-    expect(outcome(unknown)).toContain("enrichment.ai.error.unknown");
-    expect(outcome(unknown)).not.toContain("WEIRD");
+    expect(outcome(unknown)).toBe("Failed: The AI service reported an error");
     // The code stays at hand for support, in the tooltip only.
     expect(unknown.find("[data-testid='ai-task-outcome']").attributes("title")).toBe("WEIRD");
   });
@@ -83,11 +81,10 @@ describe("AiTaskRow", () => {
     expect(w.find(".ai-task__label").text()).toBe("enrichment.ai.task_generic");
   });
 
-  it("clicking the row selects the task; a chevron of its own opens the task, never showing its id", async () => {
+  it("clicking the row selects the task (its proposals show below it); no link away to another page", async () => {
     const w = mountRow();
     await w.find(".ai-task__select").trigger("click");
     expect(w.emitted("select")[0]).toEqual([9]);
-    expect(w.find(".ai-task__id").text()).toBe("");
-    expect(w.find(".ai-task__id").attributes("aria-label")).toBe("enrichment.tasks.open");
+    expect(w.find("a").exists()).toBe(false);
   });
 });

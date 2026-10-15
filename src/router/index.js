@@ -1137,7 +1137,7 @@ const routes = [
   { path: "/communicator/sequences", redirect: "/leads/settings/sequences" },
   { path: "/communicator/settings", redirect: "/leads/settings/sending" },
 
-  // Enrichment review panel (etap-06 / etap-06b)
+  // Enrichment review panel (etap-06 / etap-06b): Proposals | Runs, two tabs of one screen
   {
     path: "/enrichment",
     name: "EnrichmentReview",
@@ -1146,6 +1146,18 @@ const routes = [
     meta: {
       requiresAuth: true,
       titleKey: "enrichment.review.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+    },
+  },
+  {
+    path: "/enrichment/runs",
+    name: "EnrichmentRuns",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentReview/RunsPage.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.review.tabs.runs",
       panel: "enricher",
       area: AREAS.ENRICHMENT_PROPOSALS,
     },
@@ -1160,82 +1172,6 @@ const routes = [
     meta: {
       requiresAuth: true,
       titleKey: "enrichment.editor.title",
-      panel: "enricher",
-      area: AREAS.ENRICHMENT_PROPOSALS,
-    },
-  },
-
-  // Enrichment spawn rules (etap-13)
-  {
-    path: "/enrichment/spawn-rules",
-    name: "EnrichmentSpawnRules",
-    component: () =>
-      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentSpawnRules/SpawnRuleList.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "enrichment.spawn_rules.title",
-      panel: "enricher",
-      area: AREAS.ENRICHMENT_RULES,
-    },
-  },
-  {
-    path: "/enrichment/spawn-rules/new",
-    name: "EnrichmentSpawnRuleCreate",
-    component: () =>
-      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentSpawnRules/SpawnRuleEdit.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "enrichment.spawn_rules.create",
-      panel: "enricher",
-      area: AREAS.ENRICHMENT_RULES,
-    },
-  },
-  {
-    path: "/enrichment/spawn-rules/:key",
-    name: "EnrichmentSpawnRuleEdit",
-    component: () =>
-      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentSpawnRules/SpawnRuleEdit.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "enrichment.spawn_rules.title",
-      panel: "enricher",
-      area: AREAS.ENRICHMENT_RULES,
-    },
-  },
-
-  // AI templates: saved runs offered first in Run AI (contract A3 § 4)
-  {
-    path: "/enrichment/templates",
-    name: "EnrichmentTemplates",
-    component: () =>
-      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateList.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "enrichment.templates.title",
-      panel: "enricher",
-      area: AREAS.ENRICHMENT_PROPOSALS,
-    },
-  },
-  {
-    path: "/enrichment/templates/new",
-    name: "EnrichmentTemplateCreate",
-    component: () =>
-      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateEdit.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "enrichment.templates.create",
-      panel: "enricher",
-      area: AREAS.ENRICHMENT_PROPOSALS,
-    },
-  },
-  {
-    path: "/enrichment/templates/:key",
-    name: "EnrichmentTemplateEdit",
-    component: () =>
-      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateEdit.vue"),
-    meta: {
-      requiresAuth: true,
-      titleKey: "enrichment.templates.title",
       panel: "enricher",
       area: AREAS.ENRICHMENT_PROPOSALS,
     },
@@ -1267,9 +1203,11 @@ const routes = [
     },
   },
 
-  // Company profile and memory (contract A4 § 2–§ 3)
+  // Enricher → Settings: the company profile and memory (contract A4 § 2–§ 3), AI templates (contract A3 § 4) and
+  // spawn rules (etap-13), each a tab of one screen
+  { path: "/enrichment/settings", redirect: "/enrichment/settings/profile" },
   {
-    path: "/enrichment/profile",
+    path: "/enrichment/settings/profile",
     name: "EnrichmentProfile",
     component: () =>
       import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentProfile/ProfilePage.vue"),
@@ -1281,7 +1219,7 @@ const routes = [
     },
   },
   {
-    path: "/enrichment/memory",
+    path: "/enrichment/settings/memory",
     name: "EnrichmentMemory",
     component: () =>
       import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentMemory/MemoryList.vue"),
@@ -1292,20 +1230,94 @@ const routes = [
       area: AREAS.ENRICHMENT_PROFILE,
     },
   },
-
-  // Enrichment tasks (read-only queue view)
   {
-    path: "/enrichment/tasks",
-    name: "EnrichmentTasks",
+    path: "/enrichment/settings/templates",
+    name: "EnrichmentTemplates",
     component: () =>
-      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTasks/TaskList.vue"),
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateList.vue"),
     meta: {
       requiresAuth: true,
-      titleKey: "enrichment.tasks.title",
+      titleKey: "enrichment.templates.title",
       panel: "enricher",
       area: AREAS.ENRICHMENT_PROPOSALS,
     },
   },
+  {
+    path: "/enrichment/settings/templates/new",
+    name: "EnrichmentTemplateCreate",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateEdit.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.templates.create",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+      crumbParent: "EnrichmentTemplates",
+    },
+  },
+  {
+    path: "/enrichment/settings/templates/:key",
+    name: "EnrichmentTemplateEdit",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentTemplates/TemplateEdit.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.templates.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_PROPOSALS,
+      crumbParent: "EnrichmentTemplates",
+    },
+  },
+  {
+    path: "/enrichment/settings/spawn-rules",
+    name: "EnrichmentSpawnRules",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentSpawnRules/SpawnRuleList.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.spawn_rules.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_RULES,
+    },
+  },
+  {
+    path: "/enrichment/settings/spawn-rules/new",
+    name: "EnrichmentSpawnRuleCreate",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentSpawnRules/SpawnRuleEdit.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.spawn_rules.create",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_RULES,
+      crumbParent: "EnrichmentSpawnRules",
+    },
+  },
+  {
+    path: "/enrichment/settings/spawn-rules/:key",
+    name: "EnrichmentSpawnRuleEdit",
+    component: () =>
+      import(/* webpackChunkName: "enrichment" */ "../views/EnrichmentSpawnRules/SpawnRuleEdit.vue"),
+    meta: {
+      requiresAuth: true,
+      titleKey: "enrichment.spawn_rules.title",
+      panel: "enricher",
+      area: AREAS.ENRICHMENT_RULES,
+      crumbParent: "EnrichmentSpawnRules",
+    },
+  },
+
+  // The old Enricher menu (one entry per screen) became Review | Studio | Settings: old deep links land on the same
+  // screens, their query kept (`?task=` of a run, `?channel=` of a profile)
+  { path: "/enrichment/tasks", redirect: (to) => ({ name: "EnrichmentRuns", query: to.query }) },
+  { path: "/enrichment/profile", redirect: (to) => ({ name: "EnrichmentProfile", query: to.query }) },
+  { path: "/enrichment/memory", redirect: (to) => ({ name: "EnrichmentMemory", query: to.query }) },
+  { path: "/enrichment/templates", redirect: (to) => ({ name: "EnrichmentTemplates", query: to.query }) },
+  { path: "/enrichment/templates/new", redirect: (to) => ({ name: "EnrichmentTemplateCreate", query: to.query }) },
+  { path: "/enrichment/templates/:key", redirect: (to) => ({ name: "EnrichmentTemplateEdit", params: to.params, query: to.query }) },
+  { path: "/enrichment/spawn-rules", redirect: (to) => ({ name: "EnrichmentSpawnRules", query: to.query }) },
+  { path: "/enrichment/spawn-rules/new", redirect: (to) => ({ name: "EnrichmentSpawnRuleCreate", query: to.query }) },
+  { path: "/enrichment/spawn-rules/:key", redirect: (to) => ({ name: "EnrichmentSpawnRuleEdit", params: to.params, query: to.query }) },
 
   // Translation Jobs
   {

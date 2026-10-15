@@ -10,7 +10,7 @@ import { t } from "@/i18n";
 const POLL_MS = 60000;
 const SUGGESTION_KINDS = ["rule_suggestion", "fact_suggestion"];
 export const PROFILE_CHECK = "enrichment.profile";
-export const PROFILE_ROUTE = "/enrichment/profile";
+export const PROFILE_ROUTE = "/enrichment/settings/profile";
 
 const sectionName = (key) => {
   const path = `enrichment.profile.sections.${key}`;

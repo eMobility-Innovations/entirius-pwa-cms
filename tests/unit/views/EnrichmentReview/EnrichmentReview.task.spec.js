@@ -38,6 +38,11 @@ describe("EnrichmentReview filtered by task", () => {
     expect(w.findComponent({ name: "BatchCorrection" }).props()).toEqual({ taskId: 12 });
   });
 
+  it("the task line links to the run on Runs", async () => {
+    const w = await mountPage({ task: "12" });
+    expect(w.vm.taskLink).toEqual({ name: "EnrichmentRuns", query: { task: "12" } });
+  });
+
   it("Show all drops the task filter", async () => {
     const w = await mountPage({ task: "12" });
     mockGetProposals.mockClear();

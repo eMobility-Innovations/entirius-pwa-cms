@@ -73,15 +73,10 @@ describe("Leads nav (UX-002d: one panel, Settings instead of four entries)", () 
   });
 });
 
-describe("Enricher nav on a phone", () => {
-  it("the tab bar keeps the daily pages: Review · Studio · Profile · Memory · Tasks; setup screens stay on desktop", () => {
-    expect(routesFor("enricher", false)).toEqual([
-      "/enrichment",
-      "/enrichment/studio",
-      "/enrichment/profile",
-      "/enrichment/memory",
-      "/enrichment/tasks",
-    ]);
-    expect(routesFor("enricher", true)).toEqual(expect.arrayContaining(["/enrichment/templates", "/enrichment/spawn-rules"]));
+describe("Enricher nav", () => {
+  it("three entries on every screen: Review · Studio · Settings (runs and the setup screens are their tabs)", () => {
+    const entries = ["/enrichment", "/enrichment/studio", "/enrichment/settings"];
+    expect(routesFor("enricher", false)).toEqual(entries);
+    expect(routesFor("enricher", true)).toEqual(entries);
   });
 });

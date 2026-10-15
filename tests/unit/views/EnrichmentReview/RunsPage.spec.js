@@ -15,7 +15,7 @@ vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification: mockNotify }),
 }));
 
-import TaskList from "@/views/EnrichmentTasks/TaskList.vue";
+import RunsPage from "@/views/EnrichmentReview/RunsPage.vue";
 
 const task = (over = {}) => ({
   id: 1,
@@ -29,21 +29,22 @@ const task = (over = {}) => ({
 });
 
 const mountList = (routerMock = {}, query = {}) =>
-  mount(TaskList, {
+  mount(RunsPage, {
     global: {
       mocks: {
-        $route: { query, path: "/enrichment/tasks" },
+        $route: { query, path: "/enrichment/runs" },
         $router: { push() {}, replace() {}, ...routerMock },
       },
       stubs: {
         DataTable: true,
         Pagination: true,
-        TaskQueueDrawer: true,
+        TaskQueueDrawer: { name: "TaskQueueDrawer", props: ["visible", "taskId", "outcome", "progress"], template: "<div />" },
+        RunProposals: { name: "RunProposals", props: ["task"], emits: ["changed"], template: "<div />" },
       },
     },
   });
 
-describe("TaskList", () => {
+describe("RunsPage", () => {
   beforeEach(() => {
     mockGetTasks.mockReset();
     mockGetTask.mockReset();
@@ -119,15 +120,59 @@ describe("TaskList", () => {
     expect(mockGetTasks.mock.calls.at(-1)[0].status).toBeUndefined();
   });
 
-  it("row click opens the queue drawer for that task", async () => {
-    const wrapper = mountList();
+  it("a click on a run still going or failed opens its drawer, with what it came to in plain words", async () => {
+    const failed = task({ id: 7, type: "pim.writer", status: "failed", errors: [{ code: "UPSTREAM_TIMEOUT" }], counts: { failed: 2 } });
+    mockGetTasks.mockResolvedValueOnce({ data: { results: [failed, task({ id: 8, status: "in_progress" })], count: 2 } });
+    const replace = vi.fn();
+    const wrapper = mountList({ replace });
     await flushPromises();
 
-    wrapper.vm.openQueue({ id: 7, rule: "classify-featureset", type: "pim.writer" });
-
-    expect(wrapper.vm.queueVisible).toBe(true);
-    expect(wrapper.vm.queueTaskId).toBe(7);
+    wrapper.vm.onRowClick(wrapper.vm.tasks[0]);
+    await flushPromises();
+    const drawer = wrapper.findComponent({ name: "TaskQueueDrawer" });
+    expect(drawer.props()).toMatchObject({
+      visible: true, taskId: 7, outcome: "Failed: The AI provider did not answer in time", progress: "failed: 2",
+    });
     expect(wrapper.vm.queueLabel).toBe("Product texts");
+
+    wrapper.vm.onRowClick(wrapper.vm.tasks[1]);
+    expect(wrapper.vm.queueTaskId).toBe(8);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("a click on a finished run picks it in place (?task): the list narrows to it, its proposals show below", async () => {
+    const done = task({ id: 42, status: "done", counts: { proposed: 3 } });
+    mockGetTasks.mockResolvedValueOnce({ data: { results: [task({ id: 41, status: "failed" }), done], count: 2 } });
+    mockGetTask.mockResolvedValue({ data: done });
+    const replace = vi.fn();
+    const wrapper = mountList({ replace });
+    await flushPromises();
+    expect(wrapper.findComponent({ name: "RunProposals" }).exists()).toBe(false);
+
+    wrapper.vm.onRowClick(wrapper.vm.tasks[1]);
+    await flushPromises();
+
+    expect(replace).toHaveBeenCalledWith({ path: "/enrichment/runs", query: { task: "42" } });
+    expect(mockGetTask).toHaveBeenCalledWith("42");
+    expect(wrapper.vm.tasks.map((t) => t.id)).toEqual([42]);
+    expect(wrapper.vm.queueVisible).toBe(false);
+    const proposals = wrapper.findComponent({ name: "RunProposals" });
+    expect(proposals.props("task")).toEqual(done);
+
+    // A reviewed card re-reads the run quietly.
+    proposals.vm.$emit("changed");
+    await flushPromises();
+    expect(mockGetTask).toHaveBeenCalledTimes(2);
+  });
+
+  it("a picked run still going says its proposals come when it finishes", async () => {
+    mockGetTask.mockResolvedValue({ data: task({ id: 5, status: "in_progress" }) });
+    const wrapper = mountList({}, { task: "5" });
+    await flushPromises();
+
+    expect(wrapper.find("[data-testid='enrichment-task-running']").text()).toBe("enrichment.ai.results_running");
+    expect(wrapper.findComponent({ name: "RunProposals" }).exists()).toBe(false);
+    wrapper.unmount();
   });
 
   it("names a task in plain words: its template, its worker, its Studio step, never its key", async () => {
