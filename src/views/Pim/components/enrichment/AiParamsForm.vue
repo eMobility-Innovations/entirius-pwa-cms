@@ -1,6 +1,6 @@
 <template>
   <div class="flex-column gap-4">
-    <FormField v-for="field in fields" :key="field.name" :label="labelOf(field)" :required="field.required">
+    <FormField v-for="field in fields" :key="field.name" :label="labelOf(field)" :required="isRequired(field, modelValue, forRun)">
       <BasicTextarea
         v-if="field.kind === 'prompt'"
         :model-value="modelValue[field.name]"
@@ -10,9 +10,9 @@
         @update:model-value="(value) => set(field.name, value)"
       />
       <BasicSelect
-        v-else-if="field.kind === 'enum'"
+        v-else-if="field.kind === 'enum' || field.kind === 'count'"
         :model-value="modelValue[field.name]"
-        :options="field.options.map((o) => ({ label: o, value: o }))"
+        :options="field.options.map((o) => ({ label: optionLabel(field, o), value: o }))"
         :data-testid="`ai-task-param-${field.name}`"
         @update:model-value="(value) => set(field.name, value)"
       />
@@ -102,7 +102,7 @@
 </template>
 
 <script>
-import { ALL_LANGUAGES, withSource } from "./aiTaskForm";
+import { ALL_LANGUAGES, isRequired, withSource } from "./aiTaskForm";
 
 // The parameters of one AI run, shared by the run dialog and the templates editor: the fields the worker's
 // params_schema asks for (aiTaskForm.buildFields) — instructions, languages ("All languages" for a writer), the
@@ -117,6 +117,8 @@ export default {
     fieldChoices: { type: Array, default: () => [] },
     researchKeys: { type: Array, default: () => [] },
     research: { type: Object, default: () => ({ augment: [], seo_scope: "category" }) },
+    // A run (not a template): the run-only requirements apply (aiTaskForm.isRequired).
+    forRun: { type: Boolean, default: false },
   },
   emits: ["update:modelValue", "update:research"],
   computed: {
@@ -135,6 +137,13 @@ export default {
     },
   },
   methods: {
+    isRequired,
+    // An enum value in plain words when the locale names it (`enrichment.ai.options.<field>.<value>`), else as is.
+    optionLabel(field, option) {
+      const key = `enrichment.ai.options.${field.name}.${option}`;
+      const label = this.$t(key);
+      return label === key ? String(option) : label;
+    },
     labelOf(field) {
       const key = `enrichment.ai.params.${field.name}`;
       const label = this.$t(key);

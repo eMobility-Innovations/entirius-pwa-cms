@@ -27,6 +27,7 @@ const stubs = {
   ProposalDetails: { name: "ProposalDetails", props: ["proposal", "task"], template: "<i data-testid='proposal-meta' />" },
   QaCheckStatus: { name: "QaCheckStatus", props: ["proposal"], emits: ["updated", "busy"], template: "<i />" },
   FormField: { template: "<div><slot /></div>" },
+  BasicRadioGroup: { name: "BasicRadioGroup", props: ["modelValue", "options", "name", "disabled"], template: "<div />" },
   BasicTextarea: true,
   BasicButton: { emits: ["click"], template: "<button @click=\"$emit('click')\"><slot /></button>" },
 };
@@ -151,5 +152,36 @@ describe("ProposalPanel", () => {
     const video = { ...meta, target_kind: "video", proposed_value: { duration_s: 5 }, target_locator: { channel: "c1" } };
     const media = mount(ProposalPanel, { props: { proposal: video }, global: { stubs } });
     expect(media.findComponent({ name: "ProposalCorrection" }).exists()).toBe(false);
+  });
+
+  describe("add or replace", () => {
+    const picture = {
+      ...meta, id: 41, target_kind: "picture", apply_modes: ["add", "replace"],
+      target_locator: { channel: "c1", source_picture_ref: "5", operation: "packshot", variant: 1 },
+      proposed_value: { op: "derived" }, current_snapshot: { url: "/media/a.png" },
+    };
+    const choice = (w) => w.findComponent({ name: "BasicRadioGroup" });
+
+    it("a picture that can replace its original asks how it lands, add by default", () => {
+      const w = mount(ProposalPanel, { props: { proposal: picture }, global: { stubs } });
+      expect(choice(w).props("modelValue")).toBe("add");
+      expect(choice(w).props("options").map((o) => o.value)).toEqual(["add", "replace"]);
+      expect(w.find("[data-testid='proposal-apply-mode-hint']").exists()).toBe(false);
+    });
+
+    it("the pick is kept for the proposal and Replace says the original stays for Undo", async () => {
+      const w = mount(ProposalPanel, { props: { proposal: { ...picture, id: 42 } }, global: { stubs } });
+      choice(w).vm.$emit("update:modelValue", "replace");
+      await flushPromises();
+      expect(choice(w).props("modelValue")).toBe("replace");
+      expect(w.find("[data-testid='proposal-apply-mode-hint']").exists()).toBe(true);
+    });
+
+    it("no choice for a fixed write or an applied proposal", () => {
+      const fixed = mount(ProposalPanel, { props: { proposal: { ...picture, apply_modes: [] } }, global: { stubs } });
+      const done = mount(ProposalPanel, { props: { proposal: { ...picture, status: "applied" } }, global: { stubs } });
+      expect(choice(fixed).exists()).toBe(false);
+      expect(choice(done).exists()).toBe(false);
+    });
   });
 });

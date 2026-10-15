@@ -252,6 +252,7 @@ import DriftModal from "./DriftModal.vue";
 import ImportCsvDialog from "./ImportCsvDialog.vue";
 import ProductPreviewDrawer from "./ProductPreviewDrawer.vue";
 import ProposalPanel from "./ProposalPanel.vue";
+import { acceptChosen } from "./applyMode";
 import BatchCorrection from "./BatchCorrection.vue";
 import RunCorrections from "./RunCorrections.vue";
 import { runUidOf, subjectName } from "./reviewLogic";
@@ -260,7 +261,6 @@ import { useRunLabels } from "./useRunLabels";
 import {
   GET_Task,
   GET_Proposals,
-  POST_AcceptProposal,
   POST_RejectProposal,
   POST_BulkAcceptProposals,
   POST_BulkRejectProposals,
@@ -585,7 +585,7 @@ export default {
       if (this.busy) return;
       this.busy = true;
       try {
-        const { data } = await POST_AcceptProposal(proposal.id);
+        const { data } = await acceptChosen(proposal);
         if (data.status === "drifted") {
           // Live value changed since the proposal — force a conscious re-confirm (D2).
           this.driftProposal = data;
@@ -723,7 +723,7 @@ export default {
       if (this.busy) return;
       this.busy = true;
       try {
-        await POST_AcceptProposal(proposal.id);
+        await acceptChosen(proposal);
         this.notify.spawnNotification({
           type: "positive",
           msg: this.$t("enrichment.review.toast.accepted"),

@@ -84,6 +84,28 @@ const VIDEO = {
   },
 };
 
+const IMAGE = {
+  key: "pim.image",
+  label: "Image processing",
+  kind: "image",
+  params_schema: {
+    properties: {
+      channel: { type: "string" },
+      operation: { type: "string", enum: ["packshot", "lifestyle", "enhance", "instruct"] },
+      preset: { type: "string", default: "" },
+      prompt: { type: "string", default: "" },
+      picture_ref: { type: "string", default: "" },
+      n: { type: "integer", default: 1, minimum: 1, maximum: 4 },
+    },
+    required: ["channel", "operation"],
+  },
+};
+
+const IMAGE_TEMPLATE = {
+  key: "image-packshot", label: "Packshot", worker_key: "pim.image", kind: "image", position: 40, active: true,
+  params: { operation: "packshot", preset: "packshot-white" }, rules: [],
+};
+
 const TEMPLATES = [
   {
     key: "meta", label: "Meta descriptions", worker_key: "pim.writer", kind: "write", position: 10, active: true,
@@ -514,6 +536,52 @@ describe("RunAiTaskDialog", () => {
       w.findComponent({ name: "TaskTargetPicker" }).vm.$emit("update:modelValue", { skus: ["S1"], filters: null, count: 1, pending: false });
       await flushPromises();
       expect(picker(w).props("subjectRef")).toBe("S1");
+    });
+  });
+
+  describe("image: which picture, what to do, how many variants", () => {
+    const image = (props = {}) => openDialog({ workers: [...WORKERS, IMAGE], initialWorker: IMAGE.key, ...props });
+    const picker = (w) => w.findComponent({ name: "PicturePicker" });
+    const runAction = (w) => w.vm.actions.find((a) => a.key === "now");
+
+    it("one product: the picture to process, the operation and the variants; the preset stays out of the form", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 9, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await image({ skus: ["A"] });
+      expect(picker(w).props("label")).toBe("enrichment.ai.picture.image_label");
+      expect(w.vm.fields.map((f) => [f.name, f.kind])).toEqual([["operation", "enum"], ["prompt", "prompt"], ["n", "count"]]);
+      picker(w).vm.$emit("update:modelValue", "5");
+      form(w).vm.$emit("update:modelValue", { ...w.vm.values, n: 3 });
+      await flushPromises();
+      await w.vm.run();
+      expect(mockSpawn.mock.calls[0][0].params).toEqual({
+        operation: "packshot", prompt: "", n: 3, channel: "default-europe", picture_ref: "5",
+      });
+    });
+
+    it("a custom instruction waits for its instruction", async () => {
+      const w = await image({ skus: ["A"] });
+      picker(w).vm.$emit("update:modelValue", "5");
+      form(w).vm.$emit("update:modelValue", { ...w.vm.values, operation: "instruct" });
+      await flushPromises();
+      expect(runAction(w).disabled).toBe(true);
+      form(w).vm.$emit("update:modelValue", { ...w.vm.values, prompt: "Remove the shadow." });
+      await flushPromises();
+      expect(runAction(w).disabled).toBe(false);
+    });
+
+    it("several products: each uses its main picture", async () => {
+      const w = await image({ skus: ["A", "B"] });
+      expect(picker(w).exists()).toBe(false);
+      expect(w.find("[data-testid='ai-task-main-pictures']").text()).toBe("enrichment.ai.picture.several_image");
+    });
+
+    it("saved as a new template, a run keeps the preset of the template it started from", async () => {
+      mockListTemplates.mockResolvedValue({ data: [IMAGE_TEMPLATE] });
+      mockSaveTemplate.mockResolvedValue({ data: { key: "mine" } });
+      const w = await image({ skus: ["A"], templates: [IMAGE_TEMPLATE], initialTemplate: IMAGE_TEMPLATE.key });
+      w.vm.templateLabel = "Mine";
+      await w.vm.saveTemplate();
+      expect(mockSaveTemplate.mock.calls[0][0].params).toMatchObject({ operation: "packshot", preset: "packshot-white" });
     });
   });
 });

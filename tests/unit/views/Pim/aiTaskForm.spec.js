@@ -5,6 +5,7 @@ import {
   buildTaskPayload,
   defaultResearch,
   defaultValues,
+  keptParams,
   missingRequired,
   presetValues,
   researchKeys,
@@ -205,5 +206,44 @@ describe("research", () => {
     });
     expect(buildParams(fields, values, { augment: [], seo_scope: "category" })).toEqual({ ...values, augment: [] });
     expect(buildParams(fields, values, null)).toEqual(values);
+  });
+});
+
+describe("image fields", () => {
+  const IMAGE = {
+    properties: {
+      channel: { type: "string" },
+      operation: { type: "string", enum: ["packshot", "lifestyle", "enhance", "instruct"] },
+      preset: { type: "string", default: "" },
+      prompt: { type: "string", default: "" },
+      picture_ref: { type: "string", default: "" },
+      n: { type: "integer", default: 1, minimum: 1, maximum: 4 },
+    },
+    required: ["channel", "operation"],
+  };
+
+  it("the variants are picked from 1–4; the preset and the picture never show", () => {
+    const fields = buildFields(IMAGE);
+    expect(fields.map((f) => f.name)).toEqual(["operation", "prompt", "n"]);
+    expect(fields.find((f) => f.name === "n")).toMatchObject({ kind: "count", options: [1, 2, 3, 4], default: 1 });
+    expect(defaultValues(fields)).toEqual({ operation: "packshot", prompt: "", n: 1 });
+  });
+
+  it("an unbounded or wide integer stays off the form", () => {
+    const wide = { properties: { a: { type: "integer" }, b: { type: "integer", minimum: 1, maximum: 50 } } };
+    expect(buildFields(wide)).toEqual([]);
+  });
+
+  it("a run of a custom instruction needs the instruction; a template may leave it to the run", () => {
+    const fields = buildFields(IMAGE);
+    const values = { operation: "instruct", prompt: "  ", n: 1 };
+    expect(missingRequired(fields, values, { run: true })).toEqual(["prompt"]);
+    expect(missingRequired(fields, values)).toEqual([]);
+    expect(missingRequired(fields, { ...values, operation: "packshot" }, { run: true })).toEqual([]);
+  });
+
+  it("a template keeps its preset through an edit", () => {
+    expect(keptParams({ operation: "packshot", preset: "packshot-white" })).toEqual({ preset: "packshot-white" });
+    expect(keptParams(undefined)).toEqual({});
   });
 });

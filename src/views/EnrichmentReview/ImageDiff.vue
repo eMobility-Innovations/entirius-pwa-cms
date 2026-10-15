@@ -130,8 +130,8 @@ export default {
   text-transform: uppercase;
 }
 .image-diff__img {
-  max-width: 120px;
-  max-height: 120px;
+  max-width: 100%;
+  max-height: 200px;
   object-fit: contain;
   border-radius: var(--radius-base);
   background: var(--surface-raised);

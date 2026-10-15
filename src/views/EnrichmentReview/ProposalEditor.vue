@@ -113,7 +113,7 @@ import { useUnsavedChanges } from "@/composables/useUnsavedChanges";
 import { ReadonlyOff } from "@/composables/useReadonly";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 import { isNotFound } from "@/api/createClient";
-import { GET_Proposal, GET_Task, POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
+import { GET_Proposal, GET_Task, POST_RejectProposal } from "@/api/enrichment/api";
 import CorrectionBar from "./CorrectionBar.vue";
 import CorrectionThread from "./CorrectionThread.vue";
 import DriftModal from "./DriftModal.vue";
@@ -123,6 +123,7 @@ import { useFieldLabels } from "./useFieldLabels";
 import { useProposalCorrection } from "./useProposalCorrection";
 import { revisable, textareaSelection, uniqueFragment, valueShape, valueText, withText } from "./correction";
 import { isHtml, workerOf } from "./reviewLogic";
+import { acceptChosen } from "./applyMode";
 
 // The full-screen editor of one long text proposal (`/enrichment/edit/:proposalId`): the text as it is stored (HTML
 // or markdown) with a preview and the changes against the live value, AI corrections scoped to the selected
@@ -261,7 +262,7 @@ export default {
     async accept() {
       this.applying = true;
       try {
-        const { data } = await POST_AcceptProposal(this.proposal.id);
+        const { data } = await acceptChosen(this.proposal);
         if (data.status === "drifted") {
           this.drifted = data;
           return;

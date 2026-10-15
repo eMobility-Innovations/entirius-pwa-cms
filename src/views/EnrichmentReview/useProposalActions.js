@@ -2,7 +2,8 @@ import { ref } from "vue";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { t } from "@/i18n";
-import { POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
+import { POST_RejectProposal } from "@/api/enrichment/api";
+import { acceptChosen } from "./applyMode";
 
 // Apply and Reject of proposal cards reviewed in place (a product's AI drawer, a finished run on Runs): one action at a
 // time (`busy`); an apply the live value moved under waits in `drifted` for the DriftModal's conscious re-confirm.
@@ -33,7 +34,7 @@ export function useProposalActions({ onApplied, onRejected, afterAction = () => 
 
   const accept = (proposal) =>
     act(async () => {
-      const { data } = await POST_AcceptProposal(proposal.id);
+      const { data } = await acceptChosen(proposal);
       if (data.status === "drifted") drifted.value = data;
       else applied(data);
     });
@@ -41,7 +42,7 @@ export function useProposalActions({ onApplied, onRejected, afterAction = () => 
   // The second apply of a drifted proposal writes through.
   const confirmDrift = (proposal) =>
     act(async () => {
-      const { data } = await POST_AcceptProposal(proposal.id);
+      const { data } = await acceptChosen(proposal);
       drifted.value = null;
       applied(data);
     });

@@ -84,8 +84,9 @@ export const GET_StagedFile = (proposalId) =>
     responseType: "blob",
   });
 
-export const POST_AcceptProposal = (proposalId) =>
-  enrichmentApi.post(`${ENR}/proposals/${proposalId}/accept/`);
+// `data` = `{ mode: "add" | "replace" }` for a proposal that offers the choice (applyMode.acceptBody), else none.
+export const POST_AcceptProposal = (proposalId, data) =>
+  enrichmentApi.post(`${ENR}/proposals/${proposalId}/accept/`, data);
 
 export const POST_RejectProposal = (proposalId, data = {}) =>
   enrichmentApi.post(`${ENR}/proposals/${proposalId}/reject/`, data);

@@ -110,6 +110,7 @@ import {
   buildParams,
   defaultResearch,
   defaultValues,
+  keptParams,
   missingRequired,
   presetValues,
   researchKeys,
@@ -236,15 +237,19 @@ export default {
     applyValues() {
       const languages = this.catalog.languages;
       const base = defaultValues(this.fields, { languages, mainLanguage: languages[0] || "" });
-      const own = this.stored?.worker_key === this.form.worker_key ? this.stored.params : {};
+      const own = this.ownParams();
       this.values = presetValues(this.fields, base, own);
       this.research = defaultResearch(own);
     },
+    ownParams() {
+      return this.stored?.worker_key === this.form.worker_key ? this.stored.params : {};
+    },
     body() {
+      const params = buildParams(this.fields, this.values, this.researchKeys.length ? this.research : null);
       return {
         label: this.form.label.trim(),
         worker_key: this.form.worker_key,
-        params: templateParams(buildParams(this.fields, this.values, this.researchKeys.length ? this.research : null)),
+        params: templateParams({ ...keptParams(this.ownParams()), ...params }),
         rules: parseRules(this.form.rules),
         active: this.form.active,
       };

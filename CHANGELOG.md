@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Image processing in Run AI (an `image` worker or its templates): the picture to process (one product), what to do
+  (packshot, product in a scene, improve the photo, custom instruction — the instruction is then required) and the
+  number of variants (1–4). The toolbox preset rides on the template and is kept when a template is edited.
+- Applying a picture made from one of the product's pictures asks "Add next to the original" (default) or "Replace the
+  original" on the card; every Apply of that proposal (button, Focus key, drift re-confirm) sends the pick. Apply all
+  and bulk accept always add. Review pictures show larger.
+
 - Run AI with a video worker on one product (product page or a Studio task with one SKU) asks which picture to
   animate: thumbnails of the product's pictures, the main one picked first (`PicturePicker`, sent as
   `params.picture_ref`). On several products a note says each uses its main picture. `BasicRadioGroup` takes

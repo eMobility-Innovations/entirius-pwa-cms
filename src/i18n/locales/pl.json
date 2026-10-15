@@ -2885,7 +2885,9 @@
         "source_language": "Język źródłowy",
         "target_languages": "Języki docelowe",
         "languages": "Języki",
-        "fields": "Pola"
+        "fields": "Pola",
+        "operation": "Co zrobić",
+        "n": "Liczba wariantów"
       },
       "results_title": "AI dla {name}",
       "recent_tasks": "Ostatnie zadania",
@@ -2975,7 +2977,17 @@
       "summary_many": "Obejmie {count} produktów w kanale {channel}.",
       "picture": {
         "video_label": "Zdjęcie do animacji",
-        "several_video": "Każdy produkt użyje swojego głównego zdjęcia. Aby wybrać inne zdjęcie, uruchom to dla jednego produktu."
+        "several_video": "Każdy produkt użyje swojego głównego zdjęcia. Aby wybrać inne zdjęcie, uruchom to dla jednego produktu.",
+        "image_label": "Zdjęcie do przerobienia",
+        "several_image": "Każdy produkt użyje swojego zdjęcia głównego. Aby wybrać inne zdjęcie, uruchom to dla jednego produktu."
+      },
+      "options": {
+        "operation": {
+          "packshot": "Packshot (białe tło)",
+          "lifestyle": "Produkt w aranżacji",
+          "enhance": "Popraw zdjęcie",
+          "instruct": "Własne polecenie"
+        }
       }
     },
     "video": {
@@ -3535,6 +3547,12 @@
       "none": "Ten produkt nie ma zdjęć. Najpierw dodaj zdjęcie na stronie produktu.",
       "failed": "Nie udało się wczytać zdjęć. Zamknij okno i spróbuj ponownie.",
       "untitled": "Zdjęcie {n}"
+    },
+    "apply_mode": {
+      "label": "Po zatwierdzeniu",
+      "add": "Dodaj obok oryginału",
+      "replace": "Zastąp oryginał",
+      "replace_hint": "Oryginalne zdjęcie zostaje zachowane, więc Cofnij może je przywrócić."
     }
   },
   "promo": {

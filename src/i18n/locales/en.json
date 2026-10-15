@@ -2886,7 +2886,9 @@
         "source_language": "Source language",
         "target_languages": "Target languages",
         "languages": "Languages",
-        "fields": "Fields"
+        "fields": "Fields",
+        "operation": "What to do",
+        "n": "Number of variants"
       },
       "results_title": "AI for {name}",
       "recent_tasks": "Recent tasks",
@@ -2976,7 +2978,17 @@
       "summary_many": "Runs on {count} products in {channel}.",
       "picture": {
         "video_label": "Picture to animate",
-        "several_video": "Each product uses its main picture. To choose a different picture, run this on one product."
+        "several_video": "Each product uses its main picture. To choose a different picture, run this on one product.",
+        "image_label": "Picture to process",
+        "several_image": "Each product uses its main picture. To choose a different picture, run this on one product."
+      },
+      "options": {
+        "operation": {
+          "packshot": "Packshot (plain white background)",
+          "lifestyle": "Product in a scene",
+          "enhance": "Improve the photo",
+          "instruct": "Custom instruction"
+        }
       }
     },
     "video": {
@@ -3536,6 +3548,12 @@
       "none": "This product has no pictures. Add one on the product page first.",
       "failed": "Could not load the pictures. Close the dialog and try again.",
       "untitled": "Picture {n}"
+    },
+    "apply_mode": {
+      "label": "When applied",
+      "add": "Add next to the original",
+      "replace": "Replace the original",
+      "replace_hint": "The original picture is kept, so Undo can bring it back."
     }
   },
   "promo": {

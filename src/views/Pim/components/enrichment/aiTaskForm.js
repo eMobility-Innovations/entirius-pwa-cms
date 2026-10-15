@@ -1,10 +1,14 @@
 // The "Run AI task" form, generated from a worker's `params_schema` (a pydantic JSON schema). Kept small on
 // purpose: a string, a string enum, an array of strings (`fields` = the field picker, else a language list), the
-// free-text `prompt`. `channel` is never asked — the dialog fills it from the active PIM channel; `rules` live on
-// the template; `picture_ref` comes from the dialog's picture picker. Other types keep the backend default. Research
-// (augmentations, contract A4 § 5) sits next to it.
+// free-text `prompt`, a small bounded integer (`count`: how many variants). `channel` is never asked — the dialog fills
+// it from the active PIM channel; `rules` live on the template; `picture_ref` comes from the dialog's picture picker;
+// an image `preset` is a toolbox key the templates carry (a custom run takes the toolbox default for the operation).
+// Other types keep the backend default. Research (augmentations, contract A4 § 5) sits next to it.
 
-const HIDDEN = new Set(["channel", "rules", "picture_ref"]);
+const HIDDEN = new Set(["channel", "rules", "picture_ref", "preset"]);
+// Hidden params a template keeps through an edit (the form never shows them, so they are carried over).
+const KEPT = ["preset"];
+const MAX_COUNT_OPTIONS = 10;
 export const ALL_LANGUAGES = "*";
 
 // `str | None` arrives as anyOf [{type: string}, {type: null}]; an Enum class as a $ref into $defs.
@@ -17,6 +21,7 @@ function resolveProp(schema, raw) {
 
 function fieldKind(name, prop) {
   if (prop.type === "array" && prop.items?.type === "string") return name === "fields" ? "fields" : "languages";
+  if (prop.type === "integer") return countRange(prop).length ? "count" : null;
   if (prop.type !== "string") return null;
   if (prop.enum) return "enum";
   if (name === "prompt") return "prompt";
@@ -24,8 +29,15 @@ function fieldKind(name, prop) {
   return "text";
 }
 
+// An integer with both bounds and a short range (`n`: 1–4) is picked from its values.
+function countRange(prop) {
+  const { minimum: min, maximum: max } = prop;
+  if (!Number.isInteger(min) || !Number.isInteger(max) || max < min || max - min >= MAX_COUNT_OPTIONS) return [];
+  return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+}
+
 /** [{ name, kind, title, options, default, required, allowAll }] — kind: text · enum · prompt · language ·
- * languages · fields. `allowAll`: a `write` worker's languages take "All languages" (`["*"]`). */
+ * languages · fields · count. `allowAll`: a `write` worker's languages take "All languages" (`["*"]`). */
 export function buildFields(schema, workerKind = "") {
   const required = new Set(schema?.required || []);
   return Object.entries(schema?.properties || {})
@@ -36,7 +48,7 @@ export function buildFields(schema, workerKind = "") {
         name,
         kind: fieldKind(name, prop),
         title: prop.title || name,
-        options: prop.enum || [],
+        options: prop.enum || countRange(prop),
         default: prop.default,
         required: required.has(name),
         allowAll: workerKind === "write" && name === "languages",
@@ -72,8 +84,21 @@ export function withSource(values, fields, name, language) {
 
 const isEmpty = (value) => value == null || value === "" || (Array.isArray(value) && !value.length);
 
-export function missingRequired(fields, values) {
-  return fields.filter((field) => field.required && isEmpty(values[field.name])).map((field) => field.name);
+/** Required by the schema, or (`run`) by the run itself: a custom picture instruction (`operation: instruct`) needs its
+ * prompt — a template may leave it to the run. */
+export function isRequired(field, values = {}, run = false) {
+  return field.required || (run && field.name === "prompt" && values.operation === "instruct");
+}
+
+const blank = (value) => isEmpty(typeof value === "string" ? value.trim() : value);
+
+export function missingRequired(fields, values, { run = false } = {}) {
+  return fields.filter((field) => isRequired(field, values, run) && blank(values[field.name])).map((field) => field.name);
+}
+
+/** The hidden params of `params` a template keeps (an image preset). */
+export function keptParams(params = {}) {
+  return Object.fromEntries(KEPT.filter((name) => params[name] !== undefined).map((name) => [name, params[name]]));
 }
 
 /** A template's params over the defaults, for the fields the form has. */

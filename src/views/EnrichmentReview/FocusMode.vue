@@ -134,11 +134,12 @@ import { usePimChannelStore } from "@/stores/pimChannel";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { safeHref } from "@/utils/safeHref";
 import ProductPreviewCard from "./ProductPreviewCard.vue";
+import { acceptChosen } from "./applyMode";
 import ProposalPanel from "./ProposalPanel.vue";
 import StudioStepPreview from "./StudioStepPreview.vue";
 import { runUidOf, subjectName } from "./reviewLogic";
 import { useFieldLabels } from "./useFieldLabels";
-import { GET_Task, POST_AcceptProposal, POST_RejectProposal } from "@/api/enrichment/api";
+import { GET_Task, POST_RejectProposal } from "@/api/enrichment/api";
 
 const ACTIONABLE = ["pending", "drifted"];
 // The status chips that hold proposals to decide; "All" is narrowed to pending by the page while Focus is on.
@@ -291,7 +292,7 @@ export default {
       const proposal = this.current;
       this.acting = true;
       try {
-        const { data } = await POST_AcceptProposal(proposal.id);
+        const { data } = await acceptChosen(proposal);
         if (data.status === "drifted") {
           // The live value moved since the proposal: the card shows the NEW value and asks for a second Apply (D2).
           this.remember({ ...proposal, ...data });

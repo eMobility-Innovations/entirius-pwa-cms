@@ -36,10 +36,10 @@
         v-model="pictureRef"
         :channel="channel"
         :subject-ref="pictureSubject"
-        :label="$t('enrichment.ai.picture.video_label')"
+        :label="$t(`enrichment.ai.picture.${kind}_label`)"
       />
-      <p v-else-if="kind === 'video' && runCount > 1" class="fs-200 t-secondary m-0" data-testid="ai-task-main-pictures">
-        {{ $t("enrichment.ai.picture.several_video") }}
+      <p v-else-if="startsFromPicture && runCount > 1" class="fs-200 t-secondary m-0" data-testid="ai-task-main-pictures">
+        {{ $t(`enrichment.ai.picture.several_${kind}`) }}
       </p>
 
       <AiParamsForm
@@ -49,6 +49,7 @@
         :languages="languages"
         :field-choices="fieldChoices"
         :research-keys="researchKeys"
+        for-run
       />
       <QaCheckToggle v-if="checksText" v-model="qaCheck" :disabled="busy" />
 
@@ -95,6 +96,7 @@ import {
   buildTaskPayload,
   defaultResearch,
   defaultValues,
+  keptParams,
   missingRequired,
   presetValues,
   researchKeys,
@@ -109,6 +111,8 @@ import { useMediaQuery } from "@/composables/useMediaQuery";
 import { pluralKey } from "@/utils/plural";
 import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 
+const PICTURE_KINDS = ["video", "image"];
+
 // One "Run AI task" dialog for a single product and a list selection: pick a template (its worker, fields,
 // languages, instructions and research preset) or "Custom…" and a worker, adjust the form, POST one task over the
 // SKUs of the active channel, then link to the run (or, with `background`, close at once and leave the progress to
@@ -116,9 +120,10 @@ import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 // Two ways to send it: Run now (the express lane, at most RUN_NOW_MAX products) and Add to queue; the primary one
 // follows the scope — one product runs now, a selection is queued. A phone shows only the primary one (one footer row).
 // `pickTargets` (Studio): the products are picked in the dialog (TaskTargetPicker: pasted SKUs or a category) instead of
-// coming in as `skus`; a big category is a filter scope, queued only. A `video` worker on one product asks which picture
-// it animates (PicturePicker → `params.picture_ref`, run only, never saved in a template); on several products each one
-// uses its main picture.
+// coming in as `skus`; a big category is a filter scope, queued only. A `video` or `image` worker on one product asks
+// which picture it starts from (PicturePicker → `params.picture_ref`, run only, never saved in a template); on several
+// products each one uses its main picture. An `image` run says what to do (operation), how many variants, and — for a
+// custom instruction — the instruction itself.
 export default {
   name: "RunAiTaskDialog",
   components: { AiToolboxHint, AiParamsForm, PicturePicker, QaCheckToggle, TaskTargetPicker },
@@ -197,9 +202,13 @@ export default {
     runCount() {
       return this.pickTargets ? this.target.count : this.skus.length;
     },
-    // The one product a `video` run animates a chosen picture of; "" = several products (each uses its main picture).
+    startsFromPicture() {
+      return PICTURE_KINDS.includes(this.kind);
+    },
+    // The one product a `video` / `image` run starts from a chosen picture of; "" = several products (each uses its
+    // main picture).
     pictureSubject() {
-      if (this.kind !== "video" || this.runFilters || this.runSkus.length !== 1) return "";
+      if (!this.startsFromPicture || this.runFilters || this.runSkus.length !== 1) return "";
       return this.runSkus[0];
     },
     // A filter scope has no list of products: the server queues it (Run now takes a list).
@@ -233,7 +242,7 @@ export default {
       const targeted = this.runCount > 0 && !(this.pickTargets && this.target.pending);
       const pictured = !this.pictureSubject || !!this.pictureRef;
       return this.ready && !this.reloading && !!this.worker && targeted && pictured && this.health.aiUsable
-        && !missingRequired(this.fields, this.values).length;
+        && !missingRequired(this.fields, this.values, { run: true }).length;
     },
     // The run on Runs: its progress, then what it proposed, in one place.
     taskLink() {
@@ -355,7 +364,7 @@ export default {
         const body = newTemplateBody({
           label: this.templateLabel,
           worker: this.worker,
-          params: this.params,
+          params: { ...keptParams(this.template?.params), ...this.params },
           rules: this.template?.rules || [],
           templates: listOf(all),
         });

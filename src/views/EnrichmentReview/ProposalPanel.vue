@@ -78,6 +78,20 @@
       </template>
     </ProposalCorrection>
 
+    <!-- A picture made from one of the product's pictures: added next to it (default) or in its place. -->
+    <FormField v-if="replaceable" :label="$t('enrichment.apply_mode.label')" data-testid="proposal-apply-mode">
+      <BasicRadioGroup
+        :model-value="applyMode"
+        :options="modeOptions"
+        :name="`apply-mode-${proposal.id}`"
+        :disabled="locked"
+        @update:model-value="(mode) => chooseMode(proposal, mode)"
+      />
+      <p v-if="applyMode === 'replace'" class="fs-200 t-secondary m-0 mt-2" data-testid="proposal-apply-mode-hint">
+        {{ $t("enrichment.apply_mode.replace_hint") }}
+      </p>
+    </FormField>
+
     <ActionBar :actions="actions" :labelled="false" />
   </article>
 </template>
@@ -97,6 +111,7 @@ import ProposalDetails from "./ProposalDetails.vue";
 import QaCheckStatus from "./QaCheckStatus.vue";
 import QaWarnings from "./QaWarnings.vue";
 import { revisable, uniqueFragment, valueText } from "./correction";
+import { MODE_ADD, MODE_REPLACE, canReplace, chooseMode, modeOf } from "./applyMode";
 import { useFieldLabels } from "./useFieldLabels";
 import { editableText, isHtml, plainText, runUidOf, sourceText, textRules, translationSource } from "./reviewLogic";
 
@@ -108,7 +123,8 @@ const ACTIONABLE = ["pending", "drifted"];
 // (Reject, Edit, Apply). What the AI call cost sits in the header; the ⓘ next to it opens the details: cost, model,
 // worker and what the AI used from the company profile. Edit is in place; for a long text it leads on to the full
 // editor. `product` is the product on screen, else it is fetched when the view needs it. A selection in the text
-// narrows a correction.
+// narrows a correction. A picture made from one of the product's pictures asks, above Apply, whether it goes next to the
+// original or replaces it (applyMode — the pick is what every Apply of this proposal sends).
 export default {
   name: "ProposalPanel",
   components: { CostLabel, DiffRenderer, LengthCounter, ProposalCorrection, ProposalDetails, QaCheckStatus, QaWarnings },
@@ -183,11 +199,26 @@ export default {
     canEdit() {
       return this.proposal.status === "pending" && editableText(this.proposal) !== null;
     },
+    replaceable() {
+      return canReplace(this.proposal) && ACTIONABLE.includes(this.proposal.status);
+    },
+    applyMode() {
+      return modeOf(this.proposal);
+    },
+    modeOptions() {
+      return [
+        { label: this.$t("enrichment.apply_mode.add"), value: MODE_ADD, testid: "proposal-apply-mode-add" },
+        { label: this.$t("enrichment.apply_mode.replace"), value: MODE_REPLACE, testid: "proposal-apply-mode-replace" },
+      ];
+    },
+    locked() {
+      return this.busy || this.saving || this.correctionBusy || this.qaBusy || this.checkBusy;
+    },
     draftLength() {
       return plainText(this.draft).trim().length;
     },
     actions() {
-      const off = this.busy || this.saving || this.correctionBusy || this.qaBusy || this.checkBusy;
+      const off = this.locked;
       if (this.editing) {
         return [
           { key: "cancel", role: "secondary", label: this.$t("common.cancel"), disabled: off, onClick: this.cancelEdit },
@@ -219,6 +250,7 @@ export default {
   },
   methods: {
     sanitizeHtml,
+    chooseMode,
     async loadProduct() {
       const key = this.productKey;
       if (!key) return;
