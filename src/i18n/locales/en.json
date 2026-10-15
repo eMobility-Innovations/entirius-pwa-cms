@@ -717,6 +717,7 @@
   "pim": {
     "attribute_values_more": "Load more values…",
     "attribute_values_failed": "The attribute values could not be loaded",
+    "attributes_failed": "The attributes could not be loaded — try again in a moment",
     "attribute_values_capped": "Only the first {count} values are searchable",
     "products": "Products",
     "categories": "Categories",

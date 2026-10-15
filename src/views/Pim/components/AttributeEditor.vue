@@ -296,6 +296,9 @@ async function fetchFeatureSet() {
     }));
     editableRows.value = mergeWithExisting(normalized);
     prefetchStoredOptions(editableRows.value);
+  } catch {
+    // Called unawaited (mount, a feature set change): a failure the page would never see — a backend down — is told.
+    notify.spawnNotification({ type: "negative", msg: t("pim.attributes_failed") });
   } finally {
     loading.value = false;
   }

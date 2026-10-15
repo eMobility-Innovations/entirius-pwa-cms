@@ -38,6 +38,11 @@ All notable changes to this project will be documented in this file.
   checklist item) with "Check against the standard" and "Fix warnings", and say what the AI likely used from the
   profile versions its task recorded ("Likely used from profile: Facts (4), Brand, Tone of voice").
 
+### Fixed
+
+- Product page: an Attributes tab that cannot load (the backend restarting) says so in a toast instead of an
+  uncaught "Network Error".
+
 ## [3.2.0] (2026-10-12)
 
 ### Added
