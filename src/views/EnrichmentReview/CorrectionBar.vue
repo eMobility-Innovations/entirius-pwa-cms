@@ -160,11 +160,22 @@ export default {
     mask-image: linear-gradient(to right, var(--surface-base) calc(100% - var(--space-8)), transparent);
   }
 }
-// Suggestions are no filter: they keep a calm surface; disabled while the AI works.
+// Suggestions are no filter and no primary: a quiet raised chip in secondary text, so they never out-shout the thread
+// or the send button; a picked one (batch) keeps the boot's accent fill. Disabled while the AI works.
 .correction-bar__chips :deep(.filter-chip) {
   flex-shrink: 0;
-  border-color: var(--border-subtle);
   font-family: inherit;
+
+  &:not(.filter-chip--active) {
+    border-color: var(--border-subtle);
+    background-color: var(--surface-raised);
+    color: var(--text-secondary);
+  }
+
+  &:not(.filter-chip--active):hover:not(:disabled) {
+    background-color: var(--surface-hover);
+    color: var(--text-body);
+  }
 
   &:disabled {
     color: var(--text-disabled);
@@ -185,7 +196,7 @@ export default {
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border: 1px solid var(--border-control);
   border-radius: var(--radius-lg);
-  background: var(--surface-base);
+  background: var(--surface-sunken);
   transition: border-color 0.15s ease;
 
   // The field's own focus ring moves to the box (as the text fields draw it, src/assets/scss/utils/_reset.scss).
@@ -214,12 +225,16 @@ export default {
     box-shadow: none;
   }
 }
+// The keys show while typing, on a keyboard screen only: a phone keyboard has no Shift+Enter, the send button is the way
+// there.
 .correction-bar__hint {
+  display: none;
   align-self: flex-end;
-
-  // A phone keyboard has no Shift+Enter: the send button is the way there.
-  @include max-tablet {
-    display: none;
+  margin-top: calc(-1 * var(--space-1));
+}
+@include min-tablet {
+  .correction-bar__box:focus-within + .correction-bar__hint {
+    display: inline;
   }
 }
 </style>

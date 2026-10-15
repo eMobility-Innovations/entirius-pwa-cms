@@ -1,5 +1,5 @@
 <template>
-  <div class="correction-ask flex-column gap-2">
+  <div class="correction-ask flex-column gap-1">
     <span v-if="ask.quickAction" class="correction-ask__action" data-testid="ask-action">
       <FontAwesomeIcon :icon="$icons.enrich" aria-hidden="true" />
       {{ $t(`enrichment.correct.quick.${ask.quickAction}`) }}
@@ -33,11 +33,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-// The operator's message: an accent-tinted bubble on the right, its tail corner at the top.
+// The operator's message: an accent-tinted bubble on the right, its tail corner at the top. On accent-subtle text is
+// text-strong or text-body in both themes (docs/ui-rules.md T1).
 .correction-ask {
-  max-width: min(85%, 36rem);
-  padding: var(--space-3) var(--space-5);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  max-width: min(85%, 32rem);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-lg);
   border-top-right-radius: var(--radius-base);
   background: var(--accent-subtle);
@@ -49,11 +49,11 @@ export default {
   gap: var(--space-2);
   font-size: var(--fs-300);
   font-weight: 600;
-  color: var(--text-accent);
+  line-height: 1.6;
 }
 .correction-ask__text {
   font-size: var(--fs-300);
-  line-height: 1.5;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -61,6 +61,6 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--text-secondary);
+  color: var(--text-body);
 }
 </style>

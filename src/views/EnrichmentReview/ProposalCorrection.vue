@@ -23,33 +23,27 @@
     </div>
 
     <section v-if="open" class="proposal-correction__chat flex-column" :aria-label="$t('enrichment.correct.open')">
-      <div class="proposal-correction__thread">
-        <Loader v-if="!revisions" :size="32" />
-        <CorrectionThread
-          v-else
-          :revisions="revisions"
-          :busy="busy"
-          :asking="asking"
-          :candidates="candidates"
-          :landed="landed"
-          @restore="restore"
-          @pick="saveValue"
-          @dismiss="candidates = []"
-        />
-      </div>
-      <div class="proposal-correction__composer">
-        <CorrectionBar ref="bar" :shape="shape" :selection="selection" :busy="busy" @submit="correct" />
-      </div>
-      <div class="proposal-correction__rules">
-        <RuleChips
-          :rules="rules"
-          :busy="busy"
-          :has-template="!!task?.params?.template"
-          :has-worker="hasWorker"
-          @change="setRules"
-          @promote="promote"
-        />
-      </div>
+      <Loader v-if="!revisions" :size="32" />
+      <CorrectionThread
+        v-else
+        :revisions="revisions"
+        :busy="busy"
+        :asking="asking"
+        :candidates="candidates"
+        :landed="landed"
+        @restore="restore"
+        @pick="saveValue"
+        @dismiss="candidates = []"
+      />
+      <CorrectionBar ref="bar" :shape="shape" :selection="selection" :busy="busy" @submit="correct" />
+      <RuleChips
+        :rules="rules"
+        :busy="busy"
+        :has-template="!!task?.params?.template"
+        :has-worker="hasWorker"
+        @change="setRules"
+        @promote="promote"
+      />
     </section>
   </div>
 </template>
@@ -141,38 +135,20 @@ export default {
     background: var(--surface-hover);
   }
 }
-// The conversation as one framed panel: the thread on a sunken surface, the composer and the rules under it.
+// The conversation as one framed panel: the thread, the composer and the rules under it, apart by space (R4).
 .proposal-correction__chat {
+  gap: var(--space-5);
+  padding: var(--space-5);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--surface-base);
-}
-.proposal-correction__thread {
-  padding: var(--space-5);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--surface-sunken);
-}
-.proposal-correction__composer {
-  padding: var(--space-4) var(--space-5);
-  border-top: 1px solid var(--border-subtle);
-}
-.proposal-correction__rules {
-  padding: var(--space-2) var(--space-5);
-  border-top: 1px solid var(--border-subtle);
 }
 
 // On a phone the card is narrow already: no second frame, the bubbles and the composer take its full width.
 @include max-tablet {
   .proposal-correction__chat {
+    padding: 0;
     border: 0;
-  }
-  .proposal-correction__thread {
-    padding: 0 0 var(--space-4);
-    background: none;
-  }
-  .proposal-correction__composer,
-  .proposal-correction__rules {
-    padding-inline: 0;
   }
 }
 </style>

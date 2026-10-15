@@ -59,7 +59,7 @@
       </div>
 
       <aside class="flex-column gap-8">
-        <BasicCard :title="$t('enrichment.correct.open')">
+        <BasicCard :title="$t('enrichment.correct.open')" gap>
           <div class="flex-column gap-5">
             <Loader v-if="!revisions" :size="32" />
             <CorrectionThread

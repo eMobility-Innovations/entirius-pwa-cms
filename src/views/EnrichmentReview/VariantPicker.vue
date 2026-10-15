@@ -1,6 +1,7 @@
 <template>
   <section class="variant-picker flex-column gap-3" :aria-label="title" data-testid="variant-picker">
-    <div class="flex ai-ct flex-wrap gap-3">
+    <div class="flex ai-ct flex-wrap gap-2 rg-1">
+      <FontAwesomeIcon :icon="$icons.enrich" class="variant-picker__icon" aria-hidden="true" />
       <span class="variant-picker__title">{{ title }}</span>
       <span class="fs-200 t-muted">{{ $t("enrichment.correct.variants_hint") }}</span>
     </div>
@@ -60,16 +61,21 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.variant-picker__icon {
+  font-size: var(--fs-200);
+  color: var(--accent);
+}
 .variant-picker__title {
   font-size: var(--fs-300);
   font-weight: 600;
   color: var(--text-strong);
 }
+// Each candidate in the AI's own bubble (CorrectionThread), its "Use this" under the text.
 .variant-picker__item {
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  background: var(--surface-base);
+  background: var(--surface-raised);
   transition: border-color 0.15s ease;
 
   &:hover {
@@ -77,6 +83,7 @@ export default {
   }
 }
 .variant-picker__text {
+  max-width: 68ch;
   font-size: var(--fs-300);
   line-height: 1.6;
   color: var(--text-body);
@@ -88,5 +95,6 @@ export default {
 }
 .variant-picker__keep {
   align-self: flex-start;
+  margin-left: calc(-1 * var(--space-3));
 }
 </style>

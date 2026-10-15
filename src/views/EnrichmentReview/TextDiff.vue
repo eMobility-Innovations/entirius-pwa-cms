@@ -169,17 +169,17 @@ export default {
     font-size: var(--fs-400);
     line-height: 1.3;
   }
-  // The global reset drops text decorations: an insertion is underlined, a deletion struck through, both tinted.
+  // The global reset drops text decorations: an insertion is tinted and underlined, a deletion struck through (cues
+  // that do not hang on colour). The deletion stays quiet — muted, no fill — so the new text is what reads first.
   :deep(mark) {
     background: var(--positive-subtle);
     color: var(--text-strong);
-    text-decoration: underline 2px var(--positive);
+    text-decoration: underline 1px var(--positive);
     text-underline-offset: 3px;
   }
   :deep(del) {
-    background: var(--negative-subtle);
-    color: var(--text-secondary);
-    text-decoration: line-through 1px var(--negative);
+    color: var(--text-muted);
+    text-decoration: line-through 1px;
   }
 }
 .text-diff__prose--plain {
