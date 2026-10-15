@@ -57,13 +57,22 @@ describe("AiTaskRow", () => {
     expect(w.find("[data-testid='ai-task-review']").exists()).toBe(false);
   });
 
-  it("names a failure by the kind-specific reason, then the generic one, then the raw code", () => {
+  it("names a failure by the kind-specific reason, then the generic one, then a code-free sentence", () => {
     const errors = (code) => [{ subject_ref: "A", code, error_id: "e1" }];
     expect(outcome(mountRow({ status: "failed", errors: errors("PROVIDER_NOT_CONFIGURED") }))).toContain(
       "enrichment.ai.error.translate_PROVIDER_NOT_CONFIGURED"
     );
     expect(outcome(mountRow({ status: "failed", errors: errors("UPSTREAM_TIMEOUT") }))).toContain("enrichment.ai.error.UPSTREAM_TIMEOUT");
-    expect(outcome(mountRow({ status: "failed", errors: errors("WEIRD") }))).toContain('enrichment.ai.error.unknown::{\\"code\\":\\"WEIRD\\"}');
+    const unknown = mountRow({ status: "failed", errors: errors("WEIRD") });
+    expect(outcome(unknown)).toContain("enrichment.ai.error.unknown");
+    expect(outcome(unknown)).not.toContain("WEIRD");
+    // The code stays at hand for support, in the tooltip only.
+    expect(unknown.find("[data-testid='ai-task-outcome']").attributes("title")).toBe("WEIRD");
+  });
+
+  it("a task of no known template or worker is a generic AI task, never its worker key", () => {
+    const w = mountRow({ type: "article.outline" }, null);
+    expect(w.find(".ai-task__label").text()).toBe("enrichment.ai.task_generic");
   });
 
   it("clicking the row selects the task; the id is a small link of its own", async () => {

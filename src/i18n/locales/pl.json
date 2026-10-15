@@ -2870,14 +2870,17 @@
         "UPSTREAM_TIMEOUT": "Dostawca AI nie odpowiedział na czas",
         "TIMEOUT": "Trwało zbyt długo i zostało przerwane",
         "INTERNAL_ERROR": "Nieoczekiwany błąd (ref. {id})",
-        "unknown": "Błąd AI toolbox {code}",
+        "VALIDATION_ERROR": "Usługa AI odrzuciła zapytanie",
+        "INVALID_REQUEST": "Usługa AI odrzuciła zapytanie",
+        "unknown": "Usługa AI zgłosiła błąd",
         "NOT_RECORDED": "przyczyna nie została zapisana"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",
       "trigger_failed": "ostatnie uruchomienie nie powiodło się",
       "run_title": "Uruchom AI",
-      "review_task": "Przejrzyj jego propozycje"
+      "review_task": "Przejrzyj jego propozycje",
+      "task_generic": "Zadanie AI"
     },
     "video": {
       "download": "Pobierz wideo",

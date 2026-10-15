@@ -47,10 +47,12 @@ describe("useAiWorkers", () => {
         { key: "a", worker_key: "pim.writer", position: 10, active: true },
       ],
     });
-    const { templates, reloadTemplates } = useAiWorkers();
+    const { templates, allTemplates, reloadTemplates } = useAiWorkers();
     await flushPromises();
-    expect(mockTemplates).toHaveBeenCalledWith({ target_module: "pim" });
+    // Every template is loaded (task labels); a run starts only from those of a known worker.
+    expect(mockTemplates).toHaveBeenCalledWith();
     expect(templates.value.map((t) => t.key)).toEqual(["a", "b"]);
+    expect(allTemplates.value.map((t) => t.key)).toEqual(["b", "a"]);
     mockTemplates.mockResolvedValue({ data: [] });
     await reloadTemplates();
     expect(templates.value).toEqual([]);

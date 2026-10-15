@@ -31,7 +31,7 @@
 
       <section v-if="tasks.length" class="flex-column gap-3" aria-labelledby="ai-results-tasks-title">
         <h3 id="ai-results-tasks-title" class="ai-results__heading m-0">{{ $t("enrichment.ai.recent_tasks") }}</h3>
-        <AiTaskList :tasks="tasks" :workers="workers" :templates="templates" :selected="taskFilter" @select="(id) => (taskFilter = id)" />
+        <AiTaskList :tasks="tasks" :workers="workers" :templates="allTemplates" :selected="taskFilter" @select="(id) => (taskFilter = id)" />
       </section>
 
       <section class="flex-column gap-5" aria-labelledby="ai-results-proposals-title">
@@ -111,6 +111,8 @@ export default {
     product: { type: Object, default: null },
     workers: { type: Array, default: () => [] },
     templates: { type: Array, default: () => [] },
+    // Every template (useAiWorkers.allTemplates): a task's label, also when it ran from one this menu does not offer.
+    allTemplates: { type: Array, default: () => [] },
     // The AI toolbox can take a run (configHealth.aiUsable); off, the run buttons wait behind the toolbox hint.
     usable: { type: Boolean, default: false },
   },
@@ -147,7 +149,7 @@ export default {
     },
     filterLabel() {
       const task = this.tasks.find((t) => t.id === this.taskFilter);
-      return taskLabel(task, this.workers, this.templates) || `#${this.taskFilter}`;
+      return taskLabel(task, this.workers, this.allTemplates) || `#${this.taskFilter}`;
     },
   },
   methods: {

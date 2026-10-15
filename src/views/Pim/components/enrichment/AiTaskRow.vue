@@ -18,10 +18,15 @@
       </span>
       <span class="ai-task__main flex-column gap-1">
         <span class="flex ai-ct flex-wrap gap-2">
-          <span class="ai-task__label">{{ label || worker?.label || task.type }}</span>
+          <span class="ai-task__label">{{ label || worker?.label || $t("enrichment.ai.task_generic") }}</span>
           <Tag v-for="lang in languages" :key="lang" :label="languageLabel(lang)" />
         </span>
-        <span class="ai-task__outcome" :class="`ai-task__outcome--${look.tone}`" data-testid="ai-task-outcome">
+        <span
+          class="ai-task__outcome"
+          :class="`ai-task__outcome--${look.tone}`"
+          :title="outcome.code || null"
+          data-testid="ai-task-outcome"
+        >
           {{ outcomeText }}
         </span>
       </span>
@@ -99,13 +104,14 @@ export default {
     languageLabel(lang) {
       return lang === ALL_LANGUAGES ? this.$t("enrichment.run.all_languages") : lang.toUpperCase();
     },
-    // The kind-specific name of the code (translate + PROVIDER_NOT_CONFIGURED = the translator), else the generic one.
+    // The kind-specific name of the code (translate + PROVIDER_NOT_CONFIGURED = the translator), else a code-free
+    // sentence; the code itself stays in the outcome's tooltip.
     reason() {
       const { code, errorId } = this.outcome;
       const known = [`${this.worker?.kind}_${code}`, code]
         .map((key) => `enrichment.ai.error.${key}`)
         .find((path) => this.$t(path) !== path);
-      return known ? this.$t(known, { id: errorId }) : this.$t("enrichment.ai.error.unknown", { code });
+      return this.$t(known || "enrichment.ai.error.unknown", { id: errorId });
     },
   },
 };

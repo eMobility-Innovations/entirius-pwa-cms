@@ -60,10 +60,10 @@ describe("taskLabel", () => {
   const workers = [{ key: "pim.writer", label: "Writer" }];
   const templates = [{ key: "meta", label: "Meta descriptions" }];
 
-  it("the template it ran from, else its worker, else its type", () => {
+  it("the template it ran from, else its worker, else nothing (never the worker key)", () => {
     expect(taskLabel({ type: "pim.writer", params: { template: "meta" } }, workers, templates)).toBe("Meta descriptions");
     expect(taskLabel({ type: "pim.writer", params: {} }, workers, templates)).toBe("Writer");
-    expect(taskLabel({ type: "pim.other" }, workers, templates)).toBe("pim.other");
+    expect(taskLabel({ type: "pim.other" }, workers, templates)).toBe("");
     expect(taskLabel(undefined)).toBe("");
   });
 });

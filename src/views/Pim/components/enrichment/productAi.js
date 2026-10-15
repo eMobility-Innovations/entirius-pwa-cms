@@ -56,8 +56,8 @@ export function groupTasks(tasks) {
   return { current, history: tasks.filter((task) => !matters(task)) };
 }
 
-/** A task in people's words: the template it ran from, else its worker, else its type. */
+/** A task in people's words: the template it ran from, else its worker; "" when neither is known (never its key). */
 export function taskLabel(task, workers = [], templates = []) {
   const template = templates.find((t) => t.key === task?.params?.template);
-  return template?.label || workers.find((w) => w.key === task?.type)?.label || task?.type || "";
+  return template?.label || workers.find((w) => w.key === task?.type)?.label || "";
 }

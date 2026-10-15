@@ -17,6 +17,7 @@
                 :product="product"
                 :workers="aiWorkers"
                 :templates="aiTemplates"
+                :all-templates="aiAllTemplates"
                 :usable="aiUsable"
                 @applied="onAiApplied"
                 @run="openAiTask"
@@ -456,6 +457,7 @@ export default {
     const {
       workers: aiWorkers,
       templates: aiTemplates,
+      allTemplates: aiAllTemplates,
       enabled: aiEnabled,
       usable: aiUsable,
       reloadTemplates: reloadAiTemplates,
@@ -465,7 +467,7 @@ export default {
     // Deleting a SKU is its own permission (access plan 09b): an Editor edits but does not delete. UX only.
     const canDeleteProduct = computed(() => access.can(AREAS.PIM_PRODUCT_DELETE, "write"));
     const canReadTab = (tab) => access.can(EMBEDDED_AREAS[tab]);
-    return { loader, notify, pimChannel, munin, formErrors, aiWorkers, aiTemplates, aiEnabled, aiUsable, reloadAiTemplates, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
+    return { loader, notify, pimChannel, munin, formErrors, aiWorkers, aiTemplates, aiAllTemplates, aiEnabled, aiUsable, reloadAiTemplates, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
   },
   data() {
     return {

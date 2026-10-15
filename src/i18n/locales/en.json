@@ -2871,14 +2871,17 @@
         "UPSTREAM_TIMEOUT": "The AI provider did not answer in time",
         "TIMEOUT": "Took too long and was stopped",
         "INTERNAL_ERROR": "Unexpected error (ref. {id})",
-        "unknown": "AI toolbox error {code}",
+        "VALIDATION_ERROR": "The AI service rejected the request",
+        "INVALID_REQUEST": "The AI service rejected the request",
+        "unknown": "The AI service reported an error",
         "NOT_RECORDED": "reason not recorded"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} to review",
       "trigger_failed": "last run failed",
       "run_title": "Run AI",
-      "review_task": "Review its proposals"
+      "review_task": "Review its proposals",
+      "task_generic": "AI task"
     },
     "video": {
       "download": "Download video",

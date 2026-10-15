@@ -21,7 +21,7 @@ const proposal = (id, over = {}) => ({ id, task_id: 5, status: "pending", target
 const stubs = {
   SideDrawer: { name: "SideDrawer", props: ["visible", "title"], template: "<div v-if='visible'><slot /></div>" },
   ProposalPanel: { name: "ProposalPanel", props: ["proposal", "task", "product"], template: "<div />" },
-  AiTaskList: { name: "AiTaskList", props: ["tasks", "workers", "selected"], emits: ["select"], template: "<div />" },
+  AiTaskList: { name: "AiTaskList", props: ["tasks", "workers", "templates", "selected"], emits: ["select"], template: "<div />" },
   DriftModal: { name: "DriftModal", props: ["visible", "proposal"], template: "<div />" },
   IconButton: { name: "IconButton", props: ["icon", "label"], template: "<button :aria-label='label' />" },
   BasicButton: { props: ["disabled"], template: "<button :disabled='disabled'><slot /></button>" },
@@ -34,7 +34,7 @@ const TEMPLATES = [
   { key: "tags", label: "Tag the product", worker_key: "pim.tagger", position: 20 },
 ];
 
-function mountResults({ proposals = [], tasks = [], running = false, usable = true, templates = TEMPLATES } = {}) {
+function mountResults({ proposals = [], tasks = [], running = false, usable = true, templates = TEMPLATES, allTemplates = TEMPLATES } = {}) {
   Object.assign(ai, {
     proposals: ref(proposals),
     tasks: ref(tasks),
@@ -49,6 +49,7 @@ function mountResults({ proposals = [], tasks = [], running = false, usable = tr
       sku: "ENT-1", product: { sku: "ENT-1" }, usable,
       workers: [{ key: "pim.meta_description", label: "Write meta description" }],
       templates,
+      allTemplates,
     },
     global: { stubs },
   });
@@ -120,6 +121,18 @@ describe("ProductAiResults", () => {
     await flushPromises();
     expect(w.findAllComponents({ name: "ProposalPanel" }).map((c) => c.props("proposal").id)).toEqual([2]);
     expect(w.find("[data-testid='ai-results-filter']").text()).toContain("Write meta description");
+  });
+
+  it("a task is named from every template, also one this Run AI menu does not offer", async () => {
+    const outline = { key: "outline", label: "Article outline", worker_key: "article.outline", position: 30 };
+    const allTemplates = [...TEMPLATES, outline];
+    const tasks = [{ id: 6, type: "article.outline", params: { template: "outline" } }];
+    const w = mountResults({ proposals: [proposal(2, { task_id: 6 })], tasks, allTemplates });
+    await w.find("[data-testid='ai-results']").trigger("click");
+    expect(w.findComponent({ name: "AiTaskList" }).props("templates")).toEqual(allTemplates);
+    w.findComponent({ name: "AiTaskList" }).vm.$emit("select", 6);
+    await flushPromises();
+    expect(w.find("[data-testid='ai-results-filter']").text()).toContain("Article outline");
   });
 
   it("Apply all applies each shown proposal and leaves a drifted one for its re-confirm", async () => {

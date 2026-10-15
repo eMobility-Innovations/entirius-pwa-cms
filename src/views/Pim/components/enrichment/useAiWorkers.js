@@ -33,7 +33,8 @@ export function useAiWorkers() {
 
   async function reloadTemplates() {
     try {
-      const { data } = await GET_Templates({ target_module: MODULE });
+      // Every template, not only pim's: a task's label resolves from any template it ran from.
+      const { data } = await GET_Templates();
       allTemplates.value = listOf(data);
     } catch {
       // Templates are optional (an older backend has none): "Custom…" still runs any worker.
@@ -53,5 +54,5 @@ export function useAiWorkers() {
   }
 
   watch(enabled, (on) => on && load(), { immediate: true });
-  return { workers, templates, enabled, usable, reloadTemplates };
+  return { workers, templates, allTemplates, enabled, usable, reloadTemplates };
 }
