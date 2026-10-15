@@ -10,6 +10,9 @@ All notable changes to this project will be documented in this file.
   run's proposals are reviewed right under it (`?task=<id>`), a run still going or failed opens its products and what
   it came to. Settings holds Company profile, Memory, AI templates and Spawn rules as tabs. The old addresses redirect.
   After Run now on a product, its AI drawer opens again on that run.
+- An AI run reads the same everywhere — what ran and what it covered ("Opis produktu · ENT-B003", "Opis produktu ·
+  3 products"): in Review's "Correct a whole AI run" strip, where its name filters the list to that run, on the Runs
+  rows and in the run's drawer. A Review row says under its field which run proposed it and when.
 
 - AI templates (`/enrichment/settings/templates`): saved runs of a worker — fields, languages, instructions, rules and an SEO
   research preset — in the order Run AI offers them; create, edit, reorder, hide, delete, or "Save as template" from
@@ -42,6 +45,10 @@ All notable changes to this project will be documented in this file.
 - Proposal cards list the quality warnings (a rule, a number the facts do not back with "Add to facts", a failed
   checklist item) with "Check against the standard" and "Fix warnings", and say what the AI likely used from the
   profile versions its task recorded ("Likely used from profile: Facts (4), Brand, Tone of voice").
+
+### Removed
+
+- Review's free-text Batch filter: a run's name in the "Correct a whole AI run" strip narrows the list instead.
 
 ### Fixed
 

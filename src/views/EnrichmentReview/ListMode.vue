@@ -100,18 +100,25 @@
           <span v-else-if="!runUidOf(row) && named(row)" class="list-mode__name fs-200 t-secondary">
             {{ row.subject_label }}
           </span>
-          <!-- A phone hides the field column: the field and language go under the subject. -->
+          <!-- A phone hides the field column: the field and language, and the run, go under the subject. -->
           <span class="list-mode__phone-field fs-200 t-secondary">
             {{ proposalField(row) }}<template v-if="row.target_locator?.language">
               · {{ row.target_locator.language.toUpperCase() }}</template
             >
           </span>
+          <span v-if="runLine(row)" class="list-mode__phone-field fs-200 t-muted">{{ runLine(row) }}</span>
         </div>
       </template>
       <template #cell-field="{ row }">
-        <span class="flex ai-ct gap-2">
-          <span class="list-mode__field">{{ proposalField(row) }}</span>
-          <Tag v-if="row.target_locator?.language" :label="row.target_locator.language.toUpperCase()" />
+        <span class="flex-column">
+          <span class="flex ai-ct gap-2">
+            <span class="list-mode__field">{{ proposalField(row) }}</span>
+            <Tag v-if="row.target_locator?.language" :label="row.target_locator.language.toUpperCase()" />
+          </span>
+          <!-- Which run proposed it: two texts of one field from two runs read apart. -->
+          <span v-if="runLine(row)" class="list-mode__field fs-200 t-muted" :data-testid="`enrichment-run-${row.id}`">
+            {{ runLine(row) }}
+          </span>
         </span>
       </template>
       <template #cell-change="{ row }">
@@ -217,6 +224,8 @@ export default {
     bulk: { type: Boolean, default: true },
     // The status chip in force ("__all" = every status): it decides the status column and the bulk actions.
     statusFilter: { type: String, default: "__all" },
+    // The runs behind the rows (useRunLabels().labels): { [taskId]: { name, at } }.
+    runs: { type: Object, default: () => ({}) },
   },
   emits: [
     "accept",
@@ -229,8 +238,8 @@ export default {
     "preview-product",
   ],
   computed: {
-    // One line per proposal: product, field + language, the change in brief, status, age, quick actions. Confidence
-    // shows only when some row has one; module, kind, source and batch only on "More columns".
+    // One line per proposal: product, field + language (the run under it), the change in brief, status, age, quick
+    // actions. Confidence shows only when some row has one; module, kind, source and batch only on "More columns".
     columns() {
       const t = (key) => this.$t(`enrichment.review.col.${key}`);
       const all = [
@@ -292,6 +301,11 @@ export default {
     },
     named(row) {
       return !!row.subject_label && row.subject_label !== row.subject_ref;
+    },
+    // "Opis produktu · 2 hours ago": what ran and when.
+    runLine(row) {
+      const run = this.runs[row.task_id];
+      return run ? `${run.name} · ${formatRelative(run.at)}` : "";
     },
   },
 };

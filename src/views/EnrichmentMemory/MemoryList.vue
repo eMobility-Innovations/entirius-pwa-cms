@@ -1,8 +1,11 @@
 <template>
   <PageLayout class="memory-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('nav.enrichment_settings')" :description="$t('enrichment.memory.description')" :crumbs="[]" />
-      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+      <PageHeader :title="$t('nav.enrichment_settings')" :description="$t('enrichment.memory.description')" :crumbs="[]">
+        <template #tabs>
+          <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+        </template>
+      </PageHeader>
     </template>
     <template #toolbar>
       <div class="flex ai-ct flex-wrap gap-8 rg-6">

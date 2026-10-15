@@ -327,7 +327,9 @@ Catalogue: `#display` (`#status-badge`, `#count-badge`, `#tag`, `#basic-tabs`, `
   ActionBar): in the title row on desktop while both fit, otherwise wrapped under it right-aligned, and always its own
   row below 1024 px. The title stays on one line at every width: one longer than its row ends with an ellipsis and carries the full
   text in its `title` attribute; `wrapTitle` gives a long name (an article topic) two lines before the ellipsis. More
-  `meta` chips than the row holds wrap inside it.
+  `meta` chips than the row holds wrap inside it. Slot `tabs` (a `RouteTabs`: the screen's sections) takes a full-width
+  row under the title row, and the `description` moves under it (it describes the tab); below 1024 px the actions row
+  follows them, so a phone reads title → tabs → description → actions.
 - **Shell claim** — `src/composables/pageHeader.js`: `PAGE_HEADER_CLAIM` (injection key) and
   `usePageHeaderClaim()`. The shell (P4) provides `{ claim, release, crumbs }` and hides its fallback header while a
   claim is held; claims overlap during a route change, so the provider counts them. PageHeader claims on mount,

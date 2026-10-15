@@ -3,11 +3,13 @@ import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetTasks = vi.fn();
 const mockGetTask = vi.fn();
+const mockGetProposals = vi.fn(() => Promise.resolve({ data: { results: [{ subject_ref: "ENT-1", subject_label: "Orion Sofa" }] } }));
 const mockNotify = vi.fn();
 
 vi.mock("@/api/enrichment/api", () => ({
   GET_Tasks: (...a) => mockGetTasks(...a),
   GET_Task: (...a) => mockGetTask(...a),
+  GET_Proposals: (...a) => mockGetProposals(...a),
   GET_Workers: () => Promise.resolve({ data: [{ key: "pim.writer", label: "Product texts" }] }),
   GET_Templates: () => Promise.resolve({ data: [{ key: "meta", label: "Meta descriptions" }] }),
 }));
@@ -52,7 +54,7 @@ describe("RunsPage", () => {
     mockGetTasks.mockResolvedValue({ data: { results: [], count: 0 } });
   });
 
-  it("loads tasks and flattens scope_spec.check + params.spawn_rule", async () => {
+  it("loads tasks, keeps each one whole and flattens scope_spec.check", async () => {
     mockGetTasks.mockResolvedValueOnce({ data: { results: [task()], count: 1 } });
 
     const wrapper = mountList();
@@ -60,7 +62,7 @@ describe("RunsPage", () => {
 
     expect(wrapper.vm.tasks).toHaveLength(1);
     expect(wrapper.vm.tasks[0].check).toBe("feature_set_default");
-    expect(wrapper.vm.tasks[0].rule).toBe("classify-featureset");
+    expect(wrapper.vm.tasks[0].raw).toEqual(task());
     expect(wrapper.vm.totalCount).toBe(1);
   });
 
@@ -85,7 +87,6 @@ describe("RunsPage", () => {
     await flushPromises();
 
     expect(wrapper.vm.tasks[0].check).toBe("—");
-    expect(wrapper.vm.tasks[0].rule).toBe("—");
   });
 
   it("initial fetch lists every task (no status param)", async () => {
@@ -133,7 +134,7 @@ describe("RunsPage", () => {
     expect(drawer.props()).toMatchObject({
       visible: true, taskId: 7, outcome: "Failed: The AI provider did not answer in time", progress: "failed: 2",
     });
-    expect(wrapper.vm.queueLabel).toBe("Product texts");
+    expect(wrapper.vm.queueLabel).toBe("Product texts · Started by a rule");
 
     wrapper.vm.onRowClick(wrapper.vm.tasks[1]);
     expect(wrapper.vm.queueTaskId).toBe(8);
@@ -175,16 +176,27 @@ describe("RunsPage", () => {
     wrapper.unmount();
   });
 
-  it("names a task in plain words: its template, its worker, its Studio step, never its key", async () => {
+  it("names a run as it reads everywhere (runLabel): its template or worker, and what it covered", async () => {
+    const wrapper = mountList();
+    await flushPromises();
+    const row = (raw) => ({ raw });
+
+    expect(wrapper.vm.nameOf(row({ type: "pim.writer", params: { template: "meta" } }))).toBe("Meta descriptions");
+    expect(wrapper.vm.nameOf(row({ type: "pim.writer", params: {} }))).toBe("Product texts");
+    expect(wrapper.vm.scopeOf(row({ scope_spec: { refs: ["A", "B"] }, params: {} }))).toBe("2 products");
+    expect(wrapper.vm.scopeOf(row({ scope_spec: {}, params: { brief: { topic: "Sofas" } } }))).toBe("Sofas");
+  });
+
+  it("a one-product run reads by its product: the name one of its proposals tells", async () => {
+    const one = task({ id: 3, type: "pim.writer", scope_spec: { mode: "list", refs: ["ENT-1"] }, params: {} });
+    mockGetTasks.mockResolvedValueOnce({ data: { results: [one], count: 1 } });
     const wrapper = mountList();
     await flushPromises();
 
-    expect(wrapper.vm.nameOf({ type: "pim.writer", template: "meta" })).toBe("Meta descriptions");
-    expect(wrapper.vm.nameOf({ type: "pim.writer", template: "" })).toBe("Product texts");
-    // The test $t has no step names: an unknown step reads as a plain "AI task", never "article.outline".
-    expect(wrapper.vm.nameOf({ type: "article.outline", step: "outline" })).toBe("enrichment.tasks.generic");
-    expect(wrapper.vm.scopeOf({ topic: "", products: 2, rule: "—" })).toBe('enrichment.tasks.products_few::{"count":2}');
-    expect(wrapper.vm.scopeOf({ topic: "Sofas", products: 1, rule: "—" })).toBe("Sofas");
+    expect(mockGetProposals).toHaveBeenCalledWith({ task: 3, status: "all", page_size: 1 });
+    expect(wrapper.vm.scopeOf(wrapper.vm.tasks[0])).toBe("Orion Sofa");
+    wrapper.vm.openQueue(wrapper.vm.tasks[0]);
+    expect(wrapper.vm.queueLabel).toBe("Product texts · Orion Sofa");
   });
 
   it("progress reads proposed and failed first (a count without a label keeps its key)", async () => {

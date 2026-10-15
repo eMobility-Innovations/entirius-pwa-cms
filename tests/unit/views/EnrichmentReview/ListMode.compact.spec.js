@@ -62,6 +62,13 @@ describe("ListMode — compact rows", () => {
     expect(bare.find("[data-testid='enrichment-sku-1']").exists()).toBe(false);
   });
 
+  it("under the field, which run proposed it and when: two texts of one field from two runs read apart", () => {
+    const runs = { 5: { name: "Opis produktu", at: new Date().toISOString() } };
+    const w = mount(ListMode, { props: { rows: [row({ task_id: 5 }), row({ id: 2, task_id: 6 })], runs }, global: { stubs } });
+    expect(w.get("[data-testid='enrichment-run-1']").text()).toMatch(/^Opis produktu · /);
+    expect(w.find("[data-testid='enrichment-run-2']").exists()).toBe(false);
+  });
+
   it("the open affordance and a row click both open the detail; quick Apply stays in the row", async () => {
     const r = row();
     const w = mountList([r]);

@@ -1,8 +1,11 @@
 <template>
   <PageLayout class="task-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('enrichment.review.title')" :crumbs="[]" />
-      <RouteTabs :tabs="ENRICHMENT_REVIEW_TABS" />
+      <PageHeader :title="$t('enrichment.review.title')" :crumbs="[]">
+        <template #tabs>
+          <RouteTabs :tabs="ENRICHMENT_REVIEW_TABS" />
+        </template>
+      </PageHeader>
     </template>
     <template #toolbar>
       <div class="flex ai-ct gap-5">
@@ -115,11 +118,12 @@ import { GET_Task, GET_Tasks, GET_Templates, GET_Workers } from "@/api/enrichmen
 import { formatDate } from "@/utils/format";
 import RouteTabs from "@/components/Navigation/RouteTabs.vue";
 import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
-import { isActive, isQueued, outcomeText, taskLabel } from "@/views/Pim/components/enrichment/productAi";
+import { isActive, isQueued, outcomeText } from "@/views/Pim/components/enrichment/productAi";
 import { pluralKey } from "@/utils/plural";
 import CostLabel from "./CostLabel.vue";
 import RunProposals from "./RunProposals.vue";
 import TaskQueueDrawer from "./TaskQueueDrawer.vue";
+import { loadProductNames, runName, runScope, runTitle } from "./runLabel";
 import { needsRefresh, opensDrawer, orderedCounts, taskStatusTone } from "./taskProgress";
 
 const REFRESH_MS = 5000;
@@ -230,14 +234,10 @@ export default {
           created_at: t.created_at,
           cost_usd: t.cost_usd,
           cost_complete: t.cost_complete,
-          template: t.params?.template || "",
-          step: t.params?.step || "",
-          topic: t.params?.brief?.topic || "",
-          products: (t.scope_spec?.refs || []).length,
           check: t.scope_spec?.check ?? "—",
-          rule: t.params?.spawn_rule ?? "—",
         }));
         this.totalCount = count;
+        loadProductNames(results); // a one-product run reads by its product once the name is in
         this.scheduleRefresh();
       } catch (err) {
         this.notify.spawnNotification({
@@ -269,20 +269,12 @@ export default {
         this.templates = [];
       }
     },
-    // A task by what it did: its template or worker, else its Studio step, never its key.
+    // A run as it reads everywhere (runLabel): what ran, and what it covered — one product by its name.
     nameOf(row) {
-      const named = taskLabel({ type: row.type, params: { template: row.template } }, this.workers, this.templates);
-      if (named) return named;
-      const stepKey = `enrichment.review.step.${row.step}`;
-      const step = this.$t(stepKey);
-      if (step !== stepKey) return this.$t("enrichment.tasks.studio_step", { step });
-      return this.$t("enrichment.tasks.generic");
+      return runName(row.raw, this.workers, this.templates);
     },
-    // What it ran on: the article's topic, the products, or a rule that started it.
     scopeOf(row) {
-      if (row.topic) return row.topic;
-      if (row.products) return this.$t(`enrichment.tasks.products_${pluralKey(row.products)}`, { count: row.products });
-      return row.rule !== "—" ? this.$t("enrichment.tasks.from_rule") : "";
+      return runScope(row.raw);
     },
     scheduleRefresh() {
       if (!needsRefresh(this.tasks, !!this.taskFilter)) return;
@@ -331,7 +323,7 @@ export default {
     },
     openQueue(row) {
       this.queueTaskId = row.id;
-      this.queueLabel = this.nameOf(row);
+      this.queueLabel = runTitle(row.raw, this.workers, this.templates);
       this.queueOutcome = outcomeText(row.raw, this.workers.find((w) => w.key === row.type));
       this.queueProgress = orderedCounts(row.counts).length ? this.formatCounts(row.counts) : "";
       this.queueVisible = true;

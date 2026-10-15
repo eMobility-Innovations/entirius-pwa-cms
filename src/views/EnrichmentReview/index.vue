@@ -12,8 +12,10 @@
         <template #actions>
           <ActionBar :actions="pageActions" />
         </template>
+        <template #tabs>
+          <RouteTabs :tabs="ENRICHMENT_REVIEW_TABS" />
+        </template>
       </PageHeader>
-      <RouteTabs :tabs="ENRICHMENT_REVIEW_TABS" />
     </template>
 
     <template #toolbar>
@@ -49,7 +51,7 @@
           <span>
             {{ $t("enrichment.review.task_filter_of") }}
             <router-link :to="taskLink" class="t-accent fw-600" data-testid="enrichment-task-filter-link">
-              {{ $t("enrichment.tasks.single", { id: filters.task }) }}
+              {{ runLabels[filters.task]?.title || $t("enrichment.tasks.single", { id: filters.task }) }}
             </router-link>
           </span>
           <BasicButton variant="ghost" size="sm" data-testid="enrichment-task-filter-clear" @click="clearTask">
@@ -60,6 +62,7 @@
         <RunCorrections
           v-else-if="filters.status === 'pending' && mode !== 'focus'"
           :rows="rows"
+          :labels="runLabels"
           @queued="fetchRows"
         />
 
@@ -99,14 +102,6 @@
             @update:model-value="(v) => onFilterChange('source', v)"
           />
           <BasicInput
-            v-model="filters.batch_id"
-            :placeholder="$t('enrichment.review.col.batch')"
-            :aria-label="$t('enrichment.review.col.batch')"
-            class="enrichment-review__batch"
-            data-testid="enrichment-batch-filter"
-            @input="onSearchChange"
-          />
-          <BasicInput
             v-model="filters.confidence_min"
             type="number"
             :placeholder="$t('enrichment.review.confidence_min')"
@@ -123,6 +118,7 @@
       <ListMode
         v-if="mode === 'list'"
         :rows="rows"
+        :runs="runLabels"
         :loading="loading"
         :total-count="totalCount"
         :busy="busy"
@@ -258,6 +254,8 @@ import ProposalPanel from "./ProposalPanel.vue";
 import BatchCorrection from "./BatchCorrection.vue";
 import RunCorrections from "./RunCorrections.vue";
 import { runUidOf, subjectName } from "./reviewLogic";
+import { noteProductNames } from "./runLabel";
+import { useRunLabels } from "./useRunLabels";
 import {
   GET_Task,
   GET_Proposals,
@@ -271,7 +269,7 @@ import {
 const FocusMode = defineAsyncComponent(() => import("./FocusMode.vue"));
 
 const MODES = ["list", "product", "focus"];
-const DEFAULT_NARROWING = { target_module: "__all", target_kind: "__all", source: "__all", batch_id: "", confidence_min: "", search: "" };
+const DEFAULT_NARROWING = { target_module: "__all", target_kind: "__all", source: "__all", confidence_min: "", search: "" };
 
 const STATUS_VALUES = [
   "pending",
@@ -286,9 +284,10 @@ export default {
   name: "EnrichmentReview",
   components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection, RunCorrections, RouteTabs },
   setup() {
+    const { labels: runLabels, load: loadRuns } = useRunLabels();
     return {
       notify: useNotifyStore(), pimChannel: usePimChannelStore(), ENRICHMENT_REVIEW_TABS,
-      tabPanel: routeTabPanel(ENRICHMENT_REVIEW_TABS, "EnrichmentReview"),
+      tabPanel: routeTabPanel(ENRICHMENT_REVIEW_TABS, "EnrichmentReview"), runLabels, loadRuns,
     };
   },
   data() {
@@ -299,7 +298,6 @@ export default {
         target_module: "__all",
         target_kind: "__all",
         source: "__all",
-        batch_id: "",
         confidence_min: "",
         search: "",
         task: this.$route.query.task || "",
@@ -334,7 +332,6 @@ export default {
       if (this.filters.target_module !== "__all") n += 1;
       if (this.filters.target_kind !== "__all") n += 1;
       if (this.filters.source !== "__all") n += 1;
-      if (this.filters.batch_id) n += 1;
       if (this.filters.confidence_min !== "" && this.filters.confidence_min != null)
         n += 1;
       if (this.filters.search) n += 1;
@@ -372,7 +369,7 @@ export default {
     narrowed() {
       const f = this.filters;
       return [f.target_module, f.target_kind, f.source].some((v) => v !== "__all") ||
-        !!(f.batch_id || f.search || f.task) || (f.confidence_min !== "" && f.confidence_min != null);
+        !!(f.search || f.task) || (f.confidence_min !== "" && f.confidence_min != null);
     },
     statusOptions() {
       return [
@@ -394,6 +391,12 @@ export default {
     },
   },
   watch: {
+    // A run picked from the strip (a link to `?task=<id>`) narrows the list to its proposals; clearing it widens it.
+    // (Leaving the page changes the query too: only this route's own query counts.)
+    "$route.query.task"(task) {
+      if (this.$route.name !== "EnrichmentReview" || (task || "") === this.filters.task) return;
+      this.onFilterChange("task", task || "");
+    },
     mode(val) {
       this.$router.replace({
         path: this.$route.path,
@@ -438,7 +441,6 @@ export default {
       if (this.filters.target_kind !== "__all")
         params.target_kind = this.filters.target_kind;
       if (this.filters.source !== "__all") params.source = this.filters.source;
-      if (this.filters.batch_id) params.batch_id = this.filters.batch_id;
       if (
         this.filters.confidence_min !== "" &&
         this.filters.confidence_min != null
@@ -457,7 +459,6 @@ export default {
       if (this.filters.target_kind !== "__all")
         f.target_kind = this.filters.target_kind;
       if (this.filters.source !== "__all") f.source = this.filters.source;
-      if (this.filters.batch_id) f.batch_id = this.filters.batch_id;
       if (
         this.filters.confidence_min !== "" &&
         this.filters.confidence_min != null
@@ -473,6 +474,8 @@ export default {
         const { data } = await GET_Proposals(this.buildParams());
         this.rows = data.results || [];
         this.totalCount = data.count || 0;
+        noteProductNames(this.rows);
+        this.loadRuns([...this.rows.map((row) => row.task_id), this.filters.task]);
       } catch (err) {
         this.notify.spawnNotification({
           type: "negative",
@@ -748,7 +751,6 @@ export default {
   min-width: 180px;
   max-width: 260px;
 }
-.enrichment-review__batch,
 .enrichment-review__confidence {
   max-width: 140px;
 }

@@ -10,6 +10,8 @@ vi.mock("@/api/enrichment/api", () => ({
   POST_BulkRejectProposals: vi.fn(() => Promise.resolve({ data: { rejected: 0 } })),
   POST_BulkUndoProposals: vi.fn(() => Promise.resolve({ data: { mode: "sync", reverted: [], blocked: [] } })),
 }));
+// The run labels (useRunLabels) are not under test here.
+vi.mock("@/views/EnrichmentReview/useRunLabels", () => ({ useRunLabels: () => ({ labels: {}, load: () => Promise.resolve() }) }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({

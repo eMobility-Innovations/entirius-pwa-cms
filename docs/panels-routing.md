@@ -187,7 +187,7 @@ One model feeds every region of the shell (`src/composables/useNav.js`):
 - **Route tabs** — a screen whose sections are routes of their own (Enricher
   Review: Proposals | Runs; Enricher Settings: profile, memory, templates, spawn
   rules) has one entry (it lights by path prefix) and shows the sections as
-  `RouteTabs` under its `PageHeader` (the tab sets live in `nav-routes.js`; a tab
+  `RouteTabs` in its `PageHeader` `tabs` slot (the tab sets live in `nav-routes.js`; a tab
   whose route's area the user cannot read is left out). Each tabbed page passes
   `:crumbs="[]"` and wraps its body in `routeTabPanel(<tabs>, <its route name>)`.
 - **Breadcrumbs** — `useBreadcrumbs()`: panel → entry → the `meta.crumbParent`

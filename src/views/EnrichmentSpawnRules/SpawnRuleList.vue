@@ -1,8 +1,11 @@
 <template>
   <PageLayout class="spawn-rules-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('nav.enrichment_settings')" :crumbs="[]" />
-      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+      <PageHeader :title="$t('nav.enrichment_settings')" :crumbs="[]">
+        <template #tabs>
+          <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+        </template>
+      </PageHeader>
     </template>
     <template #toolbar>
       <div class="spawn-rules-list__toolbar">

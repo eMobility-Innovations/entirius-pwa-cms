@@ -2954,6 +2954,7 @@
       "all": "Correct all ({count})",
       "all_title": "Correct all {count} proposals of this run",
       "runs_title": "Correct a whole AI run with one instruction",
+      "run_filter": "Show only this run's proposals",
       "all_hint": "One instruction for every proposal still waiting for review. The corrections run in the background; each proposal gets a new version.",
       "all_queued": "Correcting {count} proposals in the background — new versions appear as they finish.",
       "batch_placeholder": "One instruction for every proposal…",

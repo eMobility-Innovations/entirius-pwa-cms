@@ -2,7 +2,13 @@ import { describe, it, expect, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetProposals = vi.fn(() => Promise.resolve({ data: { results: [{ id: 7, status: "pending" }], count: 3 } }));
-vi.mock("@/api/enrichment/api", () => ({ GET_Proposals: (...a) => mockGetProposals(...a) }));
+const run = (id) => ({ id, type: "pim.writer", params: { template: "desc" }, scope_spec: { mode: "list", refs: ["A", "B"] }, created_at: "2026-10-15T10:00:00Z" });
+vi.mock("@/api/enrichment/api", () => ({
+  GET_Proposals: (...a) => mockGetProposals(...a),
+  GET_Task: (id) => Promise.resolve({ data: run(Number(id)) }),
+  GET_Workers: () => Promise.resolve({ data: [] }),
+  GET_Templates: () => Promise.resolve({ data: [{ key: "desc", label: "Product description" }] }),
+}));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ channels: [{}], fetchChannels: vi.fn(), activeChannelIdx: "c1" }),
@@ -38,9 +44,11 @@ describe("EnrichmentReview filtered by task", () => {
     expect(w.findComponent({ name: "BatchCorrection" }).props()).toEqual({ taskId: 12 });
   });
 
-  it("the task line links to the run on Runs", async () => {
+  it("the task line names the run as it reads everywhere and links to it on Runs", async () => {
     const w = await mountPage({ task: "12" });
+    await flushPromises();
     expect(w.vm.taskLink).toEqual({ name: "EnrichmentRuns", query: { task: "12" } });
+    expect(w.get("[data-testid='enrichment-task-filter-link']").text()).toBe("Product description · 2 products");
   });
 
   it("Show all drops the task filter", async () => {

@@ -2953,6 +2953,7 @@
       "all": "Popraw wszystkie ({count})",
       "all_title": "Popraw wszystkie propozycje tego uruchomienia ({count})",
       "runs_title": "Popraw całe uruchomienie AI jednym poleceniem",
+      "run_filter": "Pokaż tylko propozycje tego uruchomienia",
       "all_hint": "Jedna instrukcja dla każdej propozycji, która czeka na przegląd. Poprawki idą w tle; każda propozycja dostaje nową wersję.",
       "all_queued": "Poprawiam w tle propozycje: {count} — nowe wersje pojawią się po kolei.",
       "batch_placeholder": "Jedna instrukcja dla każdej propozycji…",

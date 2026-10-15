@@ -1,5 +1,5 @@
 <template>
-  <header class="page-header" :class="{ 'page-header--sticky': sticky }">
+  <header class="page-header" :class="{ 'page-header--sticky': sticky, 'page-header--tabs': $slots.tabs }">
     <div
       class="page-header__head"
       :class="{ 'page-header__head--sticky': sticky }"
@@ -20,11 +20,15 @@
           <ReadonlyOff><slot name="meta" /></ReadonlyOff>
         </div>
       </div>
-      <p v-if="description" class="page-header__description t-muted fs-200" data-testid="page-description">
+      <p v-if="description && !$slots.tabs" class="page-header__description t-muted fs-200" data-testid="page-description">
         {{ description }}
       </p>
     </div>
     <div v-if="$slots.actions" class="page-header__actions"><slot name="actions" /></div>
+    <div v-if="$slots.tabs" class="page-header__tabs"><slot name="tabs" /></div>
+    <p v-if="description && $slots.tabs" class="page-header__description t-muted fs-200" data-testid="page-description">
+      {{ description }}
+    </p>
   </header>
 </template>
 
@@ -37,7 +41,9 @@
 // own row below 1024 px). `sticky` pins the head under the app header on a phone; the actions row scrolls away
 // (Figma S8). `wrapTitle` lets a long title take two lines before its ellipsis. Mounting claims the shell's header slot; `claimShell` false keeps a demo instance (the UI catalogue) out
 // of it: no claim, no shell crumbs or back, the page keeps its own title. `data-fid="page-title"` marks the title row
-// (back, H1, meta): Figma's "Heading" frame is that row (S6: 837.5 wide beside the actions).
+// (back, H1, meta): Figma's "Heading" frame is that row (S6: 837.5 wide beside the actions). `tabs` (a RouteTabs: the
+// screen's sections) sits under the title row at full width, the description then under the tabs (it describes the
+// tab); below 1024 px the actions follow them, so a phone reads title → tabs → description → actions.
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import Breadcrumbs from "@/boots/Breadcrumbs/index.vue";
@@ -148,9 +154,20 @@ function goBack() {
   margin-left: auto;
 }
 
+.page-header__tabs,
+.page-header--tabs > .page-header__description {
+  flex-basis: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
 @include max-shell {
   .page-header__actions {
     flex-basis: 100%;
+  }
+
+  .page-header--tabs > .page-header__actions {
+    order: 1;
   }
 }
 

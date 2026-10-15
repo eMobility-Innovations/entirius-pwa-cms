@@ -15,8 +15,10 @@
           <span v-if="dirty" class="fs-200 t-secondary" data-testid="profile-unsaved">{{ $t("enrichment.profile.unsaved") }}</span>
           <ActionBar v-if="!loading && schema" :actions="actions" />
         </template>
+        <template #tabs>
+          <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+        </template>
       </PageHeader>
-      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
     </template>
 
     <div v-bind="tabPanel">

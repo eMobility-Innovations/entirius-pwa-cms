@@ -23,6 +23,8 @@ vi.mock("@/api/enrichment/api", () => ({
 const { spawnNotification } = vi.hoisted(() => ({
   spawnNotification: vi.fn(),
 }));
+// The run labels (useRunLabels) are not under test here.
+vi.mock("@/views/EnrichmentReview/useRunLabels", () => ({ useRunLabels: () => ({ labels: {}, load: () => Promise.resolve() }) }));
 vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification }),
 }));

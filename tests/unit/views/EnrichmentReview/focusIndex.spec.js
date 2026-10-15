@@ -18,6 +18,8 @@ const api = vi.hoisted(() => ({
   GET_Task: vi.fn(() => Promise.resolve({ data: {} })),
 }));
 vi.mock("@/api/enrichment/api", () => api);
+// The run labels (useRunLabels) are not under test here.
+vi.mock("@/views/EnrichmentReview/useRunLabels", () => ({ useRunLabels: () => ({ labels: {}, load: () => Promise.resolve() }) }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ channels: [], fetchChannels: vi.fn(), activeChannelIdx: "c1" }),

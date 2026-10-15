@@ -116,6 +116,16 @@ describe("PageHeader", () => {
   it("is not sticky by default", () => {
     expect(header().find('[data-fid="sticky-header"]').exists()).toBe(false);
   });
+
+  it("tabs come after the title and the actions, the description under the tabs (a phone puts the actions last)", () => {
+    const slots = { actions: "<button class='act' />", tabs: "<div class='tabs' />" };
+    const wrapper = header({ description: "What the AI knows." }, { slots });
+    expect(wrapper.classes()).toContain("page-header--tabs");
+    const order = [...wrapper.element.children].map((child) => child.className.split(" ")[0]);
+    expect(order).toEqual(["page-header__head", "page-header__actions", "page-header__tabs", "page-header__description"]);
+    expect(wrapper.get(".page-header__head").find(".page-header__description").exists()).toBe(false);
+    expect(header({ description: "x" }).classes()).not.toContain("page-header--tabs");
+  });
 });
 
 describe("Breadcrumbs", () => {

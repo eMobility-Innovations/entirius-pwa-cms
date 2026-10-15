@@ -192,7 +192,8 @@ Traps:
 ## Page patterns
 
 - **Page frame.** Every view is one `PageLayout` (padding and scroll body): `#header` = the view's `PageHeader` (crumbs,
-  back, H1, `meta` chips, `actions`, `description` = the page's help line under the title row, never in `meta`), a
+  back, H1, `meta` chips, `actions`, `description` = the page's help line under the title row, never in `meta`; `tabs`
+  = the screen's sections as `RouteTabs`, under the title, the description then under the tabs), a
   loader branch's condition on the slot; `#toolbar` = the search/filter row;
   `#footer` = the Pagination. Page actions are an `ActionBar` in PageHeader `actions` (R5); controls for the whole
   panel (a channel selector, „Tłumacz sklep”) sit in PageHeader `meta` or the ActionBar. A panel wrapper holds no

@@ -1,8 +1,11 @@
 <template>
   <PageLayout class="template-list fs-300 t-body">
     <template #header>
-      <PageHeader :title="$t('nav.enrichment_settings')" :description="$t('enrichment.templates.description')" :crumbs="[]" />
-      <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+      <PageHeader :title="$t('nav.enrichment_settings')" :description="$t('enrichment.templates.description')" :crumbs="[]">
+        <template #tabs>
+          <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+        </template>
+      </PageHeader>
     </template>
 
     <div v-bind="tabPanel">
