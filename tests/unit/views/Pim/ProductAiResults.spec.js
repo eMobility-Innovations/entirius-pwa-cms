@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
-import { ref } from "vue";
+import { defineComponent, h, ref } from "vue";
+import { ACCESS_STORE, ReadonlyArea, useReadonly } from "@/composables/useReadonly";
 
 const mockAccept = vi.fn();
 const mockReject = vi.fn();
@@ -226,5 +227,45 @@ describe("ProductAiResults", () => {
     expect(w.find("[data-testid='ai-results-templates']").exists()).toBe(true);
     expect(w.find("[data-testid='ai-results-review']").exists()).toBe(true);
     expect(w.findComponent({ name: "ProfileGate" }).props("channel")).toBe("eu");
+  });
+
+  describe("enrichment access", () => {
+    // The page wraps the AI in <ReadonlyArea area="enrichment.proposals">: Run and Apply follow that area alone.
+    // A `mutates` button hides on a read-only region, as BasicButton does (readonly.spec).
+    const ReadonlyAwareButton = defineComponent({
+      props: { disabled: Boolean, mutates: Boolean },
+      setup: () => ({ readonly: useReadonly() }),
+      template: "<button v-if='!(mutates && readonly)' :disabled='disabled'><slot /></button>",
+    });
+    function mountInArea(level) {
+      Object.assign(ai, {
+        proposals: ref([proposal(1), proposal(2)]), tasks: ref([]), loading: ref(false), running: ref(false),
+        refresh: vi.fn(), track: vi.fn(), syncTasks: vi.fn(),
+      });
+      const access = { available: true, can: (_area, wanted) => level === "write" || wanted === "read" };
+      const props = { sku: "ENT-1", product: { sku: "ENT-1" }, usable: true, workers: [{ key: "pim.writer" }], templates: TEMPLATES };
+      return mount(ReadonlyArea, {
+        props: { area: "enrichment.proposals" },
+        slots: { default: () => h(ProductAiResults, props) },
+        global: { stubs: { ...stubs, BasicButton: ReadonlyAwareButton }, provide: { [ACCESS_STORE]: access } },
+      });
+    }
+
+    it("read-only: the drawer shows the proposals but no Run, Custom or Apply all", async () => {
+      const w = mountInArea("read");
+      await w.find("[data-testid='ai-results']").trigger("click");
+      expect(w.find("[data-testid='ai-results-drawer']").exists()).toBe(true);
+      expect(w.find("[data-testid^='ai-template-']").exists()).toBe(false);
+      expect(w.find("[data-testid='ai-run-custom']").exists()).toBe(false);
+      expect(w.find("[data-testid='ai-results-apply-all']").exists()).toBe(false);
+    });
+
+    it("write: Run, Custom and Apply all are offered", async () => {
+      const w = mountInArea("write");
+      await w.find("[data-testid='ai-results']").trigger("click");
+      expect(w.find("[data-testid='ai-template-meta']").exists()).toBe(true);
+      expect(w.find("[data-testid='ai-run-custom']").exists()).toBe(true);
+      expect(w.find("[data-testid='ai-results-apply-all']").exists()).toBe(true);
+    });
   });
 });

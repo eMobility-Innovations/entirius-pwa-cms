@@ -10,18 +10,19 @@
             <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
             <BasicSwitch v-model="form.is_enabled" :label="$t('pim.enabled')" />
             <ActionBar>
-              <ProductAiResults
-                v-if="aiEnabled"
-                ref="aiResults"
-                :sku="product.sku"
-                :product="product"
-                :workers="aiWorkers"
-                :templates="aiTemplates"
-                :all-templates="aiAllTemplates"
-                :usable="aiUsable"
-                @applied="onAiApplied"
-                @run="openAiTask"
-              />
+              <ReadonlyArea v-if="aiEnabled" :area="EMBEDDED_AREAS.ai">
+                <ProductAiResults
+                  ref="aiResults"
+                  :sku="product.sku"
+                  :product="product"
+                  :workers="aiWorkers"
+                  :templates="aiTemplates"
+                  :all-templates="aiAllTemplates"
+                  :usable="aiUsable"
+                  @applied="onAiApplied"
+                  @run="openAiTask"
+                />
+              </ReadonlyArea>
               <BasicMenu :items="moreMenuItems" :label="$t('pim.more_actions')" placement="bottom-end" @select="onMoreSelect">
                 <template #trigger>
                   <IconButton icon="more" variant="outline" :label="$t('pim.more_actions')" data-testid="pim-product-more" />
@@ -279,18 +280,19 @@
       @added="onAddedToChannel"
     />
 
-    <RunAiTaskDialog
-      v-if="aiEnabled"
-      :open="aiDialogOpen"
-      :workers="aiWorkers"
-      :templates="aiTemplates"
-      :initial-template="aiTemplate"
-      :skus="product.sku ? [product.sku] : []"
-      background
-      @created="(task) => $refs.aiResults?.track(task)"
-      @template-saved="reloadAiTemplates"
-      @close="aiDialogOpen = false"
-    />
+    <ReadonlyArea v-if="aiEnabled" :area="EMBEDDED_AREAS.ai">
+      <RunAiTaskDialog
+        :open="aiDialogOpen"
+        :workers="aiWorkers"
+        :templates="aiTemplates"
+        :initial-template="aiTemplate"
+        :skus="product.sku ? [product.sku] : []"
+        background
+        @created="(task) => $refs.aiResults?.track(task)"
+        @template-saved="reloadAiTemplates"
+        @close="aiDialogOpen = false"
+      />
+    </ReadonlyArea>
 
     <!-- Translations drawer -->
     <TranslationsDrawer
@@ -414,7 +416,13 @@ const INPUT = { is: "BasicInput", attrs: {} };
 const MEDIA_KINDS = ["picture", "video"];
 // The tabs that embed another panel's screen work on that panel's area: shown only when it is readable, read-only by
 // it alone (not by the product's `pim.products`).
-const EMBEDDED_AREAS = { pricing: AREAS.PRICEMANAGER_PRICES, stock: AREAS.QMS_STOCK, supplier: AREAS.ATLAS_PRODUCTS };
+// The AI drawer and run dialog (`ai`) likewise: by the enrichment proposals, so a reviewer without write sees no Run/Apply.
+const EMBEDDED_AREAS = {
+  pricing: AREAS.PRICEMANAGER_PRICES,
+  stock: AREAS.QMS_STOCK,
+  supplier: AREAS.ATLAS_PRODUCTS,
+  ai: AREAS.ENRICHMENT_PROPOSALS,
+};
 
 export default {
   name: "ProductDetail",

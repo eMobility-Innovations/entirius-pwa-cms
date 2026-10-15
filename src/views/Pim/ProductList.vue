@@ -111,7 +111,7 @@
         @action="handleBulkAction"
         @clear="clearSelection"
       />
-      <AiToolboxHint v-if="selectedProducts.length && aiEnabled && !aiUsable" />
+      <AiToolboxHint v-if="selectedProducts.length && aiWritable && !aiUsable" />
 
       <Loader block v-show="loading" />
 
@@ -241,7 +241,7 @@
     />
 
     <RunAiTaskDialog
-      v-if="aiEnabled"
+      v-if="aiWritable"
       :open="aiDialogOpen"
       :workers="aiWorkers"
       :templates="aiTemplates"
@@ -312,13 +312,13 @@ export default {
     const {
       workers: aiWorkers,
       templates: aiTemplates,
-      enabled: aiEnabled,
+      writable: aiWritable,
       usable: aiUsable,
       reloadTemplates: reloadAiTemplates,
     } = useAiWorkers();
     return {
       loader, notify, pimChannel, munin, search, debouncedFetch,
-      aiWorkers, aiTemplates, aiEnabled, aiUsable, reloadAiTemplates,
+      aiWorkers, aiTemplates, aiWritable, aiUsable, reloadAiTemplates,
     };
   },
   data() {
@@ -407,7 +407,7 @@ export default {
           ],
         },
       ];
-      if (this.aiUsable && this.aiWorkers.length) {
+      if (this.aiWritable && this.aiUsable && this.aiWorkers.length) {
         actions.push({
           key: "ai_task",
           labelKey: "enrichment.ai.menu",

@@ -1,9 +1,11 @@
 import { computed, ref, watch } from "vue";
-import { useMuninStore } from "@/stores/munin";
 import { useConfigHealthStore } from "@/stores/configHealth";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { t } from "@/i18n";
+import { AREAS } from "@/configs/areas";
+import { useAccessStore } from "@/stores/access";
+import { useAiUsageVisible } from "@/components/AiUsage/useAiUsage";
 import { GET_Templates, GET_Workers } from "@/api/enrichment/api";
 
 const MODULE = "pim";
@@ -18,16 +20,18 @@ export function runnableTemplates(templates, workers) {
 
 const listOf = (data) => (Array.isArray(data) ? data : data?.results || []);
 
-// The PIM AI actions: present while the enrichment module is on (dormant otherwise), usable while the AI toolbox is
+// The PIM AI actions: present while the enrichment module is on and its proposals area is readable (as the AI usage
+// counter; hidden otherwise, nothing loads, nothing toasts), `writable` with write on that area, usable while the AI toolbox is
 // (configHealth.aiUsable — the hint is <AiToolboxHint />). Workers and templates load once the module is known to be
 // on; a failed worker load is toasted, so an empty menu is never a silent misconfiguration. `reloadTemplates` after one is
 // saved from the run dialog.
 export function useAiWorkers() {
-  const munin = useMuninStore();
+  const access = useAccessStore();
   const health = useConfigHealthStore();
   const workers = ref([]);
   const allTemplates = ref([]);
-  const enabled = computed(() => munin.isModuleEnabled("enrichment"));
+  const enabled = useAiUsageVisible();
+  const writable = computed(() => enabled.value && access.can(AREAS.ENRICHMENT_PROPOSALS, "write"));
   const usable = computed(() => enabled.value && health.aiUsable);
   const templates = computed(() => runnableTemplates(allTemplates.value, workers.value));
 
@@ -54,5 +58,5 @@ export function useAiWorkers() {
   }
 
   watch(enabled, (on) => on && load(), { immediate: true });
-  return { workers, templates, allTemplates, enabled, usable, reloadTemplates };
+  return { workers, templates, allTemplates, enabled, writable, usable, reloadTemplates };
 }

@@ -11,6 +11,13 @@ vi.mock("@/api/enrichment/api", () => ({
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 vi.mock("@/stores/munin", () => ({ useMuninStore: () => ({ isModuleEnabled: () => true }) }));
 vi.mock("@/stores/configHealth", () => ({ useConfigHealthStore: () => ({ aiUsable: true }) }));
+// The enrichment proposals area of the user: "write", "read" or none.
+const grant = vi.hoisted(() => ({ level: "write" }));
+vi.mock("@/stores/access", () => ({
+  useAccessStore: () => ({
+    can: (area, level = "read") => area === "enrichment.proposals" && (grant.level === "write" || (grant.level === "read" && level === "read")),
+  }),
+}));
 
 import { runnableTemplates, useAiWorkers } from "@/views/Pim/components/enrichment/useAiWorkers";
 
@@ -20,6 +27,26 @@ describe("useAiWorkers", () => {
     mockTemplates.mockReset();
     mockTemplates.mockResolvedValue({ data: [] });
     notify.mockReset();
+    grant.level = "write";
+  });
+
+  it("without the enrichment area the AI is absent: nothing loads, nothing toasts", async () => {
+    grant.level = "";
+    const { enabled, writable } = useAiWorkers();
+    await flushPromises();
+    expect(enabled.value).toBe(false);
+    expect(writable.value).toBe(false);
+    expect(mockWorkers).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("read-only on the enrichment area: the AI shows but runs nothing", async () => {
+    grant.level = "read";
+    mockWorkers.mockResolvedValue({ data: [] });
+    const { enabled, writable } = useAiWorkers();
+    await flushPromises();
+    expect(enabled.value).toBe(true);
+    expect(writable.value).toBe(false);
   });
 
   it("loads the PIM workers once the module is on", async () => {
