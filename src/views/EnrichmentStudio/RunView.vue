@@ -165,7 +165,9 @@ export default {
   mounted() {
     this.channels.fetchChannelsAndLanguages();
   },
+  // A read still on its way when the page closes lands on nothing: no new poll, no toast.
   beforeUnmount() {
+    this.disposed = true;
     clearTimeout(this.timer);
   },
   methods: {
@@ -178,8 +180,10 @@ export default {
       clearTimeout(this.timer);
       try {
         const { data } = await GET_Run(this.uid);
+        if (this.disposed) return;
         this.setRun(data);
       } catch (err) {
+        if (this.disposed) return;
         if (!isNotFound(err)) this.failed(err);
         if (!this.run) return;
         this.schedule();
@@ -191,7 +195,7 @@ export default {
     },
     schedule() {
       clearTimeout(this.timer);
-      if (isRunWorking(this.run)) this.timer = setTimeout(this.refresh, REFRESH_MS);
+      if (!this.disposed && isRunWorking(this.run)) this.timer = setTimeout(this.refresh, REFRESH_MS);
     },
     onChanged(run, { advance } = {}) {
       this.setRun(run);

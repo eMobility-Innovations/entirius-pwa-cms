@@ -64,6 +64,21 @@ describe("RunView", () => {
     expect(w.findComponent(StepPanel).props("step").status).toBe("review");
   });
 
+  it("leaving while a refresh is on its way stops polling for good", async () => {
+    api.GET_Run.mockResolvedValueOnce({ data: run(step("a", "running")) });
+    let answer;
+    api.GET_Run.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    const w = mountRun();
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(4000); // the second read is on its way
+    w.unmount();
+    answer({ data: run(step("a", "running")) });
+    await flushPromises();
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(api.GET_Run).toHaveBeenCalledTimes(2);
+  });
+
   it("a cancelled run with a running step schedules no refresh", async () => {
     api.GET_Run.mockResolvedValue({ data: { ...run(step("a", "running")), status: "cancelled" } });
     mountRun();

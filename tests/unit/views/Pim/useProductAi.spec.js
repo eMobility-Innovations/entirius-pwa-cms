@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { flushPromises } from "@vue/test-utils";
-import { ref } from "vue";
+import { flushPromises, mount } from "@vue/test-utils";
+import { defineComponent, ref } from "vue";
 
 const mockProposals = vi.fn();
 const mockTasks = vi.fn();
@@ -90,5 +90,22 @@ describe("useProductAi", () => {
     await vi.advanceTimersByTimeAsync(POLL_MS);
     await vi.advanceTimersByTimeAsync(POLL_MS);
     expect(mockTasks).toHaveBeenCalledTimes(3);
+  });
+
+  it("a product left while a poll is on its way polls and toasts no more", async () => {
+    let ai;
+    const wrapper = mount(defineComponent({ setup: () => (ai = useProductAi(ref("ENT-1"))), render: () => null }));
+    await flushPromises();
+    ai.track({ id: 5, status: "in_progress" });
+    let answer;
+    mockTasks.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await vi.advanceTimersByTimeAsync(POLL_MS); // the poll is on its way
+    wrapper.unmount();
+    answer(page([{ id: 5, status: "failed", counts: {} }]));
+    await flushPromises();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(notify).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(POLL_MS * 3);
+    expect(mockTasks).toHaveBeenCalledTimes(2);
   });
 });

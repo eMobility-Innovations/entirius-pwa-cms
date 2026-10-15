@@ -11,7 +11,8 @@ const RECENT_TASKS = 10;
 const MAX_PROPOSALS = 50;
 
 // The AI work of one PIM product (`sku` a ref): its pending proposals and its recent tasks. While a task runs the tasks are
-// polled; a task that finishes reloads the proposals and says so in a toast.
+// polled; a task that finishes reloads the proposals and says so in a toast. Once the product's view is gone nothing
+// polls or toasts any more, also for a read that was on its way.
 export function useProductAi(sku) {
   const notify = useNotifyStore();
   const proposals = ref([]);
@@ -19,6 +20,7 @@ export function useProductAi(sku) {
   const loading = ref(false);
   const running = computed(() => tasks.value.some(isActive));
   let timer = null;
+  let disposed = false;
 
   const scope = () => ({ subject_ref: sku.value, target_module: "pim" });
 
@@ -29,6 +31,7 @@ export function useProductAi(sku) {
 
   async function loadTasks() {
     const { data } = await GET_Tasks({ ...scope(), page_size: RECENT_TASKS });
+    if (disposed) return;
     const finished = finishedTasks(tasks.value, data.results || []);
     tasks.value = data.results || [];
     if (finished.length) await loadProposals();
@@ -43,7 +46,7 @@ export function useProductAi(sku) {
 
   function schedule() {
     clearTimeout(timer);
-    if (running.value) timer = setTimeout(syncTasks, POLL_MS);
+    if (running.value && !disposed) timer = setTimeout(syncTasks, POLL_MS);
   }
 
   /** Re-read the tasks quietly (no loader): the poll, and after a review action changed their proposal counts. */
@@ -76,7 +79,10 @@ export function useProductAi(sku) {
   }
 
   watch(sku, (ref) => ref && refresh(), { immediate: true });
-  onBeforeUnmount(() => clearTimeout(timer));
+  onBeforeUnmount(() => {
+    disposed = true;
+    clearTimeout(timer);
+  });
   return { proposals, tasks, loading, running, refresh, track, syncTasks };
 }
 
