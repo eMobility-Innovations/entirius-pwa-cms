@@ -29,6 +29,8 @@
         />
       </FormField>
 
+      <TaskTargetPicker v-if="pickTargets" v-model="target" />
+
       <AiParamsForm
         v-model="values"
         v-model:research="research"
@@ -37,6 +39,7 @@
         :field-choices="fieldChoices"
         :research-keys="researchKeys"
       />
+      <QaCheckToggle v-if="checksText" v-model="qaCheck" :disabled="busy" />
 
       <p class="fs-200 t-muted m-0">{{ summary }}</p>
       <p v-if="!nowAllowed" class="fs-200 t-secondary m-0" data-testid="ai-task-now-cap">
@@ -86,6 +89,9 @@ import {
   researchKeys,
 } from "./aiTaskForm";
 import { newTemplateBody } from "./templateForm";
+import TaskTargetPicker from "./TaskTargetPicker.vue";
+import QaCheckToggle from "./QaCheckToggle.vue";
+import { qaCheckParams } from "./qaCheck";
 import { LANE_NOW, LANE_QUEUE, RUN_NOW_MAX, canRunNow, defaultLane, spawnToast } from "./runLane";
 import { useMediaQuery } from "@/composables/useMediaQuery";
 import { pluralKey } from "@/utils/plural";
@@ -97,9 +103,11 @@ import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 // the page). The run as set up can be kept as a new template (`template-saved`). No cost estimate: costs show after.
 // Two ways to send it: Run now (the express lane, at most RUN_NOW_MAX products) and Add to queue; the primary one
 // follows the scope — one product runs now, a selection is queued. A phone shows only the primary one (one footer row).
+// `pickTargets` (Studio): the products are picked in the dialog (TaskTargetPicker: pasted SKUs or a category) instead of
+// coming in as `skus`; a big category is a filter scope, queued only.
 export default {
   name: "RunAiTaskDialog",
-  components: { AiToolboxHint, AiParamsForm },
+  components: { AiToolboxHint, AiParamsForm, QaCheckToggle, TaskTargetPicker },
   props: {
     open: { type: Boolean, default: false },
     workers: { type: Array, default: () => [] },
@@ -108,6 +116,7 @@ export default {
     initialTemplate: { type: String, default: "" },
     initialWorker: { type: String, default: "" },
     skus: { type: Array, default: () => [] },
+    pickTargets: { type: Boolean, default: false },
     // The page shows the task's progress itself: close on spawn with a toast instead of the task link.
     background: { type: Boolean, default: false },
   },
@@ -124,6 +133,7 @@ export default {
       workerKey: "",
       values: {},
       research: defaultResearch(),
+      qaCheck: null,
       catalog: { fields: [], languages: [] },
       busy: false,
       createdTask: null,
@@ -134,6 +144,8 @@ export default {
       // The form shows once the channel's catalog is in: defaults set after it never overwrite the operator's picks.
       ready: false,
       openSeq: 0,
+      reloading: false,
+      target: { skus: [], filters: null, count: 0, pending: false },
     };
   },
   computed: {
@@ -160,9 +172,23 @@ export default {
     channel() {
       return this.pimChannel.activeChannelIdx;
     },
+    // The products of the run: the `skus` prop, or (pickTargets) the picked SKUs or filter.
+    runSkus() {
+      return this.pickTargets ? this.target.skus : this.skus;
+    },
+    runFilters() {
+      return this.pickTargets ? this.target.filters : null;
+    },
+    runCount() {
+      return this.pickTargets ? this.target.count : this.skus.length;
+    },
+    // A filter scope has no list of products: the server queues it (Run now takes a list).
+    primaryLane() {
+      return this.runFilters ? LANE_QUEUE : defaultLane(this.runCount);
+    },
     // "Runs on 3 products in Default Europe": the channel by its name, the count in its plural form.
     summary() {
-      const count = this.skus.length;
+      const count = this.runCount;
       const channel = this.pimChannel.activeChannel?.name || this.channel;
       return this.$t(`enrichment.ai.summary_${pluralKey(count)}`, { count, channel });
     },
@@ -176,17 +202,23 @@ export default {
       return researchKeys(this.kind, this.template?.params?.augment);
     },
     params() {
-      return buildParams(this.fields, this.values, this.researchKeys.length ? this.research : null);
+      const params = buildParams(this.fields, this.values, this.researchKeys.length ? this.research : null);
+      return this.checksText ? { ...params, ...qaCheckParams(this.qaCheck) } : params;
+    },
+    // The guidelines check reads text proposals only.
+    checksText() {
+      return this.kind === "write" || this.kind === "field";
     },
     canRun() {
-      return this.ready && !!this.worker && !!this.skus.length && this.health.aiUsable && !missingRequired(this.fields, this.values).length;
+      const targeted = this.runCount > 0 && !(this.pickTargets && this.target.pending);
+      return this.ready && !this.reloading && !!this.worker && targeted && this.health.aiUsable && !missingRequired(this.fields, this.values).length;
     },
     // The run on Runs: its progress, then what it proposed, in one place.
     taskLink() {
       return { name: "EnrichmentRuns", query: { task: String(this.createdTask?.id) } };
     },
     nowAllowed() {
-      return canRunNow(this.skus.length);
+      return !this.runFilters && canRunNow(this.runCount);
     },
     actions() {
       if (this.createdTask) {
@@ -208,6 +240,10 @@ export default {
     templateKey: "applyDefaults",
     workerKey: "applyDefaults",
     languages: "applyDefaults",
+    // Studio: a channel picked in the dialog brings its own catalog (fields, languages).
+    channel() {
+      if (this.open && this.ready && this.pickTargets) this.reloadCatalog();
+    },
   },
   methods: {
     async reset() {
@@ -215,6 +251,9 @@ export default {
       this.ready = false;
       this.createdTask = null;
       this.saving = false;
+      this.reloading = false;
+      this.target = { skus: [], filters: null, count: 0, pending: false };
+      this.qaCheck = null;
       // A custom run starts with no worker picked: Run waits until the operator chose what the AI makes.
       this.workerKey = this.initialWorker || (this.workers.length === 1 ? this.workers[0].key : "");
       this.templateKey = this.initialTemplate;
@@ -222,6 +261,16 @@ export default {
       if (mine !== this.openSeq || !this.open) return;
       this.applyDefaults();
       this.ready = true;
+    },
+    // The form stays (the picked products with it); Run waits until the new channel's catalog is in.
+    async reloadCatalog() {
+      const mine = ++this.openSeq;
+      this.reloading = true;
+      const catalog = await loadCatalog(this.channel);
+      if (mine !== this.openSeq || !this.open) return;
+      this.catalog = catalog;
+      this.applyDefaults();
+      this.reloading = false;
     },
     applyDefaults() {
       const mainLanguage = this.languages[0] || this.pimChannel.activeChannel?.default_language || "";
@@ -235,7 +284,7 @@ export default {
     },
     // Run now and Add to queue, the scope's default as the primary (rightmost); Run now off above the cap.
     laneActions() {
-      const primary = defaultLane(this.skus.length);
+      const primary = this.primaryLane;
       const disabled = this.busy || !this.canRun;
       const lane = (key, label, testid, extra = {}) => ({
         key, label, testid, mutates: true, role: key === primary ? "primary" : "secondary",
@@ -247,13 +296,14 @@ export default {
       ];
       return this.isPhone ? lanes.filter((action) => action.key === primary) : lanes;
     },
-    async run(lane = defaultLane(this.skus.length)) {
+    async run(lane = this.primaryLane) {
       if (this.busy || !this.canRun) return;
       this.busy = true;
       this.sendingLane = lane;
       try {
         const payload = buildTaskPayload({
-          worker: this.worker, params: this.params, channel: this.channel, skus: this.skus, template: this.templateKey,
+          worker: this.worker, params: this.params, channel: this.channel, skus: this.runSkus, template: this.templateKey,
+          filters: this.runFilters,
         });
         const { data } = await POST_SpawnTask({ ...payload, lane });
         this.$emit("created", data);

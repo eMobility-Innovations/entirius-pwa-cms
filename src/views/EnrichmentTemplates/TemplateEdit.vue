@@ -57,7 +57,12 @@
       <FormField :label="$t('enrichment.templates.rules')" :hint="$t('enrichment.templates.rules_hint')">
         <BasicTextarea v-model="form.rules" :rows="4" data-testid="template-rules" />
       </FormField>
-      <BasicSwitch v-model="form.active" :label="$t('enrichment.templates.active')" data-testid="template-active" />
+      <BasicSwitch
+        v-model="form.active"
+        :label="$t('enrichment.templates.active')"
+        :hint="$t('enrichment.templates.active_hint')"
+        data-testid="template-active"
+      />
     </div>
 
     <ConfirmDialog

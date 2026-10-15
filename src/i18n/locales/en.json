@@ -2785,6 +2785,17 @@
       "empty_message": "No proposals match the current filter.",
       "reject_reason": "Reason (optional)",
       "reject_reason_placeholder": "Why is this being rejected?",
+      "focus": {
+        "progress": "{index} of {total} to review",
+        "studio_title": "Article: {topic} · {step}",
+        "studio_untitled": "Studio article · {step}",
+        "step_empty": "This step has no content yet.",
+        "shortcuts": "A apply · R reject · S skip · ← → move",
+        "shortcuts_move": "S next · ← → move",
+        "reject_keys": "Enter rejects · Esc cancels",
+        "previous": "Previous",
+        "next": "Next"
+      },
       "focus_done": "Reviewed the whole filtered set.",
       "toast": {
         "accepted": "Proposal accepted.",
@@ -2840,7 +2851,14 @@
       },
       "studio_article": "Studio article",
       "studio_note": "This text is a step of a Studio article. Read and change it in the Studio, where the whole article is.",
-      "open_in_studio": "Open in the Studio"
+      "open_in_studio": "Open in the Studio",
+      "full_editor": "Full editor",
+      "details": {
+        "title": "Details",
+        "model": "Model",
+        "default_model": "Default model",
+        "source": "Made by"
+      }
     },
     "status": {
       "pending": "Pending",
@@ -3077,6 +3095,7 @@
       "rules": "Rules",
       "rules_hint": "One rule per line. Every run of this template follows them.",
       "active": "Offer in Run AI",
+      "active_hint": "On: this template is offered when you run AI on products (product page, product list) and in Studio. Off: hidden there. Runs already made and their proposals stay as they are.",
       "move_up": "Move up",
       "move_down": "Move down",
       "saved": "Template saved",
@@ -3097,9 +3116,36 @@
     },
     "studio": {
       "title": "Studio",
-      "description": "Write longer content step by step: the AI drafts each step, you review and approve it.",
+      "description": "Start any AI work here: run a task on products you choose, or write longer content step by step — the AI drafts each step, you review and approve it.",
       "new": "New",
       "new_title": "New content",
+      "start_title": "Start AI work",
+      "start_empty": "Nothing to start yet: no AI templates or content workflows are set up.",
+      "group_tasks": "Tasks",
+      "group_tasks_hint": "One job on the products you pick. Proposals go to the review.",
+      "group_guided": "Guided",
+      "group_guided_hint": "Several steps; you approve each one before the next.",
+      "task": {
+        "channel": "Channel",
+        "products": "Products",
+        "mode_paste": "Paste SKUs",
+        "mode_category": "Category",
+        "skus": "SKUs",
+        "skus_placeholder": "Paste SKUs from Excel or type them, separated by commas, spaces or new lines",
+        "category": "Category",
+        "category_pick": "Choose a category",
+        "checking": "Checking the products…",
+        "recognised_one": "1 product recognised",
+        "recognised_few": "{count} products recognised",
+        "recognised_many": "{count} products recognised",
+        "unknown": "{count} not found, left out: {list}",
+        "and_more": "{list} and {count} more",
+        "too_many": "At most {max} SKUs at a time. Split the list into smaller runs.",
+        "in_category_one": "1 product in this category.",
+        "in_category_few": "{count} products in this category.",
+        "in_category_many": "{count} products in this category.",
+        "first_only": "One run takes the first {max}."
+      },
       "workflow": "What to write",
       "channel": "Channel",
       "start": "Start",
@@ -3317,7 +3363,7 @@
       "compare_to": "with",
       "restore_title": "Restore version {n}?",
       "restore_message": "Its content becomes the current profile as a new version. Nothing is lost: the current version stays in the history.",
-      "used": "Likely from the company profile: {sections}",
+      "used": "Based on the company profile: {sections}",
       "sections": {
         "brand": "Brand",
         "persona": "Audience",
@@ -3386,7 +3432,14 @@
       "json_blocked": "Fix the errors in the JSON first, then go back to the form.",
       "row": "Row {n}",
       "from_company": "From the company",
-      "inherited_label": "Empty here, so this channel uses the whole company's:"
+      "inherited_label": "Empty here, so this channel uses the whole company's:",
+      "qa_setting": {
+        "title": "Quality check",
+        "label": "Check every AI proposal against the guidelines (adds a small AI cost per field)",
+        "hint": "The guidelines are the checklists below. A run can switch this on or off for itself.",
+        "on_toast": "Every new AI proposal is checked against the guidelines.",
+        "off_toast": "New AI proposals are not checked automatically."
+      }
     },
     "memory": {
       "title": "Memory",
@@ -3453,10 +3506,17 @@
       "add_fact": "Add to facts",
       "fact_suggested": "Suggested",
       "fact_suggested_toast": "Suggested as a fact — confirm it in Memory.",
-      "check_standard": "Check against the standard",
       "fix_warnings": "Fix warnings",
-      "checked_toast": "No problems found.",
-      "fixed_toast": "Corrected — a new version."
+      "fixed_toast": "Corrected — a new version.",
+      "check": "Check against the guidelines",
+      "check_hint": "The AI checks the text against the checklists in your company profile. Adds a small AI cost, makes no new version.",
+      "checked_ok": "Checked against the guidelines",
+      "checked_one": "Checked: 1 warning",
+      "checked_many": "Checked: {count} warnings",
+      "run_toggle": "Check against the guidelines",
+      "run_default_on": "Settings default: on. Adds a small AI cost per field.",
+      "run_default_off": "Settings default: off. Adds a small AI cost per field.",
+      "checked_few": "Checked: {count} warnings"
     },
     "workers": {
       "alerts": "AI workers that need attention",

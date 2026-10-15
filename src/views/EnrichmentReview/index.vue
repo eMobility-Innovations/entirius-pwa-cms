@@ -169,6 +169,7 @@
         :page="page"
         :page-size="pageSize"
         :total-count="totalCount"
+        :status-filter="filters.status"
         @need-more="loadNextPage"
         @exit="exitFocus"
       />
@@ -399,11 +400,16 @@ export default {
       if (this.$route.name !== "EnrichmentReview" || (task || "") === this.filters.task) return;
       this.onFilterChange("task", task || "");
     },
-    mode(val) {
+    mode(val, old) {
       this.$router.replace({
         path: this.$route.path,
         query: { ...this.$route.query, mode: val },
       });
+      // Under "All" Focus reads the pending set only: entering or leaving it reloads from the first page.
+      if (this.filters.status === "__all" && (val === "focus") !== (old === "focus")) {
+        this.page = 1;
+        this.fetchRows();
+      }
     },
   },
   mounted() {
@@ -438,9 +444,9 @@ export default {
         page_size: this.pageSize,
         ordering: "-created_at",
       };
-      // The "All" chip asks for every status: no status param would mean only pending.
+      // The "All" chip asks for every status (no status param would mean only pending); Focus walks what is to decide.
       if (this.filters.status)
-        params.status = this.filters.status === "__all" ? "all" : this.filters.status;
+        params.status = this.filters.status === "__all" ? (this.mode === "focus" ? "pending" : "all") : this.filters.status;
       if (this.filters.target_module !== "__all")
         params.target_module = this.filters.target_module;
       if (this.filters.target_kind !== "__all")

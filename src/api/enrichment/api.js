@@ -5,7 +5,7 @@ const ENR = "/api/enrichment/v2/admin";
 
 // --- Workers (AI POC) ---
 
-// Active workers of one module: [{ key, label, kind, target_module, mode, params_schema }].
+// Active workers of one module: [{ key, label, kind, target_module, mode, model (blank = toolbox default), params_schema }].
 export const GET_Workers = (params) =>
   enrichmentApi.get(`${ENR}/workers/`, { params });
 
@@ -158,6 +158,10 @@ export const GET_Fields = (params) =>
 export const GET_Languages = (params) =>
   enrichmentApi.get(`${ENR}/languages/`, { params });
 
+// body { module, channel, refs (≤ 500) } → { known: [{ ref, label }], unknown: [ref] } — which pasted SKUs exist.
+export const POST_ResolveSubjects = (data) =>
+  enrichmentApi.post(`${ENR}/subjects/resolve/`, data);
+
 // --- Workflows (contract A4 § 6) ---
 
 // Active workflows: [{ key, label, target_module, inputs_schema, steps: [{ key, label, needs, gate, output }] }].
@@ -204,6 +208,15 @@ export const GET_ProfileVersions = (params) =>
 
 export const POST_RestoreProfileVersion = (number, params) =>
   enrichmentApi.post(`${ENR}/profile/versions/${number}/restore/`, null, { params });
+
+// The instance's AI settings (not profile content, no version): → { qa_check } — check every new AI text
+// proposal against the checklists unless a run says otherwise (`params.qa_check`).
+export const GET_ProfileSettings = () =>
+  enrichmentApi.get(`${ENR}/profile/settings/`);
+
+// body { qa_check: boolean } → { qa_check }
+export const PUT_ProfileSettings = (data) =>
+  enrichmentApi.put(`${ENR}/profile/settings/`, data);
 
 // → { schema_version, json_schema }
 export const GET_ProfileSchema = () =>

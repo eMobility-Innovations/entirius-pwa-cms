@@ -61,7 +61,18 @@
       <Pagination v-model:page="page" :pages="pages" />
     </template>
 
-    <NewRunDialog v-model:open="creating" :copy-from="copyFrom" @started="open" />
+    <StartWorkDialog v-model:open="choosing" :templates="aiWritable ? aiTemplates : []" @task="openTask" @guided="openGuided" />
+    <NewRunDialog v-model:open="creating" :copy-from="copyFrom" :initial-definition="definition" @started="open" />
+    <RunAiTaskDialog
+      v-if="aiWritable"
+      :open="taskOpen"
+      :workers="aiWorkers"
+      :templates="aiTemplates"
+      :initial-template="taskTemplate"
+      pick-targets
+      @close="taskOpen = false"
+      @template-saved="reloadAiTemplates"
+    />
   </PageLayout>
 </template>
 
@@ -72,6 +83,9 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { formatDate, formatRelative } from "@/utils/format";
 import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
 import NewRunDialog from "./NewRunDialog.vue";
+import StartWorkDialog from "./StartWorkDialog.vue";
+import RunAiTaskDialog from "@/views/Pim/components/enrichment/RunAiTaskDialog.vue";
+import { useAiWorkers } from "@/views/Pim/components/enrichment/useAiWorkers";
 import { nextAction, openFirst, runTitle, runTone } from "./studioLogic";
 
 const PAGE_SIZE = 20;
@@ -79,16 +93,22 @@ const STEP_KINDS = ["your_turn", "writing", "failed"];
 
 // The Studio: every workflow run — open ones first (your turn, failed, working), then the rest newest first — what it
 // makes, its brief's title, its state, whose turn it is on which step, what it cost and when it started. "Your turn"
-// keeps the runs that wait for the operator, with their count. "New" picks a workflow and a brief (`?new=1`, with
-// `from=<uid>` to start from another run's brief); a row opens the run.
+// keeps the runs that wait for the operator, with their count. "New" is the one place to start AI work
+// (StartWorkDialog): a task (a template run on products picked in RunAiTaskDialog, its run then on Review → Runs) or
+// guided work (a workflow and its brief, NewRunDialog; `?new=1`, with `from=<uid>` to start from another run's brief,
+// goes straight there); a row opens the run.
 export default {
   name: "RunList",
-  components: { CostLabel, NewRunDialog },
+  components: { CostLabel, NewRunDialog, StartWorkDialog, RunAiTaskDialog },
   setup() {
-    return { notify: useNotifyStore(), formatDate, formatRelative, runTone };
+    const { workers: aiWorkers, templates: aiTemplates, writable: aiWritable, reloadTemplates: reloadAiTemplates } = useAiWorkers();
+    return { notify: useNotifyStore(), aiWorkers, aiTemplates, aiWritable, reloadAiTemplates, formatDate, formatRelative, runTone };
   },
   data() {
-    return { runs: [], count: 0, waitingCount: null, page: 1, yourTurn: false, loading: false, creating: false, copyFrom: "" };
+    return {
+      runs: [], count: 0, waitingCount: null, page: 1, yourTurn: false, loading: false,
+      choosing: false, creating: false, copyFrom: "", definition: "", taskOpen: false, taskTemplate: "",
+    };
   },
   computed: {
     columns() {
@@ -109,7 +129,7 @@ export default {
     },
     actions() {
       return [{ key: "new", role: "primary", mutates: true, label: this.$t("enrichment.studio.new"), testid: "studio-new",
-        onClick: () => (this.creating = true) }];
+        onClick: () => (this.choosing = true) }];
     },
   },
   watch: {
@@ -151,6 +171,15 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    openTask(key) {
+      this.taskTemplate = key;
+      this.taskOpen = true;
+    },
+    openGuided(key) {
+      this.copyFrom = "";
+      this.definition = key;
+      this.creating = true;
     },
     open(row) {
       this.$router.push({ name: "EnrichmentStudioRun", params: { uid: row.uid } });

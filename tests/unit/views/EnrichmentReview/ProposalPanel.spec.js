@@ -18,7 +18,17 @@ const stubs = {
   ActionBar: { name: "ActionBar", props: ["actions"], template: "<div />" },
   Tag: { props: ["label"], template: "<i>{{ label }}</i>" },
   BasicTooltip: { props: ["text"], template: "<span><slot /></span>" },
-  ProposalCorrection: { name: "ProposalCorrection", props: ["proposal", "task", "selection"], emits: ["updated", "busy"], template: "<div />" },
+  ProposalCorrection: {
+    name: "ProposalCorrection",
+    props: ["proposal", "task", "selection", "editor"],
+    emits: ["updated", "busy"],
+    template: "<div><slot name='trail' /></div>",
+  },
+  ProposalDetails: { name: "ProposalDetails", props: ["proposal", "task"], template: "<i data-testid='proposal-meta' />" },
+  QaCheckStatus: { name: "QaCheckStatus", props: ["proposal"], emits: ["updated", "busy"], template: "<i />" },
+  FormField: { template: "<div><slot /></div>" },
+  BasicTextarea: true,
+  BasicButton: { emits: ["click"], template: "<button @click=\"$emit('click')\"><slot /></button>" },
 };
 const meta = {
   id: 7, status: "pending", subject_ref: "ENT-1", subject_label: "", source: "worker:pim.meta@v1",
@@ -54,13 +64,54 @@ describe("ProposalPanel", () => {
     expect(w.findComponent(DiffRenderer).props("snippet")).toEqual({ title: "Sofa Orion", url: "/sofa-orion" });
   });
 
-  it("a video is named by its kind; the worker hides behind the info icon", () => {
+  it("a video is named by its kind; the details sit behind the ⓘ next to the cost", () => {
     const video = { ...meta, target_kind: "video", target_locator: { channel: "c1" } };
     const $t = (key) => (key === "enrichment.review.kind.video" ? "Product video" : key);
-    const w = mount(ProposalPanel, { props: { proposal: video }, global: { stubs, mocks: { $t } } });
+    const task = { id: 3, profile_versions: [4] };
+    const w = mount(ProposalPanel, { props: { proposal: video, task }, global: { stubs, mocks: { $t } } });
     expect(w.find("[data-testid='proposal-field']").text()).toBe("Product video");
     expect(w.find("[data-testid='proposal-language']").exists()).toBe(false);
-    expect(w.find("[data-testid='proposal-meta']").attributes("aria-label")).toBe("pim.meta@v1 · video");
+    expect(w.findComponent({ name: "ProposalDetails" }).props()).toEqual({ proposal: video, task });
+    expect(w.find("[data-testid='profile-usage']").exists()).toBe(false); // no inline note any more
+  });
+
+  it("one row of tools: Refine with AI without its own editor link, then the guidelines check", async () => {
+    const w = mount(ProposalPanel, { props: { proposal: meta, product: PRODUCT }, global: { stubs } });
+    const correction = w.findComponent({ name: "ProposalCorrection" });
+    expect(correction.props("editor")).toBe(false);
+    const check = correction.findComponent({ name: "QaCheckStatus" });
+    check.vm.$emit("updated", { ...meta, standard_checked_at: "2026-10-15T10:00:00Z" });
+    expect(w.emitted("updated")[0][0].standard_checked_at).toBe("2026-10-15T10:00:00Z");
+    check.vm.$emit("busy", true);
+    await w.vm.$nextTick();
+    expect(w.findComponent({ name: "ActionBar" }).props("actions").every((a) => a.disabled)).toBe(true);
+  });
+
+  it("decisions in one row: Reject, Edit, Apply — one Edit, in place", async () => {
+    const w = mount(ProposalPanel, { props: { proposal: meta, product: PRODUCT }, global: { stubs } });
+    const keys = () => w.findComponent({ name: "ActionBar" }).props("actions").map((a) => a.key);
+    expect(keys()).toEqual(["reject", "edit", "accept"]);
+    w.findComponent({ name: "ActionBar" }).props("actions")[1].onClick();
+    await w.vm.$nextTick();
+    expect(w.find("[data-testid='proposal-full-editor']").exists()).toBe(true);
+    expect(keys()).toEqual(["cancel", "save"]);
+  });
+
+  it("Full editor opens the long-text editor; an edited draft is saved first", async () => {
+    const { PATCH_Proposal } = await import("@/api/enrichment/api");
+    PATCH_Proposal.mockResolvedValue({ data: { ...meta, proposed_value: { text: "Couch" } } });
+    const push = vi.fn();
+    const w = mount(ProposalPanel, { props: { proposal: meta, product: PRODUCT }, global: { stubs, mocks: { $router: { push } } } });
+    w.vm.startEdit();
+    await w.vm.$nextTick();
+    await w.vm.openFullEditor();
+    expect(PATCH_Proposal).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith({ name: "EnrichmentProposalEditor", params: { proposalId: "7" } });
+    w.vm.startEdit();
+    w.vm.draft = "Couch";
+    await w.vm.openFullEditor();
+    expect(PATCH_Proposal).toHaveBeenCalledWith(7, { proposed_value: { text: "Couch" } });
+    expect(push).toHaveBeenCalledTimes(2);
   });
 
   it("a pending text carries the correction tools; their new value and busy state reach the card", async () => {

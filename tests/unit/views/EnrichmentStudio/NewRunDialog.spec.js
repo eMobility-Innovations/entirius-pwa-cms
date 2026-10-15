@@ -53,4 +53,9 @@ describe("NewRunDialog", () => {
     await flushPromises();
     expect(topicInput(w).props("modelValue")).toBe("");
   });
+  it("opens on the workflow picked in New", async () => {
+    const w = mount(NewRunDialog, { props: { open: true, initialDefinition: "news" }, global: { stubs } });
+    await flushPromises();
+    expect(w.vm.definition).toBe("news");
+  });
 });

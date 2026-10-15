@@ -78,7 +78,7 @@ describe("ProductMode", () => {
     const w = mount(ProductMode, { props: { rows: ROWS.slice(0, 1) }, global: { stubs } });
     await flushPromises();
 
-    expect(w.find("[data-testid='proposal-meta']").attributes("aria-label")).toContain("pim.translate@v2");
+    expect(w.findComponent({ name: "ProposalDetails" }).vm.source).toContain("pim.translate@v2");
     expect(mockGetProduct).toHaveBeenCalledWith("c1", "SKU-1");
     expect(w.find("[data-testid='proposal-source']").text()).toContain("Oak chair");
   });

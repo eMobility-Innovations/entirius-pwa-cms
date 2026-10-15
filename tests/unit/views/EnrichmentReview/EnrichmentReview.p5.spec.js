@@ -1,7 +1,7 @@
 /**
  * Plan 45 — EnrichmentReview on the components: the page's Import CSV is a secondary ActionBar action, the list pager
- * is a Pagination in the PageLayout footer, a list row opens Focus on that row, Focus has one primary (Accept) beside
- * Reject (danger) and Skip, and the drift dialog is a BasicModal whose actions carry the proposal and the reason.
+ * is a Pagination in the PageLayout footer, a list row opens Focus on that row, Focus decides on the proposal card
+ * (its one primary) and adds Previous and Skip, and the drift dialog is a BasicModal whose actions carry the proposal and the reason.
  */
 import { describe, it, expect, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
@@ -100,24 +100,20 @@ describe("ListMode", () => {
 });
 
 describe("FocusMode actions", () => {
-  const rows = [{ id: 1, target_kind: "text", target_locator: {} }];
+  const rows = [{ id: 1, status: "pending", target_kind: "text", target_locator: {} }];
+  const ProposalPanel = { name: "ProposalPanel", props: ["proposal"], template: "<div />" };
   const mountFocus = () =>
     mount(FocusMode, {
       props: { rows, totalCount: 1 },
-      global: { stubs: { ActionBar, DiffRenderer: true, ProductPreviewCard: true, FormField: true, BasicTextarea: true } },
+      global: { stubs: { ProposalPanel, ProductPreviewCard: true, BasicCard: { template: "<div><slot /></div>" } } },
     });
 
-  it("is Skip · Reject · Accept with Accept the one primary", () => {
-    const actions = mountFocus().findComponent({ name: "ActionBar" }).props("actions");
-    expect(actions.map((a) => [a.key, a.role])).toEqual([["skip", "secondary"], ["reject", "danger"], ["accept", "primary"]]);
-  });
-
-  it('names Accept "apply anyway" while re-confirming a drift', async () => {
+  it("Apply / Edit / Reject are the proposal card's (its one primary); Focus adds only Previous and Skip", () => {
     const w = mountFocus();
-    w.vm.driftMode = true;
-    await w.vm.$nextTick();
-    const accept = w.findComponent({ name: "ActionBar" }).props("actions").find((a) => a.key === "accept");
-    expect(accept.label).toBe("enrichment.drift.confirm");
+    expect(w.findComponent({ name: "ProposalPanel" }).props("proposal").id).toBe(1);
+    expect(w.findComponent({ name: "ActionBar" }).exists()).toBe(false);
+    const nav = w.findAll("nav basic-button-stub").map((b) => b.attributes("data-testid"));
+    expect(nav).toEqual(["enrichment-focus-back", "enrichment-focus-skip"]);
   });
 });
 

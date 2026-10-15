@@ -28,7 +28,7 @@ const leaveDialog = (w) => w.findAllComponents(ConfirmDialog).find((d) => d.prop
 const stubs = {
   PageHeader: { template: "<div><slot name='meta' /><slot name='actions' /></div>" },
   BasicSelect: true, ConfirmDialog, BasicCard: { template: "<section><slot /></section>" }, BasicTextarea: true,
-  ProfileCompleteness: true, ProfileSection, ActionBar, ProfileHistory,
+  ProfileCompleteness: true, ProfileSection, ActionBar, ProfileHistory, QaCheckSetting: true,
 };
 const STATUS = { channel: "", complete: false, sections: [{ key: "brand", complete: true, minimum: "" }, { key: "facts", complete: false, minimum: "" }] };
 const PROFILE = { channel: "", version: 2, data: { brand: { text: "We make sofas.", differentiators: ["Made to order"] } } };
@@ -57,6 +57,15 @@ describe("ProfilePage", () => {
     expect(section(w, "brand").props("modelValue")).toEqual(PROFILE.data.brand);
     expect(section(w, "facts").props("status")).toEqual(STATUS.sections[1]);
     expect(api.GET_Profile).toHaveBeenCalledWith({ channel: "" });
+  });
+
+  it("the guidelines-check setting sits on the whole company's profile only", async () => {
+    const w = mountPage();
+    await flushPromises();
+    expect(w.findComponent({ name: "QaCheckSetting" }).exists()).toBe(true);
+    w.vm.applyChannel("eu");
+    await flushPromises();
+    expect(w.findComponent({ name: "QaCheckSetting" }).exists()).toBe(false);
   });
 
   it("saves the edited data without empty values, with the note, as a new version", async () => {

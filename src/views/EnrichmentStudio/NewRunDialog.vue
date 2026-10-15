@@ -79,6 +79,8 @@ export default {
   props: {
     open: { type: Boolean, default: false },
     copyFrom: { type: String, default: "" },
+    // The workflow picked in "New" (StartWorkDialog); blank keeps the one picked last.
+    initialDefinition: { type: String, default: "" },
   },
   emits: ["update:open", "started"],
   setup() {
@@ -158,6 +160,7 @@ export default {
         const { data } = await GET_Workflows();
         this.workflows = data;
         if (this.copyFrom) await this.copy(this.copyFrom);
+        else if (this.initialDefinition) this.definition = this.initialDefinition;
         else if (!this.definition && data.length) this.definition = data[0].key;
       } catch (err) {
         this.failed(err);

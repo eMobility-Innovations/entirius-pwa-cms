@@ -20,6 +20,11 @@ const api = vi.hoisted(() => ({
 vi.mock("@/api/enrichment/api", () => api);
 // The run labels (useRunLabels) are not under test here.
 vi.mock("@/views/EnrichmentReview/useRunLabels", () => ({ useRunLabels: () => ({ labels: {}, load: () => Promise.resolve() }) }));
+// The field names and the product of a card are not under test here.
+vi.mock("@/api/pim/api", () => ({
+  GET_Features: () => Promise.resolve({ data: { results: [] } }),
+  GET_Product: () => Promise.resolve({ data: {} }),
+}));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ channels: [], fetchChannels: vi.fn(), activeChannelIdx: "c1" }),
@@ -86,5 +91,16 @@ describe("EnrichmentReview — list row detail", () => {
     const w = await mountPage();
     await setMode(w, "focus");
     expect(await pressAccept()).toBe(11);
+  });
+
+  it("under the All chip Focus walks the pending set only; leaving it lists every status again", async () => {
+    const w = await mountPage();
+    await w.vm.onFilterChange("status", "__all");
+    await flushPromises();
+    expect(api.GET_Proposals).toHaveBeenLastCalledWith(expect.objectContaining({ status: "all" }));
+    await setMode(w, "focus");
+    expect(api.GET_Proposals).toHaveBeenLastCalledWith(expect.objectContaining({ status: "pending", page: 1 }));
+    await setMode(w, "list");
+    expect(api.GET_Proposals).toHaveBeenLastCalledWith(expect.objectContaining({ status: "all" }));
   });
 });

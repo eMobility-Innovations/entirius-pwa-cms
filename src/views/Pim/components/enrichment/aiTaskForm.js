@@ -104,12 +104,14 @@ export function buildParams(fields, values, research = null) {
   return { ...params, augment: [...research.augment], seo_scope: research.seo_scope };
 }
 
-/** POST tasks/ body: one task over the picked SKUs of one channel; `template` presets params and rules server side. */
-export function buildTaskPayload({ worker, params, channel, skus, template = "" }) {
+/** POST tasks/ body: one task over the picked SKUs of one channel (or, with `filters`, the PIM products matching them);
+ * `template` presets params and rules server side. */
+export function buildTaskPayload({ worker, params, channel, skus, template = "", filters = null }) {
+  const scope = filters ? { mode: "filter", filters: { ...filters } } : { mode: "list", refs: [...skus] };
   const body = {
     type: worker.key,
     params: worker.params_schema?.properties?.channel ? { ...params, channel } : { ...params },
-    scope_spec: { mode: "list", module: "pim", channel, refs: [...skus] },
+    scope_spec: { ...scope, module: "pim", channel },
   };
   return template ? { ...body, template } : body;
 }

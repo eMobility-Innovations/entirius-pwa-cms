@@ -26,6 +26,8 @@
       <div v-else-if="schema" class="flex-column gap-8">
         <p v-if="channel" class="m-0 t-secondary" data-testid="profile-overlay-note">{{ $t("enrichment.profile.overlay_note") }}</p>
         <ProfileCompleteness :status="status" />
+        <!-- A setting of the whole instance, saved on change — not part of the profile form. -->
+        <QaCheckSetting v-if="!channel" />
 
         <BasicCard :title="$t('enrichment.profile.save_note')">
           <FormField :label="$t('enrichment.profile.note')" :hint="$t('enrichment.profile.note_hint')">
@@ -99,6 +101,7 @@ import { ENRICHMENT_SETTINGS_TABS, routeTabPanel } from "@/components/Navigation
 import ProfileCompleteness from "./ProfileCompleteness.vue";
 import ProfileHistory from "./ProfileHistory.vue";
 import ProfileSection from "./ProfileSection.vue";
+import QaCheckSetting from "./QaCheckSetting.vue";
 import { checkProfileJson } from "./jsonCheck";
 import { completeness, errorsByPath, errorsInside, pathWords, prettyJson, pruneEmpty, sectionsFrom } from "./profileLogic";
 import { useProfileChannels } from "./useProfileChannels";
@@ -110,7 +113,7 @@ import { useProfileChannels } from "./useProfileChannels";
 // (another tab, the menu, the browser) with unsaved edits asks first.
 export default {
   name: "ProfilePage",
-  components: { ProfileCompleteness, ProfileHistory, ProfileSection, RouteTabs },
+  components: { ProfileCompleteness, ProfileHistory, ProfileSection, QaCheckSetting, RouteTabs },
   setup() {
     const { options: channelOptions, load: loadChannels } = useProfileChannels();
     return {

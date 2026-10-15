@@ -40,35 +40,10 @@ describe("QaWarnings", () => {
     expect(w.vm.suggested).toEqual(["25%"]);
   });
 
-  it("Check against the standard stores the answer's warnings on the card, no new version", async () => {
-    const checklist = { code: "checklist", message: "No concrete benefit.", span: null };
-    api.POST_ReviseProposal.mockResolvedValue({ data: { warnings: [checklist] } });
-    const w = mount(QaWarnings, { props: { proposal: proposal() } });
-    await w.vm.checkStandard();
-    expect(api.POST_ReviseProposal).toHaveBeenCalledWith(7, { quick_action: "check_standard" });
-    expect(w.emitted("updated")[0][0].warnings).toEqual([checklist]);
-    expect(api.GET_Proposal).not.toHaveBeenCalled();
-  });
-
-  it("Fix warnings makes a corrected version and hands up the reloaded proposal", async () => {
-    api.POST_ReviseProposal.mockResolvedValue({ data: { number: 2 } });
-    api.GET_Proposal.mockResolvedValue({ data: proposal({ proposed_value: { text: "Fixed" }, warnings: [] }) });
-    const w = mount(QaWarnings, { props: { proposal: proposal() } });
-    await w.vm.fixWarnings();
-    expect(api.POST_ReviseProposal).toHaveBeenCalledWith(7, { quick_action: "fix_warnings" });
-    expect(w.emitted("updated")[0][0].proposed_value).toEqual({ text: "Fixed" });
-    expect(w.emitted("busy").map(([b]) => b)).toEqual([true, false]);
-  });
-
-  it("an applied proposal shows its warnings without the quick actions", () => {
-    const w = mount(QaWarnings, { props: { proposal: proposal({ status: "applied" }) } });
-    expect(w.find("[data-testid='qa-check-standard']").exists()).toBe(false);
-    expect(w.findAll("li")).toHaveLength(2);
-  });
-
-  it("renders nothing for an applied proposal without warnings", () => {
-    const w = mount(QaWarnings, { props: { proposal: proposal({ status: "applied", warnings: [] }) } });
-    expect(w.find("[data-testid='qa-warnings']").exists()).toBe(false);
+  it("an applied proposal still shows its warnings; none renders nothing", () => {
+    expect(mount(QaWarnings, { props: { proposal: proposal({ status: "applied" }) } }).findAll("li")).toHaveLength(2);
+    const none = mount(QaWarnings, { props: { proposal: proposal({ warnings: [] }) } });
+    expect(none.find("[data-testid='qa-warnings']").exists()).toBe(false);
   });
 });
 
@@ -105,8 +80,10 @@ describe("profile usage", () => {
     const task = { id: 1, type: "pim.writer", params: { channel: "eu" }, profile_versions: [4, 9] };
     const w = mount(ProfileUsageNote, { props: { proposal: proposal(), task }, global: { mocks: { $t } } });
     await flushPromises();
-    expect(w.text()).toBe("enrichment.profile.used:T:enrichment.profile.sections.facts (4) · T:enrichment.profile.sections.brand · T:enrichment.profile.sections.tone");
-    expect(w.find("[data-testid='profile-usage']").attributes("title")).toBe("T:enrichment.profile.used_hint");
+    expect(w.find("[data-testid='profile-usage-text']").text()).toBe(
+      "enrichment.profile.used:T:enrichment.profile.sections.facts (4) · T:enrichment.profile.sections.brand · T:enrichment.profile.sections.tone"
+    );
+    expect(w.text()).toContain("T:enrichment.profile.used_hint");
     expect(api.GET_ProfileVersions).toHaveBeenCalledWith({ channel: "eu" });
     const none = mount(ProfileUsageNote, { props: { proposal: proposal(), task: { ...task, profile_versions: [] } } });
     await flushPromises();

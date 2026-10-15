@@ -4,13 +4,9 @@
       <h3 class="proposal-panel__field m-0" data-testid="proposal-field">{{ fieldName }}</h3>
       <Tag v-if="language" :label="language.toUpperCase()" data-testid="proposal-language" />
       <StatusBadge v-if="proposal.status !== 'pending'" :label="$t(`enrichment.status.${proposal.status}`)" size="sm" />
-      <span class="proposal-panel__cost flex ai-ct gap-2">
+      <span class="proposal-panel__cost flex ai-ct gap-1">
         <CostLabel :cost="proposal.cost_usd" data-testid="proposal-cost" />
-        <BasicTooltip :text="metaLine">
-          <span class="proposal-panel__details-icon t-muted" tabindex="0" :aria-label="metaLine" data-testid="proposal-meta">
-            <FontAwesomeIcon :icon="$icons.info" aria-hidden="true" />
-          </span>
-        </BasicTooltip>
+        <ProposalDetails :proposal="proposal" :task="task" />
       </span>
     </header>
 
@@ -22,7 +18,22 @@
 
     <FormField v-if="editing" :label="$t('enrichment.review.edit_label')">
       <BasicTextarea v-model="draft" :rows="8" data-testid="proposal-edit-text" />
-      <LengthCounter v-if="rules" :length="draftLength" :rules="rules" />
+      <div class="flex ai-ct jc-sb flex-wrap gap-3 mt-2">
+        <LengthCounter v-if="rules" :length="draftLength" :rules="rules" />
+        <!-- Long texts (an HTML description) read better full screen; an unsaved draft is saved first. -->
+        <BasicButton
+          size="sm"
+          variant="ghost"
+          icon="fullscreen"
+          class="proposal-panel__full"
+          mutates
+          :disabled="saving"
+          data-testid="proposal-full-editor"
+          @click="openFullEditor"
+        >
+          {{ $t("enrichment.review.full_editor") }}
+        </BasicButton>
+      </div>
     </FormField>
     <!-- A Studio step's output is read and edited on its run, never here as raw data. -->
     <div v-else-if="runUid" class="flex-column gap-3" data-testid="proposal-studio">
@@ -49,18 +60,23 @@
       />
     </div>
 
-    <QaWarnings :proposal="proposal" @updated="(p) => $emit('updated', p)" @busy="(value) => (qaBusy = value)" />
-    <ProfileUsageNote :proposal="proposal" :task="task" />
+    <QaWarnings v-if="!editing" :proposal="proposal" @busy="(value) => (qaBusy = value)" />
 
+    <!-- One row of tools under the content: Refine with AI, then the guidelines check and its state. -->
     <ProposalCorrection
       v-if="correctable"
       v-show="!editing"
       :proposal="proposal"
       :task="task"
       :selection="selection"
+      :editor="false"
       @updated="(p) => $emit('updated', p)"
       @busy="(value) => (correctionBusy = value)"
-    />
+    >
+      <template #trail>
+        <QaCheckStatus :proposal="proposal" @updated="(p) => $emit('updated', p)" @busy="(value) => (checkBusy = value)" />
+      </template>
+    </ProposalCorrection>
 
     <ActionBar :actions="actions" :labelled="false" />
   </article>
@@ -76,24 +92,26 @@ import { PATCH_Proposal } from "@/api/enrichment/api";
 import CostLabel from "./CostLabel.vue";
 import DiffRenderer from "./DiffRenderer.vue";
 import LengthCounter from "./LengthCounter.vue";
-import ProfileUsageNote from "./ProfileUsageNote.vue";
 import ProposalCorrection from "./ProposalCorrection.vue";
+import ProposalDetails from "./ProposalDetails.vue";
+import QaCheckStatus from "./QaCheckStatus.vue";
 import QaWarnings from "./QaWarnings.vue";
 import { revisable, uniqueFragment, valueText } from "./correction";
 import { useFieldLabels } from "./useFieldLabels";
-import { editableText, isHtml, plainText, runUidOf, sourceText, textRules, translationSource, workerOf } from "./reviewLogic";
+import { editableText, isHtml, plainText, runUidOf, sourceText, textRules, translationSource } from "./reviewLogic";
 
 const ACTIONABLE = ["pending", "drifted"];
 
-// One proposal as a card: the field by its PIM name and the language, the change (DiffRenderer), Apply / Edit /
-// Reject. A translation shows its source text; a meta description its search preview. What its AI call cost sits in
-// the header; the worker and kind sit behind the info icon. Its QA warnings (with "Check against the standard" and
-// "Fix warnings") and what the AI used from the company profile sit under the text. `product` is the product on
-// screen, else it is fetched when the view needs it. A pending text or select proposal carries its correction tools
-// (ProposalCorrection); a selection in the text narrows them.
+// One proposal as a card, in three bands: the content (the field by its PIM name and the language, the change in
+// DiffRenderer — a translation with its source text, a meta description with its search preview and length — and
+// the QA warnings under it), one row of tools (Refine with AI, the guidelines check and its state), the decisions
+// (Reject, Edit, Apply). What the AI call cost sits in the header; the ⓘ next to it opens the details: cost, model,
+// worker and what the AI used from the company profile. Edit is in place; for a long text it leads on to the full
+// editor. `product` is the product on screen, else it is fetched when the view needs it. A selection in the text
+// narrows a correction.
 export default {
   name: "ProposalPanel",
-  components: { CostLabel, DiffRenderer, LengthCounter, ProfileUsageNote, ProposalCorrection, QaWarnings },
+  components: { CostLabel, DiffRenderer, LengthCounter, ProposalCorrection, ProposalDetails, QaCheckStatus, QaWarnings },
   props: {
     proposal: { type: Object, required: true },
     task: { type: Object, default: null },
@@ -106,7 +124,9 @@ export default {
     return { pimChannel: usePimChannelStore(), notify: useNotifyStore(), ...useFieldLabels() };
   },
   data() {
-    return { editing: false, draft: "", saving: false, loaded: null, selection: "", correctionBusy: false, qaBusy: false };
+    return {
+      editing: false, draft: "", saving: false, loaded: null, selection: "", correctionBusy: false, qaBusy: false, checkBusy: false,
+    };
   },
   computed: {
     locator() {
@@ -120,11 +140,6 @@ export default {
     },
     fieldName() {
       return this.proposalField(this.proposal);
-    },
-    metaLine() {
-      const p = this.proposal;
-      const confidence = p.confidence != null ? `${Math.round(Number(p.confidence) * 100)}%` : "";
-      return [workerOf(p.source) || p.source, p.target_kind, confidence].filter(Boolean).join(" · ");
     },
     rules() {
       return textRules(this.locator.feature_idx, this.feature(this.locator.feature_idx));
@@ -172,7 +187,7 @@ export default {
       return plainText(this.draft).trim().length;
     },
     actions() {
-      const off = this.busy || this.saving || this.correctionBusy || this.qaBusy;
+      const off = this.busy || this.saving || this.correctionBusy || this.qaBusy || this.checkBusy;
       if (this.editing) {
         return [
           { key: "cancel", role: "secondary", label: this.$t("common.cancel"), disabled: off, onClick: this.cancelEdit },
@@ -230,6 +245,7 @@ export default {
     cancelEdit() {
       this.editing = false;
     },
+    /** Saves the draft as a new version; false when it failed (the toast says why). */
     async saveEdit() {
       this.saving = true;
       try {
@@ -238,11 +254,17 @@ export default {
         this.editing = false;
         this.$emit("updated", data);
         this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.review.toast.edited") });
+        return true;
       } catch (err) {
         this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
+        return false;
       } finally {
         this.saving = false;
       }
+    },
+    async openFullEditor() {
+      if (this.draft !== editableText(this.proposal) && !(await this.saveEdit())) return;
+      this.$router.push({ name: "EnrichmentProposalEditor", params: { proposalId: String(this.proposal.id) } });
     },
   },
 };
@@ -270,11 +292,8 @@ export default {
 .proposal-panel__cost {
   margin-left: auto;
 }
-.proposal-panel__details-icon {
-  display: inline-flex;
-  padding: var(--space-1);
-  border-radius: var(--radius-full);
-  cursor: help;
+.proposal-panel__full {
+  margin-left: auto;
 }
 .proposal-panel__studio {
   align-self: flex-start;

@@ -1,7 +1,8 @@
 <template>
-  <p v-if="text" class="profile-usage m-0 fs-200 t-secondary" :title="$t('enrichment.profile.used_hint')" data-testid="profile-usage">
-    <FontAwesomeIcon :icon="$icons.info" class="mr-1" aria-hidden="true" />{{ text }}
-  </p>
+  <div v-if="text" class="profile-usage flex-column gap-1" data-testid="profile-usage">
+    <p class="m-0" data-testid="profile-usage-text">{{ text }}</p>
+    <p class="m-0 fs-200 t-secondary">{{ $t("enrichment.profile.used_hint") }}</p>
+  </div>
 </template>
 
 <script>
@@ -14,6 +15,7 @@ const KIND_OF_SHAPE = { text: "write", select: "pick" };
 
 // What the AI was likely given from the company profile for this proposal, read from the profile versions its task
 // used (`profile_versions`), not the live profile; shown when the user may read the profile, nothing on any failure.
+// It sits in the proposal's details panel (ProposalDetails).
 export default {
   name: "ProfileUsageNote",
   props: {

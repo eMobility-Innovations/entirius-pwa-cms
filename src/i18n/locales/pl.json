@@ -2784,6 +2784,17 @@
       "empty_message": "Żadna propozycja nie pasuje do bieżącego filtra.",
       "reject_reason": "Powód (opcjonalnie)",
       "reject_reason_placeholder": "Dlaczego odrzucasz tę propozycję?",
+      "focus": {
+        "progress": "{index} z {total} do przejrzenia",
+        "studio_title": "Artykuł: {topic} · {step}",
+        "studio_untitled": "Artykuł ze Studia · {step}",
+        "step_empty": "Ten krok nie ma jeszcze treści.",
+        "shortcuts": "A zastosuj · R odrzuć · S pomiń · ← → przejdź",
+        "shortcuts_move": "S następna · ← → przejdź",
+        "reject_keys": "Enter odrzuca · Esc anuluje",
+        "previous": "Poprzednia",
+        "next": "Następna"
+      },
       "focus_done": "Przejrzano cały przefiltrowany zbiór.",
       "toast": {
         "accepted": "Propozycja zaakceptowana.",
@@ -2839,7 +2850,14 @@
       },
       "studio_article": "Artykuł ze Studia",
       "studio_note": "Ten tekst to krok artykułu ze Studia. Przeczytasz i zmienisz go w Studiu, razem z całym artykułem.",
-      "open_in_studio": "Otwórz w Studiu"
+      "open_in_studio": "Otwórz w Studiu",
+      "full_editor": "Pełny edytor",
+      "details": {
+        "title": "Szczegóły",
+        "model": "Model",
+        "default_model": "Model domyślny",
+        "source": "Wykonawca"
+      }
     },
     "status": {
       "pending": "Oczekująca",
@@ -3076,6 +3094,7 @@
       "rules": "Reguły",
       "rules_hint": "Jedna reguła w wierszu. Każde uruchomienie tego szablonu ich przestrzega.",
       "active": "Pokazuj w „Uruchom AI”",
+      "active_hint": "Włączone: szablon jest do wyboru przy uruchamianiu AI na produktach (karta produktu, lista produktów) i w Studio. Wyłączone: tam go nie ma. Wykonane przebiegi i ich propozycje zostają bez zmian.",
       "move_up": "Przesuń wyżej",
       "move_down": "Przesuń niżej",
       "saved": "Szablon zapisany",
@@ -3096,9 +3115,36 @@
     },
     "studio": {
       "title": "Studio",
-      "description": "Pisz dłuższe treści krok po kroku: AI przygotowuje każdy krok, Ty go sprawdzasz i zatwierdzasz.",
+      "description": "Tu zaczynasz każdą pracę z AI: uruchom zadanie na wybranych produktach albo pisz dłuższe treści krok po kroku — AI przygotowuje każdy krok, Ty go sprawdzasz i zatwierdzasz.",
       "new": "Nowa",
       "new_title": "Nowa treść",
+      "start_title": "Zacznij pracę z AI",
+      "start_empty": "Na razie nie ma czego uruchomić: brak szablonów AI i procesów treści.",
+      "group_tasks": "Zadania",
+      "group_tasks_hint": "Jedna praca na wybranych produktach. Propozycje trafiają do przeglądu.",
+      "group_guided": "Prowadzone",
+      "group_guided_hint": "Kilka kroków; każdy zatwierdzasz przed następnym.",
+      "task": {
+        "channel": "Kanał",
+        "products": "Produkty",
+        "mode_paste": "Wklej SKU",
+        "mode_category": "Kategoria",
+        "skus": "SKU",
+        "skus_placeholder": "Wklej SKU z Excela albo wpisz je, oddzielone przecinkami, spacjami lub nowymi liniami",
+        "category": "Kategoria",
+        "category_pick": "Wybierz kategorię",
+        "checking": "Sprawdzam produkty…",
+        "recognised_one": "Rozpoznano 1 produkt",
+        "recognised_few": "Rozpoznano {count} produkty",
+        "recognised_many": "Rozpoznano {count} produktów",
+        "unknown": "Nie znaleziono {count}, pominięte: {list}",
+        "and_more": "{list} i {count} więcej",
+        "too_many": "Najwyżej {max} SKU naraz. Podziel listę na mniejsze uruchomienia.",
+        "in_category_one": "1 produkt w tej kategorii.",
+        "in_category_few": "{count} produkty w tej kategorii.",
+        "in_category_many": "{count} produktów w tej kategorii.",
+        "first_only": "Jedno uruchomienie obejmie pierwsze {max}."
+      },
       "workflow": "Co napisać",
       "channel": "Kanał",
       "start": "Rozpocznij",
@@ -3316,7 +3362,7 @@
       "compare_to": "z",
       "restore_title": "Przywrócić wersję {n}?",
       "restore_message": "Jej treść stanie się bieżącym profilem jako nowa wersja. Nic nie ginie: bieżąca wersja zostaje w historii.",
-      "used": "Prawdopodobnie z profilu firmy: {sections}",
+      "used": "Na podstawie profilu firmy: {sections}",
       "sections": {
         "brand": "Marka",
         "persona": "Odbiorcy",
@@ -3385,7 +3431,14 @@
       "json_blocked": "Najpierw popraw błędy w JSON-ie, potem wróć do formularza.",
       "row": "Wiersz {n}",
       "from_company": "Z profilu firmy",
-      "inherited_label": "Puste tutaj, więc ten kanał używa profilu całej firmy:"
+      "inherited_label": "Puste tutaj, więc ten kanał używa profilu całej firmy:",
+      "qa_setting": {
+        "title": "Kontrola jakości",
+        "label": "Sprawdzaj każdą propozycję AI z wytycznymi (niewielki koszt AI za każde pole)",
+        "hint": "Wytyczne to listy kontrolne poniżej. Uruchomienie może to dla siebie włączyć lub wyłączyć.",
+        "on_toast": "Każda nowa propozycja AI jest sprawdzana z wytycznymi.",
+        "off_toast": "Nowe propozycje AI nie są sprawdzane automatycznie."
+      }
     },
     "memory": {
       "title": "Pamięć",
@@ -3452,10 +3505,17 @@
       "add_fact": "Dodaj do faktów",
       "fact_suggested": "Zasugerowano",
       "fact_suggested_toast": "Zasugerowano jako fakt — potwierdź w Pamięci.",
-      "check_standard": "Sprawdź ze standardem",
       "fix_warnings": "Popraw ostrzeżenia",
-      "checked_toast": "Nie znaleziono problemów.",
-      "fixed_toast": "Poprawiono — nowa wersja."
+      "fixed_toast": "Poprawiono — nowa wersja.",
+      "check": "Sprawdź z wytycznymi",
+      "check_hint": "AI sprawdzi tekst z listami kontrolnymi z profilu firmy. Niewielki koszt AI, bez nowej wersji.",
+      "checked_ok": "Sprawdzono z wytycznymi",
+      "checked_one": "Sprawdzono: 1 ostrzeżenie",
+      "checked_many": "Sprawdzono: {count} ostrzeżeń",
+      "run_toggle": "Sprawdź z wytycznymi",
+      "run_default_on": "Domyślnie w ustawieniach: włączone. Niewielki koszt AI za każde pole.",
+      "run_default_off": "Domyślnie w ustawieniach: wyłączone. Niewielki koszt AI za każde pole.",
+      "checked_few": "Sprawdzono: {count} ostrzeżenia"
     },
     "workers": {
       "alerts": "Workery AI wymagające uwagi",

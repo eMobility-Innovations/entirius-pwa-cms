@@ -97,6 +97,8 @@ const stubs = {
   BasicRadioGroup: true,
   FormField: { template: "<div><slot /></div>" },
   RouterLink: { name: "RouterLink", props: ["to"], template: "<a><slot /></a>" },
+  TaskTargetPicker: { name: "TaskTargetPicker", props: ["modelValue"], template: "<div />" },
+  QaCheckToggle: { name: "QaCheckToggle", props: ["modelValue", "disabled"], template: "<div data-testid='qa-check-toggle' />" },
 };
 
 async function openDialog(props = {}) {
@@ -119,6 +121,26 @@ describe("RunAiTaskDialog", () => {
     health.aiUsable = true;
     Object.assign(catalog, { fields: [], languages: [] });
     gate.wait = null;
+  });
+
+  describe("guidelines check", () => {
+    it("a text task offers the per-run check; untouched it leaves the Settings default", async () => {
+      const w = await openDialog({ initialWorker: "pim.writer" });
+      expect(w.find("[data-testid='qa-check-toggle']").exists()).toBe(true);
+      expect(w.vm.params).not.toHaveProperty("qa_check");
+    });
+
+    it("the run's own choice rides in the task params", async () => {
+      const w = await openDialog({ initialWorker: "pim.writer" });
+      w.findComponent({ name: "QaCheckToggle" }).vm.$emit("update:modelValue", false);
+      expect(w.vm.params.qa_check).toBe(false);
+    });
+
+    it("a task that writes no text has no check", async () => {
+      const w = await openDialog({ initialWorker: "pim.translate" });
+      expect(w.find("[data-testid='qa-check-toggle']").exists()).toBe(false);
+      expect(w.vm.params).not.toHaveProperty("qa_check");
+    });
   });
 
   it("the form waits for the channel's catalog: nothing can be picked, then reset, before it is in", async () => {
@@ -382,6 +404,62 @@ describe("RunAiTaskDialog", () => {
       await w.vm.run("now");
       expect(notify).toHaveBeenCalledWith({ type: "negative", msg: description });
       expect(w.emitted("close")).toBeUndefined();
+    });
+  });
+  describe("Studio: products picked in the dialog", () => {
+    const action = (w, key) => w.vm.actions.find((a) => a.key === key);
+    const pick = async (w, target) => {
+      w.findComponent({ name: "TaskTargetPicker" }).vm.$emit("update:modelValue", { skus: [], filters: null, count: 0, pending: false, ...target });
+      await flushPromises();
+    };
+    const studio = () => openDialog({ skus: [], pickTargets: true, initialWorker: "pim.description" });
+    it("nothing picked or still checking: nothing runs", async () => {
+      const w = await studio();
+      expect(action(w, "queue").disabled).toBe(true);
+      await pick(w, { skus: ["A"], count: 1, pending: true });
+      expect(action(w, "now").disabled).toBe(true);
+    });
+
+    it("the recognised SKUs run as a list; one product runs now", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 5, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await studio();
+      await pick(w, { skus: ["A"], count: 1 });
+      expect(action(w, "now")).toMatchObject({ role: "primary", disabled: false });
+      await w.vm.run();
+      expect(mockSpawn.mock.calls[0][0]).toMatchObject({
+        lane: "now", scope_spec: { mode: "list", module: "pim", channel: "default-europe", refs: ["A"] },
+      });
+    });
+
+    it("over 20 recognised SKUs: Add to queue only", async () => {
+      const w = await studio();
+      const skus = Array.from({ length: 21 }, (_, i) => `S${i}`);
+      await pick(w, { skus, count: 21 });
+      expect(action(w, "queue").role).toBe("primary");
+      expect(action(w, "now").disabled).toBe(true);
+    });
+
+    it("a big category is a filter scope, queued", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 6, lane: "queue", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await studio();
+      await pick(w, { filters: { category_idx: "sofas" }, count: 120 });
+      expect(action(w, "queue")).toMatchObject({ role: "primary", disabled: false });
+      expect(action(w, "now").disabled).toBe(true);
+      await w.vm.run();
+      expect(mockSpawn.mock.calls[0][0]).toMatchObject({
+        lane: "queue",
+        scope_spec: { mode: "filter", module: "pim", channel: "default-europe", filters: { category_idx: "sofas" } },
+      });
+      expect(mockSpawn.mock.calls[0][0].scope_spec.refs).toBeUndefined();
+    });
+
+    it("a reopened dialog forgets the products picked before", async () => {
+      const w = await studio();
+      await pick(w, { skus: ["A"], count: 1 });
+      await w.setProps({ open: false });
+      await w.setProps({ open: true });
+      await flushPromises();
+      expect(w.vm.runCount).toBe(0);
     });
   });
 });

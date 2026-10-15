@@ -14,7 +14,7 @@
           {{ $t("enrichment.correct.open") }}
           <CountBadge v-if="corrections" :count="corrections" class="ml-2" />
         </BasicButton>
-        <router-link v-if="shape === 'text'" :to="editorLink" class="proposal-correction__editor" data-testid="open-editor">
+        <router-link v-if="editor && shape === 'text'" :to="editorLink" class="proposal-correction__editor" data-testid="open-editor">
           <FontAwesomeIcon :icon="$icons.edit" aria-hidden="true" />
           {{ $t("enrichment.editor.open") }}
         </router-link>
@@ -72,6 +72,8 @@ export default {
     task: { type: Object, default: null },
     selection: { type: String, default: "" },
     size: { type: String, default: "sm" },
+    // The "Open editor" link; the review card reaches the full editor from its Edit instead.
+    editor: { type: Boolean, default: true },
   },
   emits: ["updated", "busy"],
   setup(props, { emit }) {
