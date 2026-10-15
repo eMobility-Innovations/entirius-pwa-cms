@@ -70,7 +70,9 @@ export default {
       this.open = true;
       this.loadCount();
     },
+    // One batch at a time: a second send (the footer, Enter in the composer) while one is on its way sends nothing.
     async submit({ instruction, quickAction }) {
+      if (this.busy) return;
       this.busy = true;
       try {
         const { data } = await POST_ReviseTask(this.taskId, reviseBody({ instruction, quickAction }));
