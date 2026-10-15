@@ -31,14 +31,18 @@ export function templateParams(params = {}) {
   return rest;
 }
 
-/** POST templates/ body for the run set up in the dialog ("Save as template"). */
-export function newTemplateBody({ label, worker, params, templates = [] }) {
+/**
+ * POST templates/ body for the run set up in the dialog ("Save as template"). `templates` must be every template
+ * (keys are unique across all of them, hidden and other modules included); `rules` are carried over from the template
+ * the run started from.
+ */
+export function newTemplateBody({ label, worker, params, rules = [], templates = [] }) {
   return {
     key: templateKey(label, templates.map((t) => t.key)),
     label: label.trim(),
     worker_key: worker.key,
     params: templateParams(params),
-    rules: [],
+    rules: [...rules],
     position: nextPosition(templates),
     active: true,
   };

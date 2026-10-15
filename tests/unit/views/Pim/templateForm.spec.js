@@ -35,6 +35,7 @@ describe("templateForm", () => {
       label: " Short meta ",
       worker: { key: "pim.writer" },
       params: { channel: "eu", fields: ["meta_title"], languages: ["*"] },
+      rules: ["Brand name first."],
       templates: [{ key: "short-meta", position: 10 }],
     });
     expect(body).toEqual({
@@ -42,9 +43,13 @@ describe("templateForm", () => {
       label: "Short meta",
       worker_key: "pim.writer",
       params: { fields: ["meta_title"], languages: ["*"] },
-      rules: [],
+      rules: ["Brand name first."],
       position: 20,
       active: true,
     });
+  });
+
+  it("a template made from scratch has no rules", () => {
+    expect(newTemplateBody({ label: "X", worker: { key: "w" }, params: {} }).rules).toEqual([]);
   });
 });

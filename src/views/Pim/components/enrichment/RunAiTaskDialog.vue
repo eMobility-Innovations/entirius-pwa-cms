@@ -64,7 +64,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { useConfigHealthStore } from "@/stores/configHealth";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
-import { POST_SpawnTask, POST_Template } from "@/api/enrichment/api";
+import { GET_Templates, POST_SpawnTask, POST_Template } from "@/api/enrichment/api";
 import { fieldOptions, loadCatalog } from "@/views/EnrichmentReview/fieldCatalog";
 import AiParamsForm from "./AiParamsForm.vue";
 import {
@@ -226,8 +226,14 @@ export default {
     async saveTemplate() {
       this.busy = true;
       try {
+        // Every template, not only the runnable ones: a hidden one or another module's may hold the key.
+        const { data: all } = await GET_Templates();
         const body = newTemplateBody({
-          label: this.templateLabel, worker: this.worker, params: this.params, templates: this.templates,
+          label: this.templateLabel,
+          worker: this.worker,
+          params: this.params,
+          rules: this.template?.rules || [],
+          templates: Array.isArray(all) ? all : all?.results || [],
         });
         const { data } = await POST_Template(body);
         this.saving = false;

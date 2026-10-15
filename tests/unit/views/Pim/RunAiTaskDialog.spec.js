@@ -3,11 +3,13 @@ import { mount, flushPromises } from "@vue/test-utils";
 
 const mockSpawn = vi.fn();
 const mockSaveTemplate = vi.fn();
+const mockListTemplates = vi.fn();
 const notify = vi.fn();
 const catalog = vi.hoisted(() => ({ fields: [], languages: [] }));
 vi.mock("@/api/enrichment/api", () => ({
   POST_SpawnTask: (...a) => mockSpawn(...a),
   POST_Template: (...a) => mockSaveTemplate(...a),
+  GET_Templates: (...a) => mockListTemplates(...a),
 }));
 vi.mock("@/views/EnrichmentReview/fieldCatalog", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -229,23 +231,26 @@ describe("RunAiTaskDialog", () => {
     expect(writer.vm.researchKeys).toEqual(["seo_brief"]);
   });
 
-  it("Save as template keeps the run (no channel) under a key made from its name", async () => {
-    mockSaveTemplate.mockResolvedValue({ data: { key: "my-meta" } });
+  it("Save as template keeps the run (no channel) and its template's rules under a key unique among all templates", async () => {
+    mockSaveTemplate.mockResolvedValue({ data: { key: "my-meta-2" } });
+    // A hidden template (not offered in the dialog) already holds the key the name makes.
+    mockListTemplates.mockResolvedValue({ data: [...TEMPLATES, { key: "my-meta", position: 30, active: false }] });
     const w = await openDialog({ templates: TEMPLATES, initialTemplate: "meta", initialWorker: "" });
     w.vm.startSaving();
     w.vm.templateLabel = "My meta";
     await w.vm.saveTemplate();
 
+    expect(mockListTemplates).toHaveBeenCalledWith();
     expect(mockSaveTemplate).toHaveBeenCalledWith({
-      key: "my-meta",
+      key: "my-meta-2",
       label: "My meta",
       worker_key: "pim.writer",
       params: { fields: ["meta_title", "meta_description"], languages: ["*"], prompt: "", augment: ["seo_brief"], seo_scope: "subject" },
-      rules: [],
-      position: 20,
+      rules: ["Brand first."],
+      position: 40,
       active: true,
     });
-    expect(w.emitted("template-saved")[0][0]).toEqual({ key: "my-meta" });
+    expect(w.emitted("template-saved")[0][0]).toEqual({ key: "my-meta-2" });
     expect(w.vm.saving).toBe(false);
   });
 });
