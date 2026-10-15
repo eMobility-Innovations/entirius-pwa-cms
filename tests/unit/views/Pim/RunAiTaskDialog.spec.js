@@ -6,6 +6,8 @@ const mockSaveTemplate = vi.fn();
 const mockListTemplates = vi.fn();
 const notify = vi.fn();
 const catalog = vi.hoisted(() => ({ fields: [], languages: [] }));
+// `gate.wait`: a promise the catalog read waits for (a slow first read of the channel's catalog).
+const gate = vi.hoisted(() => ({ wait: null }));
 vi.mock("@/api/enrichment/api", () => ({
   POST_SpawnTask: (...a) => mockSpawn(...a),
   POST_Template: (...a) => mockSaveTemplate(...a),
@@ -13,7 +15,10 @@ vi.mock("@/api/enrichment/api", () => ({
 }));
 vi.mock("@/views/EnrichmentReview/fieldCatalog", async (importOriginal) => ({
   ...(await importOriginal()),
-  loadCatalog: async () => ({ ...catalog }),
+  loadCatalog: async () => {
+    await gate.wait;
+    return { ...catalog };
+  },
 }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 vi.mock("@/stores/pimChannel", () => ({
@@ -113,6 +118,43 @@ describe("RunAiTaskDialog", () => {
     notify.mockReset();
     health.aiUsable = true;
     Object.assign(catalog, { fields: [], languages: [] });
+    gate.wait = null;
+  });
+
+  it("the form waits for the channel's catalog: nothing can be picked, then reset, before it is in", async () => {
+    let release;
+    gate.wait = new Promise((resolve) => (release = resolve));
+    Object.assign(catalog, { languages: ["en", "pl"] });
+    const w = await openDialog({ initialWorker: "pim.description" });
+    expect(w.find("[data-testid='ai-task-loading']").exists()).toBe(true);
+    expect(form(w).exists()).toBe(false);
+    expect(w.vm.actions.find((a) => a.key === "queue").disabled).toBe(true);
+    release();
+    await flushPromises();
+    expect(w.find("[data-testid='ai-task-loading']").exists()).toBe(false);
+    expect(form(w).props("modelValue").languages).toEqual(["en", "pl"]);
+    expect(w.vm.actions.find((a) => a.key === "queue").disabled).toBe(false);
+  });
+
+  it("a double tap on Run now sends one run", async () => {
+    let answer;
+    mockSpawn.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    const ModalWithActions = {
+      name: "BasicModal",
+      props: ["open", "actions"],
+      template: "<div><slot /><button v-for='a in actions' :key='a.key' :data-testid='a.testid' :disabled='a.disabled || a.loading' @click='a.onClick'>{{ a.label }}</button></div>",
+    };
+    const w = mount(RunAiTaskDialog, {
+      props: { open: false, workers: WORKERS, initialWorker: "pim.description", skus: ["A"], background: true },
+      global: { stubs: { ...stubs, BasicModal: ModalWithActions } },
+    });
+    await w.setProps({ open: true });
+    await flushPromises();
+    await w.find("[data-testid='ai-task-run-now']").trigger("click");
+    await w.find("[data-testid='ai-task-run-now']").trigger("click");
+    answer({ data: { id: 1, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+    await flushPromises();
+    expect(mockSpawn).toHaveBeenCalledTimes(1);
   });
 
   it("generates the form from the picked worker with channel defaults", async () => {

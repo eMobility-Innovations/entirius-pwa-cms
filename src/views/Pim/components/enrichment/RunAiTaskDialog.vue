@@ -14,6 +14,7 @@
       </router-link>
     </div>
 
+    <Loader v-else-if="!ready" block data-testid="ai-task-loading" />
     <div v-else class="flex-column gap-4">
       <AiToolboxHint />
       <FormField v-if="templates.length" :label="$t('enrichment.run.template')">
@@ -129,6 +130,9 @@ export default {
       templateLabel: "",
       runNowMax: RUN_NOW_MAX,
       sendingLane: "",
+      // The form shows once the channel's catalog is in: defaults set after it never overwrite the operator's picks.
+      ready: false,
+      openSeq: 0,
     };
   },
   computed: {
@@ -174,7 +178,7 @@ export default {
       return buildParams(this.fields, this.values, this.researchKeys.length ? this.research : null);
     },
     canRun() {
-      return !!this.worker && !!this.skus.length && this.health.aiUsable && !missingRequired(this.fields, this.values).length;
+      return this.ready && !!this.worker && !!this.skus.length && this.health.aiUsable && !missingRequired(this.fields, this.values).length;
     },
     // The run on Runs: its progress, then what it proposed, in one place.
     taskLink() {
@@ -206,13 +210,17 @@ export default {
   },
   methods: {
     async reset() {
+      const mine = ++this.openSeq;
+      this.ready = false;
       this.createdTask = null;
       this.saving = false;
       // A custom run starts with no worker picked: Run waits until the operator chose what the AI makes.
       this.workerKey = this.initialWorker || (this.workers.length === 1 ? this.workers[0].key : "");
       this.templateKey = this.initialTemplate;
-      this.applyDefaults();
       this.catalog = await loadCatalog(this.channel);
+      if (mine !== this.openSeq || !this.open) return;
+      this.applyDefaults();
+      this.ready = true;
     },
     applyDefaults() {
       const mainLanguage = this.languages[0] || this.pimChannel.activeChannel?.default_language || "";
