@@ -83,4 +83,20 @@ describe("EnrichmentReview filtered by task", () => {
     await mountPage({ status: "__all" });
     expect(mockGetProposals.mock.calls[0][0].status).toBe("all");
   });
+
+  it("a slow answer for a filter already left never replaces the newer list", async () => {
+    const w = await mountPage({});
+    let answerSlow;
+    mockGetProposals.mockImplementationOnce(() => new Promise((resolve) => { answerSlow = resolve; }));
+    mockGetProposals.mockImplementationOnce(() => Promise.resolve({ data: { results: [{ id: 9, status: "applied" }], count: 1 } }));
+    const slow = w.vm.fetchRows();
+    await w.vm.onFilterChange("status", "applied");
+    await flushPromises();
+    answerSlow({ data: { results: [{ id: 1, status: "pending" }], count: 5 } });
+    await slow;
+    await flushPromises();
+    expect(w.findComponent({ name: "ListMode" }).props("rows")).toEqual([{ id: 9, status: "applied" }]);
+    expect(w.vm.totalCount).toBe(1);
+    expect(w.vm.loading).toBe(false);
+  });
 });

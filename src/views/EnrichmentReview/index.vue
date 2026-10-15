@@ -317,6 +317,8 @@ export default {
       importVisible: false,
       previewSku: null,
       previewVisible: false,
+      // Bumped by every list read and on leaving: only the latest read lands (a slow answer never undoes a filter).
+      fetchSeq: 0,
     };
   },
   computed: {
@@ -409,6 +411,9 @@ export default {
     // The import dialog needs the channel/language list; load it once (no-op if already cached).
     if (!this.pimChannel.channels.length) this.pimChannel.fetchChannels();
   },
+  beforeUnmount() {
+    this.fetchSeq += 1;
+  },
   methods: {
     onImported() {
       // New tasks aren't proposals, so the review list won't change — but refresh so any freshly
@@ -469,14 +474,17 @@ export default {
       return f;
     },
     async fetchRows() {
+      const mine = ++this.fetchSeq;
       this.loading = true;
       try {
         const { data } = await GET_Proposals(this.buildParams());
+        if (mine !== this.fetchSeq) return;
         this.rows = data.results || [];
         this.totalCount = data.count || 0;
         noteProductNames(this.rows);
         this.loadRuns([...this.rows.map((row) => row.task_id), this.filters.task]);
       } catch (err) {
+        if (mine !== this.fetchSeq) return;
         this.notify.spawnNotification({
           type: "negative",
           msg: extractApiMessage(err, this.$t("notifications.error")),
@@ -484,7 +492,7 @@ export default {
         this.rows = [];
         this.totalCount = 0;
       } finally {
-        this.loading = false;
+        if (mine === this.fetchSeq) this.loading = false;
       }
     },
     onFilterChange(field, value) {
