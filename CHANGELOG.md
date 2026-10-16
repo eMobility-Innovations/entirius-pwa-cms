@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.3.0-rc.1] (2026-10-16)
+
 ### Added
 
 - Image processing in Run AI (an `image` worker or its templates): the picture to process (one product), what to do
