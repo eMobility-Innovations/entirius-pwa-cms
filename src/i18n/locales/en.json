@@ -981,6 +981,7 @@
     "role_angle": "Angle",
     "confirm_delete_media": "Are you sure you want to remove this media?",
     "edit_media": "Edit Media",
+    "ai_on_picture": "AI on this picture",
     "video_title": "Video title",
     "media_reordered": "Order saved",
     "alt_text": "Alt text",
@@ -2955,7 +2956,8 @@
         "HARD_CAP_REACHED": "The AI spending limit is reached",
         "SPEND_CAP_EXCEEDED": "The AI spending limit is reached",
         "QUOTA_EXCEEDED": "The AI quota is used up",
-        "PICTURE_NOT_FOUND": "The chosen picture is no longer on this product"
+        "PICTURE_NOT_FOUND": "The chosen picture is no longer on this product",
+        "PRESET_NOT_FOUND": "The image preset does not fit the chosen operation or is off in the AI toolbox"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} to review",

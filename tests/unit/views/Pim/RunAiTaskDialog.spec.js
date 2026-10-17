@@ -130,7 +130,7 @@ const stubs = {
   FormField: { template: "<div><slot /></div>" },
   RouterLink: { name: "RouterLink", props: ["to"], template: "<a><slot /></a>" },
   TaskTargetPicker: { name: "TaskTargetPicker", props: ["modelValue"], template: "<div />" },
-  PicturePicker: { name: "PicturePicker", props: ["modelValue", "module", "channel", "subjectRef", "label"], template: "<div />" },
+  PicturePicker: { name: "PicturePicker", props: ["modelValue", "module", "channel", "subjectRef", "label", "preferred"], template: "<div />" },
   QaCheckToggle: { name: "QaCheckToggle", props: ["modelValue", "disabled"], template: "<div data-testid='qa-check-toggle' />" },
 };
 
@@ -582,6 +582,21 @@ describe("RunAiTaskDialog", () => {
       w.vm.templateLabel = "Mine";
       await w.vm.saveTemplate();
       expect(mockSaveTemplate.mock.calls[0][0].params).toMatchObject({ operation: "packshot", preset: "packshot-white" });
+    });
+
+    it("started on one gallery picture: the action names the dialog, its template and operation are fixed", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 9, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await image({ skus: ["A"], templates: [IMAGE_TEMPLATE], initialTemplate: IMAGE_TEMPLATE.key, initialPicture: "12" });
+      expect(w.findComponent({ name: "BasicModal" }).attributes("title")).toBe("Packshot");
+      expect(w.find("[data-testid='ai-task-template']").exists()).toBe(false);
+      expect(picker(w).props("preferred")).toBe("12");
+      expect(form(w).props("fields").map((f) => f.name)).toEqual(["prompt", "n"]);
+      picker(w).vm.$emit("update:modelValue", "12");
+      await flushPromises();
+      await w.vm.run();
+      expect(mockSpawn.mock.calls[0][0]).toMatchObject({
+        template: "image-packshot", params: { operation: "packshot", picture_ref: "12" },
+      });
     });
   });
 

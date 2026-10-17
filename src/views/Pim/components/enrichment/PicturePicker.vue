@@ -30,7 +30,8 @@ import { resolveMediaUrl } from "@/utils/resolveMediaUrl";
 // from a picture (the `video` kind; the `image` kind next). Loads `GET subjects/pictures/` for `module` / `channel` /
 // `subjectRef` and reloads when any of them changes. v-model = the picked picture's `ref` ("" = none: still loading,
 // no pictures, or the list failed) — the caller sends it as `params.picture_ref` and keeps Run off while it is "".
-// `label` names the choice ("Picture to animate").
+// `label` names the choice ("Picture to animate"). `preferred` (a ref) is picked first when the list has it — the
+// gallery tile the run was started from.
 export default {
   name: "PicturePicker",
   props: {
@@ -39,6 +40,7 @@ export default {
     channel: { type: String, required: true },
     subjectRef: { type: String, required: true },
     label: { type: String, required: true },
+    preferred: { type: String, default: "" },
   },
   emits: ["update:modelValue"],
   data() {
@@ -81,7 +83,8 @@ export default {
       }
     },
     preselected() {
-      return (this.pictures.find((picture) => picture.is_main) || this.pictures[0])?.ref || "";
+      const pick = (test) => this.pictures.find(test);
+      return (pick((picture) => picture.ref === this.preferred) || pick((picture) => picture.is_main) || this.pictures[0])?.ref || "";
     },
   },
 };

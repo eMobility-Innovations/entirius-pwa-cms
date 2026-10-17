@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.3.0-rc.2] (2026-10-17)
+
+### Added
+
+- AI on one picture: a product picture tile in the media gallery has an AI menu with the image templates (packshot,
+  scene, enhance, custom instruction). The run dialog opens named after the action, on that picture, with the
+  template and its operation fixed; only the instruction and the number of variants are left to fill.
+
+### Fixed
+
+- A run that failed with `PRESET_NOT_FOUND` names the cause (the image preset does not fit the operation or is off in
+  the AI toolbox) instead of a generic AI error.
+
 ## [3.3.0-rc.1] (2026-10-16)
 
 ### Added

@@ -980,6 +980,7 @@
     "role_angle": "Kąt",
     "confirm_delete_media": "Czy na pewno chcesz usunąć to medium?",
     "edit_media": "Edytuj media",
+    "ai_on_picture": "AI na tym zdjęciu",
     "video_title": "Tytuł wideo",
     "media_reordered": "Kolejność zapisana",
     "alt_text": "Tekst alternatywny",
@@ -2954,7 +2955,8 @@
         "HARD_CAP_REACHED": "Osiągnięto limit wydatków na AI",
         "SPEND_CAP_EXCEEDED": "Osiągnięto limit wydatków na AI",
         "QUOTA_EXCEEDED": "Limit AI się wyczerpał",
-        "PICTURE_NOT_FOUND": "Wybranego zdjęcia nie ma już przy tym produkcie"
+        "PICTURE_NOT_FOUND": "Wybranego zdjęcia nie ma już przy tym produkcie",
+        "PRESET_NOT_FOUND": "Preset obrazu nie pasuje do wybranej operacji albo jest wyłączony w AI toolbox"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",

@@ -58,7 +58,13 @@
     <template v-else-if="!loading">
       <div class="product-layout">
         <div class="product-layout__media">
-          <MediaGallery :key="mediaKey" :channel-idx="channelIdx" :sku="product.sku" />
+          <MediaGallery
+            :key="mediaKey"
+            :channel-idx="channelIdx"
+            :sku="product.sku"
+            :ai-actions="aiPictureActions"
+            @ai-run="openAiOnPicture"
+          />
         </div>
 
         <div class="product-layout__content">
@@ -286,6 +292,7 @@
         :workers="aiWorkers"
         :templates="aiTemplates"
         :initial-template="aiTemplate"
+        :initial-picture="aiPicture"
         :skus="product.sku ? [product.sku] : []"
         background
         @created="(task) => $refs.aiResults?.track(task)"
@@ -465,6 +472,7 @@ export default {
       templates: aiTemplates,
       allTemplates: aiAllTemplates,
       enabled: aiEnabled,
+      writable: aiWritable,
       usable: aiUsable,
       reloadTemplates: reloadAiTemplates,
     } = useAiWorkers();
@@ -473,7 +481,7 @@ export default {
     // Deleting a SKU is its own permission (access plan 09b): an Editor edits but does not delete. UX only.
     const canDeleteProduct = computed(() => access.can(AREAS.PIM_PRODUCT_DELETE, "write"));
     const canReadTab = (tab) => access.can(EMBEDDED_AREAS[tab]);
-    return { loader, notify, pimChannel, munin, formErrors, aiWorkers, aiTemplates, aiAllTemplates, aiEnabled, aiUsable, reloadAiTemplates, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
+    return { loader, notify, pimChannel, munin, formErrors, aiWorkers, aiTemplates, aiAllTemplates, aiEnabled, aiWritable, aiUsable, reloadAiTemplates, canDeleteProduct, canReadTab, ...unsaved, T9N_TABS, EMBEDDED_AREAS };
   },
   data() {
     return {
@@ -488,6 +496,7 @@ export default {
       showAddToChannelDialog: false,
       aiDialogOpen: false,
       aiTemplate: "",
+      aiPicture: "",
       mediaKey: 0,
       translatingField: null,
       overriddenLangsMap: {},
@@ -558,6 +567,14 @@ export default {
       return this.tabs.find((t) => t.value === this.activeTab)?.label || "";
     },
     // Secondary actions and the channel inheritance flags (B-29: Save keeps its label, the rest sits in "more").
+    // The image templates as a gallery tile's AI menu: one action on that very picture.
+    aiPictureActions() {
+      if (!this.aiWritable || !this.aiUsable) return [];
+      const imageWorkers = new Set(this.aiWorkers.filter((worker) => worker.kind === "image").map((worker) => worker.key));
+      return this.aiTemplates
+        .filter((template) => imageWorkers.has(template.worker_key))
+        .map((template) => ({ key: template.key, label: template.label, testid: `media-ai-${template.key}` }));
+    },
     moreMenuItems() {
       const isChild = !this.pimChannel.isDefaultChannel;
       const items = [
@@ -698,6 +715,12 @@ export default {
     },
     openAiTask(templateKey) {
       this.aiTemplate = templateKey;
+      this.aiPicture = "";
+      this.aiDialogOpen = true;
+    },
+    openAiOnPicture({ template, pictureRef }) {
+      this.aiTemplate = template;
+      this.aiPicture = pictureRef;
       this.aiDialogOpen = true;
     },
     // An AI proposal was written to PIM: show it without losing unsaved edits. A clean form reloads; a dirty one

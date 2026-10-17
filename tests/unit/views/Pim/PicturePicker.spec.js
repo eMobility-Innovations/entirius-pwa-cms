@@ -49,6 +49,12 @@ describe("PicturePicker", () => {
     expect(lastPick(w)).toBe("3");
   });
 
+  it("picks the preferred picture over the main one, the main one when it is gone", async () => {
+    api.GET_SubjectPictures.mockResolvedValue({ data: PICTURES });
+    expect(lastPick(await mountPicker({ preferred: "3" }))).toBe("3");
+    expect(lastPick(await mountPicker({ preferred: "99" }))).toBe("7");
+  });
+
   it("without a main picture the first one is picked", async () => {
     api.GET_SubjectPictures.mockResolvedValue({ data: [PICTURES[0]] });
     expect(lastPick(await mountPicker())).toBe("3");
