@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.3.0-rc.3] (2026-10-17)
+
+### Changed
+
+- AI run dialog: a template that sets the image operation (packshot, scene, enhance, custom instruction) no longer
+  asks for the operation again; "Custom…" still does.
+
+### Fixed
+
+- A tooltip hides on a click of its trigger until the pointer leaves: it no longer covers the menu an icon button
+  opens (the AI menu of a gallery picture, row menus).
+- Image and video runs refused by the AI provider name the cause (`IMAGE_BLOCKED`, `VIDEO_BLOCKED`: the provider's
+  safety filter; `PROVIDER_ERROR`) instead of a generic error.
+
 ## [3.3.0-rc.2] (2026-10-17)
 
 ### Added
