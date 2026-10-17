@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.3.0-rc.5] (2026-10-17)
+
+### Fixed
+
+- The channel of leads, communicator, site intel and the notification bar falls back to the CMS channel
+  (`VUE_APP_CHANNEL`) when `VUE_APP_LEADS_CHANNEL` is unset: a one-channel install no longer asks the notifications
+  of `default-europe` (a 404 on every page).
+
 ## [3.3.0-rc.4] (2026-10-17)
 
 ### Fixed

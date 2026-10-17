@@ -1,6 +1,6 @@
 {
   "name": "entirius-pwa-cms",
-  "version": "3.3.0-rc.4",
+  "version": "3.3.0-rc.5",
   "private": true,
   "license": "MPL-2.0",
   "description": "Admin CMS of Entirius: a Vue 3 single-page app with a visual page builder and per-module panels",
