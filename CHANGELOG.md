@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.3.0-rc.4] (2026-10-17)
+
+### Fixed
+
+- A 404 from the API is recognised again in the views that handle it (the Prices tab of a product, consent text,
+  authors, enrichment preview, supplier tab, delivery points, vouchers, product channel switch): they read the status
+  through `isNotFound`, since the client rejects with the v2 body. The Prices tab of a product without prices shows
+  the empty state instead of an error toast.
+- The Prices tab of a configurable product says that prices are set per variant.
+
 ## [3.3.0-rc.3] (2026-10-17)
 
 ### Changed
