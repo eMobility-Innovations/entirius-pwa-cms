@@ -1903,6 +1903,7 @@
     "no_prices": "Brak cen dla tego kanału.",
     "set_price": "Ustaw cenę",
     "no_price_for_product": "Brak skonfigurowanej ceny dla tego produktu.",
+    "prices_per_variant": "Produkt konfigurowalny nie ma własnych cen: ceny ustawia się per wariant.",
     "history": "Historia",
     "source_admin_edit": "Edycja administratora",
     "source_csv_import": "Import CSV",

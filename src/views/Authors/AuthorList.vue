@@ -88,6 +88,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { GET_Authors } from "@/api/contentDB/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 
 export default {
   name: "AuthorList",
@@ -180,9 +181,8 @@ export default {
         this.totalCount = data.count || 0;
       } catch (err) {
         if (
-          err?.response?.status === 404 ||
+          isNotFound(err) ||
           err?.response?.status === 500 ||
-          err?.error === "NOT_FOUND" ||
           err?.error === "INTERNAL_ERROR"
         ) {
           this.unavailable = true;

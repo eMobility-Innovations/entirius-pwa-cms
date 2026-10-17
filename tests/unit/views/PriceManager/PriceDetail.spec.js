@@ -4,6 +4,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 // Mock APIs before component import — PriceDetail calls these on mount when sku+channel are set.
 const mockGetPmPriceDetail = vi.fn();
 const mockGetPmPrices = vi.fn();
+const mockSpawnNotification = vi.fn();
 
 vi.mock("@/api/pricemanager/api", () => ({
   GET_PmPriceDetail: (...args) => mockGetPmPriceDetail(...args),
@@ -19,7 +20,7 @@ vi.mock("@/stores/loader", () => ({
 }));
 
 vi.mock("@/stores/notify", () => ({
-  useNotifyStore: () => ({ spawnNotification: () => {} }),
+  useNotifyStore: () => ({ spawnNotification: mockSpawnNotification }),
 }));
 
 vi.mock("@/composables/useFormErrors", () => ({
@@ -158,5 +159,38 @@ describe("PriceDetail — purchase cost + margin", () => {
       .findAll("status-badge-stub")
       .find((b) => (b.attributes("label") || "").startsWith("pm.margin_percent"));
     expect(marginBadge).toBeFalsy();
+  });
+});
+
+// createClient rejects with the v2 body; the HTTP status rides on its non-enumerable `httpStatus`.
+function notFoundBody() {
+  const body = { error: "INVALID_REQUEST", message: "The requested resource was not found.", details: [] };
+  Object.defineProperty(body, "httpStatus", { value: 404 });
+  return body;
+}
+
+async function mountNotFound(props = {}) {
+  mockSpawnNotification.mockClear();
+  mockGetPmPriceDetail.mockRejectedValue(notFoundBody());
+  const wrapper = mount(PriceDetail, {
+    props: { sku: "SEL-754", channelIdxProp: "b2c-europe", embedded: true, ...props },
+    global: { provide: { pmChannelIdx: "b2c-europe", pmActiveChannel: { default_country: "PL" } } },
+  });
+  await flushPromises();
+  return wrapper;
+}
+
+describe("PriceDetail — product without prices (404)", () => {
+  it("shows the empty state instead of an error toast", async () => {
+    const wrapper = await mountNotFound();
+
+    expect(wrapper.find("empty-state-stub").attributes("message")).toBe("pm.no_price_for_product");
+    expect(mockSpawnNotification).not.toHaveBeenCalled();
+  });
+
+  it("tells a configurable product that prices are set per variant", async () => {
+    const wrapper = await mountNotFound({ configurable: true });
+
+    expect(wrapper.find("empty-state-stub").attributes("message")).toBe("pm.prices_per_variant");
   });
 });

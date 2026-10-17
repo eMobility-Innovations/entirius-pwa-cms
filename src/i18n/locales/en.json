@@ -1904,6 +1904,7 @@
     "no_prices": "No prices found for this channel.",
     "set_price": "Set Price",
     "no_price_for_product": "No price configured for this product yet.",
+    "prices_per_variant": "A configurable product has no prices of its own: set them on each variant.",
     "history": "History",
     "source_admin_edit": "Admin edit",
     "source_csv_import": "CSV import",

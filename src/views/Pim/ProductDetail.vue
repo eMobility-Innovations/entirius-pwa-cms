@@ -203,6 +203,7 @@
             :sku="product.sku || product.real_product?.sku || ''"
             :channel-idx-prop="channelIdx"
             :embedded="true"
+            :configurable="product.product_class_name?.toLowerCase() === 'productconfigurable'"
           />
         </ReadonlyArea>
 
@@ -404,6 +405,7 @@ import {
 import { GET_BulkHasChanges } from "@/api/atlas/api";
 import { hasQualityFields } from "./quality";
 import { extractApiMessage, useFormErrors } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 
 // Translatable system fields per place: the info card and the text tabs (T9N_TABS[activeTab]).
 const T9N_TABS = {
@@ -787,7 +789,7 @@ export default {
       } catch (err) {
         // etap-12 #25: product missing in selected channel → switch to default + warn.
         if (
-          (err?.response?.status === 404 || err?.error === "NOT_FOUND") &&
+          isNotFound(err) &&
           this.pimChannel.defaultChannelIdx &&
           this.channelIdx !== this.pimChannel.defaultChannelIdx
         ) {

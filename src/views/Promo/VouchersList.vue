@@ -105,6 +105,7 @@ import {
   POST_VoucherLookup,
 } from "@/api/voucher/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 import { enumLabel } from "./promo-enum-hints";
 import { ReadonlyOff } from "@/composables/useReadonly";
 
@@ -301,7 +302,7 @@ export default {
         this.$router.push(`/promo/voucher/${data.id}`);
       } catch (err) {
         const msg =
-          err?.response?.status === 404 || err?.error === "NOT_FOUND"
+          isNotFound(err)
             ? this.$t("promo.voucher_not_found")
             : extractApiMessage(err, this.$t("notifications.error"));
         this.notify.spawnNotification({ type: "negative", msg });
