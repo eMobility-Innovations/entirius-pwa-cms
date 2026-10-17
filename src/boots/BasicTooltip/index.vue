@@ -12,6 +12,7 @@
     @focusin="onFocusIn"
     @focusout="onLeave"
     @keydown.esc="onEscape"
+    @click.capture="onClick"
   >
     <button
       v-if="variant === 'help'"
@@ -129,6 +130,12 @@ function onEscape(event) {
   event.stopPropagation();
   dismissed.value = true;
   tapped.value = false;
+}
+
+// A click on the trigger (a menu opening, an action run) hides a plain tip until the pointer leaves: it would cover
+// what the click opened. Capture: an IconButton stops the click at its button.
+function onClick() {
+  if (props.variant !== "help") dismissed.value = true;
 }
 
 // Focus leaving the tooltip closes a tapped hint too: one opened with Enter never stays behind a Tab.

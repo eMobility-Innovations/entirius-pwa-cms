@@ -2957,7 +2957,10 @@
         "SPEND_CAP_EXCEEDED": "The AI spending limit is reached",
         "QUOTA_EXCEEDED": "The AI quota is used up",
         "PICTURE_NOT_FOUND": "The chosen picture is no longer on this product",
-        "PRESET_NOT_FOUND": "The image preset does not fit the chosen operation or is off in the AI toolbox"
+        "PRESET_NOT_FOUND": "The image preset does not fit the chosen operation or is off in the AI toolbox",
+        "IMAGE_BLOCKED": "The AI provider refused the picture (safety filter) — pick another picture or change the instruction",
+        "VIDEO_BLOCKED": "The AI provider refused the video (safety filter) — pick another picture or change the instruction",
+        "PROVIDER_ERROR": "The AI provider returned an error — try again"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} to review",

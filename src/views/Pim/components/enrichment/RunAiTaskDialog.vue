@@ -138,8 +138,8 @@ export default {
     templates: { type: Array, default: () => [] },
     initialTemplate: { type: String, default: "" },
     initialWorker: { type: String, default: "" },
-    // A run started on one gallery picture (its ref): that picture is picked first, the template is fixed and so is
-    // the operation it sets — the operator only adds what the action takes (instruction, variants).
+    // A run started on one gallery picture (its ref): that picture is picked first and the template is fixed — the
+    // operator only adds what the action takes (instruction, variants).
     initialPicture: { type: String, default: "" },
     skus: { type: Array, default: () => [] },
     module: { type: String, default: "pim" },
@@ -196,9 +196,10 @@ export default {
     title() {
       return this.initialPicture && this.template ? this.template.label : this.$t("enrichment.ai.title");
     },
+    // A template that sets the image operation ("Packshot", "Enhance photo") is that operation: no second choice of it.
     formFields() {
-      if (!this.initialPicture || !this.template) return this.fields;
-      return this.fields.filter((field) => !(field.name === "operation" && this.template.params?.operation));
+      if (!this.template?.params?.operation) return this.fields;
+      return this.fields.filter((field) => field.name !== "operation");
     },
     templateOptions() {
       const custom = { label: this.$t("enrichment.run.custom"), value: "" };

@@ -2956,7 +2956,10 @@
         "SPEND_CAP_EXCEEDED": "Osiągnięto limit wydatków na AI",
         "QUOTA_EXCEEDED": "Limit AI się wyczerpał",
         "PICTURE_NOT_FOUND": "Wybranego zdjęcia nie ma już przy tym produkcie",
-        "PRESET_NOT_FOUND": "Preset obrazu nie pasuje do wybranej operacji albo jest wyłączony w AI toolbox"
+        "PRESET_NOT_FOUND": "Preset obrazu nie pasuje do wybranej operacji albo jest wyłączony w AI toolbox",
+        "IMAGE_BLOCKED": "Dostawca AI odrzucił zdjęcie (filtr bezpieczeństwa) — wybierz inne zdjęcie albo zmień polecenie",
+        "VIDEO_BLOCKED": "Dostawca AI odrzucił wideo (filtr bezpieczeństwa) — wybierz inne zdjęcie albo zmień polecenie",
+        "PROVIDER_ERROR": "Dostawca AI zwrócił błąd — spróbuj ponownie"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",

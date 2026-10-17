@@ -584,6 +584,19 @@ describe("RunAiTaskDialog", () => {
       expect(mockSaveTemplate.mock.calls[0][0].params).toMatchObject({ operation: "packshot", preset: "packshot-white" });
     });
 
+    it("a template that sets the operation is that operation: the form asks only for the instruction and variants", async () => {
+      mockSpawn.mockResolvedValue({ data: { id: 9, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
+      const w = await image({ skus: ["A"], templates: [IMAGE_TEMPLATE], initialTemplate: IMAGE_TEMPLATE.key });
+      expect(form(w).props("fields").map((f) => f.name)).toEqual(["prompt", "n"]);
+      picker(w).vm.$emit("update:modelValue", "5");
+      await flushPromises();
+      await w.vm.run();
+      expect(mockSpawn.mock.calls[0][0]).toMatchObject({ template: "image-packshot", params: { operation: "packshot" } });
+      Object.assign(w.vm, { templateKey: "", workerKey: IMAGE.key });
+      await flushPromises();
+      expect(w.vm.formFields.map((f) => f.name)).toContain("operation"); // the run is sent: the form gave way to its link
+    });
+
     it("started on one gallery picture: the action names the dialog, its template and operation are fixed", async () => {
       mockSpawn.mockResolvedValue({ data: { id: 9, lane: "now", queued_ahead: 0, skipped_in_flight: [] } });
       const w = await image({ skus: ["A"], templates: [IMAGE_TEMPLATE], initialTemplate: IMAGE_TEMPLATE.key, initialPicture: "12" });
