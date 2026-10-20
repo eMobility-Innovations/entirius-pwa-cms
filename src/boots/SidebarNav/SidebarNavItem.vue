@@ -95,6 +95,9 @@ const classes = computed(() => ({
 
 <style lang="scss" scoped>
 .sidebar-nav-item {
+  // The containing block of its `.visually-hidden` texts (a locked row's "(niedostępny)", a collapsed label): without
+  // it they hang off a far ancestor and stretch the page's scroll height.
+  position: relative;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;

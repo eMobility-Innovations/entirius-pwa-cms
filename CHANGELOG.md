@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Sidebar: a locked panel's hidden screen-reader text (and a collapsed rail's hidden labels) no longer stretches
+  the page and adds an empty scroll — the nav item is their containing block.
+
 ### Added
 
 - Page editor: a content-language pick next to Save draft and Publish (every ContentDB language); the draft is saved
