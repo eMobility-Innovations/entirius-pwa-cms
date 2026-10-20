@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Page editor: a content-language pick next to Save draft and Publish (every ContentDB language); the draft is saved
+  in the picked language and the change marks the page unsaved.
 - AI studio metadata: the step's QA warnings above the search preview, each named by its field (a value over its
   limit, a rule, a number outside the facts).
 - AI studio questions: the step's `min_answers` shows above the form and blocks Approve until met (optional

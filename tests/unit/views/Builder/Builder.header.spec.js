@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { createPinia } from "pinia";
+import { createPinia, setActivePinia } from "pinia";
+import { useContentDBChannelStore } from "@/stores/contentDBChannel";
 import Builder from "@/views/Builder/Builder.vue";
 import HomeVariantSwitcher from "@/views/Builder/HomeVariantSwitcher.vue";
 
@@ -121,9 +122,13 @@ describe("Builder — mounted header", () => {
   const PageLayout = { template: "<div><slot name='header' /></div>" };
   const PageHeader = { name: "PageHeader", props: { title: String, back: String, sticky: Boolean }, template: "<header><slot name='actions' /></header>" };
   const ActionBar = { name: "ActionBar", props: ["actions"], template: "<div />" };
+  const BasicSelect = { name: "BasicSelect", props: ["modelValue", "options"], emits: ["update:modelValue"], template: "<div />" };
 
   // The state goes in before the mount: init() (API + configs) is replaced, the header renders from data alone.
-  const mountHeader = (state) => {
+  const mountHeader = (state, languages = []) => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    useContentDBChannelStore().languages = languages;
     const view = {
       ...Builder,
       data() {
@@ -131,7 +136,7 @@ describe("Builder — mounted header", () => {
       },
       methods: { ...Builder.methods, init: vi.fn() },
     };
-    return mount(view, { shallow: true, global: { plugins: [createPinia()], stubs: { PageLayout, PageHeader, ActionBar } } });
+    return mount(view, { shallow: true, global: { plugins: [pinia], stubs: { PageLayout, PageHeader, ActionBar, BasicSelect } } });
   };
   const toggle = (wrapper) =>
     wrapper.findComponent(ActionBar).props("actions").find((action) => action.key === "advanced");
@@ -157,5 +162,34 @@ describe("Builder — mounted header", () => {
     expect(toggle(wrapper).icon).toBe("settings");
     const unnamed = mountHeader({ content_type: "layout-extender", custom_doc_name: "", routes: [] });
     expect(toggle(unnamed)).toMatchObject({ icon: "warning", label: "builder.advanced_missing_name" });
+  });
+
+  describe("the content language", () => {
+    const LANGUAGES = [{ iso2: "EN" }, { iso2: "pl" }];
+
+    it("offers the ContentDB languages next to Save draft and Publish, on the page's language", () => {
+      const wrapper = mountHeader({ language: "EN" }, LANGUAGES);
+      const select = wrapper.find(".builder-actions").findComponent(BasicSelect);
+      expect(select.props("options")).toEqual([
+        { label: "EN", value: "EN" },
+        { label: "PL", value: "PL" },
+      ]);
+      expect(select.props("modelValue")).toBe("EN");
+      expect(select.attributes("aria-label")).toBe("builder.content_language");
+    });
+
+    it("a picked language goes into the saved document and marks the page unsaved", async () => {
+      const wrapper = mountHeader({ language: "EN" }, LANGUAGES);
+      wrapper.vm.snapshotFormState();
+      await wrapper.findComponent(BasicSelect).vm.$emit("update:modelValue", "PL");
+      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.language).toBe("PL");
+      expect(wrapper.vm.getPayload().language).toBe("PL");
+      expect(wrapper.vm.isDirty).toBe(true);
+    });
+
+    it("shows no language pick without ContentDB languages", () => {
+      expect(mountHeader({ language: "EN" }).findComponent(BasicSelect).exists()).toBe(false);
+    });
   });
 });

@@ -28,6 +28,15 @@
         <template #actions>
           <div v-if="!loading" class="builder-actions flex ai-ct jc-fe wrap gap-3">
             <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
+            <BasicSelect
+              v-if="languageOptions.length"
+              class="builder-language"
+              :model-value="language"
+              :options="languageOptions"
+              :aria-label="$t('builder.content_language')"
+              data-testid="builder-language"
+              @update:model-value="setLanguage"
+            />
             <ActionBar :actions="editorActions" />
           </div>
         </template>
@@ -982,6 +991,10 @@ export default {
       const urlMissing = this.content_type !== "layout-extender" && !this.routes?.length;
       return !this.advanced_options && (urlMissing || !this.custom_doc_name);
     },
+    // The draft's language, next to Save draft and Publish: every ContentDB language (uppercase iso2, as `language`).
+    languageOptions() {
+      return (this.contentDBChannel.languages || []).map(({ iso2 }) => ({ label: iso2.toUpperCase(), value: iso2.toUpperCase() }));
+    },
     // R5 order comes from the roles (ActionBar): copy · advanced · document options · draft · publish.
     editorActions() {
       const utility = (key, icon, label, onClick) => ({ key, role: "utility", icon, label, onClick });
@@ -1554,9 +1567,15 @@ export default {
         });
       }
     },
-    snapshotFormState() {
-      const state = {
+    // A primitive field (the language) changes the tracked state only when it is built again: re-track it.
+    setLanguage(value) {
+      this.language = value;
+      this.track(this.formState());
+    },
+    formState() {
+      return {
         custom_doc_name: this.custom_doc_name,
+        language: this.language,
         routes: this.routes,
         meta: this.meta,
         category: this.category,
@@ -1570,6 +1589,9 @@ export default {
         blog_extension: this.blog_extension,
         attributes: this.attributes,
       };
+    },
+    snapshotFormState() {
+      const state = this.formState();
       this.snapshot(state);
       this.track(state);
     },
@@ -2135,6 +2157,9 @@ export default {
   .tile-drag {
     margin-right: auto;
   }
+}
+.builder-language {
+  width: 96px;
 }
 @include max-tablet {
   // The ActionBar takes a left-aligned row of its own: the unsaved badge sits left above it, not across the page.
