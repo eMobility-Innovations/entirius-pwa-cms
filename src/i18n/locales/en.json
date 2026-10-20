@@ -3247,7 +3247,8 @@
         "saved": "Saved",
         "answered": "{count} of {total} answered",
         "placeholder": "Your answer (leave empty to let the AI decide)",
-        "not_answered": "Not answered: the AI decides"
+        "not_answered": "Not answered: the AI decides",
+        "min_answers": "Answers needed to continue: at least {count}. Every answer is material only you can give."
       },
       "keywords": {
         "primary": "Main phrase",
@@ -3278,7 +3279,8 @@
         "og_description": "Social description",
         "slug": "Address",
         "preview": "Search result preview",
-        "faq": "FAQ ({count})"
+        "faq": "FAQ ({count})",
+        "faq_item": "FAQ {number}"
       },
       "document": {
         "title": "Title",
@@ -3326,9 +3328,12 @@
       },
       "purpose": {
         "questions": "Answer what you know. The AI uses your answers in every next step.",
-        "keywords": "Pick the phrase people search for. The outline and the text are built around it.",
+        "keywords": "Pick the phrase people search for. The questions, the outline and the text are built around it.",
         "outline": "Check the structure. The draft follows it section by section.",
-        "draft": "Read the text and correct what is off. The metadata is written from it.",
+        "insights": "Check the material the article will stand on. Strike what does not fit, add what is missing.",
+        "draft": "Read the first text, written section by section from the outline. Regenerate it with an instruction if something is off; the voice step rewrites it.",
+        "voice": "Read the text in the author's voice and correct what is off. The edit step polishes the whole.",
+        "edit": "The final pass over the whole text. The metadata is written from it.",
         "meta": "Check how the page reads in a search result.",
         "compose": "Check what goes into the draft. Approving creates it in Pages, unpublished."
       },

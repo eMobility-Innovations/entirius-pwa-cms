@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- AI studio metadata: the step's QA warnings above the search preview, each named by its field (a value over its
+  limit, a rule, a number outside the facts).
+- AI studio questions: the step's `min_answers` shows above the form and blocks Approve until met (optional
+  questions count); purposes for the new article steps (insights, voice, edit) and the search phrases step first.
+
 ## [3.3.0-rc.5] (2026-10-17)
 
 ### Fixed

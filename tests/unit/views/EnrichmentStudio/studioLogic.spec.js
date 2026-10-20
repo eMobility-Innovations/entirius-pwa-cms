@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   answeredCount,
+  answersShort,
   briefErrors,
   briefFields,
   cleanBrief,
@@ -157,6 +158,19 @@ describe("step outputs", () => {
     ];
     expect(missingAnswers(questions, { since: " ", who: "Ana" })).toEqual(["since"]);
     expect(missingAnswers(questions, { since: "2019", who: "Ana" })).toEqual([]);
+  });
+
+  it("counts the answers still needed to reach the minimum (capped at the number of questions)", () => {
+    const questions = [
+      { id: "since", optional: true },
+      { id: "where", optional: true },
+    ];
+    expect(answersShort(questions, {}, 1)).toBe(1);
+    expect(answersShort(questions, { since: " " }, 1)).toBe(1);
+    expect(answersShort(questions, { since: "2019" }, 1)).toBe(0);
+    expect(answersShort(questions, {}, 5)).toBe(2);
+    expect(answersShort(questions, {}, 0)).toBe(0);
+    expect(answersShort(questions, {}, undefined)).toBe(0);
   });
 
   it("links the created draft only once the run has one", () => {
