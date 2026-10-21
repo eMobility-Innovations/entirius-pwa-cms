@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
   the verb phrase "Learn something", which looked clickable beside the "What ranks today" toggle) and the four intent
   labels are now "Learning", "Comparing before buying", "Buying", "Finding a site" (PL: "Szukanie informacji",
   "Porównywanie przed zakupem", "Zakup", "Szukanie strony") in the top tile and the memory entry too.
+- AI studio search phrases: the SERP notes (the step's callout and each row's "What ranks today") keep their line
+  breaks, so notes written as several short lines no longer run together.
 
 ### Added
 

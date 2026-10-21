@@ -209,10 +209,11 @@ export default {
   font-weight: 600;
   color: var(--text-strong);
 }
+// The notes are written as short lines: a newline stays a line break, stray runs of spaces collapse.
 .keywords-table__notes,
 .keywords-table__serp {
   line-height: 1.5;
-  white-space: pre-wrap;
+  white-space: pre-line;
   overflow-wrap: anywhere;
 }
 .keywords-table__serp {

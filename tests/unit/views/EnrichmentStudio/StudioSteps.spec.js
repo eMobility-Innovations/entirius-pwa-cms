@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "fs";
+import path from "path";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const api = vi.hoisted(() => ({
@@ -245,6 +247,40 @@ describe("KeywordsTable search intent", () => {
     expect(intentOf(w, "sofa care").text()).toBe("Intencja: szukanie informacji");
     expect(intentOf(w, "linen sofa").text()).toBe("Intencja: porównywanie przed zakupem");
     expect(w.find("tag-stub").attributes("label")).toBe("Szukanie informacji");
+  });
+});
+
+describe("KeywordsTable SERP notes", () => {
+  const NOTES = "Guides rank first\nShops fill the rest\nOne forum thread";
+  const ROW_NOTES = "Care guides\nVideo tutorials";
+  const withNotes = {
+    ...KEYWORDS,
+    proposed_value: {
+      data: {
+        ...KEYWORDS.proposed_value.data,
+        serp_notes: NOTES,
+        candidates: [{ phrase: "sofa care", volume: 900, intent: "informational", serp_notes: ROW_NOTES }],
+      },
+    },
+  };
+  const style = fs.readFileSync(path.resolve(__dirname, "../../../../src/views/EnrichmentStudio/KeywordsTable.vue"), "utf8");
+
+  it("the step-level callout keeps the lines of the notes", () => {
+    const notes = mount(KeywordsTable, { props: { proposal: withNotes }, global: { stubs, components } }).find(".keywords-table__notes");
+    expect(notes.element.textContent).toBe(NOTES);
+  });
+
+  it("a row's notes keep their lines once the row is opened", async () => {
+    const w = mount(KeywordsTable, { props: { proposal: withNotes }, global: { stubs, components } });
+    expect(w.find(".keywords-table__serp").exists()).toBe(false);
+    await w.find("[data-testid='keyword-serp-toggle']").trigger("click");
+    expect(w.find(".keywords-table__serp").element.textContent).toBe(ROW_NOTES);
+  });
+
+  // happy-dom runs without the component CSS, so the rule is read from the source.
+  it("both note classes break at a newline", () => {
+    const rule = style.match(/\.keywords-table__notes,\s*\.keywords-table__serp\s*\{([^}]*)\}/);
+    expect(rule?.[1]).toMatch(/white-space:\s*pre-line/);
   });
 });
 
