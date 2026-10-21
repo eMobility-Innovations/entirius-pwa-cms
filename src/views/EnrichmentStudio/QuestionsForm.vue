@@ -1,5 +1,15 @@
 <template>
   <form v-if="editable" class="questions-form flex-column gap-4" data-testid="questions-form" @submit.prevent @focusout="save">
+    <p
+      v-if="minimum"
+      ref="minimum"
+      class="questions-form__minimum type-caption m-0"
+      :class="{ 'questions-form__minimum--short': short }"
+      :role="short ? 'alert' : undefined"
+      data-testid="questions-minimum"
+    >
+      {{ $t("enrichment.studio.questions.min_answers", { count: minimum }) }}
+    </p>
     <FormField
       v-for="(question, index) in questions"
       :key="question.id"
@@ -60,14 +70,16 @@
 import { PATCH_Proposal } from "@/api/enrichment/api";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { answeredCount, isChoice, missingAnswers } from "./studioLogic";
+import { answeredCount, answersShort, isChoice, missingAnswers } from "./studioLogic";
 
 const RADIO_MAX = 5;
 
 // The questions step: each question as its own block — number, the question, why the AI asks, "Required" where it
 // applies — with free text or a pick. Answers save by themselves when a field is left (a pick at once); Approve (the
 // step panel) calls `prepare()`, which marks what is missing and saves what is not saved yet. Once approved the
-// answers read as text. The form's progress goes up as `state` (answered, total, dirty, saving, saved).
+// answers read as text. The form's progress goes up as `state` (answered, total, dirty, saving, saved). The artifact's
+// `min_answers` (capped at the number of questions) is shown above the form and blocks Approve until it is met; a
+// refused Approve scrolls that note into view (Approve sits on the step's bar, the note may be off screen).
 export default {
   name: "QuestionsForm",
   props: {
@@ -78,7 +90,7 @@ export default {
     return { notify: useNotifyStore(), isChoice, RADIO_MAX };
   },
   data() {
-    return { answers: {}, errors: {}, dirty: false, saving: false, saved: false, inflight: null };
+    return { answers: {}, errors: {}, short: 0, dirty: false, saving: false, saved: false, inflight: null };
   },
   computed: {
     questions() {
@@ -86,6 +98,9 @@ export default {
     },
     editable() {
       return this.proposal.status === "pending";
+    },
+    minimum() {
+      return Math.min(Number(this.proposal.proposed_value?.min_answers) || 0, this.questions.length);
     },
     state() {
       const { dirty, saving, saved } = this;
@@ -104,6 +119,7 @@ export default {
     reset() {
       this.answers = { ...(this.proposal.proposed_value?.answers || {}) };
       this.errors = {};
+      this.short = 0;
       this.dirty = false;
     },
     answerOf(question) {
@@ -117,6 +133,7 @@ export default {
       this.dirty = true;
       this.saved = false;
       if (String(value ?? "").trim()) delete this.errors[id];
+      if (this.short) this.short = answersShort(this.questions, this.answers, this.minimum);
     },
     pick(id, value) {
       this.answer(id, value);
@@ -125,7 +142,9 @@ export default {
     validate() {
       const missing = missingAnswers(this.questions, this.answers);
       this.errors = Object.fromEntries(missing.map((id) => [id, true]));
-      return missing.length === 0;
+      this.short = answersShort(this.questions, this.answers, this.minimum);
+      if (this.short) this.$nextTick(() => this.$refs.minimum?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }));
+      return missing.length === 0 && this.short === 0;
     },
     // One save at a time: a later call waits until none runs (two waiting callers never both start one), then saves
     // only what is still unsaved.
@@ -177,6 +196,13 @@ export default {
 }
 .questions-form__head {
   align-items: flex-start;
+}
+.questions-form__minimum {
+  color: var(--text-secondary);
+}
+.questions-form__minimum--short {
+  color: var(--negative);
+  font-weight: 600;
 }
 .questions-form__number {
   display: inline-flex;

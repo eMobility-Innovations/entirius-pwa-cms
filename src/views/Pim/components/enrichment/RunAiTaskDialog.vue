@@ -1,7 +1,7 @@
 <template>
   <BasicModal
     :open="open"
-    :title="$t('enrichment.ai.title')"
+    :title="title"
     :actions="actions"
     :persistent="busy"
     data-testid="ai-task-dialog"
@@ -17,7 +17,7 @@
     <Loader v-else-if="!ready" block data-testid="ai-task-loading" />
     <div v-else class="flex-column gap-4">
       <AiToolboxHint />
-      <FormField v-if="templates.length" :label="$t('enrichment.run.template')">
+      <FormField v-if="templates.length && !initialPicture" :label="$t('enrichment.run.template')">
         <BasicSelect v-model="templateKey" :options="templateOptions" data-testid="ai-task-template" />
       </FormField>
       <FormField v-if="!template" :label="$t('enrichment.ai.worker')" required>
@@ -37,6 +37,7 @@
         :module="module"
         :channel="channel"
         :subject-ref="pictureSubject"
+        :preferred="initialPicture"
         :label="$t(`enrichment.ai.picture.${kind}_label`)"
       />
       <p v-else-if="isPim && startsFromPicture && runCount > 1" class="fs-200 t-secondary m-0" data-testid="ai-task-main-pictures">
@@ -46,7 +47,7 @@
       <AiParamsForm
         v-model="values"
         v-model:research="research"
-        :fields="fields"
+        :fields="formFields"
         :languages="languages"
         :field-choices="fieldChoices"
         :research-keys="researchKeys"
@@ -137,6 +138,9 @@ export default {
     templates: { type: Array, default: () => [] },
     initialTemplate: { type: String, default: "" },
     initialWorker: { type: String, default: "" },
+    // A run started on one gallery picture (its ref): that picture is picked first and the template is fixed — the
+    // operator only adds what the action takes (instruction, variants).
+    initialPicture: { type: String, default: "" },
     skus: { type: Array, default: () => [] },
     module: { type: String, default: "pim" },
     // The channel of a module other than PIM (the active PIM channel otherwise).
@@ -187,6 +191,15 @@ export default {
     },
     fields() {
       return buildFields(this.worker?.params_schema, this.kind);
+    },
+    // A run on one picture is named by its action ("Enhance photo").
+    title() {
+      return this.initialPicture && this.template ? this.template.label : this.$t("enrichment.ai.title");
+    },
+    // A template that sets the image operation ("Packshot", "Enhance photo") is that operation: no second choice of it.
+    formFields() {
+      if (!this.template?.params?.operation) return this.fields;
+      return this.fields.filter((field) => field.name !== "operation");
     },
     templateOptions() {
       const custom = { label: this.$t("enrichment.run.custom"), value: "" };

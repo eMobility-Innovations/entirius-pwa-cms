@@ -175,6 +175,7 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { GET_PersonDetail, GET_ConsentText } from "@/api/agreements/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 export default {
@@ -287,7 +288,7 @@ export default {
         const { data } = await GET_ConsentText(this.email, record.id);
         this.consentTextModal.data = data;
       } catch (err) {
-        if (err?.response?.status === 404 || err?.error === "NOT_FOUND") {
+        if (isNotFound(err)) {
           this.consentTextModal.data = { text_html: "" };
         } else {
           this.notify.spawnNotification({

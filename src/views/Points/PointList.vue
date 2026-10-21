@@ -85,6 +85,7 @@ import {
   GET_DPChannels,
 } from "@/api/deliverypoints/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 
 export default {
   name: "PointList",
@@ -227,7 +228,7 @@ export default {
         this.totalCount = data.count || 0;
         if (!this.points.length && this.currentPage > 1) this.resetToFirstPage();
       } catch (err) {
-        if (err?.response?.status === 404 && this.currentPage > 1) return this.resetToFirstPage();
+        if (isNotFound(err) && this.currentPage > 1) return this.resetToFirstPage();
         this.notify.spawnNotification({
           type: "negative",
           msg: extractApiMessage(err, this.$t("notifications.error")),

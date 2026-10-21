@@ -57,6 +57,16 @@ describe("BasicTooltip", () => {
     expect(bubble(wrapper).isVisible()).toBe(false);
   });
 
+  it("a click on the trigger hides it until the pointer leaves (it would cover the menu the click opened)", async () => {
+    const wrapper = mountTip({}, "<button class='control' @click.stop>Zapisz</button>");
+    await wrapper.trigger("mouseenter");
+    await wrapper.find(".control").trigger("click");
+    expect(bubble(wrapper).isVisible()).toBe(false);
+    await wrapper.trigger("mouseleave");
+    await wrapper.trigger("mouseenter");
+    expect(bubble(wrapper).isVisible()).toBe(true);
+  });
+
   it("shows on keyboard focus, hides on Esc and on blur", async () => {
     const wrapper = mountTip();
     const control = wrapper.find(".control").element;

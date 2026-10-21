@@ -122,6 +122,44 @@ describe("QuestionsForm", () => {
     expect(api.PATCH_Proposal).not.toHaveBeenCalled();
   });
 
+  describe("the minimum of answers", () => {
+    const optional = QUESTIONS.proposed_value.questions.map((question) => ({ ...question, optional: true }));
+    const withMinimum = { ...QUESTIONS, proposed_value: { questions: optional, answers: {}, min_answers: 1 } };
+    const mountForm = (proposal) => mount(QuestionsForm, { props: { proposal }, global: { stubs, components } });
+
+    it("shows the minimum above the questions", () => {
+      const note = mountForm(withMinimum).find("[data-testid='questions-minimum']");
+      expect(note.text()).toBe('enrichment.studio.questions.min_answers::{"count":1}');
+      expect(note.classes()).toContain("type-caption");
+      expect(note.classes()).not.toContain("questions-form__minimum--short");
+    });
+
+    it("refuses an approval below it, marks the note and scrolls it into view", async () => {
+      const scrollIntoView = vi.fn();
+      Element.prototype.scrollIntoView = scrollIntoView;
+      const w = mountForm(withMinimum);
+      expect(await w.vm.prepare()).toBe(false);
+      await w.vm.$nextTick();
+      const note = w.find("[data-testid='questions-minimum']");
+      expect(note.classes()).toContain("questions-form__minimum--short");
+      expect(note.attributes("role")).toBe("alert");
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", behavior: "smooth" });
+      expect(api.PATCH_Proposal).not.toHaveBeenCalled();
+      delete Element.prototype.scrollIntoView;
+    });
+
+    it("one answer meets it, optional questions included", async () => {
+      api.PATCH_Proposal.mockResolvedValue({ data: withMinimum });
+      const w = mountForm(withMinimum);
+      w.findAllComponents({ name: "BasicTextarea" })[1].vm.$emit("update:modelValue", "No.");
+      expect(await w.vm.prepare()).toBe(true);
+    });
+
+    it("an artifact without a minimum shows no note", () => {
+      expect(mountForm(QUESTIONS).find("[data-testid='questions-minimum']").exists()).toBe(false);
+    });
+  });
+
   it("saves unsaved answers before an approval", async () => {
     api.PATCH_Proposal.mockResolvedValue({ data: { ...QUESTIONS, proposed_value: { ...QUESTIONS.proposed_value, answers: { since: "2019" } } } });
     const w = mount(QuestionsForm, { props: { proposal: QUESTIONS }, global: { stubs, components } });
@@ -188,6 +226,38 @@ describe("StepPanel", () => {
     Object.values(api).forEach((fn) => fn.mockReset());
     notify.mockReset();
     api.GET_Proposal.mockImplementation(async (id) => ({ data: id === 11 ? QUESTIONS : KEYWORDS }));
+  });
+
+  describe("the step explainer", () => {
+    const BasicTooltip = { name: "BasicTooltip", props: ["text", "variant", "placement"], template: "<span />" };
+    const TEXTS = {
+      "enrichment.studio.explainer.keywords": "Researches what people search for.",
+      "enrichment.studio.explainer_output.artifact": "The AI wrote this; check it and approve.",
+    };
+    const $t = (key) => TEXTS[key] ?? key;
+    const mountWith = async (step) => {
+      const w = mount(StepPanel, {
+        props: { run: { ...RUN, steps: [step] }, step },
+        global: { stubs: { ...stubs, BasicTooltip }, components, mocks: { $t } },
+      });
+      await flushPromises();
+      return w.findComponent(BasicTooltip);
+    };
+
+    it("explains the step in a help mark next to its title", async () => {
+      const help = await mountWith(RUN.steps[1]);
+      expect(help.props()).toMatchObject({ text: "Researches what people search for.", variant: "help", placement: "left" });
+      expect(help.attributes("data-testid")).toBe("step-explainer");
+    });
+
+    it("falls back to what the step's output is", async () => {
+      const help = await mountWith({ ...RUN.steps[1], key: "custom" });
+      expect(help.props("text")).toBe("The AI wrote this; check it and approve.");
+    });
+
+    it("shows no help mark without an explainer", async () => {
+      expect((await mountWith({ ...RUN.steps[0], key: "custom" })).exists()).toBe(false);
+    });
   });
 
   it("approve accepts the step output and hands the refreshed run up to move on", async () => {

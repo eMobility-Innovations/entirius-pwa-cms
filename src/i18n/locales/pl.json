@@ -980,6 +980,7 @@
     "role_angle": "Kąt",
     "confirm_delete_media": "Czy na pewno chcesz usunąć to medium?",
     "edit_media": "Edytuj media",
+    "ai_on_picture": "AI na tym zdjęciu",
     "video_title": "Tytuł wideo",
     "media_reordered": "Kolejność zapisana",
     "alt_text": "Tekst alternatywny",
@@ -1902,6 +1903,7 @@
     "no_prices": "Brak cen dla tego kanału.",
     "set_price": "Ustaw cenę",
     "no_price_for_product": "Brak skonfigurowanej ceny dla tego produktu.",
+    "prices_per_variant": "Produkt konfigurowalny nie ma własnych cen: ceny ustawia się per wariant.",
     "history": "Historia",
     "source_admin_edit": "Edycja administratora",
     "source_csv_import": "Import CSV",
@@ -2954,7 +2956,11 @@
         "HARD_CAP_REACHED": "Osiągnięto limit wydatków na AI",
         "SPEND_CAP_EXCEEDED": "Osiągnięto limit wydatków na AI",
         "QUOTA_EXCEEDED": "Limit AI się wyczerpał",
-        "PICTURE_NOT_FOUND": "Wybranego zdjęcia nie ma już przy tym produkcie"
+        "PICTURE_NOT_FOUND": "Wybranego zdjęcia nie ma już przy tym produkcie",
+        "PRESET_NOT_FOUND": "Preset obrazu nie pasuje do wybranej operacji albo jest wyłączony w AI toolbox",
+        "IMAGE_BLOCKED": "Dostawca AI odrzucił zdjęcie (filtr bezpieczeństwa) — wybierz inne zdjęcie albo zmień polecenie",
+        "VIDEO_BLOCKED": "Dostawca AI odrzucił wideo (filtr bezpieczeństwa) — wybierz inne zdjęcie albo zmień polecenie",
+        "PROVIDER_ERROR": "Dostawca AI zwrócił błąd — spróbuj ponownie"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",
@@ -3240,7 +3246,8 @@
         "saved": "Zapisano",
         "answered": "Odpowiedzi: {count} z {total}",
         "placeholder": "Twoja odpowiedź (zostaw puste, a zdecyduje AI)",
-        "not_answered": "Bez odpowiedzi: decyduje AI"
+        "not_answered": "Bez odpowiedzi: decyduje AI",
+        "min_answers": "Wymagane odpowiedzi: co najmniej {count}. Każda odpowiedź to materiał, który masz tylko Ty."
       },
       "keywords": {
         "primary": "Fraza główna",
@@ -3271,7 +3278,8 @@
         "og_description": "Opis w mediach społecznościowych",
         "slug": "Adres",
         "preview": "Podgląd wyniku wyszukiwania",
-        "faq": "FAQ ({count})"
+        "faq": "FAQ ({count})",
+        "faq_item": "FAQ {number}"
       },
       "document": {
         "title": "Tytuł",
@@ -3319,9 +3327,12 @@
       },
       "purpose": {
         "questions": "Odpowiedz na to, co wiesz. AI użyje odpowiedzi w każdym kolejnym kroku.",
-        "keywords": "Wybierz frazę, której ludzie szukają. Konspekt i tekst powstaną wokół niej.",
+        "keywords": "Wybierz frazę, której ludzie szukają. Pytania, konspekt i tekst powstaną wokół niej.",
         "outline": "Sprawdź strukturę. Szkic pójdzie za nią sekcja po sekcji.",
-        "draft": "Przeczytaj tekst i popraw to, co nie pasuje. Metadane powstaną na jego podstawie.",
+        "insights": "Sprawdź materiał, na którym stanie artykuł. Wykreśl to, co nie pasuje, dopisz, czego brakuje.",
+        "draft": "Przeczytaj pierwszy tekst, napisany sekcja po sekcji według konspektu. Jeśli coś nie pasuje, wygeneruj go ponownie z instrukcją; krok głosu go przepisze.",
+        "voice": "Przeczytaj tekst w głosie autora i popraw to, co nie pasuje. Redakcja dopracuje całość.",
+        "edit": "Ostatni przebieg po całym tekście. Metadane powstaną na jego podstawie.",
         "meta": "Sprawdź, jak strona wygląda w wynikach wyszukiwania.",
         "compose": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany."
       },
@@ -3329,6 +3340,22 @@
         "questions": "Odpowiedz na to, co wiesz. AI użyje odpowiedzi w każdym kolejnym kroku.",
         "artifact": "Sprawdź, co napisało AI, i zatwierdź, aby przejść dalej.",
         "document": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany."
+      },
+      "explainer": {
+        "keywords": "Sprawdza, czego ludzie szukają w tym temacie: miesięczną liczbę wyszukiwań, najwyższe wyniki i pytania zadawane w wyszukiwarce (dane na żywo, płatne zapytanie). AI proponuje frazę główną i luki w treści, a Ty wybierasz frazę. Każdy kolejny krok opiera się na tym researchu.",
+        "questions": "Pyta o to, co wiesz tylko Ty: doświadczenie, przykłady, Twoje stanowisko, liczby, celując w luki znalezione w researchu. Artykuł powstaje wyłącznie z Twoich odpowiedzi, profilu firmy i briefu, więc każda odpowiedź staje się materiałem. Aby przejść dalej, potrzebna jest co najmniej jedna odpowiedź.",
+        "insights": "Zbiera materiał, na którym stanie artykuł: Twoje odpowiedzi, fakty z profilu firmy i potrzeby czytelników z researchu, ponumerowane i każde ze źródłem. Wyniki wyszukiwania liczą się jako to, czego szukają czytelnicy, nigdy jako fakty. Wykreśl to, co nie pasuje: konspekt przypisze te numery do sekcji.",
+        "outline": "Planuje artykuł: tezę, kolejność sekcji, insighty dla każdej sekcji, frazy z wyszukiwarki i sposób otwarcia sekcji. Strukturę popraw tutaj: szkic pójdzie za nią sekcja po sekcji, a to najtańsze miejsce na zmiany w artykule.",
+        "draft": "Pisze artykuł sekcja po sekcji według konspektu, każdą ze znajomością poprzednich, a na końcu wstęp i zakończenie. Może pisać tylko z insightów: sprawdź, czy nie ma w nim niczego spoza Twojego materiału. Jeśli coś nie pasuje, wygeneruj go ponownie z instrukcją.",
+        "voice": "Przepisuje cały tekst tak, by brzmiał jak człowiek tłumaczący temat jednemu czytelnikowi, w tonie Twoich odpowiedzi i profilu firmy. Fakty, liczby, frazy i nagłówki sekcji zostają, zmienia się tylko forma.",
+        "edit": "Ostatnia redakcja całego artykułu: usuwa powtórzenia, różnicuje rytm i poprawia język, niczego nie dodając od siebie. Metadane i dokument powstają z tego tekstu, więc to ta wersja zostanie opublikowana.",
+        "meta": "Pisze, jak strona wygląda w wynikach wyszukiwania i w mediach społecznościowych: tytuł, opis, teksty do udostępnień, adres i FAQ, wszystko na podstawie zredagowanego tekstu. Każda długość jest sprawdzana pod kątem limitów wyszukiwarek; aby poprawić którąś, wygeneruj krok ponownie z instrukcją.",
+        "compose": "Składa zredagowany tekst, metadane i FAQ w jeden dokument. Zatwierdzenie tworzy go w Stronach jako nieopublikowany szkic: decyzja o publikacji zostaje po Twojej stronie."
+      },
+      "explainer_output": {
+        "questions": "Pyta o to, co wiesz tylko Ty. Twoje odpowiedzi staną się materiałem dla kolejnych kroków.",
+        "artifact": "Wynik pośredni, na którym opierają się kolejne kroki. Sprawdź go, w razie potrzeby popraw i zatwierdź, aby przejść dalej.",
+        "document": "Gotowy dokument. Zatwierdzenie utworzy go w jego module jako nieopublikowany szkic."
       },
       "approve_to": "Zatwierdź i przejdź do: {step}",
       "create_draft": "Utwórz szkic",

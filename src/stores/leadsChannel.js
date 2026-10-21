@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
-// Channel of the Leads panel (leads, communicator, siteintel, notifications). Not VUE_APP_CHANNEL —
-// that one is the contentdb/pim channel.
+// Channel of the Leads panel (leads, communicator, siteintel, notifications): VUE_APP_LEADS_CHANNEL, else the CMS
+// channel (VUE_APP_CHANNEL, the contentdb/pim one: a one-channel install has no other), else the seeded one.
 const STORAGE_KEY = "leads:lastSelectedChannel";
 const DEFAULT_CHANNEL = "default-europe";
 
@@ -24,7 +24,7 @@ function writeStoredChannel(idx) {
 
 export const useLeadsChannelStore = defineStore("leadsChannel", () => {
   const activeChannelIdx = ref(
-    readStoredChannel() || process.env.VUE_APP_LEADS_CHANNEL || DEFAULT_CHANNEL
+    readStoredChannel() || process.env.VUE_APP_LEADS_CHANNEL || process.env.VUE_APP_CHANNEL || DEFAULT_CHANNEL
   );
 
   function setActiveChannel(idx) {

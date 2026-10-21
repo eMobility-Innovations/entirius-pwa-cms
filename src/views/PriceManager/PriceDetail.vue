@@ -16,7 +16,7 @@
         <EmptyState
           v-if="productNotFound"
           :title="$t('pm.no_price_for_product')"
-          :message="$t('pm.no_price_for_product')"
+          :message="configurable ? $t('pm.prices_per_variant') : $t('pm.no_price_for_product')"
           icon="tag"
         />
 
@@ -176,6 +176,7 @@
 import { useLoaderStore } from '@/stores/loader'
 import { useNotifyStore } from '@/stores/notify'
 import { useFormErrors, extractApiMessage } from '@/composables/useFormErrors'
+import { isNotFound } from '@/api/createClient'
 import { GET_PmPriceDetail, GET_PmPrices, PATCH_PmPrice, DELETE_PmPrice, POST_PmFlushSpecial, GET_PmPriceHistory } from '@/api/pricemanager/api'
 import { formatDate } from '@/utils/format'
 import PmChannelSelect from './PmChannelSelect.vue'
@@ -193,6 +194,8 @@ export default {
     sku: { type: String, default: null },
     channelIdxProp: { type: String, default: null },
     embedded: { type: Boolean, default: false },
+    // A configurable product has no prices of its own: they live on its variants.
+    configurable: { type: Boolean, default: false },
   },
   setup() {
     const loader = useLoaderStore()
@@ -355,7 +358,7 @@ export default {
         }
         this.syncFormToPrice()
       } catch (err) {
-        if (err?.response?.status === 404 || err?.error === 'NOT_FOUND') {
+        if (isNotFound(err)) {
           this.productNotFound = true
         } else {
           this.notify.spawnNotification({

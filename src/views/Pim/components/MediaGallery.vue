@@ -22,9 +22,12 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 const props = defineProps({
   channelIdx: { type: String, required: true },
   sku: { type: String, required: true },
+  // AI actions on one picture ([{ key, label }], the product page's image templates): a tile menu that emits
+  // `ai-run` with the action's key and the picture's ref (its product-picture pk). Empty = no menu.
+  aiActions: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["media-changed"]);
+const emit = defineEmits(["media-changed", "ai-run"]);
 
 const notify = useNotifyStore();
 // The product page's read-only mode: no reorder, upload, drop or edit of the media.
@@ -668,6 +671,17 @@ watch(
                 <Tag :label="$t('pim.role_main')" />
               </template>
               <template v-if="!readonly" #actions>
+                <BasicMenu
+                  v-if="aiActions.length && element.type === 'picture'"
+                  :items="aiActions"
+                  :label="$t('pim.ai_on_picture')"
+                  placement="bottom-end"
+                  @select="({ key }) => emit('ai-run', { template: key, pictureRef: String(element.pk) })"
+                >
+                  <template #trigger>
+                    <IconButton icon="enrich" size="sm" :label="$t('pim.ai_on_picture')" data-testid="media-ai-menu" />
+                  </template>
+                </BasicMenu>
                 <IconButton
                   icon="edit"
                   size="sm"

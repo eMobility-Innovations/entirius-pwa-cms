@@ -235,6 +235,12 @@ export function readingStats(text) {
 export const answeredCount = (questions, answers) =>
   (questions || []).filter((question) => String(answers?.[question.id] ?? "").trim()).length;
 
+/** How many more answers the step needs: `min_answers` of the artifact, capped at the number of questions. */
+export function answersShort(questions, answers, minimum) {
+  const needed = Math.min(Number(minimum) || 0, (questions || []).length);
+  return Math.max(0, needed - answeredCount(questions, answers));
+}
+
 /** "m:ss" of a duration in milliseconds (never negative). */
 export function elapsedLabel(ms) {
   const seconds = Math.max(0, Math.floor(ms / 1000));

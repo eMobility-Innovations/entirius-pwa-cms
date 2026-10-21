@@ -113,6 +113,7 @@ import LinkedSuppliersPanel from "./supplier/LinkedSuppliersPanel.vue";
 import SupplierTimeline from "./supplier/SupplierTimeline.vue";
 import ForcePreferredModal from "./supplier/ForcePreferredModal.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 
 export default {
   name: "SupplierTab",
@@ -183,7 +184,7 @@ export default {
         const { data } = await GET_SkuChanges(this.sku);
         this.data = data;
       } catch (err) {
-        if (err?.response?.status === 404 || err?.error === "NOT_FOUND") {
+        if (isNotFound(err)) {
           this.data = null;
         } else {
           this.notify.spawnNotification({

@@ -981,6 +981,7 @@
     "role_angle": "Angle",
     "confirm_delete_media": "Are you sure you want to remove this media?",
     "edit_media": "Edit Media",
+    "ai_on_picture": "AI on this picture",
     "video_title": "Video title",
     "media_reordered": "Order saved",
     "alt_text": "Alt text",
@@ -1903,6 +1904,7 @@
     "no_prices": "No prices found for this channel.",
     "set_price": "Set Price",
     "no_price_for_product": "No price configured for this product yet.",
+    "prices_per_variant": "A configurable product has no prices of its own: set them on each variant.",
     "history": "History",
     "source_admin_edit": "Admin edit",
     "source_csv_import": "CSV import",
@@ -2955,7 +2957,11 @@
         "HARD_CAP_REACHED": "The AI spending limit is reached",
         "SPEND_CAP_EXCEEDED": "The AI spending limit is reached",
         "QUOTA_EXCEEDED": "The AI quota is used up",
-        "PICTURE_NOT_FOUND": "The chosen picture is no longer on this product"
+        "PICTURE_NOT_FOUND": "The chosen picture is no longer on this product",
+        "PRESET_NOT_FOUND": "The image preset does not fit the chosen operation or is off in the AI toolbox",
+        "IMAGE_BLOCKED": "The AI provider refused the picture (safety filter) — pick another picture or change the instruction",
+        "VIDEO_BLOCKED": "The AI provider refused the video (safety filter) — pick another picture or change the instruction",
+        "PROVIDER_ERROR": "The AI provider returned an error — try again"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} to review",
@@ -3241,7 +3247,8 @@
         "saved": "Saved",
         "answered": "{count} of {total} answered",
         "placeholder": "Your answer (leave empty to let the AI decide)",
-        "not_answered": "Not answered: the AI decides"
+        "not_answered": "Not answered: the AI decides",
+        "min_answers": "Answers needed to continue: at least {count}. Every answer is material only you can give."
       },
       "keywords": {
         "primary": "Main phrase",
@@ -3272,7 +3279,8 @@
         "og_description": "Social description",
         "slug": "Address",
         "preview": "Search result preview",
-        "faq": "FAQ ({count})"
+        "faq": "FAQ ({count})",
+        "faq_item": "FAQ {number}"
       },
       "document": {
         "title": "Title",
@@ -3320,9 +3328,12 @@
       },
       "purpose": {
         "questions": "Answer what you know. The AI uses your answers in every next step.",
-        "keywords": "Pick the phrase people search for. The outline and the text are built around it.",
+        "keywords": "Pick the phrase people search for. The questions, the outline and the text are built around it.",
         "outline": "Check the structure. The draft follows it section by section.",
-        "draft": "Read the text and correct what is off. The metadata is written from it.",
+        "insights": "Check the material the article will stand on. Strike what does not fit, add what is missing.",
+        "draft": "Read the first text, written section by section from the outline. Regenerate it with an instruction if something is off; the voice step rewrites it.",
+        "voice": "Read the text in the author's voice and correct what is off. The edit step polishes the whole.",
+        "edit": "The final pass over the whole text. The metadata is written from it.",
         "meta": "Check how the page reads in a search result.",
         "compose": "Check what goes into the draft. Approving creates it in Pages, unpublished."
       },
@@ -3330,6 +3341,22 @@
         "questions": "Answer what you know. The AI uses your answers in every next step.",
         "artifact": "Check what the AI wrote and approve it to continue.",
         "document": "Check what goes into the draft. Approving creates it in Pages, unpublished."
+      },
+      "explainer": {
+        "keywords": "Researches what people search for on this topic: monthly searches, the top results and the questions people ask (live search data, a paid call). The AI proposes the main phrase and the content gaps; you pick the phrase. Every next step builds on this research.",
+        "questions": "Asks you what only you know: experience, examples, your position, numbers, aimed at the gaps the research found. The article is written only from your answers, the company profile and the brief, so each answer becomes material. At least one answer is needed to continue.",
+        "insights": "Gathers the material the article will stand on: your answers, the company profile's facts and the readers' needs from the search research, numbered, each with its source. Search results count as what readers look for, never as facts. Strike what does not fit: the outline assigns these numbers to sections.",
+        "outline": "Plans the article: the thesis, the sections in order, which insights each section carries, the search phrases and how each section opens. Fix the structure here: the draft follows it section by section, and this is the cheapest place to change the article.",
+        "draft": "Writes the article section by section from the outline, each section aware of the ones before it, then the lead and the closing. It may write only from the insights: check for anything that is not in your material. If something is off, regenerate it with an instruction.",
+        "voice": "Rewrites the whole text so it sounds like a person explaining it to one reader, tuned to your answers and the company profile's tone. Facts, numbers, search phrases and section headings stay; only the form changes.",
+        "edit": "The final editorial pass over the whole article: it cuts repetitions, varies the rhythm and fixes the language, adding nothing of its own. The metadata and the document are made from this text, so this is the version that gets published.",
+        "meta": "Writes how the page shows in search results and on social media: title, description, social texts, address and FAQ, all from the edited text. Each length is checked against the search engines' limits; to fix one, regenerate with an instruction.",
+        "compose": "Puts the edited text, the metadata and the FAQ together into one document. Approving creates it in Pages as an unpublished draft: publishing stays your decision there."
+      },
+      "explainer_output": {
+        "questions": "Asks you what only you know. Your answers become material for every next step.",
+        "artifact": "An intermediate result the next steps build on. Check it, correct it if needed and approve to continue.",
+        "document": "The finished document. Approving creates it in its module as an unpublished draft."
       },
       "approve_to": "Approve and go to {step}",
       "create_draft": "Create draft",

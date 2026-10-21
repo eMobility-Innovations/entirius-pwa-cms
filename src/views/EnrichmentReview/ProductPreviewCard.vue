@@ -85,6 +85,7 @@
 <script>
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 import { GET_Product } from "@/api/pim/api";
 
 const PRODUCT_TYPES = ["base", "simple", "configurable", "bundle"];
@@ -136,7 +137,7 @@ export default {
         const { data } = await GET_Product(this.channelIdx, this.sku);
         this.product = data;
       } catch (err) {
-        if (!(err?.response?.status === 404 || err?.error === "NOT_FOUND")) {
+        if (!(isNotFound(err))) {
           this.notify.spawnNotification({
             type: "negative",
             msg: extractApiMessage(err, this.$t("notifications.error")),

@@ -4,6 +4,69 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Sidebar: a locked panel's hidden screen-reader text (and a collapsed rail's hidden labels) no longer stretches
+  the page and adds an empty scroll — the nav item is their containing block.
+
+### Added
+
+- AI studio: a help mark next to each step's title explains in two or three sentences what the step does and
+  what it feeds (EN, PL; a step without its own text explains its output type).
+- Page editor: a content-language pick next to Save draft and Publish (every ContentDB language); the draft is saved
+  in the picked language and the change marks the page unsaved.
+- AI studio metadata: the step's QA warnings above the search preview, each named by its field (a value over its
+  limit, a rule, a number outside the facts).
+- AI studio questions: the step's `min_answers` shows above the form and blocks Approve until met (optional
+  questions count); purposes for the new article steps (insights, voice, edit) and the search phrases step first.
+
+## [3.3.0-rc.5] (2026-10-17)
+
+### Fixed
+
+- The channel of leads, communicator, site intel and the notification bar falls back to the CMS channel
+  (`VUE_APP_CHANNEL`) when `VUE_APP_LEADS_CHANNEL` is unset: a one-channel install no longer asks the notifications
+  of `default-europe` (a 404 on every page).
+
+## [3.3.0-rc.4] (2026-10-17)
+
+### Fixed
+
+- A 404 from the API is recognised again in the views that handle it (the Prices tab of a product, consent text,
+  authors, enrichment preview, supplier tab, delivery points, vouchers, product channel switch): they read the status
+  through `isNotFound`, since the client rejects with the v2 body. The Prices tab of a product without prices shows
+  the empty state instead of an error toast.
+- The Prices tab of a configurable product says that prices are set per variant.
+
+## [3.3.0-rc.3] (2026-10-17)
+
+### Changed
+
+- AI run dialog: a template that sets the image operation (packshot, scene, enhance, custom instruction) no longer
+  asks for the operation again; "Custom…" still does.
+
+### Fixed
+
+- A tooltip hides on a click of its trigger until the pointer leaves: it no longer covers the menu an icon button
+  opens (the AI menu of a gallery picture, row menus).
+- Image and video runs refused by the AI provider name the cause (`IMAGE_BLOCKED`, `VIDEO_BLOCKED`: the provider's
+  safety filter; `PROVIDER_ERROR`) instead of a generic error.
+
+## [3.3.0-rc.2] (2026-10-17)
+
+### Added
+
+- AI on one picture: a product picture tile in the media gallery has an AI menu with the image templates (packshot,
+  scene, enhance, custom instruction). The run dialog opens named after the action, on that picture, with the
+  template and its operation fixed; only the instruction and the number of variants are left to fill.
+
+### Fixed
+
+- A run that failed with `PRESET_NOT_FOUND` names the cause (the image preset does not fit the operation or is off in
+  the AI toolbox) instead of a generic AI error.
+
+## [3.3.0-rc.1] (2026-10-16)
+
 ### Added
 
 - Image processing in Run AI (an `image` worker or its templates): the picture to process (one product), what to do

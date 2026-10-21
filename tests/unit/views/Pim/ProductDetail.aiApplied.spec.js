@@ -93,3 +93,25 @@ describe("ProductDetail.onAiApplied", () => {
     expect(mockGetProduct).not.toHaveBeenCalled();
   });
 });
+
+describe("ProductDetail AI actions on a gallery picture", () => {
+  const actions = (ctx) => ProductDetail.computed.aiPictureActions.call(ctx);
+  const ctx = {
+    aiWritable: true,
+    aiUsable: true,
+    aiWorkers: [{ key: "pim.image", kind: "image" }, { key: "pim.writer", kind: "write" }],
+    aiTemplates: [
+      { key: "meta", label: "Meta", worker_key: "pim.writer" },
+      { key: "image-enhance", label: "Enhance", worker_key: "pim.image" },
+    ],
+  };
+
+  it("lists the image templates only", () => {
+    expect(actions(ctx)).toEqual([{ key: "image-enhance", label: "Enhance", testid: "media-ai-image-enhance" }]);
+  });
+
+  it("none without write on AI or a usable toolbox", () => {
+    expect(actions({ ...ctx, aiWritable: false })).toEqual([]);
+    expect(actions({ ...ctx, aiUsable: false })).toEqual([]);
+  });
+});
