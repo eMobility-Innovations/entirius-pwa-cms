@@ -150,14 +150,14 @@ and one meaning per glyph (unit test). A new meaning adds its glyph to `fa-icons
   (`--elem-height`) · `sm` (24 px) · `lg` (40 px at `radius-xl`, the sign-in screens; `primary` gets a soft top light on hover); label in the default slot; `icon` = a meaning of `icons.js`, drawn before the
   label (6 px gap); `loading` swaps the icon for a spinner, disables and sets `aria-busy`; `disabled`; `type`
   (`button` by default); without a `variant` it is `secondary`. The click stops at the button (`:stop="false"` lets
-  it through). `mutates`: the button creates, changes or deletes — a read-only page hides it (`docs/ui-rules.md` §
+  it through); `click` carries the native event (`@click="go($event)"`). `mutates`: the button creates, changes or deletes — a read-only page hides it (`docs/ui-rules.md` §
   Page patterns).
 - **`IconButton`** — every icon-only action: `icon` (meaning, required), `label` (required: `aria-label` + `title`),
   `variant` `ghost` · `outline` · `primary` · `danger`, `size` `sm` 24 · `md` `--elem-height` · `lg` 40 (header,
   mobile menu, `--radius-xl`), `pressed` (a toggle: `aria-pressed`, `surface-hover` fill), `disabled` (the glyph
   turns `text-disabled` in every variant but `primary`: a disabled `primary` keeps its `text-on-accent-fill` glyph
   and the whole button fades, `opacity: 0.5`, as FloatingActions). `danger` is
-  every icon-only delete or remove (C6). The click stops at the button by default (`:stop="false"` to opt out).
+  every icon-only delete or remove (C6). The click stops at the button by default (`:stop="false"` to opt out); `click` carries the native event.
   `mutates` (a row's delete, a remove): hidden on a read-only page; view and open actions leave it off.
   A back control: `<IconButton icon="back" :label="$t('common.back')" />`. On a phone
   the hit area grows to 40 × 40 around the box, the box keeps its size. `md` matches the text button, not Figma's

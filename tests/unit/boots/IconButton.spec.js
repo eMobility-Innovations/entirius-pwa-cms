@@ -46,6 +46,15 @@ describe("IconButton", () => {
     expect(wrapper.emitted("click")).toHaveLength(1);
   });
 
+  it("emits click with the native event, whose currentTarget is the button while the listener runs", async () => {
+    const seen = [];
+    const wrapper = mountIconButton({ onClick: (event) => seen.push([event, event?.currentTarget]) });
+    await wrapper.find("button").trigger("click");
+    expect(seen).toHaveLength(1);
+    expect(seen[0][0]).toBeInstanceOf(MouseEvent);
+    expect(seen[0][1]).toBe(wrapper.find("button").element);
+  });
+
   it("stops the click at the button unless :stop is false", async () => {
     const onParent = vi.fn();
     const Parent = {
