@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Translate Store (the whole-store translation) is offered only on the Translation page, as its primary action beside
+  a channel selector; it no longer sits in the header of the Pim views (a product page included). The product list
+  keeps Translate for the picked rows.
 - Sidebar: a locked panel's hidden screen-reader text (and a collapsed rail's hidden labels) no longer stretches
   the page and adds an empty scroll — the nav item is their containing block.
 

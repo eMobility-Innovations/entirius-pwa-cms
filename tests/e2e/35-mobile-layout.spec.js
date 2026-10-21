@@ -44,7 +44,7 @@ test.describe('Phone layout', () => {
     expect(barBottom).toBeLessThanOrEqual(innerHeight);
   });
 
-  test('the PIM header keeps title, channel select and translate button on one line', async ({ page }) => {
+  test('the PIM header keeps title and channel select on one line', async ({ page }) => {
     await page.goto('/pim/products');
     // The select's box itself (a label above it would sit inside the test id's wrapper and fake the alignment).
     const select = page.getByTestId('pim-channel-select').locator('.basic-select__control');
@@ -55,12 +55,6 @@ test.describe('Phone layout', () => {
     const selectBox = await select.boundingBox();
     const titleBox = await title.boundingBox();
     expect(Math.abs(centerY(titleBox) - centerY(selectBox))).toBeLessThanOrEqual(2);
-
-    const translate = page.getByTestId('pim-translate-store');
-    if (await translate.count()) {
-      const buttonBox = await translate.boundingBox();
-      expect(Math.abs(centerY(buttonBox) - centerY(selectBox))).toBeLessThanOrEqual(1);
-    }
   });
 
   for (const path of ['/pim/products', '/pim/categories', '/points']) {

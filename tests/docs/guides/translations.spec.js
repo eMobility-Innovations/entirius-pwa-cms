@@ -1,9 +1,9 @@
 const { test, expect, guide, goto } = require("../support/capture");
 const { ROWS, api } = require("./helpers");
 
-// Guide "Translations": the Translate Store button of the PIM channel bar, its dialog with a cost estimate, and the
-// job in Translation Jobs. The translations are written by the AI toolbox, so their text differs between runs: the
-// spec waits for elements and statuses, never for translated text.
+// Guide "Translations": the Translate Store button of the Translation Jobs page (the store-wide translation lives
+// there alone), its dialog with a cost estimate, and the job in the same list. The translations are written by the AI
+// toolbox, so their text differs between runs: the spec waits for elements and statuses, never for translated text.
 //
 // A translation cannot be taken back: every run leaves one finished job and the product translations it wrote in
 // the first other language of the channel. With a finished job already in the list the spec fails with
@@ -24,8 +24,8 @@ const OTHER_TYPES = [1, 2, 3]; // the content types after Products: categories, 
 const JOB_TIMEOUT_MS = 60000;
 const POLL_MS = 2000;
 
-const BUTTON = '[data-testid="pim-translate-store"]';
-const CHANNEL_BAR = `div:has(> ${BUTTON})`;
+const BUTTON = '[data-testid="translation-translate-store"]';
+const PAGE_HEADER = ".page-header";
 const DIALOG = '[role="dialog"]:visible';
 const ESTIMATE = '[data-testid="translate-dialog-estimate-step"]';
 const JOBS = ".tj-dashboard";
@@ -84,9 +84,9 @@ async function finishedJob(page, jobPath) {
 test("translations", async ({ page }) => {
   await assertFreshSeed(page);
 
-  await test.step("Translate Store in the channel bar", async () => {
-    await goto(page, "/pim/products", { ready: BUTTON });
-    await shot(page, "01-translate-store-button", { element: CHANNEL_BAR, callouts: [{ target: BUTTON, label: "1" }] });
+  await test.step("Translate Store on the Translation Jobs page", async () => {
+    await goto(page, "/translation-jobs", { ready: BUTTON });
+    await shot(page, "01-translate-store-button", { element: PAGE_HEADER, callouts: [{ target: BUTTON, label: "1" }] });
   });
 
   await test.step("The dialog with its cost estimate", async () => {
