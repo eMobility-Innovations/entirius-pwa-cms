@@ -77,6 +77,7 @@
             variant="ghost"
             size="sm"
             class="list-mode__sku"
+            :title="named(row) ? row.subject_label : row.subject_ref"
             :data-testid="`enrichment-subject-${row.id}`"
             @click.stop="$emit('preview-product', row)"
           >
@@ -97,7 +98,7 @@
           <span v-if="isPimRow(row) && named(row)" class="list-mode__name fs-200 t-secondary" :data-testid="`enrichment-sku-${row.id}`">
             {{ row.subject_ref }}
           </span>
-          <span v-else-if="!runUidOf(row) && named(row)" class="list-mode__name fs-200 t-secondary">
+          <span v-else-if="!runUidOf(row) && named(row)" class="list-mode__name fs-200 t-secondary" :title="row.subject_label">
             {{ row.subject_label }}
           </span>
           <!-- A phone hides the field column: the field and language, and the run, go under the subject. -->
@@ -243,9 +244,9 @@ export default {
     columns() {
       const t = (key) => this.$t(`enrichment.review.col.${key}`);
       const all = [
-        { key: "product", label: t("product"), width: "minmax(110px, 1fr)" },
+        { key: "product", label: t("product"), width: "minmax(110px, 2fr)" },
         { key: "field", label: t("field"), width: "max-content", priority: 2 },
-        { key: "change", label: t("change"), width: "minmax(160px, 3fr)", priority: 2 },
+        { key: "change", label: t("change"), width: "minmax(160px, 2fr)", priority: 2 },
         { key: "status", label: t("status"), width: "max-content" },
         { key: "confidence", label: t("confidence"), width: "90px", priority: 2 },
         { key: "target_module", label: t("module"), width: "90px", priority: 3 },
@@ -316,8 +317,22 @@ export default {
 .list-mode__product {
   min-width: 0;
 }
+// A long product name keeps to its column: two lines, then an ellipsis (the full name is the button's title). The
+// button would size to its one-line text and run over the next column.
 .list-mode__sku {
   align-self: flex-start;
+  max-width: 100%;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+
+  :deep(.btn-text) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
 }
 .list-mode__name,
 .list-mode__field {

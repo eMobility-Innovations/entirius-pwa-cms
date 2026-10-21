@@ -48,7 +48,7 @@ const emit = defineEmits(["click"]);
 
 function onClick(event) {
   if (props.stop) event.stopPropagation();
-  emit("click");
+  emit("click", event);
 }
 </script>
 

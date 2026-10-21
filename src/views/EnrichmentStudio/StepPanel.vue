@@ -138,6 +138,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
 import ProposalCorrection from "@/views/EnrichmentReview/ProposalCorrection.vue";
 import { revisable } from "@/views/EnrichmentReview/correction";
+import { pluralKey } from "@/utils/plural";
 import CoverVariants from "./CoverVariants.vue";
 import DocumentSummary from "./DocumentSummary.vue";
 import KeywordsTable from "./KeywordsTable.vue";
@@ -242,6 +243,7 @@ export default {
         if (this.form.chosen !== null) return this.$t("enrichment.studio.cover.chosen_caption", { n: this.form.chosen + 1 });
         return this.$t("enrichment.studio.cover.variants_caption", { count: this.form.total });
       }
+      if (this.kind === "scenes") return this.scenesCaption();
       if (this.kind !== "text" || !this.proposal) return "";
       return this.$t("enrichment.studio.text.reading", readingStats(this.proposal.proposed_value?.text));
     },
@@ -348,6 +350,13 @@ export default {
     clearInterval(this.ticker);
   },
   methods: {
+    // The scenes are read-only: say how many there are and in which step the picture is picked, also once approved.
+    scenesCaption() {
+      const picker = nextStep(this.run, this.step.key);
+      if (!picker) return "";
+      const count = this.proposal.proposed_value.data.scenes.length;
+      return this.$t(`enrichment.studio.cover.scenes_${pluralKey(count)}`, { count, step: picker.label });
+    },
     known(path) {
       const text = this.$t(path);
       return text === path ? "" : text;

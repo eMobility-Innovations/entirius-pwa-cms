@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Enrichment Review list: a long product name stays in its column. The name (a ghost button, which sizes to its text)
+  ran over the Field column; it now wraps to two lines and ends in an ellipsis, with the full name in its title. The
+  Product column takes a bigger share of the free width (2fr, was 1fr; Change 2fr, was 3fr) so a clamped name still reads.
+- Enrichment focus mode (and the product preview drawer) shows the product's main picture. The card read `og_image`,
+  the SEO sharing URL, which is empty unless someone set it, so it fell back to the placeholder; it now takes the picture
+  of the "main" role from the product's pictures (else the first one) and falls back to `og_image` only without pictures.
+- Page builder: "Add tile" under a section's tiles works again. BasicButton and IconButton emitted `click` without the
+  event, so a handler that reads it (the builder's `clickIn`) failed with "event is undefined"; both now pass the
+  native click event.
 - Translate Store (the whole-store translation) is offered only on the Translation page, as its primary action beside
   a channel selector; it no longer sits in the header of the Pim views (a product page included). The product list
   keeps Translate for the picked rows.
@@ -17,6 +26,9 @@ All notable changes to this project will be documented in this file.
   "Porównywanie przed zakupem", "Zakup", "Szukanie strony") in the top tile and the memory entry too.
 - AI studio search phrases: the SERP notes (the step's callout and each row's "What ranks today") keep their line
   breaks, so notes written as several short lines no longer run together.
+- AI studio cover scenes: the step says where the picture is picked. A caption beside the title (also once the step
+  is approved) gives the scene count and the next step's label ("3 scenes · you pick the picture in the Cover step"),
+  and the help mark adds that the picture is picked in the next step from the variants made from these scenes.
 
 ### Added
 
