@@ -3,8 +3,9 @@ const { login } = require('../helpers/auth');
 
 /**
  * AI actions follow the AI toolbox state. The configuration-health answer is replaced with one `toolbox.status` row
- * per state; the translate dialog of the PIM product list then shows the one shared hint, keeps Estimate off while
- * the toolbox is switched off or not set up, and the header warning stays away for a toolbox switched off on purpose.
+ * per state; the store translate dialog of the Translation panel then shows the one shared hint, keeps Estimate off
+ * while the toolbox is switched off or not set up, and the header warning stays away for a toolbox switched off on
+ * purpose.
  * Read-only: opens the dialog, never estimates or translates.
  */
 
@@ -29,8 +30,8 @@ for (const row of STATES) {
       route.request().method() === 'GET' ? route.fulfill({ json: healthBody(row) }) : route.continue()
     );
     await login(page);
-    await page.goto('/pim/products');
-    await page.getByTestId('pim-translate-store').click();
+    await page.goto('/translation-jobs');
+    await page.getByTestId('translation-translate-store').click();
 
     await expect(page.locator(`[data-testid="ai-toolbox-hint"][data-state="${row.state}"]`)).toBeVisible();
     if (row.blocked) await expect(page.getByTestId('translate-dialog-estimate')).toBeDisabled();

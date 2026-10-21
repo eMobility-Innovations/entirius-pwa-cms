@@ -196,8 +196,10 @@ Traps:
   = the screen's sections as `RouteTabs`, under the title, the description then under the tabs), a
   loader branch's condition on the slot; `#toolbar` = the search/filter row;
   `#footer` = the Pagination. Page actions are an `ActionBar` in PageHeader `actions` (R5); controls for the whole
-  panel (a channel selector, „Tłumacz sklep”) sit in PageHeader `meta` or the ActionBar. A panel wrapper holds no
-  toolbar strip and no teleport targets.
+  panel (a channel selector) sit in PageHeader `meta` or the ActionBar. An action on a whole store or channel („Tłumacz
+  sklep”) lives only in the panel built for it (Translation, as the primary action of its page); a view of one entity
+  or a list offers actions scoped to that entity or to the picked rows. A panel wrapper holds no toolbar strip and no
+  teleport targets.
 - **Read-only page.** `PageLayout` decides it once (the route's `meta.area`, else the panel's first area, without
   write in django-access `me`) and shows one notice line under the header. ActionBar keeps only its utilities (not a
   `danger` one; an action's `mutates` true/false overrides its role), FloatingActions (but its back button) and
