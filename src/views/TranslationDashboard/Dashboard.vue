@@ -2,6 +2,9 @@
   <PageLayout>
     <template #header>
       <PageHeader :title="$t('translation.jobs')">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
         <template #actions>
           <ActionBar :actions="headerActions" />
         </template>
@@ -98,23 +101,44 @@
       </template>
     </DataTable>
   </div>
+
+    <PimTranslateDialog
+      v-if="translatorAvailable"
+      v-model:open="showTranslateStore"
+      scope="store"
+      :channel-idx="channelIdx"
+      @translated="watchNewJobs"
+    />
   </PageLayout>
 </template>
 
 <script>
 import { useTranslationJobsStore } from "@/stores/translationJobs";
 import { usePimChannelStore } from "@/stores/pimChannel";
+import { useMuninStore } from "@/stores/munin";
+import PimChannelSelect from "@/views/Pim/components/PimChannelSelect.vue";
+import PimTranslateDialog from "@/views/Pim/components/PimTranslateDialog.vue";
 
+// The one home of the store-wide translation („Tłumacz sklep”): every entity type of the picked channel in one go.
+// The Pim views offer only what is scoped to their entity or selection.
 export default {
   name: "TranslationDashboard",
+  components: { PimChannelSelect, PimTranslateDialog },
   setup() {
     const jobsStore = useTranslationJobsStore();
     const pimChannel = usePimChannelStore();
-    return { jobsStore, pimChannel };
+    const munin = useMuninStore();
+    return { jobsStore, pimChannel, munin };
+  },
+  data() {
+    return { showTranslateStore: false };
   },
   computed: {
     channelIdx() {
       return this.pimChannel.activeChannelIdx;
+    },
+    translatorAvailable() {
+      return this.munin.isModuleInstalled("pim_translator");
     },
     statCards() {
       return [
@@ -145,7 +169,18 @@ export default {
       ];
     },
     headerActions() {
-      return [{ key: "refresh", role: "secondary", label: this.$t("translation.refresh"), onClick: this.refresh }];
+      const refresh = { key: "refresh", role: "secondary", label: this.$t("translation.refresh"), onClick: this.refresh };
+      if (!this.translatorAvailable) return [refresh];
+      const translateStore = {
+        key: "translate-store",
+        role: "primary",
+        label: this.$t("pim.translate_store"),
+        testid: "translation-translate-store",
+        onClick: () => {
+          this.showTranslateStore = true;
+        },
+      };
+      return [refresh, translateStore];
     },
     filterChips() {
       return [
@@ -188,6 +223,12 @@ export default {
     refresh() {
       if (this.channelIdx) {
         this.jobsStore.fetchJobs(this.channelIdx);
+      }
+    },
+    // The jobs the dialog just created: read them now and keep polling while any is pending or running.
+    watchNewJobs() {
+      if (this.channelIdx) {
+        this.jobsStore.startPolling(this.channelIdx);
       }
     },
     shortId(id) {

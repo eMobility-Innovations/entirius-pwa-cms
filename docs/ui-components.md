@@ -520,8 +520,9 @@ the component recipe.
 
 - One `PageLayout` per view: `#header` = `PageHeader` (the only H1), `#toolbar` = the search and filter row, default
   slot = the content, `#footer` = `Pagination`. `roomy` only on the Figma frames (Home, content list, gallery).
-- Page actions: PageHeader `actions` → `ActionBar` (R5). Panel-wide controls (channel selector, „Tłumacz sklep”):
-  PageHeader `meta` or the ActionBar. No panel toolbar strip, no `<Teleport to="#…toolbar">`.
+- Page actions: PageHeader `actions` → `ActionBar` (R5). Panel-wide controls (channel selector): PageHeader `meta` or
+  the ActionBar. „Tłumacz sklep” is the Translation page's primary action, in no Pim view. No panel toolbar strip, no
+  `<Teleport to="#…toolbar">`.
 - A route without a PageHeader still gets one H1: the shell's fallback `PageHeader` (crumbs + the route's `titleKey`).
 - `FloatingActions` keeps its own inset (24 px desktop, 16 px above the tab bar); a view passes `actions` / `pill`,
   never a position. A view never overrides the frame from outside (`:deep(.page-header__title)`, PageLayout padding).
