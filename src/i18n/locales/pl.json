@@ -2960,7 +2960,11 @@
         "PRESET_NOT_FOUND": "Preset obrazu nie pasuje do wybranej operacji albo jest wyłączony w AI toolbox",
         "IMAGE_BLOCKED": "Dostawca AI odrzucił zdjęcie (filtr bezpieczeństwa) — wybierz inne zdjęcie albo zmień polecenie",
         "VIDEO_BLOCKED": "Dostawca AI odrzucił wideo (filtr bezpieczeństwa) — wybierz inne zdjęcie albo zmień polecenie",
-        "PROVIDER_ERROR": "Dostawca AI zwrócił błąd — spróbuj ponownie"
+        "PROVIDER_ERROR": "Dostawca AI zwrócił błąd — spróbuj ponownie",
+        "NO_PICTURE": "Produkt nie ma zdjęcia głównego",
+        "PRODUCT_PICTURE_MISSING": "Produktu z okładki już nie ma albo nie ma on zdjęcia głównego — zmień go w nowym przebiegu",
+        "PRODUCT_NOT_FOUND": "Produkt z okładki już nie istnieje",
+        "COVER_FAILED": "Nie udało się zrobić żadnego wariantu okładki — spróbuj ponownie"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} do przejrzenia",
@@ -3290,7 +3294,8 @@
         "created": "Jest w Stronach jako szkic. Sprawdź go tam przed publikacją.",
         "open": "Otwórz szkic w Stronach",
         "created_title": "Szkic utworzony, nieopublikowany",
-        "another": "Rozpocznij nową treść"
+        "another": "Rozpocznij nową treść",
+        "cover": "Okładka"
       },
       "run_cost_final": "Koszt",
       "your_turn_on": "Twoja kolej: {step}",
@@ -3313,7 +3318,11 @@
         "title": "Tytuł roboczy",
         "angle": "Ujęcie",
         "audience": "Odbiorcy",
-        "notes": "Notatki"
+        "notes": "Notatki",
+        "cover_hint": "Wskazówki do okładki",
+        "cover_product": "Produkt na okładce",
+        "cover_text_wanted": "Tekst na okładce",
+        "cover_text": "Tekst okładki"
       },
       "step_of": "Krok {number} z {total}",
       "rail": {
@@ -3334,12 +3343,15 @@
         "voice": "Przeczytaj tekst w głosie autora i popraw to, co nie pasuje. Redakcja dopracuje całość.",
         "edit": "Ostatni przebieg po całym tekście. Metadane powstaną na jego podstawie.",
         "meta": "Sprawdź, jak strona wygląda w wynikach wyszukiwania.",
-        "compose": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany."
+        "compose": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany.",
+        "cover_brief": "Sprawdź pomysły na scenę okładki, zanim powstaną obrazy.",
+        "cover": "Wybierz obraz, który zostanie okładką, i sprawdź jego tekst alternatywny."
       },
       "purpose_output": {
         "questions": "Odpowiedz na to, co wiesz. AI użyje odpowiedzi w każdym kolejnym kroku.",
         "artifact": "Sprawdź, co napisało AI, i zatwierdź, aby przejść dalej.",
-        "document": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany."
+        "document": "Sprawdź, co trafi do szkicu. Zatwierdzenie utworzy go w Stronach, nieopublikowany.",
+        "image": "Wybierz jeden z obrazów i zatwierdź, aby przejść dalej."
       },
       "explainer": {
         "keywords": "Sprawdza, czego ludzie szukają w tym temacie: miesięczną liczbę wyszukiwań, najwyższe wyniki i pytania zadawane w wyszukiwarce (dane na żywo, płatne zapytanie). AI proponuje frazę główną i luki w treści, a Ty wybierasz frazę. Każdy kolejny krok opiera się na tym researchu.",
@@ -3350,12 +3362,15 @@
         "voice": "Przepisuje cały tekst tak, by brzmiał jak człowiek tłumaczący temat jednemu czytelnikowi, w tonie Twoich odpowiedzi i profilu firmy. Fakty, liczby, frazy i nagłówki sekcji zostają, zmienia się tylko forma.",
         "edit": "Ostatnia redakcja całego artykułu: usuwa powtórzenia, różnicuje rytm i poprawia język, niczego nie dodając od siebie. Metadane i dokument powstają z tego tekstu, więc to ta wersja zostanie opublikowana.",
         "meta": "Pisze, jak strona wygląda w wynikach wyszukiwania i w mediach społecznościowych: tytuł, opis, teksty do udostępnień, adres i FAQ, wszystko na podstawie zredagowanego tekstu. Każda długość jest sprawdzana pod kątem limitów wyszukiwarek; aby poprawić którąś, wygeneruj krok ponownie z instrukcją.",
-        "compose": "Składa zredagowany tekst, metadane i FAQ w jeden dokument. Zatwierdzenie tworzy go w Stronach jako nieopublikowany szkic: decyzja o publikacji zostaje po Twojej stronie."
+        "compose": "Składa zredagowany tekst, metadane i FAQ w jeden dokument. Zatwierdzenie tworzy go w Stronach jako nieopublikowany szkic: decyzja o publikacji zostaje po Twojej stronie.",
+        "cover_brief": "Planuje okładkę: dwie lub trzy różne sceny dla jednej myśli artykułu, na podstawie zredagowanego tekstu, stylu wizualnego z profilu firmy, Twoich wskazówek i produktu, oraz tekst alternatywny obrazu. Obrazy kosztują, więc sceny popraw tutaj: jeśli któraś nie pasuje, wygeneruj krok ponownie z instrukcją.",
+        "cover": "Tworzy po jednym obrazie na każdą scenę. Wybierz ten, który zostanie okładką artykułu i jego kafelkiem na blogu, i sprawdź tekst alternatywny: czytają go wyszukiwarki i czytniki ekranu. Jeśli żaden nie pasuje, wygeneruj ponownie z instrukcją, na przykład „bez żółtej poduszki”."
       },
       "explainer_output": {
         "questions": "Pyta o to, co wiesz tylko Ty. Twoje odpowiedzi staną się materiałem dla kolejnych kroków.",
         "artifact": "Wynik pośredni, na którym opierają się kolejne kroki. Sprawdź go, w razie potrzeby popraw i zatwierdź, aby przejść dalej.",
-        "document": "Gotowy dokument. Zatwierdzenie utworzy go w jego module jako nieopublikowany szkic."
+        "document": "Gotowy dokument. Zatwierdzenie utworzy go w jego module jako nieopublikowany szkic.",
+        "image": "Obrazy utworzone w tym kroku, po jednym na pomysł. Wybierz jeden, sprawdź tekst alternatywny i zatwierdź, aby przejść dalej."
       },
       "approve_to": "Zatwierdź i przejdź do: {step}",
       "create_draft": "Utwórz szkic",
@@ -3381,7 +3396,25 @@
       "approve": "Zatwierdź",
       "profile_fill": "Uzupełnij profil",
       "empty_your_turn": "Nic teraz na Ciebie nie czeka.",
-      "show_all": "Pokaż wszystkie"
+      "show_all": "Pokaż wszystkie",
+      "product_search": "Szukaj produktów po nazwie lub SKU",
+      "cover": {
+        "choose": "Każdy obraz pokazuje inną scenę. Wybrany zostanie okładką.",
+        "choose_needed": "Wybierz jeden obraz, aby przejść dalej. Każdy pokazuje inną scenę.",
+        "variants": "Warianty okładki",
+        "variant": "Wariant {n}",
+        "variants_caption": "Warianty: {count}",
+        "chosen_caption": "Wybrany wariant {n}",
+        "chosen_label": "Wybrany",
+        "must_show": "Musi pokazywać",
+        "prompt": "Prompt",
+        "enlarge": "Powiększ",
+        "alt": "Tekst alternatywny",
+        "alt_hint": "Co pokazuje obraz i po co jest na tej stronie. Czytają go wyszukiwarki i czytniki ekranu.",
+        "text": "Tekst na obrazie",
+        "image_failed": "Nie można wyświetlić tego obrazu.",
+        "image_loading": "Wczytywanie obrazu…"
+      }
     },
     "profile": {
       "title": "Profil firmy",
@@ -3431,7 +3464,8 @@
         "checklists": "Listy kontrolne",
         "always_rules": "Zasady stałe",
         "rules": "Reguły sprawdzane",
-        "routing": "Sekcje dla zadań"
+        "routing": "Sekcje dla zadań",
+        "visual": "Styl wizualny"
       },
       "fields": {
         "text": "Opis",
@@ -3440,7 +3474,8 @@
         "personas": "Persony",
         "ai_patterns": "Zwroty brzmiące jak AI",
         "spellings": "Pisownia",
-        "glossary": "Słownik"
+        "glossary": "Słownik",
+        "never_show": "Nigdy nie pokazuj"
       },
       "columns": {
         "label": "Co",

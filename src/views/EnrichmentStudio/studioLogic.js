@@ -114,26 +114,56 @@ export function runTitle(run) {
   return inputs.title || inputs.topic || run?.definition_label || "";
 }
 
-/** The brief form of an inputs schema: one field per property, required ones first in the schema's order. */
+/**
+ * The brief form of an inputs schema: one field per property, required ones first in the schema's order. `type` is
+ * "string" | "boolean" | "object"; `picker` (`x-picker`, e.g. "pim-product") picks an object value; `visibleIf`
+ * (`x-visible-if`) names the field that must be on for this one to show — and then it must be filled.
+ */
 export function briefFields(schema) {
   const required = schema?.required || [];
   const fields = Object.entries(schema?.properties || {}).map(([key, prop]) => ({
     key,
     label: prop.title || key,
+    type: BRIEF_TYPES.includes(prop.type) ? prop.type : "string",
+    picker: prop["x-picker"] || "",
+    visibleIf: prop["x-visible-if"] || "",
     required: required.includes(key),
     multiline: (prop.maxLength || 0) > LONG_TEXT,
     minLength: prop.minLength ?? null,
     maxLength: prop.maxLength ?? null,
     pattern: prop.pattern || "",
-    default: prop.default ?? "",
+    default: prop.default ?? (prop.type in DEFAULTS ? DEFAULTS[prop.type] : ""),
   }));
   return [...fields.filter((f) => f.required), ...fields.filter((f) => !f.required)];
 }
 
+const BRIEF_TYPES = ["string", "boolean", "object"];
+/** The backend module a picker searches: without it the field is left out of the form. */
+export const PICKER_MODULES = { "pim-product": "pim" };
+const DEFAULTS = { boolean: false, object: null };
+
 export const initialBrief = (fields) => Object.fromEntries(fields.map((field) => [field.key, field.default]));
+
+/** Whether a field shows: always, or while the field it depends on (`visibleIf`) is on. */
+export const isFieldVisible = (field, values) => !field.visibleIf || Boolean(values?.[field.visibleIf]);
+
+/** Whether a field must be filled: required by the schema, or shown because the field it depends on is on. */
+export const isFieldRequired = (field, values) => field.required || (Boolean(field.visibleIf) && isFieldVisible(field, values));
+
+/** A brief value as the API takes it, undefined when empty: `true` (never `false`), a picked object, trimmed text. */
+function briefValue(value) {
+  if (typeof value === "boolean") return value || undefined;
+  if (value && typeof value === "object") return value.ref ? value : undefined;
+  return String(value ?? "").trim() || undefined;
+}
+
+/** Whether the operator gave a value (an unchecked box and an empty pick are no value). */
+export const briefHasValue = (value) => briefValue(value) !== undefined;
 
 /** The first problem of one brief value: required | too_short | too_long | format, or "". */
 export function briefFieldError(field, raw) {
+  if (field.type === "boolean") return "";
+  if (field.type === "object") return field.required && !briefHasValue(raw) ? "required" : "";
   const value = String(raw ?? "").trim();
   if (!value) return field.required ? "required" : "";
   if (field.minLength != null && value.length < field.minLength) return "too_short";
@@ -151,30 +181,33 @@ function matchesPattern(pattern, value) {
   }
 }
 
-/** { field key: error code } of the brief; empty when it can be sent. */
+/** { field key: error code } of the brief's shown fields; empty when it can be sent. */
 export function briefErrors(fields, values) {
   const errors = {};
-  for (const field of fields) {
-    const error = briefFieldError(field, values[field.key]);
+  for (const field of fields.filter((f) => isFieldVisible(f, values))) {
+    const error = briefFieldError({ ...field, required: isFieldRequired(field, values) }, values[field.key]);
     if (error) errors[field.key] = error;
   }
   return errors;
 }
 
-/** The brief as the API takes it: trimmed, empty values left out. */
-export function cleanBrief(values) {
-  const entries = Object.entries(values).map(([key, value]) => [key, String(value ?? "").trim()]);
-  return Object.fromEntries(entries.filter(([, value]) => value));
+/** The brief as the API takes it: empty values and the values of hidden fields left out. */
+export function cleanBrief(values, fields = []) {
+  const hidden = new Set(fields.filter((field) => !isFieldVisible(field, values)).map((field) => field.key));
+  const entries = Object.entries(values).filter(([key]) => !hidden.has(key));
+  return Object.fromEntries(entries.map(([key, value]) => [key, briefValue(value)]).filter(([, value]) => value !== undefined));
 }
 
-/** Which renderer a step output takes: questions | document | keywords | meta | text | data. */
+/** Which renderer a step output takes: questions | document | cover | keywords | meta | scenes | text | data. */
 export function outputKind(step, value) {
   if (step?.output === "questions") return "questions";
   if (step?.output === "document") return "document";
+  if (step?.output === "image") return "cover";
   if (typeof value?.text === "string") return "text";
   const data = value?.data;
   if (Array.isArray(data?.candidates) || typeof data?.primary === "string") return "keywords";
   if (typeof data?.title === "string" && typeof data?.description === "string") return "meta";
+  if (Array.isArray(data?.scenes)) return "scenes";
   return "data";
 }
 

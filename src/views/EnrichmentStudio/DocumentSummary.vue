@@ -18,6 +18,11 @@
       </div>
     </StepCallout>
 
+    <figure v-if="cover && !coverMissing && proposal.status === 'pending'" class="document-summary__cover m-0 flex-column gap-2" data-testid="document-cover">
+      <StagedImage :proposal-id="proposal.id" :alt="cover.alt || ''" @missing="coverMissing = true" />
+      <figcaption v-if="cover.alt" class="fs-250 t-secondary">{{ cover.alt }}</figcaption>
+    </figure>
+
     <dl class="document-summary__facts m-0">
       <template v-for="fact in facts" :key="fact.key">
         <dt class="document-summary__name">{{ $t(`enrichment.studio.document.${fact.key}`) }}</dt>
@@ -28,19 +33,27 @@
 </template>
 
 <script>
+import StagedImage from "./StagedImage.vue";
 import StepCallout from "./StepCallout.vue";
 import { draftRoute, wordCount } from "./studioLogic";
 
-// The last step: what the document will hold (title, address, language, length, FAQ) and, once approved, the
-// unpublished draft in Pages to open, or a new piece of content to start.
+// The last step: what the document will hold (the cover, title, address, language, length, FAQ) and, once approved,
+// the unpublished draft in Pages to open, or a new piece of content to start. The cover is the proposal's staged
+// image until the draft exists (then it lives in Pages and the image here is gone: it is hidden).
 export default {
   name: "DocumentSummary",
-  components: { StepCallout },
+  components: { StagedImage, StepCallout },
   props: {
     proposal: { type: Object, required: true },
     run: { type: Object, required: true },
   },
+  data() {
+    return { coverMissing: false };
+  },
   computed: {
+    cover() {
+      return this.value.cover || null;
+    },
     value() {
       return this.proposal.proposed_value || {};
     },
@@ -65,6 +78,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.document-summary__cover {
+  max-width: 40rem;
+}
 .document-summary__facts {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

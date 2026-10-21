@@ -44,16 +44,22 @@
           </BasicButton>
         </div>
         <template v-if="showDetails">
-          <FormField
-            v-for="field in optionalFields"
-            :key="field.key"
-            :label="field.label"
-            :error="fieldError(field)"
-            :data-testid="`brief-${field.key}`"
-          >
-            <BasicTextarea v-if="field.multiline" v-model="brief[field.key]" :rows="3" :maxlength="field.maxLength" />
-            <BasicInput v-else v-model="brief[field.key]" :maxlength="field.maxLength" />
-          </FormField>
+          <template v-for="field in shownOptionalFields" :key="field.key">
+            <BasicCheckbox v-if="field.type === 'boolean'" v-model="brief[field.key]" :data-testid="`brief-${field.key}`">
+              {{ field.label }}
+            </BasicCheckbox>
+            <FormField
+              v-else
+              :label="field.label"
+              :required="isRequired(field)"
+              :error="fieldError(field)"
+              :data-testid="`brief-${field.key}`"
+            >
+              <BriefProductPicker v-if="field.picker === 'pim-product'" v-model="brief[field.key]" />
+              <BasicTextarea v-else-if="field.multiline" v-model="brief[field.key]" :rows="3" :maxlength="field.maxLength" />
+              <BasicInput v-else v-model="brief[field.key]" :maxlength="field.maxLength" />
+            </FormField>
+          </template>
         </template>
       </template>
     </form>
@@ -64,18 +70,31 @@
 import { GET_Languages, GET_Run, GET_Workflows, POST_Run } from "@/api/enrichment/api";
 import { uiLocale } from "@/i18n";
 import { useContentDBChannelStore } from "@/stores/contentDBChannel";
+import { useMuninStore } from "@/stores/munin";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage, useFormErrors } from "@/composables/useFormErrors";
+import BriefProductPicker from "./BriefProductPicker.vue";
 import ProfileGate from "./ProfileGate.vue";
-import { LANGUAGE_FIELD, briefErrors, briefFields, cleanBrief, initialBrief } from "./studioLogic";
+import {
+  LANGUAGE_FIELD,
+  PICKER_MODULES,
+  briefErrors,
+  briefFields,
+  briefHasValue,
+  cleanBrief,
+  initialBrief,
+  isFieldRequired,
+  isFieldVisible,
+} from "./studioLogic";
 
 // "New": pick a workflow and the channel, then its brief — a form generated from the workflow's inputs schema. The
 // required fields come first (the language is a pick from the channel's languages, its main one by default); the
-// optional ones wait behind "Add details". `copyFrom` (a run uid) starts from that run's workflow, channel and brief.
+// optional ones wait behind "Add details": text, a checkbox (`boolean`), a product search (`x-picker`), a field that
+// shows only while another one is on (`x-visible-if`, then required). `copyFrom` (a run uid) starts from that run's workflow, channel and brief.
 // Start creates the run and opens it (`started`).
 export default {
   name: "NewRunDialog",
-  components: { ProfileGate },
+  components: { BriefProductPicker, ProfileGate },
   props: {
     open: { type: Boolean, default: false },
     copyFrom: { type: String, default: "" },
@@ -84,7 +103,7 @@ export default {
   },
   emits: ["update:open", "started"],
   setup() {
-    return { formErrors: useFormErrors(), notify: useNotifyStore(), channels: useContentDBChannelStore() };
+    return { formErrors: useFormErrors(), notify: useNotifyStore(), channels: useContentDBChannelStore(), munin: useMuninStore() };
   },
   data() {
     return {
@@ -104,14 +123,19 @@ export default {
     workflow() {
       return this.workflows.find((w) => w.key === this.definition) || null;
     },
+    // A picker field whose module is off (no PIM for the product search) is left out.
     fields() {
-      return briefFields(this.workflow?.inputs_schema);
+      const usable = (field) => !field.picker || this.munin.isModuleEnabled(PICKER_MODULES[field.picker]);
+      return briefFields(this.workflow?.inputs_schema).filter(usable);
     },
     requiredFields() {
       return this.fields.filter((field) => field.required);
     },
     optionalFields() {
       return this.fields.filter((field) => !field.required);
+    },
+    shownOptionalFields() {
+      return this.optionalFields.filter((field) => isFieldVisible(field, this.brief));
     },
     workflowOptions() {
       return this.workflows.map((w) => ({ label: w.label, value: w.key }));
@@ -139,7 +163,7 @@ export default {
     definition() {
       this.brief = { ...initialBrief(this.fields), ...this.copied };
       this.copied = null;
-      this.showDetails = this.optionalFields.some((field) => String(this.brief[field.key] ?? "").trim());
+      this.showDetails = this.optionalFields.some((field) => briefHasValue(this.brief[field.key]));
       this.errors = {};
       this.formErrors.clearErrors();
     },
@@ -179,7 +203,10 @@ export default {
       } else {
         this.definition = run.definition;
       }
-      this.showDetails = this.optionalFields.some((field) => String(this.brief[field.key] ?? "").trim());
+      this.showDetails = this.optionalFields.some((field) => briefHasValue(this.brief[field.key]));
+    },
+    isRequired(field) {
+      return isFieldRequired(field, this.brief);
     },
     isLanguage(field) {
       return field.key === LANGUAGE_FIELD && this.languages.length > 0;
@@ -208,7 +235,7 @@ export default {
       if (Object.keys(this.errors).length) return;
       this.starting = true;
       try {
-        const body = { definition: this.definition, channel: this.channel, inputs: cleanBrief(this.brief) };
+        const body = { definition: this.definition, channel: this.channel, inputs: cleanBrief(this.brief, this.fields) };
         const { data } = await POST_Run(body);
         this.$emit("started", data);
         this.close();

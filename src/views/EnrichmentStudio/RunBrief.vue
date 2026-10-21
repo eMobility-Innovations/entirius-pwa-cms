@@ -28,11 +28,13 @@
 </template>
 
 <script>
+import { briefHasValue } from "./studioLogic";
+
 // The brief fields shown under the topic, in this order (the language and channel are chips in the page header).
-const DETAILS = ["title", "angle", "audience", "notes"];
+const DETAILS = ["title", "angle", "audience", "notes", "cover_hint", "cover_product", "cover_text_wanted", "cover_text"];
 
 // The run's brief under the page header: the full topic always, the rest of the brief (working title, angle,
-// audience, notes) open until the first step is approved, folded after that.
+// audience, notes, the cover's hints, product and text) open until the first step is approved, folded after that.
 export default {
   name: "RunBrief",
   props: {
@@ -49,7 +51,15 @@ export default {
       return this.inputs.topic || this.inputs.title || this.run.definition_label;
     },
     details() {
-      return DETAILS.filter((key) => String(this.inputs[key] ?? "").trim()).map((key) => ({ key, value: this.inputs[key] }));
+      return DETAILS.filter((key) => briefHasValue(this.inputs[key])).map((key) => ({ key, value: this.shown(this.inputs[key]) }));
+    },
+  },
+  methods: {
+    // A checkbox reads yes / no, a picked product its name and SKU.
+    shown(value) {
+      if (typeof value === "boolean") return this.$t(value ? "common.yes" : "common.no");
+      if (value && typeof value === "object") return value.label && value.label !== value.ref ? `${value.label} (${value.ref})` : value.ref;
+      return value;
     },
   },
 };
