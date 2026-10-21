@@ -2964,7 +2964,11 @@
         "PRESET_NOT_FOUND": "The image preset does not fit the chosen operation or is off in the AI toolbox",
         "IMAGE_BLOCKED": "The AI provider refused the picture (safety filter) — pick another picture or change the instruction",
         "VIDEO_BLOCKED": "The AI provider refused the video (safety filter) — pick another picture or change the instruction",
-        "PROVIDER_ERROR": "The AI provider returned an error — try again"
+        "PROVIDER_ERROR": "The AI provider returned an error — try again",
+        "NO_PICTURE": "The product has no main picture",
+        "PRODUCT_PICTURE_MISSING": "The product on the cover is gone or has no main picture — change it in a new run",
+        "PRODUCT_NOT_FOUND": "The product on the cover no longer exists",
+        "COVER_FAILED": "No cover variant could be made — try again"
       },
       "trigger": "AI / Enricher",
       "trigger_pending": "{count} to review",
@@ -3295,7 +3299,8 @@
         "created": "It is in Pages as a draft. Check it there before you publish it.",
         "open": "Open draft in Pages",
         "created_title": "Draft created, not published",
-        "another": "Start new content"
+        "another": "Start new content",
+        "cover": "Cover"
       },
       "run_cost_final": "Cost",
       "your_turn_on": "Your turn: {step}",
@@ -3318,7 +3323,11 @@
         "title": "Working title",
         "angle": "Angle",
         "audience": "Audience",
-        "notes": "Notes"
+        "notes": "Notes",
+        "cover_hint": "Cover hints",
+        "cover_product": "Product on the cover",
+        "cover_text_wanted": "Text on the cover",
+        "cover_text": "Cover text"
       },
       "step_of": "Step {number} of {total}",
       "rail": {
@@ -3339,12 +3348,15 @@
         "voice": "Read the text in the author's voice and correct what is off. The edit step polishes the whole.",
         "edit": "The final pass over the whole text. The metadata is written from it.",
         "meta": "Check how the page reads in a search result.",
-        "compose": "Check what goes into the draft. Approving creates it in Pages, unpublished."
+        "compose": "Check what goes into the draft. Approving creates it in Pages, unpublished.",
+        "cover_brief": "Check the scene ideas for the cover before the images are made.",
+        "cover": "Pick the image that becomes the cover and check its alt text."
       },
       "purpose_output": {
         "questions": "Answer what you know. The AI uses your answers in every next step.",
         "artifact": "Check what the AI wrote and approve it to continue.",
-        "document": "Check what goes into the draft. Approving creates it in Pages, unpublished."
+        "document": "Check what goes into the draft. Approving creates it in Pages, unpublished.",
+        "image": "Pick one of the images and approve it to continue."
       },
       "explainer": {
         "keywords": "Researches what people search for on this topic: monthly searches, the top results and the questions people ask (live search data, a paid call). The AI proposes the main phrase and the content gaps; you pick the phrase. Every next step builds on this research.",
@@ -3355,12 +3367,15 @@
         "voice": "Rewrites the whole text so it sounds like a person explaining it to one reader, tuned to your answers and the company profile's tone. Facts, numbers, search phrases and section headings stay; only the form changes.",
         "edit": "The final editorial pass over the whole article: it cuts repetitions, varies the rhythm and fixes the language, adding nothing of its own. The metadata and the document are made from this text, so this is the version that gets published.",
         "meta": "Writes how the page shows in search results and on social media: title, description, social texts, address and FAQ, all from the edited text. Each length is checked against the search engines' limits; to fix one, regenerate with an instruction.",
-        "compose": "Puts the edited text, the metadata and the FAQ together into one document. Approving creates it in Pages as an unpublished draft: publishing stays your decision there."
+        "compose": "Puts the edited text, the metadata and the FAQ together into one document. Approving creates it in Pages as an unpublished draft: publishing stays your decision there.",
+        "cover_brief": "Plans the cover: two or three different scenes for one idea of the article, written from the edited text, the company profile's visual style, your hints and the product, plus the image's alt text. Images cost money, so fix the scenes here: regenerate with an instruction if one is off.",
+        "cover": "Makes one image per scene. Pick the one that becomes the cover of the article and its tile on the blog, and check the alt text: search engines and screen readers read it. If none fits, regenerate with an instruction, for example “no yellow cushion”."
       },
       "explainer_output": {
         "questions": "Asks you what only you know. Your answers become material for every next step.",
         "artifact": "An intermediate result the next steps build on. Check it, correct it if needed and approve to continue.",
-        "document": "The finished document. Approving creates it in its module as an unpublished draft."
+        "document": "The finished document. Approving creates it in its module as an unpublished draft.",
+        "image": "Images made for this step, one per idea. Pick one, check its alt text and approve to continue."
       },
       "approve_to": "Approve and go to {step}",
       "create_draft": "Create draft",
@@ -3386,7 +3401,25 @@
       "approve": "Approve",
       "profile_fill": "Complete the profile",
       "empty_your_turn": "Nothing is waiting for you right now.",
-      "show_all": "Show all runs"
+      "show_all": "Show all runs",
+      "product_search": "Search products by name or SKU",
+      "cover": {
+        "choose": "Each image shows a different scene. The one you pick becomes the cover.",
+        "choose_needed": "Pick one image to continue. Each shows a different scene.",
+        "variants": "Cover variants",
+        "variant": "Variant {n}",
+        "variants_caption": "{count} variants",
+        "chosen_caption": "Variant {n} chosen",
+        "chosen_label": "Chosen",
+        "must_show": "Must show",
+        "prompt": "Prompt",
+        "enlarge": "Enlarge",
+        "alt": "Alt text",
+        "alt_hint": "What the image shows and why it is on this page. Search engines and screen readers read it.",
+        "text": "Text on the image",
+        "image_failed": "This image cannot be shown.",
+        "image_loading": "Loading the image…"
+      }
     },
     "profile": {
       "title": "Company profile",
@@ -3436,7 +3469,8 @@
         "checklists": "Checklists",
         "always_rules": "Always rules",
         "rules": "Checked rules",
-        "routing": "Sections per task"
+        "routing": "Sections per task",
+        "visual": "Visual style"
       },
       "fields": {
         "text": "Description",
@@ -3445,7 +3479,9 @@
         "personas": "Personas",
         "ai_patterns": "Phrases that sound like AI",
         "spellings": "Spelling",
-        "glossary": "Glossary"
+        "glossary": "Glossary",
+        "exclude_terms": "Never target (phrases, other brands)",
+        "never_show": "Never show"
       },
       "columns": {
         "label": "What",

@@ -14,7 +14,7 @@
       v-for="(question, index) in questions"
       :key="question.id"
       class="questions-form__question"
-      :required="!question.optional"
+      :required="isRequired(question)"
       :error="errors[question.id] ? $t('enrichment.studio.questions.required') : ''"
       :data-testid="`question-${index}`"
     >
@@ -23,7 +23,7 @@
           <span class="questions-form__number" aria-hidden="true">{{ index + 1 }}</span>
           <span class="questions-form__text">{{ question.question }}</span>
           <StatusBadge
-            v-if="!question.optional"
+            v-if="isRequired(question)"
             class="questions-form__required"
             :label="$t('enrichment.studio.questions.required_badge')"
             tone="warning"
@@ -75,7 +75,7 @@ import { answeredCount, answersShort, isChoice, missingAnswers } from "./studioL
 const RADIO_MAX = 5;
 
 // The questions step: each question as its own block — number, the question, why the AI asks, "Required" where it
-// applies — with free text or a pick. Answers save by themselves when a field is left (a pick at once); Approve (the
+// applies (never with a minimum of answers: then any answers count) — with free text or a pick. Answers save by themselves when a field is left (a pick at once); Approve (the
 // step panel) calls `prepare()`, which marks what is missing and saves what is not saved yet. Once approved the
 // answers read as text. The form's progress goes up as `state` (answered, total, dirty, saving, saved). The artifact's
 // `min_answers` (capped at the number of questions) is shown above the form and blocks Approve until it is met; a
@@ -122,6 +122,9 @@ export default {
       this.short = 0;
       this.dirty = false;
     },
+    isRequired(question) {
+      return !this.minimum && !question.optional;
+    },
     answerOf(question) {
       return String(this.proposal.proposed_value?.answers?.[question.id] ?? "").trim();
     },
@@ -140,7 +143,7 @@ export default {
       this.save();
     },
     validate() {
-      const missing = missingAnswers(this.questions, this.answers);
+      const missing = missingAnswers(this.questions, this.answers, this.minimum);
       this.errors = Object.fromEntries(missing.map((id) => [id, true]));
       this.short = answersShort(this.questions, this.answers, this.minimum);
       if (this.short) this.$nextTick(() => this.$refs.minimum?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }));

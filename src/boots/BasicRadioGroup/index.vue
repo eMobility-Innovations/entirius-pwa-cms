@@ -3,7 +3,7 @@
     :id="attrs.id"
     role="radiogroup"
     class="radio-group gap-2"
-    :class="layout === 'tiles' ? 'radio-group--tiles' : 'flex-column'"
+    :class="layout === 'list' ? 'flex-column' : `radio-group--${layout}`"
     :aria-labelledby="field.labelId?.value || undefined"
     :aria-describedby="attrs['aria-describedby']"
     :aria-invalid="attrs['aria-invalid']"
@@ -44,6 +44,7 @@
 // aria-describedby, aria-invalid, required and disabled from the contract. `layout="tiles"`: the options as a grid of
 // square tiles drawn by the `option` slot (`{ option, checked }`, e.g. a thumbnail), the radio itself hidden, the picked
 // tile in the accent border; the option's `label` stays its accessible name (put it in the slot, e.g. as an img alt).
+// `layout="cards"`: the same, as wider cards of any height (a 16:9 image and a caption), one per row on a phone.
 import { computed, useId } from "vue";
 import { useControlAttrs } from "@/boots/FormField/useControlAttrs";
 
@@ -52,7 +53,7 @@ const props = defineProps({
   modelValue: { type: [String, Number, Boolean], default: null },
   name: { type: String, default: "" },
   disabled: { type: Boolean, default: false },
-  layout: { type: String, default: "list", validator: (value) => ["list", "tiles"].includes(value) },
+  layout: { type: String, default: "list", validator: (value) => ["list", "tiles", "cards"].includes(value) },
 });
 const emit = defineEmits(["update:modelValue"]);
 
@@ -62,6 +63,8 @@ const groupName = computed(() => props.name || generatedName);
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .radio-group--tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
@@ -95,6 +98,46 @@ const groupName = computed(() => props.name || generatedName);
     position: absolute;
     opacity: 0;
     pointer-events: none;
+  }
+}
+
+.radio-group--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+
+  .radio-group__option {
+    position: relative;
+    display: block;
+    padding: var(--space-3);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+
+    &:hover:not(.radio-group__option--disabled) {
+      border-color: var(--border-strong);
+    }
+
+    &:has(:checked),
+    &:has(:checked):hover {
+      border-color: var(--accent);
+    }
+
+    &:has(:focus-visible) {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+  }
+
+  .radio-group__input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@include max-tablet {
+  .radio-group--cards {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
