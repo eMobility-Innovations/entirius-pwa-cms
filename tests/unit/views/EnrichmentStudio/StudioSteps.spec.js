@@ -122,6 +122,17 @@ describe("QuestionsForm", () => {
     expect(api.PATCH_Proposal).not.toHaveBeenCalled();
   });
 
+  it("with a minimum of answers no question is required on its own: any one answer is enough", async () => {
+    api.PATCH_Proposal.mockImplementation(async (id, body) => ({ data: { ...QUESTIONS, proposed_value: body.proposed_value } }));
+    const proposal = { ...QUESTIONS, proposed_value: { ...QUESTIONS.proposed_value, answers: {}, min_answers: 1 } };
+    const w = mount(QuestionsForm, { props: { proposal }, global: { stubs, components } });
+    const fields = w.findAllComponents({ name: "FormField" });
+    expect(fields.map((f) => f.props("required"))).toEqual([false, false]);
+    expect(w.findAllComponents(StatusBadge)).toHaveLength(0);
+    w.findAllComponents({ name: "BasicTextarea" })[1].vm.$emit("update:modelValue", "Only the second one");
+    expect(await w.vm.prepare()).toBe(true);
+  });
+
   describe("the minimum of answers", () => {
     const optional = QUESTIONS.proposed_value.questions.map((question) => ({ ...question, optional: true }));
     const withMinimum = { ...QUESTIONS, proposed_value: { questions: optional, answers: {}, min_answers: 1 } };

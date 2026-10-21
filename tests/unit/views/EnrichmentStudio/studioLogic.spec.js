@@ -208,6 +208,7 @@ describe("step outputs", () => {
     ];
     expect(missingAnswers(questions, { since: " ", who: "Ana" })).toEqual(["since"]);
     expect(missingAnswers(questions, { since: "2019", who: "Ana" })).toEqual([]);
+    expect(missingAnswers(questions, {}, 1)).toEqual([]);
   });
 
   it("counts the answers still needed to reach the minimum (capped at the number of questions)", () => {

@@ -211,8 +211,10 @@ export function outputKind(step, value) {
   return "data";
 }
 
-/** The ids of the questions that still need an answer (not optional, blank). */
-export function missingAnswers(questions, answers) {
+/** The ids of the questions that still need an answer (not optional, blank); none with a minimum of answers — then
+ * any answers count (`answersShort`). */
+export function missingAnswers(questions, answers, minimum = 0) {
+  if (minimum > 0) return [];
   return (questions || [])
     .filter((question) => !question.optional && !String(answers?.[question.id] ?? "").trim())
     .map((question) => question.id);
