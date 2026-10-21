@@ -162,6 +162,13 @@ describe("cover steps in the step panel", () => {
     expect(w.find("[data-testid='scene-0-must']").text()).toContain("baby semi-upright");
   });
 
+  it.each(["review", "approved"])("the cover brief in status %s says where the picture is picked", async (status) => {
+    const run = { ...RUN, steps: [{ ...RUN.steps[0], status }, ...RUN.steps.slice(1)] };
+    const w = mount(StepPanel, { props: { run, step: run.steps[0] }, global: { stubs, components: { BasicRadioGroup } } });
+    await flushPromises();
+    expect(w.find("[data-testid='step-caption']").text()).toContain('enrichment.studio.cover.scenes_one::{"count":1,"step":"Cover"}');
+  });
+
   it("Approve stays off until a variant is picked; the caption counts the variants, then names the pick", async () => {
     api.PATCH_Proposal.mockImplementation(async (id, body) => ({ data: { ...COVER, proposed_value: body.proposed_value } }));
     api.GET_Run.mockResolvedValue({ data: RUN });

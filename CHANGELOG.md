@@ -17,6 +17,9 @@ All notable changes to this project will be documented in this file.
   "Porównywanie przed zakupem", "Zakup", "Szukanie strony") in the top tile and the memory entry too.
 - AI studio search phrases: the SERP notes (the step's callout and each row's "What ranks today") keep their line
   breaks, so notes written as several short lines no longer run together.
+- AI studio cover scenes: the step says where the picture is picked. A caption beside the title (also once the step
+  is approved) gives the scene count and the next step's label ("3 scenes · you pick the picture in the Cover step"),
+  and the help mark adds that the picture is picked in the next step from the variants made from these scenes.
 
 ### Added
 

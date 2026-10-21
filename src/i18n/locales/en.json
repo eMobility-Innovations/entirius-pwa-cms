@@ -3368,7 +3368,7 @@
         "edit": "The final editorial pass over the whole article: it cuts repetitions, varies the rhythm and fixes the language, adding nothing of its own. The metadata and the document are made from this text, so this is the version that gets published.",
         "meta": "Writes how the page shows in search results and on social media: title, description, social texts, address and FAQ, all from the edited text. Each length is checked against the search engines' limits; to fix one, regenerate with an instruction.",
         "compose": "Puts the edited text, the metadata and the FAQ together into one document. Approving creates it in Pages as an unpublished draft: publishing stays your decision there.",
-        "cover_brief": "Plans the cover: two or three different scenes for one idea of the article, written from the edited text, the company profile's visual style, your hints and the product, plus the image's alt text. Images cost money, so fix the scenes here: regenerate with an instruction if one is off.",
+        "cover_brief": "Plans the cover: two or three different scenes for one idea of the article, written from the edited text, the company profile's visual style, your hints and the product, plus the image's alt text. Images cost money, so fix the scenes here: regenerate with an instruction if one is off. You pick the picture in the next step, from the variants made from these scenes.",
         "cover": "Makes one image per scene. Pick the one that becomes the cover of the article and its tile on the blog, and check the alt text: search engines and screen readers read it. If none fits, regenerate with an instruction, for example “no yellow cushion”."
       },
       "explainer_output": {
@@ -3410,6 +3410,9 @@
         "variant": "Variant {n}",
         "variants_caption": "{count} variants",
         "chosen_caption": "Variant {n} chosen",
+        "scenes_one": "1 scene · you pick the picture in the {step} step",
+        "scenes_few": "{count} scenes · you pick the picture in the {step} step",
+        "scenes_many": "{count} scenes · you pick the picture in the {step} step",
         "chosen_label": "Chosen",
         "must_show": "Must show",
         "prompt": "Prompt",

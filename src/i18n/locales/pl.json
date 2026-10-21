@@ -3367,7 +3367,7 @@
         "edit": "Ostatnia redakcja całego artykułu: usuwa powtórzenia, różnicuje rytm i poprawia język, niczego nie dodając od siebie. Metadane i dokument powstają z tego tekstu, więc to ta wersja zostanie opublikowana.",
         "meta": "Pisze, jak strona wygląda w wynikach wyszukiwania i w mediach społecznościowych: tytuł, opis, teksty do udostępnień, adres i FAQ, wszystko na podstawie zredagowanego tekstu. Każda długość jest sprawdzana pod kątem limitów wyszukiwarek; aby poprawić którąś, wygeneruj krok ponownie z instrukcją.",
         "compose": "Składa zredagowany tekst, metadane i FAQ w jeden dokument. Zatwierdzenie tworzy go w Stronach jako nieopublikowany szkic: decyzja o publikacji zostaje po Twojej stronie.",
-        "cover_brief": "Planuje okładkę: dwie lub trzy różne sceny dla jednej myśli artykułu, na podstawie zredagowanego tekstu, stylu wizualnego z profilu firmy, Twoich wskazówek i produktu, oraz tekst alternatywny obrazu. Obrazy kosztują, więc sceny popraw tutaj: jeśli któraś nie pasuje, wygeneruj krok ponownie z instrukcją.",
+        "cover_brief": "Planuje okładkę: dwie lub trzy różne sceny dla jednej myśli artykułu, na podstawie zredagowanego tekstu, stylu wizualnego z profilu firmy, Twoich wskazówek i produktu, oraz tekst alternatywny obrazu. Obrazy kosztują, więc sceny popraw tutaj: jeśli któraś nie pasuje, wygeneruj krok ponownie z instrukcją. Obraz wybierzesz w następnym kroku spośród wariantów wygenerowanych z tych scen.",
         "cover": "Tworzy po jednym obrazie na każdą scenę. Wybierz ten, który zostanie okładką artykułu i jego kafelkiem na blogu, i sprawdź tekst alternatywny: czytają go wyszukiwarki i czytniki ekranu. Jeśli żaden nie pasuje, wygeneruj ponownie z instrukcją, na przykład „bez żółtej poduszki”."
       },
       "explainer_output": {
@@ -3409,6 +3409,9 @@
         "variant": "Wariant {n}",
         "variants_caption": "Warianty: {count}",
         "chosen_caption": "Wybrany wariant {n}",
+        "scenes_one": "1 scena · obraz wybierzesz w kroku „{step}”",
+        "scenes_few": "{count} sceny · obraz wybierzesz w kroku „{step}”",
+        "scenes_many": "{count} scen · obraz wybierzesz w kroku „{step}”",
         "chosen_label": "Wybrany",
         "must_show": "Musi pokazywać",
         "prompt": "Prompt",
