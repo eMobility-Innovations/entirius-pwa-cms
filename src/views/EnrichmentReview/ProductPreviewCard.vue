@@ -86,7 +86,7 @@
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { isNotFound } from "@/api/createClient";
-import { GET_Product } from "@/api/pim/api";
+import { GET_Product, GET_ProductPictures } from "@/api/pim/api";
 
 const PRODUCT_TYPES = ["base", "simple", "configurable", "bundle"];
 
@@ -103,6 +103,7 @@ export default {
   data() {
     return {
       product: null,
+      mainPicture: "",
       loading: false,
     };
   },
@@ -115,8 +116,10 @@ export default {
       const type = this.product.product_class_name.toLowerCase().replace(/^product/, "");
       return this.$t(`pim.type_${PRODUCT_TYPES.includes(type) ? type : "custom"}`);
     },
+    // The product detail has no picture field (og_image is the SEO sharing URL, often empty): the picture is the
+    // main one of the product's pictures, og_image only when it has none.
     heroUrl() {
-      const path = this.product?.og_image;
+      const path = this.mainPicture || this.product?.og_image;
       if (!path) return "";
       if (path.startsWith("http")) return path;
       return (process.env.VUE_APP_API_URL || "") + path;
@@ -133,9 +136,14 @@ export default {
       }
       this.loading = true;
       this.product = null;
+      this.mainPicture = "";
       try {
-        const { data } = await GET_Product(this.channelIdx, this.sku);
+        const [{ data }, mainPicture] = await Promise.all([
+          GET_Product(this.channelIdx, this.sku),
+          this.fetchMainPicture(),
+        ]);
         this.product = data;
+        this.mainPicture = mainPicture;
       } catch (err) {
         if (!(isNotFound(err))) {
           this.notify.spawnNotification({
@@ -146,6 +154,17 @@ export default {
         this.product = null;
       } finally {
         this.loading = false;
+      }
+    },
+    // The "main"-role picture, else the first one. A failed request only leaves the placeholder: the details stay.
+    async fetchMainPicture() {
+      try {
+        const { data } = await GET_ProductPictures(this.channelIdx, this.sku);
+        const pictures = data.results || data || [];
+        const main = pictures.find(({ picture_role }) => picture_role?.toLowerCase() === "main") || pictures[0];
+        return main?.picture?.image_url || "";
+      } catch {
+        return "";
       }
     },
     goToPim() {

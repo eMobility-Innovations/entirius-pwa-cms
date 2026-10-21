@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Enrichment focus mode (and the product preview drawer) shows the product's main picture. The card read `og_image`,
+  the SEO sharing URL, which is empty unless someone set it, so it fell back to the placeholder; it now takes the picture
+  of the "main" role from the product's pictures (else the first one) and falls back to `og_image` only without pictures.
 - Page builder: "Add tile" under a section's tiles works again. BasicButton and IconButton emitted `click` without the
   event, so a handler that reads it (the builder's `clickIn`) failed with "event is undefined"; both now pass the
   native click event.
