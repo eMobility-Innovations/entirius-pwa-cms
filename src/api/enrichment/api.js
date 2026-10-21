@@ -84,10 +84,12 @@ export const PATCH_Proposal = (proposalId, data) =>
   enrichmentApi.patch(`${ENR}/proposals/${proposalId}/`, data);
 
 // Media (etap-08): the staged "after" image is admin-only, so an <img src> can't carry the
-// Bearer token — fetch it as a blob through the authenticated client and objectURL it.
-export const GET_StagedFile = (proposalId) =>
+// Bearer token — fetch it as a blob through the authenticated client and objectURL it. `variant` = one image of a
+// cover step's variants (0-based); omitted = the proposal's one staged file.
+export const GET_StagedFile = (proposalId, variant = null) =>
   enrichmentApi.get(`${ENR}/proposals/${proposalId}/staged-file/`, {
     responseType: "blob",
+    ...(variant == null ? {} : { params: { variant } }),
   });
 
 // `data` = `{ mode: "add" | "replace" }` for a proposal that offers the choice (applyMode.acceptBody), else none.

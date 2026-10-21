@@ -4,7 +4,9 @@ import {
   answersShort,
   briefErrors,
   briefFields,
+  briefHasValue,
   cleanBrief,
+  isFieldVisible,
   defaultStep,
   draftRoute,
   elapsedLabel,
@@ -138,6 +140,52 @@ describe("brief form", () => {
   it("sends trimmed values and leaves empty ones out", () => {
     expect(cleanBrief({ topic: " Sofas ", notes: "  ", language: "en" })).toEqual({ topic: "Sofas", language: "en" });
   });
+
+  const COVER = {
+    type: "object",
+    required: ["topic"],
+    properties: {
+      topic: { type: "string", title: "Topic" },
+      cover_product: { type: "object", title: "Product on the cover", "x-picker": "pim-product" },
+      cover_text_wanted: { type: "boolean", title: "Text on the cover", default: false },
+      cover_text: { type: "string", title: "Cover text", maxLength: 80, "x-visible-if": "cover_text_wanted" },
+    },
+  };
+
+  it("reads a checkbox, a picker and a field that shows only when another one is on", () => {
+    const fields = briefFields(COVER);
+    expect(fields.map((f) => [f.key, f.type, f.picker, f.visibleIf])).toEqual([
+      ["topic", "string", "", ""],
+      ["cover_product", "object", "pim-product", ""],
+      ["cover_text_wanted", "boolean", "", ""],
+      ["cover_text", "string", "", "cover_text_wanted"],
+    ]);
+    expect(initialBrief(fields)).toEqual({ topic: "", cover_product: null, cover_text_wanted: false, cover_text: "" });
+    const text = fields.find((f) => f.key === "cover_text");
+    expect(isFieldVisible(text, { cover_text_wanted: false })).toBe(false);
+    expect(isFieldVisible(text, { cover_text_wanted: true })).toBe(true);
+  });
+
+  it("a shown dependent field must be filled, a hidden one is neither checked nor sent", () => {
+    const fields = briefFields(COVER);
+    expect(briefErrors(fields, { topic: "Sofas", cover_text_wanted: true, cover_text: " " })).toEqual({ cover_text: "required" });
+    expect(briefErrors(fields, { topic: "Sofas", cover_text_wanted: false, cover_text: "" })).toEqual({});
+    expect(cleanBrief({ topic: "Sofas", cover_text_wanted: false, cover_text: "Old" }, fields)).toEqual({ topic: "Sofas" });
+    expect(cleanBrief({ topic: "Sofas", cover_text_wanted: true, cover_text: " Hi " }, fields)).toEqual({
+      topic: "Sofas",
+      cover_text_wanted: true,
+      cover_text: "Hi",
+    });
+  });
+
+  it("keeps a picked product, drops an empty pick and an unchecked box", () => {
+    const product = { channel: "eu", ref: "SKU-1", label: "Soother" };
+    expect(cleanBrief({ topic: "Sofas", cover_product: product, cover_text_wanted: false })).toEqual({ topic: "Sofas", cover_product: product });
+    expect(cleanBrief({ topic: "Sofas", cover_product: { channel: "eu", ref: "" } })).toEqual({ topic: "Sofas" });
+    expect(briefHasValue(false)).toBe(false);
+    expect(briefHasValue(null)).toBe(false);
+    expect(briefHasValue(product)).toBe(true);
+  });
 });
 
 describe("step outputs", () => {
@@ -148,6 +196,8 @@ describe("step outputs", () => {
     expect(outputKind({ output: "artifact" }, { data: { primary: "sofa care", candidates: [] } })).toBe("keywords");
     expect(outputKind({ output: "artifact" }, { data: { title: "T", description: "D" } })).toBe("meta");
     expect(outputKind({ output: "artifact" }, { data: { other: 1 } })).toBe("data");
+    expect(outputKind({ output: "artifact" }, { data: { scenes: [], alt: "" } })).toBe("scenes");
+    expect(outputKind({ output: "image" }, { variants: [], chosen: null })).toBe("cover");
   });
 
   it("lists the required questions without an answer", () => {
@@ -158,6 +208,7 @@ describe("step outputs", () => {
     ];
     expect(missingAnswers(questions, { since: " ", who: "Ana" })).toEqual(["since"]);
     expect(missingAnswers(questions, { since: "2019", who: "Ana" })).toEqual([]);
+    expect(missingAnswers(questions, {}, 1)).toEqual([]);
   });
 
   it("counts the answers still needed to reach the minimum (capped at the number of questions)", () => {

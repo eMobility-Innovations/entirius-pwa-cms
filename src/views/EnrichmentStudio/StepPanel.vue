@@ -75,9 +75,11 @@
 
       <template v-if="proposal && step.status !== 'running'">
         <QuestionsForm v-if="kind === 'questions'" ref="output" :proposal="proposal" @updated="setProposal" @state="(s) => (form = s)" />
+        <CoverVariants v-else-if="kind === 'cover'" ref="output" :proposal="proposal" @updated="setProposal" @state="(s) => (form = s)" />
         <DocumentSummary v-else-if="kind === 'document'" :proposal="proposal" :run="run" />
         <KeywordsTable v-else-if="kind === 'keywords'" :proposal="proposal" @updated="setProposal" @busy="(b) => (picking = b)" />
         <MetaCards v-else-if="kind === 'meta'" :proposal="proposal" />
+        <ScenesList v-else-if="kind === 'scenes'" :proposal="proposal" />
         <TextArtifact v-else-if="kind === 'text'" :proposal="proposal" />
         <pre v-else class="step-panel__data m-0" data-testid="step-data">{{ dataText }}</pre>
       </template>
@@ -136,10 +138,12 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import CostLabel from "@/views/EnrichmentReview/CostLabel.vue";
 import ProposalCorrection from "@/views/EnrichmentReview/ProposalCorrection.vue";
 import { revisable } from "@/views/EnrichmentReview/correction";
+import CoverVariants from "./CoverVariants.vue";
 import DocumentSummary from "./DocumentSummary.vue";
 import KeywordsTable from "./KeywordsTable.vue";
 import MetaCards from "./MetaCards.vue";
 import QuestionsForm from "./QuestionsForm.vue";
+import ScenesList from "./ScenesList.vue";
 import StepCallout from "./StepCallout.vue";
 import TextArtifact from "./TextArtifact.vue";
 import {
@@ -157,6 +161,8 @@ import {
 
 // The shape of a text that is still being written.
 const SKELETON = ["40%", "92%", "86%", "70%", "55%"];
+// Outputs the operator fills in before approving (answers, a cover pick): Approve saves them first (`prepare()`).
+const FORM_KINDS = ["questions", "cover"];
 const TICK_MS = 1000;
 // A toolbox HTTP failure (`SEO_BRIEF_TOOLBOX_HTTP_404`): a service behind the AI did not answer.
 const SERVICE_DOWN = /_HTTP_\d+$/;
@@ -164,13 +170,24 @@ const SERVICE_DOWN = /_HTTP_\d+$/;
 // One step of a run in one shell: number, name, status and what the step is for (a help mark on the right explains
 // what the step does in two or three sentences, also once it is approved); then its state (waiting for other
 // steps, being written, slow, failed, stopped) or its output by type (questions, search phrases, text, metadata,
-// document); then the footer — tools on the left (Regenerate, and for text Correct with AI, Versions, the editor),
+// cover scenes, cover variants, document); then the footer — tools on the left (Regenerate, and for text Correct with AI, Versions, the editor),
 // the one primary on the right named by what it does next. A failed or slow step offers Try again (primary) and Try
 // with an instruction. An approved step reads as a summary under an "Approved · cost" bar. A changed run goes up as
 // `changed` (`advance` after an approval: the view moves on to the next step).
 export default {
   name: "StepPanel",
-  components: { CostLabel, DocumentSummary, KeywordsTable, MetaCards, ProposalCorrection, QuestionsForm, StepCallout, TextArtifact },
+  components: {
+    CostLabel,
+    CoverVariants,
+    DocumentSummary,
+    KeywordsTable,
+    MetaCards,
+    ProposalCorrection,
+    QuestionsForm,
+    ScenesList,
+    StepCallout,
+    TextArtifact,
+  },
   props: {
     run: { type: Object, required: true },
     step: { type: Object, required: true },
@@ -220,6 +237,10 @@ export default {
     caption() {
       if (this.kind === "questions" && this.form?.total) {
         return this.$t("enrichment.studio.questions.answered", { count: this.form.answered, total: this.form.total });
+      }
+      if (this.kind === "cover" && this.form?.total) {
+        if (this.form.chosen !== null) return this.$t("enrichment.studio.cover.chosen_caption", { n: this.form.chosen + 1 });
+        return this.$t("enrichment.studio.cover.variants_caption", { count: this.form.total });
       }
       if (this.kind !== "text" || !this.proposal) return "";
       return this.$t("enrichment.studio.text.reading", readingStats(this.proposal.proposed_value?.text));
@@ -274,6 +295,10 @@ export default {
     canApprove() {
       return this.step.status === "review" && this.proposal?.status === "pending";
     },
+    // A cover is approved with a variant picked: until then Approve stays off (the note above the images says why).
+    unpicked() {
+      return this.kind === "cover" && this.form?.chosen == null;
+    },
     correctable() {
       return this.kind === "text" && this.canApprove && revisable(this.proposal);
     },
@@ -294,12 +319,12 @@ export default {
         ];
       }
       if (!this.canApprove) return [];
-      return [{ key: "approve", role: "primary", mutates: true, label: this.approveLabel, disabled: this.off,
+      return [{ key: "approve", role: "primary", mutates: true, label: this.approveLabel, disabled: this.off || this.unpicked,
         loading: this.busy, testid: "step-approve", onClick: this.approve }];
     },
-    // The questions' save state beside the primary.
+    // The save state of answers or a cover pick beside the primary.
     saveNote() {
-      const form = this.kind === "questions" && this.canApprove ? this.form : null;
+      const form = FORM_KINDS.includes(this.kind) && this.canApprove ? this.form : null;
       if (!form) return null;
       if (form.saving) return { text: this.$t("enrichment.studio.questions.saving"), testid: "answers-saving" };
       if (form.dirty) return { text: this.$t("enrichment.studio.questions.unsaved"), testid: "answers-dirty" };
@@ -372,7 +397,7 @@ export default {
     },
     async approve() {
       await this.act(async () => {
-        if (this.kind === "questions" && !(await this.$refs.output.prepare())) return false;
+        if (FORM_KINDS.includes(this.kind) && !(await this.$refs.output.prepare())) return false;
         await POST_AcceptProposal(this.proposal.id);
         const { data } = await GET_Run(this.run.uid);
         this.$emit("changed", data, { advance: true });

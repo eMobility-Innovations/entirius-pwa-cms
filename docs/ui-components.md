@@ -418,7 +418,8 @@ Catalogue: `#selects` (`#basic-select`, `#entity-search-picker`, `#channel-multi
   radios in a `role="radiogroup"` (one Tab stop, the arrow keys move and select), named by the FormField label. An
   option's `testid` lands on its radio input. `layout="tiles"` draws the options as a grid of square tiles from the
   `option` slot (`{ option, checked }` — a thumbnail; keep `label` as its accessible name), the picked one in the
-  accent border (`PicturePicker`).
+  accent border (`PicturePicker`); `layout="cards"` the same as wider cards of any height, one per row on a phone (the
+  AI studio's cover variants: a 16:9 image and its title).
 - **`BasicSwitch`** — replaces `Switcher`: `v-model`, `label`, `hint` + `hintLevel` (the field-hint mark), `disabled`; a
   `role="switch"` button with `aria-checked`, styles scoped to it.
 - **`BasicDatePicker`** — an input-looking trigger with the `calendar` icon opens an inline flatpickr; `v-model` (the
