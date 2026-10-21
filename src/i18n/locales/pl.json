@@ -2944,6 +2944,8 @@
         "UPSTREAM_RATE_LIMITED": "Dostawca AI ogranicza zapytania — spróbuj później",
         "RATE_LIMIT_EXCEEDED": "Za dużo zapytań do AI — spróbuj później",
         "UPSTREAM_TIMEOUT": "Dostawca AI nie odpowiedział na czas",
+        "PICTURE_UNREADABLE": "Brak pliku zdjęcia produktu albo nie da się go odczytać",
+        "TOOLBOX_HTTP_0": "Nie udało się połączyć z usługą AI",
         "TIMEOUT": "Trwało zbyt długo i zostało przerwane",
         "INTERNAL_ERROR": "Nieoczekiwany błąd (ref. {id})",
         "VALIDATION_ERROR": "Usługa AI odrzuciła zapytanie",
