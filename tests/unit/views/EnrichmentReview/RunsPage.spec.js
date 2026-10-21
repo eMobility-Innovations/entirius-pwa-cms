@@ -5,8 +5,10 @@ const mockGetTasks = vi.fn();
 const mockGetTask = vi.fn();
 const mockGetProposals = vi.fn(() => Promise.resolve({ data: { results: [{ subject_ref: "ENT-1", subject_label: "Orion Sofa" }] } }));
 const mockNotify = vi.fn();
+const mockRetry = vi.fn();
 
 vi.mock("@/api/enrichment/api", () => ({
+  POST_RetryTask: (...a) => mockRetry(...a),
   GET_Tasks: (...a) => mockGetTasks(...a),
   GET_Task: (...a) => mockGetTask(...a),
   GET_Proposals: (...a) => mockGetProposals(...a),
@@ -34,7 +36,7 @@ const task = (over = {}) => ({
 const WORDS = { "enrichment.tasks.counts.proposed": "Proposed", "enrichment.tasks.counts.failed": "Failed" };
 const $t = (key, params = {}) => WORDS[key] ?? (Object.keys(params).length ? `${key}::${JSON.stringify(params)}` : key);
 
-const mountList = (routerMock = {}, query = {}) =>
+const mountList = (routerMock = {}, query = {}, stubs = {}) =>
   mount(RunsPage, {
     global: {
       mocks: {
@@ -48,6 +50,7 @@ const mountList = (routerMock = {}, query = {}) =>
         TaskQueueDrawer: { name: "TaskQueueDrawer", props: ["visible", "taskId", "outcome", "progress"], template: "<div />" },
         RunProposals: { name: "RunProposals", props: ["task"], emits: ["changed"], template: "<div />" },
         WorkerAlerts: { name: "WorkerAlerts", template: "<div />" },
+        ...stubs,
       },
     },
   });
@@ -57,6 +60,7 @@ describe("RunsPage", () => {
     mockGetTasks.mockReset();
     mockGetTask.mockReset();
     mockNotify.mockReset();
+    mockRetry.mockReset();
     mockGetTasks.mockResolvedValue({ data: { results: [], count: 0 } });
   });
 
@@ -241,6 +245,79 @@ describe("RunsPage", () => {
     await flushPromises();
     expect(wrapper.vm.taskFilter).toBe("");
     expect(replace.mock.calls.at(-1)[0].query).toEqual({ status: "open" });
+  });
+
+  describe("Try again", () => {
+    // The DataTable stub renders each row's actions cell, with IconButton as a plain button.
+    const stubs = {
+      DataTable: { props: ["rows"], template: "<div><div v-for='row in rows' :key='row.id'><slot name='cell-actions' :row='row' /></div></div>" },
+      IconButton: { props: ["label", "disabled"], emits: ["click"], template: "<button :disabled='disabled' :title='label' @click=\"$emit('click')\" />" },
+    };
+    const failed = task({ id: 7, type: "pim.writer", status: "failed", counts: { failed: 2 } });
+    const partly = task({ id: 8, status: "done", counts: { proposed: 1, failed: 1 }, proposal_counts: { pending: 1 } });
+    const running = task({ id: 9, status: "in_progress" });
+    const clean = task({ id: 10, status: "done", counts: { proposed: 2 }, proposal_counts: { pending: 2 } });
+    const retryButton = (wrapper, id) => wrapper.find(`[data-testid='enrichment-task-retry-${id}']`);
+
+    it("a failed run, or one done with failed products, has it in its row; a run going or without failures has none", async () => {
+      mockGetTasks.mockResolvedValueOnce({ data: { results: [failed, partly, running, clean], count: 4 } });
+      const wrapper = mountList({}, {}, stubs);
+      await flushPromises();
+
+      expect([7, 8, 9, 10].map((id) => retryButton(wrapper, id).exists())).toEqual([true, true, false, false]);
+      expect(retryButton(wrapper, 7).attributes("title")).toBe("enrichment.ai.try_again");
+    });
+
+    it("retries the run once, then lists every run again with the new one on top", async () => {
+      mockGetTasks
+        .mockResolvedValueOnce({ data: { results: [failed], count: 1 } })
+        .mockResolvedValueOnce({ data: { results: [task({ id: 11, status: "open", params: { retry_of: 7 } }), failed], count: 2 } });
+      mockRetry.mockResolvedValue({ data: { id: 11, status: "open", lane: "queue" } });
+      const replace = vi.fn();
+      const wrapper = mountList({ replace }, { status: "failed" }, stubs);
+      await flushPromises();
+
+      await retryButton(wrapper, 7).trigger("click");
+      await flushPromises();
+
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+      expect(mockRetry).toHaveBeenCalledWith(7);
+      expect(replace.mock.calls.at(-1)[0].query).toEqual({ status: "__all" });
+      expect(mockGetTasks.mock.calls.at(-1)[0].status).toBeUndefined();
+      expect(wrapper.vm.tasks.map((t) => t.id)).toEqual([11, 7]);
+      expect(mockNotify).toHaveBeenCalledWith({ type: "positive", msg: "Queued — starts next." });
+    });
+
+    it("a second click while the request is out sends nothing, and the button is disabled meanwhile", async () => {
+      let answer;
+      mockRetry.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+      mockGetTasks.mockResolvedValue({ data: { results: [failed], count: 1 } });
+      const wrapper = mountList({}, {}, stubs);
+      await flushPromises();
+
+      await retryButton(wrapper, 7).trigger("click");
+      expect(retryButton(wrapper, 7).attributes("disabled")).toBeDefined();
+      wrapper.vm.retryTask(wrapper.vm.tasks[0]);
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+
+      answer({ data: { id: 11, status: "open" } });
+      await flushPromises();
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+      expect(retryButton(wrapper, 7).attributes("disabled")).toBeUndefined();
+    });
+
+    it("a refusal toasts the API's message and leaves the list as it is", async () => {
+      mockRetry.mockRejectedValue({ response: { status: 409, data: { error: "CONFLICT", message: "This task has nothing failed." } } });
+      mockGetTasks.mockResolvedValue({ data: { results: [failed], count: 1 } });
+      const wrapper = mountList({}, {}, stubs);
+      await flushPromises();
+
+      await retryButton(wrapper, 7).trigger("click");
+      await flushPromises();
+
+      expect(mockNotify).toHaveBeenCalledWith({ type: "negative", msg: "This task has nothing failed." });
+      expect(mockGetTasks).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("auto-refresh", () => {

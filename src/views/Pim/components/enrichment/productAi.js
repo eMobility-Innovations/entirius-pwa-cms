@@ -50,6 +50,13 @@ export function taskOutcome(task) {
   return failed ? { ...base, failed, ...reason } : base;
 }
 
+/** Whether Try again applies: the task failed, or it is done with failed products. A running, queued or cancelled
+ * task has nothing failed to run again. */
+export function isRetryable(task) {
+  const { state, failed } = taskOutcome(task);
+  return state === "failed" || !!failed;
+}
+
 function queuedText(ahead) {
   if (!ahead) return t("enrichment.ai.outcome.queued_next");
   return t(`enrichment.ai.outcome.queued_${pluralKey(ahead)}`, { count: ahead });
