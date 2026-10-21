@@ -228,6 +228,38 @@ describe("StepPanel", () => {
     api.GET_Proposal.mockImplementation(async (id) => ({ data: id === 11 ? QUESTIONS : KEYWORDS }));
   });
 
+  describe("the step explainer", () => {
+    const BasicTooltip = { name: "BasicTooltip", props: ["text", "variant", "placement"], template: "<span />" };
+    const TEXTS = {
+      "enrichment.studio.explainer.keywords": "Researches what people search for.",
+      "enrichment.studio.explainer_output.artifact": "The AI wrote this; check it and approve.",
+    };
+    const $t = (key) => TEXTS[key] ?? key;
+    const mountWith = async (step) => {
+      const w = mount(StepPanel, {
+        props: { run: { ...RUN, steps: [step] }, step },
+        global: { stubs: { ...stubs, BasicTooltip }, components, mocks: { $t } },
+      });
+      await flushPromises();
+      return w.findComponent(BasicTooltip);
+    };
+
+    it("explains the step in a help mark next to its title", async () => {
+      const help = await mountWith(RUN.steps[1]);
+      expect(help.props()).toMatchObject({ text: "Researches what people search for.", variant: "help", placement: "left" });
+      expect(help.attributes("data-testid")).toBe("step-explainer");
+    });
+
+    it("falls back to what the step's output is", async () => {
+      const help = await mountWith({ ...RUN.steps[1], key: "custom" });
+      expect(help.props("text")).toBe("The AI wrote this; check it and approve.");
+    });
+
+    it("shows no help mark without an explainer", async () => {
+      expect((await mountWith({ ...RUN.steps[0], key: "custom" })).exists()).toBe(false);
+    });
+  });
+
   it("approve accepts the step output and hands the refreshed run up to move on", async () => {
     const next = { ...RUN, current_step: "outline" };
     api.POST_AcceptProposal.mockResolvedValue({ data: {} });

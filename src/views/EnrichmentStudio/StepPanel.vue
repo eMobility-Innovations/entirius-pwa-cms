@@ -24,6 +24,14 @@
           </div>
           <p v-if="purpose && !approved && !stopped" class="m-0 fs-300 t-secondary" data-testid="step-purpose">{{ purpose }}</p>
         </div>
+        <BasicTooltip
+          v-if="explainer"
+          variant="help"
+          :text="explainer"
+          placement="left"
+          class="step-panel__help"
+          data-testid="step-explainer"
+        />
       </header>
 
       <EmptyState v-if="stopped" icon="info" size="sm" :title="$t('enrichment.studio.stopped')" data-testid="step-stopped" />
@@ -153,7 +161,8 @@ const TICK_MS = 1000;
 // A toolbox HTTP failure (`SEO_BRIEF_TOOLBOX_HTTP_404`): a service behind the AI did not answer.
 const SERVICE_DOWN = /_HTTP_\d+$/;
 
-// One step of a run in one shell: number, name, status and what the step is for; then its state (waiting for other
+// One step of a run in one shell: number, name, status and what the step is for (a help mark on the right explains
+// what the step does in two or three sentences, also once it is approved); then its state (waiting for other
 // steps, being written, slow, failed, stopped) or its output by type (questions, search phrases, text, metadata,
 // document); then the footer — tools on the left (Regenerate, and for text Correct with AI, Versions, the editor),
 // the one primary on the right named by what it does next. A failed or slow step offers Try again (primary) and Try
@@ -204,6 +213,9 @@ export default {
     },
     purpose() {
       return this.known(`enrichment.studio.purpose.${this.step.key}`) || this.known(`enrichment.studio.purpose_output.${this.step.output}`);
+    },
+    explainer() {
+      return this.known(`enrichment.studio.explainer.${this.step.key}`) || this.known(`enrichment.studio.explainer_output.${this.step.output}`);
     },
     caption() {
       if (this.kind === "questions" && this.form?.total) {
@@ -452,6 +464,13 @@ export default {
 .step-panel__heading {
   flex: 1;
   min-width: 0;
+}
+// As tall as the title row, so the mark sits on the title's line.
+.step-panel__help {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: var(--space-8);
 }
 .step-panel__title {
   font-size: var(--fs-500);

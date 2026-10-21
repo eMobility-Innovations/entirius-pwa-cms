@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- AI studio: a help mark next to each step's title explains in two or three sentences what the step does and
+  what it feeds (EN, PL; a step without its own text explains its output type).
 - Page editor: a content-language pick next to Save draft and Publish (every ContentDB language); the draft is saved
   in the picked language and the change marks the page unsaved.
 - AI studio metadata: the step's QA warnings above the search preview, each named by its field (a value over its

@@ -3342,6 +3342,22 @@
         "artifact": "Check what the AI wrote and approve it to continue.",
         "document": "Check what goes into the draft. Approving creates it in Pages, unpublished."
       },
+      "explainer": {
+        "keywords": "Researches what people search for on this topic: monthly searches, the top results and the questions people ask (live search data, a paid call). The AI proposes the main phrase and the content gaps; you pick the phrase. Every next step builds on this research.",
+        "questions": "Asks you what only you know: experience, examples, your position, numbers, aimed at the gaps the research found. The article is written only from your answers, the company profile and the brief, so each answer becomes material. At least one answer is needed to continue.",
+        "insights": "Gathers the material the article will stand on: your answers, the company profile's facts and the readers' needs from the search research, numbered, each with its source. Search results count as what readers look for, never as facts. Strike what does not fit: the outline assigns these numbers to sections.",
+        "outline": "Plans the article: the thesis, the sections in order, which insights each section carries, the search phrases and how each section opens. Fix the structure here: the draft follows it section by section, and this is the cheapest place to change the article.",
+        "draft": "Writes the article section by section from the outline, each section aware of the ones before it, then the lead and the closing. It may write only from the insights: check for anything that is not in your material. If something is off, regenerate it with an instruction.",
+        "voice": "Rewrites the whole text so it sounds like a person explaining it to one reader, tuned to your answers and the company profile's tone. Facts, numbers, search phrases and section headings stay; only the form changes.",
+        "edit": "The final editorial pass over the whole article: it cuts repetitions, varies the rhythm and fixes the language, adding nothing of its own. The metadata and the document are made from this text, so this is the version that gets published.",
+        "meta": "Writes how the page shows in search results and on social media: title, description, social texts, address and FAQ, all from the edited text. Each length is checked against the search engines' limits; to fix one, regenerate with an instruction.",
+        "compose": "Puts the edited text, the metadata and the FAQ together into one document. Approving creates it in Pages as an unpublished draft: publishing stays your decision there."
+      },
+      "explainer_output": {
+        "questions": "Asks you what only you know. Your answers become material for every next step.",
+        "artifact": "An intermediate result the next steps build on. Check it, correct it if needed and approve to continue.",
+        "document": "The finished document. Approving creates it in its module as an unpublished draft."
+      },
       "approve_to": "Approve and go to {step}",
       "create_draft": "Create draft",
       "try_again": "Try again",
