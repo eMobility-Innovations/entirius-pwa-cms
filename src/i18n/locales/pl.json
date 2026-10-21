@@ -3475,6 +3475,7 @@
         "ai_patterns": "Zwroty brzmiące jak AI",
         "spellings": "Pisownia",
         "glossary": "Słownik",
+        "exclude_terms": "Nigdy nie celuj w (frazy, cudze marki)",
         "never_show": "Nigdy nie pokazuj"
       },
       "columns": {

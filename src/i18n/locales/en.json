@@ -3476,6 +3476,7 @@
         "ai_patterns": "Phrases that sound like AI",
         "spellings": "Spelling",
         "glossary": "Glossary",
+        "exclude_terms": "Never target (phrases, other brands)",
         "never_show": "Never show"
       },
       "columns": {
