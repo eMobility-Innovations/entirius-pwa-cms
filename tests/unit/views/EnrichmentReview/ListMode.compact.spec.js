@@ -62,6 +62,17 @@ describe("ListMode — compact rows", () => {
     expect(bare.find("[data-testid='enrichment-sku-1']").exists()).toBe(false);
   });
 
+  // The name cell clamps a long name to two lines (CSS); what stays readable is the full name in a title.
+  it("a long product name keeps its full text in a title: the button for a PIM row, the label line for another module", () => {
+    const long = "Smoczek silikonowy dynamiczny LOVI 6-18m 2 szt CapiChill boy";
+    const pim = mountList([row({ subject_label: long })]);
+    expect(pim.get("[data-testid='enrichment-subject-1']").attributes("title")).toBe(long);
+
+    const other = mountList([row({ target_module: "content", subject_label: long })]);
+    expect(other.get("span[title]").attributes("title")).toBe(long);
+    expect(other.get("span[title]").text()).toBe(long);
+  });
+
   it("under the field, which run proposed it and when: two texts of one field from two runs read apart", () => {
     const runs = { 5: { name: "Opis produktu", at: new Date().toISOString() } };
     const w = mount(ListMode, { props: { rows: [row({ task_id: 5 }), row({ id: 2, task_id: 6 })], runs }, global: { stubs } });

@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Enrichment Review list: a long product name stays in its column. The name (a ghost button, which sizes to its text)
+  ran over the Field column; it now wraps to two lines and ends in an ellipsis, with the full name in its title. The
+  Product column takes a bigger share of the free width (2fr, was 1fr; Change 2fr, was 3fr) so a clamped name still reads.
 - Enrichment focus mode (and the product preview drawer) shows the product's main picture. The card read `og_image`,
   the SEO sharing URL, which is empty unless someone set it, so it fell back to the placeholder; it now takes the picture
   of the "main" role from the product's pictures (else the first one) and falls back to `og_image` only without pictures.
