@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Page builder: "Add tile" under a section's tiles works again. BasicButton and IconButton emitted `click` without the
+  event, so a handler that reads it (the builder's `clickIn`) failed with "event is undefined"; both now pass the
+  native click event.
 - Translate Store (the whole-store translation) is offered only on the Translation page, as its primary action beside
   a channel selector; it no longer sits in the header of the Pim views (a product page included). The product list
   keeps Translate for the picked rows.

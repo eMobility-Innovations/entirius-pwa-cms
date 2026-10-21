@@ -104,7 +104,7 @@ export default {
     },
     onClick(event) {
       if (this.stop) event.stopPropagation();
-      this.$emit("click");
+      this.$emit("click", event);
     },
   },
   mounted() {
