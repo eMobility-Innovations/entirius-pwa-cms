@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
   keeps Translate for the picked rows.
 - Sidebar: a locked panel's hidden screen-reader text (and a collapsed rail's hidden labels) no longer stretches
   the page and adds an empty scroll — the nav item is their containing block.
+- AI studio search phrases: the search intent reads as a property, not an action. A row says "Intent: learning" (it was
+  the verb phrase "Learn something", which looked clickable beside the "What ranks today" toggle) and the four intent
+  labels are now "Learning", "Comparing before buying", "Buying", "Finding a site" (PL: "Szukanie informacji",
+  "Porównywanie przed zakupem", "Zakup", "Szukanie strony") in the top tile and the memory entry too.
 
 ### Added
 

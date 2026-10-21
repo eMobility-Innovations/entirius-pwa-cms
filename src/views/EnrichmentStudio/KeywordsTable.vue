@@ -36,7 +36,7 @@
             <p class="m-0 flex ai-ct flex-wrap gap-2 fs-250 t-secondary">
               <span>{{ volumeLabel(row.volume) }}</span>
               <span v-if="row.intent" aria-hidden="true">·</span>
-              <span v-if="row.intent">{{ intentLabel(row.intent) }}</span>
+              <span v-if="row.intent" data-testid="keyword-intent">{{ intentInline(row.intent) }}</span>
             </p>
             <div v-if="row.serp_notes">
               <BasicButton
@@ -143,6 +143,12 @@ export default {
       const path = `enrichment.studio.keywords.intents.${intent}`;
       const label = this.$t(path);
       return label === path ? intent : label;
+    },
+    // In the meta line the intent is named as a property ("Intent: learning"), never a bare verb phrase that reads
+    // like an action next to the "What ranks today" toggle.
+    intentInline(intent) {
+      const label = this.intentLabel(intent).toLocaleLowerCase(uiLocale());
+      return this.$t("enrichment.studio.keywords.intent_inline", { intent: label });
     },
     volumeLabel(volume) {
       if (volume == null) return this.$t("enrichment.studio.keywords.volume_none");

@@ -3254,15 +3254,16 @@
         "primary": "Main phrase",
         "secondary": "Supporting phrases",
         "intent": "Search intent",
+        "intent_inline": "Intent: {intent}",
         "serp": "What ranks today",
         "as_primary": "Main",
         "as_secondary": "Supporting",
         "pick_hint": "Pick one main phrase and up to {max} supporting ones. Each pick is saved at once.",
         "intents": {
-          "informational": "Learn something",
-          "commercial": "Compare before buying",
-          "transactional": "Buy",
-          "navigational": "Find a site"
+          "informational": "Learning",
+          "commercial": "Comparing before buying",
+          "transactional": "Buying",
+          "navigational": "Finding a site"
         },
         "list_title": "Phrases to choose from",
         "volume_count": "{count} searches / month",

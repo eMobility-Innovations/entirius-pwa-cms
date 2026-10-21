@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const api = vi.hoisted(() => ({
@@ -18,6 +18,7 @@ import KeywordsTable from "@/views/EnrichmentStudio/KeywordsTable.vue";
 import StepPanel from "@/views/EnrichmentStudio/StepPanel.vue";
 import EmptyState from "@/boots/EmptyState/index.vue";
 import SegmentedControl from "@/boots/SegmentedControl/index.vue";
+import { t, setLang } from "@/i18n";
 
 const FormField = {
   name: "FormField",
@@ -203,6 +204,47 @@ describe("KeywordsTable", () => {
     const approved = mount(KeywordsTable, { props: { proposal: { ...KEYWORDS, status: "accepted" } }, global: { stubs, components } });
     expect(approved.findComponent(SegmentedControl).exists()).toBe(false);
     expect(approved.find("[data-testid='keyword-row-sofa care']").text()).toContain("enrichment.studio.keywords.as_primary");
+  });
+});
+
+describe("KeywordsTable search intent", () => {
+  // The real locale files, not the key-echo mock: the label an operator reads is what is under test.
+  const mountReal = (proposal = KEYWORDS) =>
+    mount(KeywordsTable, { props: { proposal }, global: { stubs, components, mocks: { $t: t } } });
+  const intentOf = (w, phrase) => w.find(`[data-testid='keyword-row-${phrase}'] [data-testid='keyword-intent']`);
+
+  beforeEach(() => api.PATCH_Proposal.mockReset());
+  afterEach(() => setLang("EN"));
+
+  it("reads in a row as a property, in plain text that is not clickable", async () => {
+    const w = mountReal();
+    const intent = intentOf(w, "sofa care");
+    expect(intent.text()).toBe("Intent: learning");
+    expect(intentOf(w, "linen sofa").text()).toBe("Intent: comparing before buying");
+    expect(intent.element.tagName).toBe("SPAN");
+    expect(intent.element.closest("a, button, [role], [tabindex]")).toBeNull();
+    expect(w.find("[data-testid='keyword-row-sofa care']").text()).not.toContain("Learn something");
+    await intent.trigger("click");
+    expect(api.PATCH_Proposal).not.toHaveBeenCalled();
+  });
+
+  it("shows no intent in a row that has none, and keeps an unknown intent as it came", () => {
+    const rows = [{ phrase: "bare", volume: 10 }, { phrase: "odd", volume: 20, intent: "Sponsored" }];
+    const w = mountReal({ ...KEYWORDS, proposed_value: { data: { ...KEYWORDS.proposed_value.data, candidates: rows } } });
+    expect(intentOf(w, "bare").exists()).toBe(false);
+    expect(intentOf(w, "odd").text()).toBe("Intent: sponsored");
+  });
+
+  it("names the intent in the top tile by the same label, without the prefix", () => {
+    expect(mountReal().find("tag-stub").attributes("label")).toBe("Learning");
+  });
+
+  it("reads the same way in Polish", () => {
+    setLang("PL");
+    const w = mountReal();
+    expect(intentOf(w, "sofa care").text()).toBe("Intencja: szukanie informacji");
+    expect(intentOf(w, "linen sofa").text()).toBe("Intencja: porównywanie przed zakupem");
+    expect(w.find("tag-stub").attributes("label")).toBe("Szukanie informacji");
   });
 });
 
