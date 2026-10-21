@@ -3256,15 +3256,16 @@
         "primary": "Fraza główna",
         "secondary": "Frazy wspierające",
         "intent": "Intencja wyszukiwania",
+        "intent_inline": "Intencja: {intent}",
         "serp": "Co dziś jest wysoko",
         "as_primary": "Główna",
         "as_secondary": "Wspierająca",
         "pick_hint": "Wybierz jedną frazę główną i do {max} wspierających. Każdy wybór zapisuje się od razu.",
         "intents": {
-          "informational": "Dowiedzieć się",
-          "commercial": "Porównać przed zakupem",
-          "transactional": "Kupić",
-          "navigational": "Znaleźć stronę"
+          "informational": "Szukanie informacji",
+          "commercial": "Porównywanie przed zakupem",
+          "transactional": "Zakup",
+          "navigational": "Szukanie strony"
         },
         "list_title": "Frazy do wyboru",
         "volume_count": "{count} wyszukiwań / mies.",
