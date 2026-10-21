@@ -8,7 +8,10 @@
         :worker="workerOf(task)"
         :label="labelOf(task)"
         :selected="task.id === selected"
+        :retrying="retrying.includes(task.id)"
+        :usable="usable"
         @select="toggle"
+        @retry="(failed) => $emit('retry', failed)"
       />
     </ul>
     <p v-else class="fs-200 t-muted m-0" data-testid="ai-tasks-idle">{{ $t("enrichment.ai.tasks_idle") }}</p>
@@ -31,9 +34,12 @@
           :key="task.id"
           :task="task"
           :worker="workerOf(task)"
-        :label="labelOf(task)"
+          :label="labelOf(task)"
           :selected="task.id === selected"
+          :retrying="retrying.includes(task.id)"
+          :usable="usable"
           @select="toggle"
+          @retry="(failed) => $emit('retry', failed)"
         />
       </ul>
     </template>
@@ -45,7 +51,8 @@ import AiTaskRow from "./AiTaskRow.vue";
 import { groupTasks, taskLabel } from "./productAi";
 
 // The product's AI tasks: what runs, waits for review or just failed on top; everything already handled folds into
-// History. Picking a task filters the proposals to it (`select` with its id, or null to show all again).
+// History. Picking a task filters the proposals to it (`select` with its id, or null to show all again). A row's Try
+// again goes up as `retry` with its task; `retrying` lists the ids with a request out, `usable` off disables the action.
 export default {
   name: "AiTaskList",
   components: { AiTaskRow },
@@ -54,8 +61,10 @@ export default {
     workers: { type: Array, default: () => [] },
     templates: { type: Array, default: () => [] },
     selected: { type: Number, default: null },
+    retrying: { type: Array, default: () => [] },
+    usable: { type: Boolean, default: true },
   },
-  emits: ["select"],
+  emits: ["select", "retry"],
   data() {
     return { historyOpen: false };
   },

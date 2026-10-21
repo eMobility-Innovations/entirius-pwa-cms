@@ -5,11 +5,13 @@ import { ACCESS_STORE, ReadonlyArea, useReadonly } from "@/composables/useReadon
 
 const mockAccept = vi.fn();
 const mockReject = vi.fn();
+const mockRetry = vi.fn();
 const notify = vi.fn();
 const ai = vi.hoisted(() => ({}));
 vi.mock("@/api/enrichment/api", () => ({
   POST_AcceptProposal: (...a) => mockAccept(...a),
   POST_RejectProposal: (...a) => mockReject(...a),
+  POST_RetryTask: (...a) => mockRetry(...a),
 }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 vi.mock("@/views/Pim/components/enrichment/useProductAi", () => ({ useProductAi: () => ai }));
@@ -23,7 +25,12 @@ const proposal = (id, over = {}) => ({ id, task_id: 5, status: "pending", target
 const stubs = {
   SideDrawer: { name: "SideDrawer", props: ["visible", "title"], template: "<div v-if='visible'><slot /></div>" },
   ProposalPanel: { name: "ProposalPanel", props: ["proposal", "task", "product"], template: "<div />" },
-  AiTaskList: { name: "AiTaskList", props: ["tasks", "workers", "templates", "selected"], emits: ["select"], template: "<div />" },
+  AiTaskList: {
+    name: "AiTaskList",
+    props: ["tasks", "workers", "templates", "selected", "retrying", "usable"],
+    emits: ["select", "retry"],
+    template: "<div />",
+  },
   DriftModal: { name: "DriftModal", props: ["visible", "proposal"], template: "<div />" },
   IconButton: { name: "IconButton", props: ["icon", "label"], template: "<button :aria-label='label' />" },
   BasicButton: { props: ["disabled"], template: "<button :disabled='disabled'><slot /></button>" },
@@ -62,6 +69,7 @@ describe("ProductAiResults", () => {
   beforeEach(() => {
     mockAccept.mockReset();
     mockReject.mockReset();
+    mockRetry.mockReset();
     notify.mockReset();
   });
 
@@ -229,6 +237,66 @@ describe("ProductAiResults", () => {
     expect(w.findComponent({ name: "ProfileGate" }).props("channel")).toBe("eu");
   });
 
+  describe("Try again on a failed task", () => {
+    const failed = { id: 5, type: "pim.meta_description", status: "failed", errors: [{ code: "UPSTREAM_TIMEOUT" }] };
+    const retried = { id: 12, type: "pim.meta_description", status: "open", lane: "queue", queued_ahead: 0, params: { retry_of: 5 } };
+    const openList = async (opts = {}) => {
+      const w = mountResults({ tasks: [failed], ...opts });
+      await w.find("[data-testid='ai-results']").trigger("click");
+      return { w, list: w.findComponent({ name: "AiTaskList" }) };
+    };
+
+    it("retries the task once and watches the new one like a run started from a template; the drawer shows it", async () => {
+      mockRetry.mockResolvedValue({ data: retried });
+      const { w, list } = await openList();
+      list.vm.$emit("retry", failed);
+      await flushPromises();
+
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+      expect(mockRetry).toHaveBeenCalledWith(5);
+      expect(ai.track).toHaveBeenCalledTimes(1);
+      expect(ai.track).toHaveBeenCalledWith(retried);
+      expect(list.props("selected")).toBe(12);
+      expect(w.find("[data-testid='ai-results-drawer']").exists()).toBe(true);
+      expect(notify).toHaveBeenCalledWith({ type: "positive", msg: "Queued — starts next." });
+      expect(list.props("retrying")).toEqual([]);
+    });
+
+    it("a second click while the request is out sends nothing; the list is told which task is on its way", async () => {
+      let answer;
+      mockRetry.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+      const { list } = await openList();
+      list.vm.$emit("retry", failed);
+      list.vm.$emit("retry", failed);
+      await flushPromises();
+      expect(list.props("retrying")).toEqual([5]);
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+
+      answer({ data: retried });
+      await flushPromises();
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+      expect(ai.track).toHaveBeenCalledTimes(1);
+      expect(list.props("retrying")).toEqual([]);
+    });
+
+    it("a refusal toasts the API's message and tracks nothing", async () => {
+      mockRetry.mockRejectedValue({ response: { status: 409, data: { error: "CONFLICT", message: "This task has nothing failed." } } });
+      const { list } = await openList();
+      list.vm.$emit("retry", failed);
+      await flushPromises();
+
+      expect(notify).toHaveBeenCalledWith({ type: "negative", msg: "This task has nothing failed." });
+      expect(ai.track).not.toHaveBeenCalled();
+      expect(list.props("selected")).toBeNull();
+      expect(list.props("retrying")).toEqual([]);
+    });
+
+    it("the list is told whether the AI toolbox can take a run", async () => {
+      expect((await openList()).list.props("usable")).toBe(true);
+      expect((await openList({ usable: false })).list.props("usable")).toBe(false);
+    });
+  });
+
   describe("enrichment access", () => {
     // The page wraps the AI in <ReadonlyArea area="enrichment.proposals">: Run and Apply follow that area alone.
     // A `mutates` button hides on a read-only region, as BasicButton does (readonly.spec).
@@ -237,9 +305,9 @@ describe("ProductAiResults", () => {
       setup: () => ({ readonly: useReadonly() }),
       template: "<button v-if='!(mutates && readonly)' :disabled='disabled'><slot /></button>",
     });
-    function mountInArea(level) {
+    function mountInArea(level, tasks = []) {
       Object.assign(ai, {
-        proposals: ref([proposal(1), proposal(2)]), tasks: ref([]), loading: ref(false), running: ref(false),
+        proposals: ref([proposal(1), proposal(2)]), tasks: ref(tasks), loading: ref(false), running: ref(false),
         refresh: vi.fn(), track: vi.fn(), syncTasks: vi.fn(),
       });
       const access = { available: true, can: (_area, wanted) => level === "write" || wanted === "read" };
@@ -247,7 +315,7 @@ describe("ProductAiResults", () => {
       return mount(ReadonlyArea, {
         props: { area: "enrichment.proposals" },
         slots: { default: () => h(ProductAiResults, props) },
-        global: { stubs: { ...stubs, BasicButton: ReadonlyAwareButton }, provide: { [ACCESS_STORE]: access } },
+        global: { stubs: { ...stubs, AiTaskList: false, BasicButton: ReadonlyAwareButton }, provide: { [ACCESS_STORE]: access } },
       });
     }
 
@@ -266,6 +334,27 @@ describe("ProductAiResults", () => {
       expect(w.find("[data-testid='ai-template-meta']").exists()).toBe(true);
       expect(w.find("[data-testid='ai-run-custom']").exists()).toBe(true);
       expect(w.find("[data-testid='ai-results-apply-all']").exists()).toBe(true);
+    });
+
+    describe("Try again", () => {
+      const failed = { id: 5, type: "pim.writer", status: "failed", created_at: new Date().toISOString(), counts: {}, errors: [] };
+
+      it("read-only: a failed task shows in the list but offers no Try again", async () => {
+        const w = mountInArea("read", [failed]);
+        await w.find("[data-testid='ai-results']").trigger("click");
+        expect(w.find("[data-testid='ai-task-5']").exists()).toBe(true);
+        expect(w.find("[data-testid='ai-task-retry-5']").exists()).toBe(false);
+      });
+
+      it("write: Try again retries the failed task through the whole chain, row to API to the watched new task", async () => {
+        mockRetry.mockResolvedValue({ data: { id: 12, status: "open" } });
+        const w = mountInArea("write", [failed]);
+        await w.find("[data-testid='ai-results']").trigger("click");
+        await w.find("[data-testid='ai-task-retry-5']").trigger("click");
+        await flushPromises();
+        expect(mockRetry).toHaveBeenCalledWith(5);
+        expect(ai.track).toHaveBeenCalledWith({ id: 12, status: "open" });
+      });
     });
   });
 });

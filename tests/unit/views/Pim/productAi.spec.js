@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  finishedTasks, groupTasks, isActive, outcomeText, taskLabel, taskLanguages, taskOutcome,
+  finishedTasks, groupTasks, isActive, isRetryable, outcomeText, taskLabel, taskLanguages, taskOutcome,
 } from "@/views/Pim/components/enrichment/productAi";
 
 const task = (over = {}) => ({ id: 1, type: "pim.meta", status: "done", counts: {}, errors: [], proposal_counts: {}, ...over });
@@ -20,6 +20,23 @@ describe("productAi", () => {
     expect(taskLanguages(task({ params: { languages: ["pl"] } }))).toEqual(["pl"]);
     expect(taskLanguages(task({ params: { source_language: "en", target_languages: ["pl", "de"] } }))).toEqual(["pl", "de"]);
     expect(taskLanguages(task())).toEqual([]);
+  });
+});
+
+describe("isRetryable", () => {
+  it("a failed task, or a done one with failed products, can be tried again", () => {
+    expect(isRetryable(task({ status: "failed" }))).toBe(true);
+    expect(isRetryable(task({ status: "failed", errors: [] }))).toBe(true);
+    expect(isRetryable(task({ counts: { failed: 2, proposed: 1 }, proposal_counts: { pending: 1 } }))).toBe(true);
+  });
+
+  it("a task that runs, waits, was cancelled or has nothing failed cannot", () => {
+    expect(isRetryable(task({ status: "in_progress" }))).toBe(false);
+    expect(isRetryable(task({ status: "open", queued_ahead: 1 }))).toBe(false);
+    expect(isRetryable(task({ status: "open", counts: { failed: 1 } }))).toBe(false);
+    expect(isRetryable(task({ status: "cancelled", counts: { failed: 1 } }))).toBe(false);
+    expect(isRetryable(task({ counts: { proposed: 3, failed: 0 }, proposal_counts: { pending: 3 } }))).toBe(false);
+    expect(isRetryable(task())).toBe(false);
   });
 });
 

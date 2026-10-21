@@ -78,6 +78,16 @@
         </template>
         <template #cell-actions="{ row }">
           <IconButton
+            v-if="isRetryable(row.raw)"
+            mutates
+            icon="refresh"
+            size="sm"
+            :label="$t('enrichment.ai.try_again')"
+            :disabled="retrying.includes(row.id)"
+            :data-testid="`enrichment-task-retry-${row.id}`"
+            @click="retryTask(row)"
+          />
+          <IconButton
             icon="next"
             size="sm"
             :label="$t('enrichment.tasks.open')"
@@ -119,7 +129,7 @@ import { GET_Task, GET_Tasks, GET_Templates, GET_Workers } from "@/api/enrichmen
 import { formatDate } from "@/utils/format";
 import RouteTabs from "@/components/Navigation/RouteTabs.vue";
 import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
-import { isActive, isQueued, outcomeText } from "@/views/Pim/components/enrichment/productAi";
+import { isActive, isQueued, isRetryable, outcomeText } from "@/views/Pim/components/enrichment/productAi";
 import { pluralKey } from "@/utils/plural";
 import CostLabel from "./CostLabel.vue";
 import RunProposals from "./RunProposals.vue";
@@ -127,6 +137,7 @@ import TaskQueueDrawer from "./TaskQueueDrawer.vue";
 import WorkerAlerts from "./WorkerAlerts.vue";
 import { loadProductNames, runName, runScope, runTitle } from "./runLabel";
 import { needsRefresh, opensDrawer, orderedCounts, taskStatusTone } from "./taskProgress";
+import { useTaskRetry } from "./useTaskRetry";
 import { listOf } from "@/api/enrichment/listOf";
 
 const REFRESH_MS = 5000;
@@ -137,14 +148,15 @@ const ALL = "__all";
 
 // Enricher → Review → Runs: every AI run, newest first. A finished run is picked in place (`?task=<id>`, the list
 // narrows to it) and its proposals are reviewed below it; a run still going or failed opens its drawer (its products,
-// what it came to). Each run reads in plain words: its template or worker, what it ran on, never its key.
+// what it came to). Each run reads in plain words: its template or worker, what it ran on, never its key. A failed run,
+// or one done with failed products, has Try again in its row.
 export default {
   name: "RunsPage",
   components: { CostLabel, RouteTabs, RunProposals, TaskQueueDrawer, WorkerAlerts },
   setup() {
     const notify = useNotifyStore();
     const tabPanel = routeTabPanel(ENRICHMENT_REVIEW_TABS, "EnrichmentRuns");
-    return { notify, formatDate, ALL, isQueued, ENRICHMENT_REVIEW_TABS, tabPanel };
+    return { notify, formatDate, ALL, isQueued, isRetryable, ENRICHMENT_REVIEW_TABS, tabPanel, ...useTaskRetry() };
   },
   data() {
     return {
@@ -332,6 +344,11 @@ export default {
       this.taskFilter = String(row.id);
       this.$router.replace({ path: this.$route.path, query: { ...this.$route.query, task: this.taskFilter } });
       this.fetchTasks({ silent: true });
+    },
+    // Try again: the failed products run as a new task; the list shows every run again, the new one on top.
+    async retryTask(row) {
+      const next = await this.retry(row.raw);
+      if (next) this.onFilterChange(ALL);
     },
     openQueue(row) {
       this.queueTaskId = row.id;
