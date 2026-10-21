@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
+import { ref } from "vue";
 import AiTaskRow from "@/views/Pim/components/enrichment/AiTaskRow.vue";
+import BasicButton from "@/boots/BasicButton/index.vue";
+import { READONLY } from "@/composables/useReadonly";
 
 // The outcome line is productAi.outcomeText, in the real English texts; the rest of the row goes through the $t stub.
 const $t = (key, params) => (params ? `${key}::${JSON.stringify(params)}` : key);
@@ -86,5 +89,74 @@ describe("AiTaskRow", () => {
     await w.find(".ai-task__select").trigger("click");
     expect(w.emitted("select")[0]).toEqual([9]);
     expect(w.find("a").exists()).toBe(false);
+  });
+
+  describe("Try again", () => {
+    const Button = {
+      props: { disabled: Boolean, loading: Boolean, mutates: Boolean },
+      emits: ["click"],
+      template: "<button :disabled='disabled || loading' :data-loading='String(loading)' :data-mutates='String(mutates)' @click=\"$emit('click')\"><slot /></button>",
+    };
+    const mountRetry = (over, props = {}) =>
+      mount(AiTaskRow, {
+        props: { task: task(over), worker: null, ...props },
+        global: { mocks: { $t }, stubs: { Tag: true, RouterLink: true, BasicButton: Button } },
+      });
+    const retryButton = (w) => w.find("[data-testid='ai-task-retry-9']");
+
+    it("a failed task has it, and a done task whose products partly failed", () => {
+      expect(retryButton(mountRetry({ status: "failed", errors: [{ code: "UPSTREAM_TIMEOUT" }] })).text()).toBe("enrichment.ai.try_again");
+      expect(retryButton(mountRetry({ counts: { failed: 2 }, proposal_counts: { pending: 1 } })).exists()).toBe(true);
+    });
+
+    it("a task that runs, waits, was cancelled or came to nothing failed has none", () => {
+      for (const over of [
+        { status: "in_progress" },
+        { status: "open", queued_ahead: 0 },
+        { status: "cancelled" },
+        { proposal_counts: { applied: 1 } },
+        { proposal_counts: { pending: 2 } },
+        {},
+      ]) {
+        expect(retryButton(mountRetry(over)).exists()).toBe(false);
+      }
+    });
+
+    it("sits outside the select area (no button inside a button), is a write action and asks to retry this task", async () => {
+      const w = mountRetry({ status: "failed" });
+      expect(w.find(".ai-task__select").find("button").exists()).toBe(false);
+      expect(retryButton(w).attributes("data-mutates")).toBe("true");
+      await retryButton(w).trigger("click");
+      expect(w.emitted("retry")).toEqual([[expect.objectContaining({ id: 9, status: "failed" })]]);
+      expect(w.emitted("select")).toBeUndefined();
+    });
+
+    it("shows loading and takes no click while its request is out", async () => {
+      const w = mountRetry({ status: "failed" }, { retrying: true });
+      expect(retryButton(w).attributes("data-loading")).toBe("true");
+      expect(retryButton(w).attributes("disabled")).toBeDefined();
+      await retryButton(w).trigger("click");
+      expect(w.emitted("retry")).toBeUndefined();
+    });
+
+    it("is disabled while the AI toolbox cannot take a run", () => {
+      expect(retryButton(mountRetry({ status: "failed" }, { usable: false })).attributes("disabled")).toBeDefined();
+      expect(retryButton(mountRetry({ status: "failed" })).attributes("disabled")).toBeUndefined();
+    });
+
+    it("is hidden on a read-only page", () => {
+      const mountReal = (readonly) =>
+        mount(AiTaskRow, {
+          props: { task: task({ status: "failed" }), worker: null },
+          global: {
+            mocks: { $t },
+            provide: { [READONLY]: ref(readonly) },
+            stubs: { Tag: true, RouterLink: true, BasicButton: false },
+            components: { BasicButton },
+          },
+        });
+      expect(mountReal(true).find("[data-testid='ai-task-retry-9']").exists()).toBe(false);
+      expect(mountReal(false).find("[data-testid='ai-task-retry-9']").exists()).toBe(true);
+    });
   });
 });

@@ -2910,6 +2910,7 @@
       "tasks_idle": "Nic nie działa ani nie czeka na przegląd.",
       "history": "Historia ({count})",
       "task_filter": "Pokaż propozycje tego zadania",
+      "try_again": "Spróbuj ponownie",
       "to_review": "Do przejrzenia",
       "apply_all": "Zastosuj wszystkie ({count})",
       "filtered": "Propozycje zadania: {worker}",

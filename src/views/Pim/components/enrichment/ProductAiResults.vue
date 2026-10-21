@@ -38,7 +38,16 @@
 
       <section v-if="tasks.length" class="flex-column gap-3" aria-labelledby="ai-results-tasks-title">
         <h3 id="ai-results-tasks-title" class="ai-results__heading m-0">{{ $t("enrichment.ai.recent_tasks") }}</h3>
-        <AiTaskList :tasks="tasks" :workers="workers" :templates="allTemplates" :selected="taskFilter" @select="(id) => (taskFilter = id)" />
+        <AiTaskList
+          :tasks="tasks"
+          :workers="workers"
+          :templates="allTemplates"
+          :selected="taskFilter"
+          :retrying="retrying"
+          :usable="usable"
+          @select="(id) => (taskFilter = id)"
+          @retry="retryTask"
+        />
       </section>
 
       <section class="flex-column gap-5" aria-labelledby="ai-results-proposals-title">
@@ -100,6 +109,7 @@ import { toRef } from "vue";
 import { useNotifyStore } from "@/stores/notify";
 import { POST_AcceptProposal } from "@/api/enrichment/api";
 import { useProposalActions } from "@/views/EnrichmentReview/useProposalActions";
+import { useTaskRetry } from "@/views/EnrichmentReview/useTaskRetry";
 import ProposalPanel from "@/views/EnrichmentReview/ProposalPanel.vue";
 import DriftModal from "@/views/EnrichmentReview/DriftModal.vue";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
@@ -118,7 +128,8 @@ import { useProductAi } from "./useProductAi";
 // product's tasks in plain words and its pending proposals as cards, reviewed in place (Apply all
 // when there are several). Picking a task shows only its proposals, with "Correct all" for the whole run. An applied proposal goes to the page
 // (`applied`) so the product form shows the new value. A run the page just started (`track`) opens the drawer on it:
-// its proposals land there when it finishes.
+// its proposals land there when it finishes. A failed task offers Try again: its failed products run as a new task,
+// which `track` then shows like any other (the failed one stays in History).
 export default {
   name: "ProductAiResults",
   components: { ProposalPanel, DriftModal, AiTaskList, AiToolboxHint, BatchCorrection, ProfileGate },
@@ -143,7 +154,7 @@ export default {
       emit("applied", proposal);
     };
     const actions = useProposalActions({ onApplied: applied, onRejected: drop, afterAction: ai.syncTasks });
-    return { ...ai, ...actions, watchTask, applied, notify: useNotifyStore(), pimChannel: usePimChannelStore() };
+    return { ...ai, ...actions, ...useTaskRetry(), watchTask, applied, notify: useNotifyStore(), pimChannel: usePimChannelStore() };
   },
   data() {
     // `?ai=1`: the drawer is part of the product's URL — a reload or a shared link opens it again.
@@ -204,6 +215,11 @@ export default {
       this.watchTask(task);
       this.taskFilter = task.id;
       this.open = true;
+    },
+    // Try again on a failed task: the failed products run as a new task, shown and watched like one started above.
+    async retryTask(task) {
+      const next = await this.retry(task);
+      if (next) this.track(next);
     },
     taskOf(proposal) {
       return this.tasks.find((t) => t.id === proposal.task_id) || null;

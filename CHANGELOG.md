@@ -14,6 +14,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- AI tasks: a failed task, or a done one with failed products, has "Try again" (EN, PL) in the product's AI drawer
+  (Recent tasks and History) and on the Runs page. It runs only the failed products as a new task, shown and
+  watched like one started from a template; the failed task stays in History. Hidden on a read-only page, disabled
+  in the drawer while the AI toolbox is unusable; a refusal of the API (`POST tasks/<id>/retry/`) shows as a toast.
 - AI studio: a help mark next to each step's title explains in two or three sentences what the step does and
   what it feeds (EN, PL; a step without its own text explains its output type).
 - Page editor: a content-language pick next to Save draft and Publish (every ContentDB language); the draft is saved

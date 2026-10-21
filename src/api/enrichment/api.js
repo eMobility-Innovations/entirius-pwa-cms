@@ -33,6 +33,12 @@ export const POST_SpawnTask = (data) =>
 export const PATCH_Task = (taskId, data) =>
   enrichmentApi.patch(`${ENR}/tasks/${taskId}/`, data);
 
+// Try again: runs only the failed products of a finished task, empty body → 201 the NEW task (the answer of
+// `POST_SpawnTask`, `params.retry_of` = this id). 409 not finished or nothing failed, 400 a workflow step's task,
+// cost-guard refusals as on create.
+export const POST_RetryTask = (taskId) =>
+  enrichmentApi.post(`${ENR}/tasks/${taskId}/retry/`);
+
 // CSV import (etap-11): one file = one channel + one language; rows group by the `type` column
 // into N tasks. Pass a FormData (file + channel + language [+ params]) — let the client set the
 // multipart boundary; do NOT force a Content-Type header.

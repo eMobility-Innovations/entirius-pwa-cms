@@ -2911,6 +2911,7 @@
       "tasks_idle": "Nothing running or waiting for review.",
       "history": "History ({count})",
       "task_filter": "Show this task's proposals",
+      "try_again": "Try again",
       "to_review": "To review",
       "apply_all": "Apply all ({count})",
       "filtered": "Proposals of: {worker}",
