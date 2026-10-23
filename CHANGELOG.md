@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- `npm ci` no longer needs node-canvas. `canvas` sat in `dependencies` since 1.0.0 although nothing imports it (the
+  app draws on the browser's `<canvas>`, the unit suite runs on happy-dom); its install script downloads a prebuilt
+  binary from GitHub releases and, when that times out, compiles with node-gyp, which a slim Node image cannot. It is
+  now only jsdom's optional peer, so a failed install no longer stops `npm ci`.
 - Enrichment Review list: a long product name stays in its column. The name (a ghost button, which sizes to its text)
   ran over the Field column; it now wraps to two lines and ends in an ellipsis, with the full name in its title. The
   Product column takes a bigger share of the free width (2fr, was 1fr; Change 2fr, was 3fr) so a clamped name still reads.
