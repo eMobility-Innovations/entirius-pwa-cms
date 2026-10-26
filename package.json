@@ -79,11 +79,11 @@
     "@vue/cli-plugin-babel": "~5.0.8",
     "@vue/cli-service": "~5.0.8",
     "@vue/test-utils": "^2.4.6",
-    "happy-dom": "^20.11.6",
+    "happy-dom": "^21.0.4",
     "raw-loader": "^4.0.2",
     "sass": "^1.103.1",
     "sass-loader": "^10.2.0",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "webpack": "^5.109.2",
