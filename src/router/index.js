@@ -815,6 +815,18 @@ const routes = [
           area: AREAS.FAQ_FAQ,
         },
       },
+      {
+        path: "duplicates",
+        name: "FaqDuplicates",
+        component: () =>
+          import(/* webpackChunkName: "faq" */ "../views/Faq/DuplicateReport.vue"),
+        meta: {
+          requiresAuth: true,
+          titleKey: "faq.duplicates",
+          panel: "faq",
+          area: AREAS.FAQ_FAQ,
+        },
+      },
     ],
   },
 

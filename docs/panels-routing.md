@@ -55,7 +55,7 @@ path prefix and lazy-loaded (`() => import(...)`). Grouped by panel:
 | `/accounts/...` | CustomerList, CustomerDetail |
 | `/checkout-orders/...` | OrderList, OrderDetail |
 | `/emails/...` | EmailsDashboard, EmailChannelEdit, EmailLangConfigEdit, EmailTemplateList/Edit |
-| `/faq/...` | GroupList/Edit, ItemList/Edit |
+| `/faq/...` | GroupList/Edit, ItemList/Edit, DuplicateReport (`duplicates`) |
 | `/pricing/...` | PriceList/Detail, TaxClassList/Detail, ChannelList/Detail |
 | `/stock/...` | WarehouseStockTable |
 | `/translation-jobs` | TranslationDashboard |
@@ -70,6 +70,15 @@ path prefix and lazy-loaded (`() => import(...)`). Grouped by panel:
 
 Details for every child route are in `src/router/index.js` — this table maps
 prefixes to view components, not individual paths.
+
+FAQ → Duplicate questions (`/faq/duplicates`) lists every question shown more than once in `VUE_APP_CHANNEL`: active
+FAQ items (and their translations) and the `faq_items` lists of contentdb drafts of every content type, so a repeat
+shows before it is published. A section counts by its data (`faq_items: [{ question, answer }]`), not by its type
+name, which each deployment configures in `__client/`. Questions match after `normalizeQuestion`
+(`src/utils/faqDuplicates.js`: no tags, case, punctuation or diacritics); similar wording is not matched. Both APIs
+scope by channel the way the storefront does (`src/views/Faq/duplicateSources.js`). Without the `contentdb` module
+or read on `content.pages` the report compares FAQ items only. It reads, never writes: a repeat is fixed in the
+item or the page it links to.
 
 Studio "Open draft" builds a Builder route with the content type `blog-post` (`DOCUMENT_TYPE` in
 `src/views/EnrichmentStudio/studioLogic.js`), a copy of the backend setting `CONTENTDB_ENRICHMENT_DOCUMENT_TYPE`. A
