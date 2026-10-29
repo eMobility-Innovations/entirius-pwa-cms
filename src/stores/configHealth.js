@@ -32,9 +32,15 @@ export const useConfigHealthStore = defineStore("configHealth", () => {
 
   // The munin rows plus the company profile's own row (the CMS reads it from django-enrichment, munin does not).
   const enrichmentProfile = useEnrichmentProfileStore();
+  // The AI toolbox state every AI action follows: the health row first; without one (health is read only with
+  // `munin.config`, or it is unavailable) the public registry's `platform.toolbox.state`. "" = nobody reports it.
+  const aiState = computed(
+    () => stateOf(TOOLBOX_CODE) || munin.platform?.toolbox?.state || ""
+  );
+  const aiUsable = computed(() => !AI_BLOCKED_STATES.includes(aiState.value));
   const rows = computed(() => {
     const profileRow = profileHealthRow(enrichmentProfile.status);
-    return profileRow ? [...checks.value, profileRow] : checks.value;
+    return profileRow && aiUsable.value ? [...checks.value, profileRow] : checks.value;
   });
   const failing = computed(() =>
     rows.value.filter((row) => !QUIET_STATES.includes(row.state))
@@ -55,13 +61,6 @@ export const useConfigHealthStore = defineStore("configHealth", () => {
   function failingFor(code) {
     return failing.value.filter((row) => row.code === code);
   }
-
-  // The AI toolbox state every AI action follows: the health row first; without one (health is read only with
-  // `munin.config`, or it is unavailable) the public registry's `platform.toolbox.state`. "" = nobody reports it.
-  const aiState = computed(
-    () => stateOf(TOOLBOX_CODE) || munin.platform?.toolbox?.state || ""
-  );
-  const aiUsable = computed(() => !AI_BLOCKED_STATES.includes(aiState.value));
 
   function apply(data, fromProbe) {
     const wasFailing = failing.value.length > 0;

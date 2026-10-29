@@ -14,6 +14,7 @@ import ConfigHealthButton from "@/components/ConfigHealth/ConfigHealthButton.vue
 import ConfigBanner from "@/components/ConfigHealth/ConfigBanner.vue";
 import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import { useMuninStore } from "@/stores/munin";
+import { useEnrichmentProfileStore } from "@/stores/enrichmentProfile";
 import { textTokens } from "@/utils/configHealth";
 
 const SMTP = {
@@ -52,6 +53,32 @@ describe("configuration health", () => {
     expect(
       mountButton().find('[data-testid="config-health-button"]').exists()
     ).toBe(false);
+  });
+
+  it.each(["disabled", "unconfigured"])("does not warn about an incomplete company profile when the AI toolbox is %s", async (toolboxState) => {
+    api.GET_ConfigHealth.mockReturnValue(
+      health([{ code: "toolbox.status", state: toolboxState }])
+    );
+    const profile = useEnrichmentProfileStore();
+    profile.status = {
+      complete: false,
+      sections: [{ key: "brand", complete: false }],
+    };
+    const store = useConfigHealthStore();
+    await store.poll();
+    expect(store.failing.map((row) => row.code)).not.toContain("enrichment.profile");
+  });
+
+  it("warns about an incomplete company profile when the AI toolbox is usable", async () => {
+    api.GET_ConfigHealth.mockReturnValue(health(GREEN));
+    const profile = useEnrichmentProfileStore();
+    profile.status = {
+      complete: false,
+      sections: [{ key: "brand", complete: false }],
+    };
+    const store = useConfigHealthStore();
+    await store.poll();
+    expect(store.failing.map((row) => row.code)).toContain("enrichment.profile");
   });
 
   it("a failing check shows the triangle with its count; the panel lists it with its fix link, green codes below", async () => {
