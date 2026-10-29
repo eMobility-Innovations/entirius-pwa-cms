@@ -130,6 +130,9 @@ const mountBuilder = async () => {
   await flushPromises();
   wrapper.vm.advanced_options = true;
   wrapper.vm.authorPanelOpen = true;
+  // Settle the lazy panel and its config imports before checking rendered state.
+  await vi.dynamicImportSettled();
+  await flushPromises();
   // load_configs() dynamic-imports the __client configs; under a loaded suite that takes more than a few ticks.
   await vi.waitFor(() => {
     if (!wrapper.find(".tag__label").exists()) throw new Error("author panel not rendered yet");
