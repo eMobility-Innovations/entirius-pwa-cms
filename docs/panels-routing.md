@@ -77,7 +77,7 @@ shows before it is published. A section counts by its data (`faq_items: [{ quest
 name, which each deployment configures in `__client/`. Questions match after `normalizeQuestion`
 (`src/utils/faqDuplicates.js`: no tags, case, punctuation or diacritics); similar wording is not matched. Both APIs
 scope by channel the way the storefront does (`src/views/Faq/duplicateSources.js`). Without the `contentdb` module
-or read on `content.pages` the report compares FAQ items only. It reads, never writes: a repeat is fixed in the
+or read on `content.pages` and `content.schema` the report compares FAQ items only. It reads, never writes: a repeat is fixed in the
 item or the page it links to.
 
 Studio "Open draft" builds a Builder route with the content type `blog-post` (`DOCUMENT_TYPE` in

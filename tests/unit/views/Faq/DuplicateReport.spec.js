@@ -26,7 +26,8 @@ const makeState = (areas, { contentdb = true } = {}) => {
   const state = {
     groups: [],
     loading: false,
-    contentFailed: false,
+    loadFailed: false,
+    contentStatus: null,
     $t: (key) => key,
     notify: { spawnNotification: vi.fn() },
     munin: { isModuleEnabled: () => contentdb },
@@ -65,7 +66,7 @@ describe("duplicate report", () => {
     );
   });
 
-  it("a failing content half falls back to FAQ items, with the FAQ-only notice and no error toast", async () => {
+  it("a refused (403) content half falls back to FAQ items, with the FAQ-only notice and no error toast", async () => {
     loadContentOccurrences.mockRejectedValue({ response: { status: 403 } });
     loadFaqOccurrences.mockResolvedValue([
       occurrence("faq"),
@@ -78,5 +79,33 @@ describe("duplicate report", () => {
     expect(DuplicateReport.computed.description.call(state)).toBe(
       "faq.duplicates_description_faq_only"
     );
+  });
+
+  it("a failed (500) content half falls back to FAQ items and says the check failed", async () => {
+    loadContentOccurrences.mockRejectedValue({ response: { status: 500 } });
+    loadFaqOccurrences.mockResolvedValue([occurrence("faq"), occurrence("faq")]);
+    const state = makeState(both);
+    await run(state);
+    expect(state.groups).toHaveLength(1);
+    expect(state.loadFailed).toBe(false);
+    expect(DuplicateReport.computed.description.call(state)).toBe("faq.duplicates_description_content_failed");
+  });
+
+  it("a failed FAQ items load is an error state, not an empty result", async () => {
+    loadFaqOccurrences.mockRejectedValue({ response: { status: 500 } });
+    const state = makeState(both);
+    await run(state);
+    expect(state.loadFailed).toBe(true);
+    expect(state.groups).toEqual([]);
+    expect(state.loading).toBe(false);
+    expect(state.notify.spawnNotification).toHaveBeenCalled();
+  });
+
+  it("a second load while one runs is ignored", async () => {
+    const state = makeState(both);
+    const first = run(state);
+    await run(state);
+    await first;
+    expect(loadFaqOccurrences).toHaveBeenCalledTimes(1);
   });
 });

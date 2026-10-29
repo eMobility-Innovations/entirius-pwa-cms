@@ -10,6 +10,8 @@
 
     <Loader block v-if="loading" />
 
+    <EmptyState v-else-if="loadFailed" icon="empty" :title="$t('notifications.error')" />
+
     <EmptyState v-else-if="!groups.length" icon="success" :title="$t('faq.no_duplicates')" />
 
     <div v-else class="flex-column gap-8">
@@ -54,7 +56,7 @@ export default {
     return { notify, munin, access };
   },
   data() {
-    return { groups: [], loading: false, contentFailed: false };
+    return { groups: [], loading: false, loadFailed: false, contentStatus: null };
   },
   computed: {
     // Pages are optional: without contentdb (or read on pages and on the schema, which lists the content types) the
@@ -67,7 +69,9 @@ export default {
       );
     },
     description() {
-      return this.includesPages && !this.contentFailed ? this.$t("faq.duplicates_description") : this.$t("faq.duplicates_description_faq_only");
+      if (this.contentStatus === "failed") return this.$t("faq.duplicates_description_content_failed");
+      const full = this.includesPages && this.contentStatus !== "refused";
+      return full ? this.$t("faq.duplicates_description") : this.$t("faq.duplicates_description_faq_only");
     },
     headerActions() {
       return [
@@ -89,8 +93,10 @@ export default {
   },
   methods: {
     async load() {
+      if (this.loading) return;
       this.loading = true;
-      this.contentFailed = false;
+      this.loadFailed = false;
+      this.contentStatus = null;
       try {
         const channel = process.env.VUE_APP_CHANNEL;
         const [faq, pages] = await Promise.all([
@@ -102,6 +108,7 @@ export default {
           occurrences: group.occurrences.map((occurrence, key) => ({ ...occurrence, key })),
         }));
       } catch (err) {
+        this.loadFailed = true;
         this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
       } finally {
         this.loading = false;
@@ -111,8 +118,8 @@ export default {
     async loadPages(channel) {
       try {
         return await loadContentOccurrences(channel);
-      } catch {
-        this.contentFailed = true;
+      } catch (err) {
+        this.contentStatus = err?.response?.status === 403 ? "refused" : "failed";
         return [];
       }
     },

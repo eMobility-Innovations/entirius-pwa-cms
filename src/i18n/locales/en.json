@@ -1786,6 +1786,7 @@
     "translations_of": "Translations: {field}",
     "duplicates": "Duplicate questions",
     "duplicates_description": "Questions shown in more than one place of this channel: FAQ items and the FAQ sections of pages and blog posts. Search engines expect each question once.",
+    "duplicates_description_content_failed": "FAQ items of this channel that repeat a question. Pages are not compared: checking them failed, try again.",
     "duplicates_description_faq_only": "FAQ items of this channel that repeat a question. Pages are not compared: the content module is off or you cannot read pages.",
     "no_duplicates": "No question repeats in this channel",
     "check_again": "Check again",

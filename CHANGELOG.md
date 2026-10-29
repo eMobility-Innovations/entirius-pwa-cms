@@ -35,7 +35,7 @@ All notable changes to this project will be documented in this file.
 - FAQ: Duplicate questions (`/faq/duplicates`, EN, PL) lists every question shown more than once in the channel:
   active FAQ items (and their translations) and the FAQ sections (`faq_items`) of the drafts of every content type,
   each place with its source, URL, publish state and a link to edit it. Questions match without tags, case,
-  punctuation or diacritics; without the `contentdb` module or read on `content.pages` it compares FAQ items only.
+  punctuation or diacritics; without the `contentdb` module or read on `content.pages` + `content.schema` it compares FAQ items only.
 - AI tasks: a failed task, or a done one with failed products, has "Try again" (EN, PL) in the product's AI drawer
   (Recent tasks and History) and on the Runs page. It runs only the failed products as a new task, shown and
   watched like one started from a template; the failed task stays in History. Hidden on a read-only page, disabled
