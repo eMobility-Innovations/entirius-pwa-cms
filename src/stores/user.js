@@ -1,14 +1,24 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import Cookies from 'universal-cookie'
-import axios from 'axios'
 import { User } from '@/configs/access'
-import { PATCH_UserProfile } from '@/api/contentDB/api'
+import { PATCH_UserProfile, POST_Logout } from '@/api/contentDB/api'
+import { endRefreshSession, refreshAccessToken, SessionEndedError } from '@/api/createClient'
 import { setLang, getLang } from '@/i18n'
+import { expiresSoon, refreshDelay } from '@/utils/jwt'
+import { hintsOn } from '@/composables/fieldHints'
+
+// Upper bound for the whole logout (refresh + blacklist); the local logout always happens within it.
+const LOGOUT_BUDGET_MS = 6000
 
 const cookies = new Cookies()
-const COOKIE_OPTS = { path: '/', maxAge: 7 * 24 * 60 * 60 }
-const _CHANNEL = process.env.VUE_APP_CHANNEL
+// Never sent on a request from another site; on an https page never over plain http (local http development works).
+const cookieOpts = () => ({
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60,
+  sameSite: 'strict',
+  secure: window.location.protocol === 'https:',
+})
 
 let sessionTimer = null
 
@@ -19,11 +29,13 @@ export const useUserStore = defineStore('user', () => {
   const customer_id = ref(null)
   const expiryDate = ref(null)
   const isAuth = ref(false)
-  const activeApp = ref('pages')
   const isSidebarCollapsed = ref(false)
   const theme = ref('default')
   const lang = ref(getLang())
   const preferences = ref({})
+  // Field hints on/off: the store is the writer of the shared state the boots read (src/composables/fieldHints.js).
+  const hints = hintsOn
+  let logoutRun = null
 
   function setStateViaCookies(cookiesKeys) {
     const stateMap = { user, token, refresh, customer_id, expiryDate, isAuth }
@@ -36,26 +48,34 @@ export const useUserStore = defineStore('user', () => {
 
   function setUser({ username = '', first_name = '', last_name = '', email = '', permissions = [] }) {
     user.value = new User({ username, first_name, last_name, email, buildTypes: permissions })
-    cookies.set('user', user.value, COOKIE_OPTS)
+    cookies.set('user', user.value, cookieOpts())
   }
 
-  function setAuth({ token: t, refresh: r, customer_id: cid, expiryDate: exp }) {
+  // A token refresh carries no customer id (absent or null): the current one stays (the store's, else the cookie's),
+  // and an unknown one is null, never written.
+  function setAuth({ token: t, refresh: r, customer_id: passed, expiryDate: exp }) {
+    const cid = passed ?? customer_id.value ?? cookies.get('customer_id') ?? null
     token.value = t
     refresh.value = r
     customer_id.value = cid
     expiryDate.value = exp
-    isAuth.value = true
 
-    cookies.set('token', t, COOKIE_OPTS)
-    cookies.set('refresh', r, COOKIE_OPTS)
-    cookies.set('customer_id', cid, COOKIE_OPTS)
-    cookies.set('expiryDate', exp, COOKIE_OPTS)
-    cookies.set('isAuth', true, COOKIE_OPTS)
+    cookies.set('token', t, cookieOpts())
+    cookies.set('refresh', r, cookieOpts())
+    if (cid != null) cookies.set('customer_id', cid, cookieOpts())
+    cookies.set('expiryDate', exp, cookieOpts())
 
     startSessionMonitor()
   }
 
+  // The login flow calls this last: the app leaves the login wall only with the user already in the store.
+  function markAuthenticated() {
+    isAuth.value = true
+    cookies.set('isAuth', true, cookieOpts())
+  }
+
   function clearAuth() {
+    endRefreshSession()
     stopSessionMonitor()
 
     user.value = null
@@ -64,6 +84,8 @@ export const useUserStore = defineStore('user', () => {
     refresh.value = null
     expiryDate.value = null
     isAuth.value = false
+    hints.value = true
+    localStorage.removeItem('cms_hints')
 
     const allCookies = cookies.getAll()
     Object.keys(allCookies).forEach((cookieName) => {
@@ -71,71 +93,55 @@ export const useUserStore = defineStore('user', () => {
     })
   }
 
+  // The only logout. An expiring access token is refreshed first, while the session is still current; then the
+  // session ends before the server is told, so no refresh can start or land after it. A failed or timed-out
+  // blacklist still logs the user out, and the full reload drops every store, pending request and timer.
+  // A second call while one runs gets the running one.
+  function logout() {
+    if (!logoutRun) logoutRun = endSession()
+    return logoutRun
+  }
+
+  async function endSession() {
+    stopSessionMonitor()
+    const tellServer = (async () => {
+      if (refresh.value && expiresSoon(expiryDate.value)) await refreshAccessToken().catch(() => {})
+      endRefreshSession()
+      await POST_Logout({ access: token.value, refresh: refresh.value }).catch(() => {})
+    })()
+    // Nothing on the network may keep the user logged in: past the budget the session ends locally regardless
+    // (a stalled refresh has no timeout of its own).
+    await Promise.race([tellServer, new Promise((resolve) => setTimeout(resolve, LOGOUT_BUDGET_MS))])
+    endRefreshSession()
+    clearAuth()
+    window.location.assign('/')
+  }
+
   function sessionExpiredLogout() {
     stopSessionMonitor()
-    localStorage.setItem('session_expired', '1')
+    // a first visit holds no token — it never hears that a session expired
+    if (token.value || cookies.get('token')) localStorage.setItem('session_expired', '1')
     localStorage.setItem('cms_return_route', window.location.pathname + window.location.search)
     clearAuth()
     window.location.href = '/'
   }
 
   async function proactiveRefresh() {
-    const refreshCookie = cookies.get('refresh')
-    if (!refreshCookie) {
-      sessionExpiredLogout()
-      return
-    }
-
     try {
-      const baseURL = process.env.VUE_APP_API_URL
-      const url = `${baseURL}/api/accounts/v1/${_CHANNEL ?? ''}/customer/tokens/refresh/`
-      const { data } = await axios.post(url, { refresh: refreshCookie })
-
-      const { access, refresh: newRefresh } = data.data || data
-      const newExpiry = new Date(Date.now() + 15 * 60 * 1000)
-
-      token.value = access
-      expiryDate.value = newExpiry
-
-      cookies.set('token', access, COOKIE_OPTS)
-      cookies.set('expiryDate', newExpiry, COOKIE_OPTS)
-
-      // The API only returns a new refresh token when rotation is enabled server-side.
-      // Overwriting the cookie with undefined logs the user out on the next refresh.
-      if (newRefresh) {
-        refresh.value = newRefresh
-        cookies.set('refresh', newRefresh, COOKIE_OPTS)
-      }
-
-      startSessionMonitor()
-    } catch {
-      sessionExpiredLogout()
+      await refreshAccessToken()
+    } catch (error) {
+      if (!(error instanceof SessionEndedError)) sessionExpiredLogout()
     }
   }
 
+  // Scheduled from the expiry the access token carried (`tokenExpiry`); every refresh re-arms it through `setAuth`.
   function startSessionMonitor() {
     stopSessionMonitor()
 
-    const exp = cookies.get('expiryDate')
-    if (!exp) return
+    const delay = refreshDelay(cookies.get('expiryDate'))
+    if (delay === null) return
 
-    const expiryTime = new Date(exp).getTime()
-    const now = Date.now()
-    // Refresh 2 minutes before expiry
-    const refreshAt = expiryTime - 2 * 60 * 1000
-    const delay = refreshAt - now
-
-    if (delay <= 0) {
-      // Token already expired — let the API interceptor handle refresh
-      // on the next request. Calling proactiveRefresh() here races with
-      // the interceptor (both send the same refresh token, server rotates
-      // on the first, second fails → forced logout).
-      return
-    }
-
-    sessionTimer = setTimeout(() => {
-      proactiveRefresh()
-    }, delay)
+    sessionTimer = setTimeout(proactiveRefresh, delay)
   }
 
   function stopSessionMonitor() {
@@ -172,8 +178,19 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  function setHints(on, persist = true) {
+    hints.value = on
+    localStorage.setItem('cms_hints', String(on))
+    if (persist && isAuth.value) {
+      savePreference('cms_hints', on)
+    }
+  }
+
   function loadPreferences(extra) {
+    // `extra` null: the profile call failed — the stored hints choice stands. A profile applies its own choice; one
+    // without it gets hints on, never the last user's.
     if (extra && typeof extra === 'object') {
+      setHints(extra.cms_hints !== false, false)
       preferences.value = { ...extra }
       if (extra.cms_theme) {
         setTheme(extra.cms_theme, false)
@@ -230,6 +247,9 @@ export const useUserStore = defineStore('user', () => {
     const savedLang = localStorage.getItem('cms_lang')
     if (savedLang) setLanguage(savedLang, false)
 
+    const savedHints = localStorage.getItem('cms_hints')
+    if (savedHints !== null) setHints(savedHints !== 'false', false)
+
     const savedSidebar = localStorage.getItem('cms_sidebar_collapsed')
     if (savedSidebar !== null) isSidebarCollapsed.value = savedSidebar === 'true'
 
@@ -241,8 +261,8 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     user, token, refresh, customer_id, expiryDate, isAuth,
-    activeApp, isSidebarCollapsed, theme, lang, preferences,
-    setAuth, clearAuth, setUser, toggleSidebar, setTheme,
+    isSidebarCollapsed, theme, lang, preferences, hints,
+    setAuth, markAuthenticated, clearAuth, logout, setUser, toggleSidebar, setTheme, setHints,
     setLanguage, loadPreferences, savePreference,
     readCookies, appInit, sessionExpiredLogout
   }

@@ -9,58 +9,49 @@
     <div v-if="visible" class="fed">
       <!-- inclusion/exclusion -->
       <FormField :label="$t('promo.filter_field_inclusion')">
-        <Dropdown
-          :values="inclusionOptions"
-          :selected="local.is_inclusion_or_exclusion ? [local.is_inclusion_or_exclusion] : []"
-          @onSelect="(v) => (local.is_inclusion_or_exclusion = v)"
+        <BasicSelect
+          :options="inclusionOptions"
+          v-model="local.is_inclusion_or_exclusion"
         />
       </FormField>
 
       <!-- take_common_part -->
-      <FormField :label="$t('promo.filter_field_take_common_part')" class="mt-300">
-        <Switcher
+      <FormField :label="$t('promo.filter_field_take_common_part')" class="mt-8">
+        <BasicSwitch
           :label="$t('promo.filter_take_common_part_hint')"
           :hint="$t('promo.filter_common_tip')"
-          :selected="local.take_common_part"
-          @onSelect="local.take_common_part = !local.take_common_part"
+          v-model="local.take_common_part"
         />
       </FormField>
 
       <!-- ===== PRODUCT / THRESHOLD FIELDS ===== -->
       <template v-if="kind !== 'customer'">
         <!-- products -->
-        <FormField :label="$t('promo.filter_field_products')" class="mt-300">
+        <FormField :label="$t('promo.filter_field_products')" class="mt-8">
           <BasicInput
             v-model="productSearch"
             :placeholder="$t('promo.filter_search_products')"
             @input="debouncedFetch(fetchProducts)"
           />
-          <div v-if="productResults.length" class="fed__results mt-100">
-            <div
+          <div v-if="productResults.length" class="fed__results mt-2">
+            <BasicCheckbox
               v-for="p in productResults"
               :key="p.sku"
-              class="fed__result-row pointer"
-              @click="toggleProduct(p.sku)"
+              :model-value="local.products.includes(p.sku)"
+              class="fed__result-row"
+              @update:model-value="toggleProduct(p.sku)"
             >
-              <FontAwesomeIcon
-                v-if="local.products.includes(p.sku)"
-                icon="check"
-                class="t-positive-200 mr-100"
-              />
-              <span>{{ p.sku }}{{ p.name ? ` — ${p.name}` : '' }}</span>
-            </div>
+              {{ p.sku }}{{ p.name ? ` — ${p.name}` : '' }}
+            </BasicCheckbox>
           </div>
-          <div v-if="local.products.length" class="fed__chips mt-100">
-            <span
+          <div v-if="local.products.length" class="fed__chips mt-2">
+            <Tag
               v-for="sku in local.products"
               :key="sku"
-              class="fed__chip"
-            >
-              {{ sku }}
-              <button class="fed__chip-remove" @click="removeProduct(sku)">
-                <FontAwesomeIcon icon="xmark" />
-              </button>
-            </span>
+              :label="sku"
+              removable
+              @remove="removeProduct(sku)"
+            />
           </div>
           <p v-if="!local.products.length" class="fed__empty-hint">
             {{ $t('promo.filter_no_products_selected') }}
@@ -68,142 +59,70 @@
         </FormField>
 
         <!-- categories -->
-        <FormField :label="$t('promo.filter_field_categories')" class="mt-300">
-          <Dropdown
-            :custom_droplist="true"
-            :placeholder="`${$t('promo.filter_field_categories')} (${local.categories.length})`"
-          >
-            <template #custom>
-              <div
-                v-for="c in categoryOptions"
-                :key="c.idx"
-                class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                :class="{ '-primary-100': local.categories.includes(c.idx) }"
-                @click.stop="toggleCategory(c.idx)"
-              >
-                <span class="ml-100">{{ c.idx }}{{ c.name ? ` — ${c.name}` : '' }}</span>
-                <FontAwesomeIcon
-                  v-if="local.categories.includes(c.idx)"
-                  icon="check"
-                  class="t-positive-200"
-                />
-              </div>
-              <div v-if="!categoryOptions.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                {{ $t('promo.filter_no_options') }}
-              </div>
-            </template>
-          </Dropdown>
+        <FormField :label="$t('promo.filter_field_categories')" class="mt-8">
+          <BasicSelect
+            v-model="local.categories"
+            multiple
+            :options="idOptions(categoryOptions, 'idx')"
+            :placeholder="$t('promo.filter_field_categories')"
+          />
         </FormField>
 
         <!-- attributes -->
-        <FormField :label="$t('promo.filter_field_attributes')" class="mt-300">
-          <Dropdown
-            :custom_droplist="true"
-            :placeholder="`${$t('promo.filter_field_attributes')} (${local.attributes.length})`"
-          >
-            <template #custom>
-              <div
-                v-for="a in attributeOptions"
-                :key="a.idx"
-                class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                :class="{ '-primary-100': local.attributes.includes(a.idx) }"
-                @click.stop="toggleAttribute(a.idx)"
-              >
-                <span class="ml-100">{{ a.idx }}{{ a.name ? ` — ${a.name}` : '' }}</span>
-                <FontAwesomeIcon
-                  v-if="local.attributes.includes(a.idx)"
-                  icon="check"
-                  class="t-positive-200"
-                />
-              </div>
-              <div v-if="!attributeOptions.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                {{ $t('promo.filter_no_options') }}
-              </div>
-            </template>
-          </Dropdown>
+        <FormField :label="$t('promo.filter_field_attributes')" class="mt-8">
+          <BasicSelect
+            v-model="local.attributes"
+            multiple
+            :options="idOptions(attributeOptions, 'idx')"
+            :placeholder="$t('promo.filter_field_attributes')"
+          />
         </FormField>
 
         <!-- features_qty_greater_than_attr_value -->
-        <FormField :label="$t('promo.filter_field_features_qty_gt')" class="mt-300">
-          <Dropdown
-            :custom_droplist="true"
-            :placeholder="`${$t('promo.filter_field_features_qty_gt')} (${local.features_qty_greater_than_attr_value.length})`"
-          >
-            <template #custom>
-              <div
-                v-for="f in featureOptions"
-                :key="f.idx"
-                class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                :class="{ '-primary-100': local.features_qty_greater_than_attr_value.includes(f.idx) }"
-                @click.stop="toggleFeatureGt(f.idx)"
-              >
-                <span class="ml-100">{{ f.idx }}{{ f.name ? ` — ${f.name}` : '' }}</span>
-                <FontAwesomeIcon
-                  v-if="local.features_qty_greater_than_attr_value.includes(f.idx)"
-                  icon="check"
-                  class="t-positive-200"
-                />
-              </div>
-              <div v-if="!featureOptions.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                {{ $t('promo.filter_no_options') }}
-              </div>
-            </template>
-          </Dropdown>
+        <FormField :label="$t('promo.filter_field_features_qty_gt')" class="mt-8">
+          <BasicSelect
+            v-model="local.features_qty_greater_than_attr_value"
+            multiple
+            :options="idOptions(featureOptions, 'idx')"
+            :placeholder="$t('promo.filter_field_features_qty_gt')"
+          />
         </FormField>
 
         <!-- features_qty_is_multiple_of_attr_value -->
-        <FormField :label="$t('promo.filter_field_features_qty_multiple')" class="mt-300">
-          <Dropdown
-            :custom_droplist="true"
-            :placeholder="`${$t('promo.filter_field_features_qty_multiple')} (${local.features_qty_is_multiple_of_attr_value.length})`"
-          >
-            <template #custom>
-              <div
-                v-for="f in featureOptions"
-                :key="f.idx"
-                class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                :class="{ '-primary-100': local.features_qty_is_multiple_of_attr_value.includes(f.idx) }"
-                @click.stop="toggleFeatureMultiple(f.idx)"
-              >
-                <span class="ml-100">{{ f.idx }}{{ f.name ? ` — ${f.name}` : '' }}</span>
-                <FontAwesomeIcon
-                  v-if="local.features_qty_is_multiple_of_attr_value.includes(f.idx)"
-                  icon="check"
-                  class="t-positive-200"
-                />
-              </div>
-              <div v-if="!featureOptions.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                {{ $t('promo.filter_no_options') }}
-              </div>
-            </template>
-          </Dropdown>
+        <FormField :label="$t('promo.filter_field_features_qty_multiple')" class="mt-8">
+          <BasicSelect
+            v-model="local.features_qty_is_multiple_of_attr_value"
+            multiple
+            :options="idOptions(featureOptions, 'idx')"
+            :placeholder="$t('promo.filter_field_features_qty_multiple')"
+          />
         </FormField>
 
         <!-- numeric ranges -->
-        <div class="fed__range-grid mt-300">
+        <div class="fed__range-grid mt-8">
           <FormField :label="$t('promo.filter_field_product_price_from')">
-            <NumberInput v-model="local.product_price_from" />
+            <NumberInput v-model="local.product_price_from" :max="INT_MAX" />
           </FormField>
           <FormField :label="$t('promo.filter_field_product_price_to')">
-            <NumberInput v-model="local.product_price_to" />
+            <NumberInput v-model="local.product_price_to" :max="INT_MAX" />
           </FormField>
           <FormField :label="$t('promo.filter_field_cart_price_from')">
-            <NumberInput v-model="local.cart_price_from" />
+            <NumberInput v-model="local.cart_price_from" :max="INT_MAX" />
           </FormField>
           <FormField :label="$t('promo.filter_field_cart_price_to')">
-            <NumberInput v-model="local.cart_price_to" />
+            <NumberInput v-model="local.cart_price_to" :max="INT_MAX" />
           </FormField>
           <FormField :label="$t('promo.filter_field_qty_from')">
-            <NumberInput v-model="local.qty_from" />
+            <NumberInput v-model="local.qty_from" :max="INT_MAX" />
           </FormField>
           <FormField :label="$t('promo.filter_field_qty_to')">
-            <NumberInput v-model="local.qty_to" />
+            <NumberInput v-model="local.qty_to" :max="INT_MAX" />
           </FormField>
           <FormField :label="$t('promo.filter_field_cart_qty_from')">
-            <NumberInput v-model="local.cart_qty_from" />
+            <NumberInput v-model="local.cart_qty_from" :max="INT_MAX" />
           </FormField>
           <FormField :label="$t('promo.filter_field_cart_qty_to')">
-            <NumberInput v-model="local.cart_qty_to" />
+            <NumberInput v-model="local.cart_qty_to" :max="INT_MAX" />
           </FormField>
         </div>
       </template>
@@ -211,38 +130,31 @@
       <!-- ===== CUSTOMER FIELDS ===== -->
       <template v-else>
         <!-- customers -->
-        <FormField :label="$t('promo.filter_field_customers')" class="mt-300">
+        <FormField :label="$t('promo.filter_field_customers')" class="mt-8">
           <BasicInput
             v-model="customerSearch"
             :placeholder="$t('promo.filter_search_customers')"
             @input="debouncedFetch(fetchCustomers)"
           />
-          <div v-if="customerResults.length" class="fed__results mt-100">
-            <div
+          <div v-if="customerResults.length" class="fed__results mt-2">
+            <BasicCheckbox
               v-for="c in customerResults"
               :key="c.uid"
-              class="fed__result-row pointer"
-              @click="toggleCustomer(c.uid)"
+              :model-value="local.customers.includes(c.uid)"
+              class="fed__result-row"
+              @update:model-value="toggleCustomer(c.uid)"
             >
-              <FontAwesomeIcon
-                v-if="local.customers.includes(c.uid)"
-                icon="check"
-                class="t-positive-200 mr-100"
-              />
-              <span>{{ c.first_name || '' }} {{ c.last_name || '' }}{{ c.email ? ` (${c.email})` : '' }}</span>
-            </div>
+              {{ c.first_name || '' }} {{ c.last_name || '' }}{{ c.email ? ` (${c.email})` : '' }}
+            </BasicCheckbox>
           </div>
-          <div v-if="local.customers.length" class="fed__chips mt-100">
-            <span
+          <div v-if="local.customers.length" class="fed__chips mt-2">
+            <Tag
               v-for="uid in local.customers"
               :key="uid"
-              class="fed__chip fed__chip--mono"
-            >
-              {{ uid }}
-              <button class="fed__chip-remove" @click="removeCustomer(uid)">
-                <FontAwesomeIcon icon="xmark" />
-              </button>
-            </span>
+              :label="String(uid)"
+              removable
+              @remove="removeCustomer(uid)"
+            />
           </div>
           <p v-if="!local.customers.length" class="fed__empty-hint">
             {{ $t('promo.filter_no_customers_selected') }}
@@ -250,48 +162,18 @@
         </FormField>
 
         <!-- groups -->
-        <FormField :label="$t('promo.filter_field_groups')" class="mt-300">
-          <Dropdown
-            :custom_droplist="true"
-            :placeholder="`${$t('promo.filter_field_groups')} (${local.groups.length})`"
-          >
-            <template #custom>
-              <div
-                v-for="g in groupOptions"
-                :key="g.code"
-                class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                :class="{ '-primary-100': local.groups.includes(g.code) }"
-                @click.stop="toggleGroup(g.code)"
-              >
-                <span class="ml-100">{{ g.code }}{{ g.name ? ` — ${g.name}` : '' }}</span>
-                <FontAwesomeIcon
-                  v-if="local.groups.includes(g.code)"
-                  icon="check"
-                  class="t-positive-200"
-                />
-              </div>
-              <div v-if="!groupOptions.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                {{ $t('promo.filter_no_options') }}
-              </div>
-            </template>
-          </Dropdown>
+        <FormField :label="$t('promo.filter_field_groups')" class="mt-8">
+          <BasicSelect
+            v-model="local.groups"
+            multiple
+            :options="idOptions(groupOptions, 'code')"
+            :placeholder="$t('promo.filter_field_groups')"
+          />
         </FormField>
       </template>
 
       <!-- footer -->
-      <div class="fed__footer mt-400">
-        <BasicButton
-          :text="$t('common.cancel')"
-          class="bg-basic-200 t-basic-600"
-          @click="onClose"
-        />
-        <BasicButton
-          :text="$t('common.save')"
-          class="bg-support-400 t-basic-100"
-          :disabled="saving"
-          @click="onSave"
-        />
-      </div>
+      <ActionBar :actions="footerActions" class="fed__footer mt-10" />
     </div>
   </SideDrawer>
 </template>
@@ -313,6 +195,7 @@ import {
 } from "@/api/promo/api";
 import { useNotifyStore } from "@/stores/notify";
 import { useLoaderStore } from "@/stores/loader";
+import { INT_MAX } from "@/utils/formats";
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -382,6 +265,11 @@ const drawerTitle = computed(() => {
   if (props.kind === "threshold") return t("promo.filter_drawer_title_threshold");
   return t("promo.filter_drawer_title_product");
 });
+
+const footerActions = computed(() => [
+  { key: "cancel", role: "secondary", label: t("common.cancel"), onClick: onClose },
+  { key: "save", role: "primary", label: t("common.save"), onClick: onSave, disabled: saving.value },
+]);
 
 const inclusionOptions = computed(() => [
   { label: t("promo.inclusion"), value: "inclusion", description: t("promo.mode_inclusion_desc") },
@@ -485,6 +373,11 @@ watch(customerSearch, () => {
 });
 
 // ─── toggle helpers ─────────────────────────────────────────────────────────
+// { idx | code, name } rows → BasicSelect options ("idx — name").
+function idOptions(rows, key) {
+  return rows.map((row) => ({ label: row.name ? `${row[key]} — ${row.name}` : row[key], value: row[key] }));
+}
+
 function toggleInArray(arr, value) {
   const idx = arr.indexOf(value);
   if (idx >= 0) arr.splice(idx, 1);
@@ -495,15 +388,10 @@ function toggleProduct(sku) { toggleInArray(local.value.products, sku); }
 function removeProduct(sku) {
   local.value.products = local.value.products.filter((s) => s !== sku);
 }
-function toggleCategory(idx) { toggleInArray(local.value.categories, idx); }
-function toggleAttribute(idx) { toggleInArray(local.value.attributes, idx); }
-function toggleFeatureGt(idx) { toggleInArray(local.value.features_qty_greater_than_attr_value, idx); }
-function toggleFeatureMultiple(idx) { toggleInArray(local.value.features_qty_is_multiple_of_attr_value, idx); }
 function toggleCustomer(uid) { toggleInArray(local.value.customers, uid); }
 function removeCustomer(uid) {
   local.value.customers = local.value.customers.filter((u) => u !== uid);
 }
-function toggleGroup(code) { toggleInArray(local.value.groups, code); }
 
 // ─── save ────────────────────────────────────────────────────────────────────
 const RANGE_FIELDS = [
@@ -575,89 +463,48 @@ function onClose() {
   display: flex;
   flex-direction: column;
   font-size: var(--fs-300);
-  color: var(--c-basic-800);
+  color: var(--text-body);
 
   &__results {
-    border: 1px solid var(--c-basic-300);
-    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-base);
     max-height: 180px;
     overflow-y: auto;
-    background: var(--c-basic-100);
+    background: var(--surface-base);
   }
 
   &__result-row {
-    display: flex;
-    align-items: center;
-    padding: 6px 10px;
+    padding: var(--space-1) var(--space-2);
     font-size: var(--fs-200);
-    color: var(--c-basic-700);
     min-height: 36px;
 
     &:hover {
-      background: var(--c-basic-200);
+      background: var(--surface-raised);
     }
   }
 
   &__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-100);
-  }
-
-  &__chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    background: var(--c-support-100);
-    color: var(--c-support-400);
-    font-size: var(--fs-200);
-    font-weight: 500;
-
-    &--mono {
-      font-family: monospace;
-      font-size: var(--fs-200);
-    }
-  }
-
-  &__chip-remove {
-    background: none;
-    border: none;
-    padding: 0 2px;
-    cursor: pointer;
-    color: var(--c-support-300);
-    line-height: 1;
-    min-width: 16px;
-    min-height: 16px;
-
-    &:hover {
-      color: var(--c-negative-300);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--c-support-400);
-    }
+    gap: var(--space-2);
   }
 
   &__empty-hint {
     font-size: var(--fs-200);
-    color: var(--c-basic-400);
-    margin-top: 4px;
+    color: var(--text-muted);
+    margin-top: var(--space-1);
   }
 
   &__range-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-200);
+    gap: var(--space-5);
   }
 
   &__footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-200);
-    padding-top: var(--space-300);
-    border-top: 1px solid var(--c-basic-200);
+    padding-top: var(--space-8);
     flex-shrink: 0;
   }
 }

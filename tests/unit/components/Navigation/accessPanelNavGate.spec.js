@@ -34,6 +34,16 @@ vi.mock("@/stores/user", () => ({
     setLanguage: vi.fn(),
   }),
 }));
+// Home now consumes the upstream navigation model; keep its other authorization
+// authority permissive so these cases isolate the organization matrix grant.
+vi.mock("@/stores/access", () => ({
+  useAccessStore: () => ({ can: () => true, canAny: () => true, available: false,
+    isStaff: true, status: "loaded", deniedPanel: null, gateMode: "enforce" }),
+}));
+vi.mock("@/stores/quality", () => ({ useQualityStore: () => ({ available: false }) }));
+vi.mock("@/stores/enrichmentProfile", () => ({
+  useEnrichmentProfileStore: () => ({ pendingSuggestions: 0 }),
+}));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 // A real host's answer: Munin reports every panel enabled, including `access`, which PR #5
 // adds to the env panel set. This is exactly the state in which the entry used to leak.

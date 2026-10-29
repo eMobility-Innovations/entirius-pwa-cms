@@ -1,12 +1,13 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("pim.category_tree") }}</h1>
-      </div>
-
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pim.category_tree')">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
       <div class="category-list__toolbar">
         <BasicInput
           v-model="search"
@@ -14,24 +15,28 @@
           icon="search"
           class="category-list__search"
         />
-        <Dropdown
-          :values="activeFilterOptions"
-          :placeholder="$t('pim.filter_status')"
-          @onSelect="onFilterActive"
+        <BasicSelect
+          :floating-label="$t('pim.status')"
+          :options="activeFilterOptions"
+          :model-value="isActiveFilter ?? ''"
+          @update:model-value="onFilterActive"
         />
         <BasicButton
-          :text="$t('pim.expand_all')"
-          class="bg-basic-200 t-basic-600"
+          variant="secondary"
           @click="expandAll"
-        />
+        >
+          {{ $t('pim.expand_all') }}
+        </BasicButton>
         <BasicButton
-          :text="$t('pim.collapse_all')"
-          class="bg-basic-200 t-basic-600"
+          variant="secondary"
           @click="collapseAll"
-        />
+        >
+          {{ $t('pim.collapse_all') }}
+        </BasicButton>
       </div>
+    </template>
 
-      <Loader v-if="loading" />
+      <Loader block v-if="loading" />
 
       <CategoryTree
         v-else
@@ -44,8 +49,7 @@
       />
 
       <FloatingActions :actions="fabActions" />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -54,11 +58,12 @@ import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { GET_Categories, PATCH_CategoriesReorder } from "@/api/pim/api";
 import CategoryTree from "./components/CategoryTree.vue";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 export default {
   name: "CategoryList",
-  components: { CategoryTree },
+  components: { CategoryTree, PimChannelSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -81,7 +86,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("pim.add_root_category"),
           handler: () => this.$router.push("/pim/categories/create"),
         },
@@ -169,8 +174,7 @@ export default {
 .category-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 .category-list__search {

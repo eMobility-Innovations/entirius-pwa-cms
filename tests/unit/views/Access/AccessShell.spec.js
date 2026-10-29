@@ -24,7 +24,7 @@ vi.mock("@/stores/accessMatrix", () => ({
   }),
 }));
 
-import AccessShell from "@/views/Access/index.vue";
+import AccessShell from "@/views/Access/MatrixShell.vue";
 
 const mountShell = () =>
   mount(AccessShell, {

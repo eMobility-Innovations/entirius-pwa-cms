@@ -1,0 +1,1783 @@
+{
+  "source": "roadmap 00006-cms-redesign r04 capture-spec.md, r07 corrections (FAB rows dropped, e-mail resolvers on the emails-*-card test ids, leads-company without the add link)",
+  "freeze": "2026-09-26T10:00:00+02:00",
+  "screens": [
+    {
+      "id": "g-login",
+      "route": "/",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-login__{vp}__{theme}.png",
+      "noAuth": true
+    },
+    {
+      "id": "g-home",
+      "route": "/",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-home__{vp}__{theme}.png",
+      "figma": {
+        "desktop": "S1",
+        "mobile": "S2"
+      }
+    },
+    {
+      "id": "g-switcher-open",
+      "route": "/",
+      "resolver": "fixed",
+      "state": "switcher-open",
+      "viewports": [
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-switcher-open__{vp}__{theme}.png",
+      "figma": {
+        "mobile": "S3"
+      }
+    },
+    {
+      "id": "g-user-menu",
+      "route": "/pages/content?lg=en",
+      "resolver": "fixed",
+      "state": "user-menu-open",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-user-menu__{vp}__{theme}.png"
+    },
+    {
+      "id": "g-notifications",
+      "route": "/pages/content?lg=en",
+      "resolver": "fixed",
+      "state": "notif-open",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-notifications__{vp}__{theme}.png"
+    },
+    {
+      "id": "g-config-health",
+      "route": "/pages/content?lg=en",
+      "resolver": "fixed",
+      "state": "health-open",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-config-health__{vp}__{theme}.png"
+    },
+    {
+      "id": "g-sidebar-collapsed",
+      "route": "/pages/content?lg=en",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-sidebar-collapsed__{vp}__{theme}.png",
+      "collapsed": true
+    },
+    {
+      "id": "g-change-password",
+      "route": "/change-password",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-change-password__{vp}__{theme}.png"
+    },
+    {
+      "id": "g-password-reset",
+      "route": "/password-reset?key=visual-fixture",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "g-password-reset__{vp}__{theme}.png",
+      "noAuth": true
+    },
+    {
+      "id": "pages-content-list",
+      "route": "/pages/content?lg=en",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-content-list__{vp}__{theme}.png",
+      "figma": {
+        "desktop": "S4",
+        "mobile": "S5"
+      }
+    },
+    {
+      "id": "pages-content-list-fab",
+      "route": "/pages/content?lg=en",
+      "resolver": "fixed",
+      "state": "fab-open",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-content-list-fab__{vp}__{theme}.png"
+    },
+    {
+      "id": "pages-content-editor",
+      "route": "/pages/content/static-page/c0000020-0001-4000-8000-000000000001?lg=en",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-content-editor__{vp}__{theme}.png",
+      "figma": {
+        "desktop": "S6",
+        "mobile": "S7"
+      }
+    },
+    {
+      "id": "pages-content-editor-scrolled",
+      "route": "/pages/content/static-page/c0000020-0001-4000-8000-000000000001?lg=en",
+      "resolver": "fixed",
+      "state": "scrolled",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-content-editor-scrolled__{vp}__{theme}.png",
+      "figma": {
+        "mobile": "S8"
+      }
+    },
+    {
+      "id": "pages-content-create",
+      "route": "/pages/content/static-page?lg=en",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-content-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "pages-layout-list",
+      "route": "/pages/layout-extender?lg=en",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-layout-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pages-layout-editor",
+      "route": "/pages/layout-extender/header/c0000017-0001-4000-8000-000000000001",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-layout-editor__{vp}__{theme}.png"
+    },
+    {
+      "id": "pages-gallery",
+      "route": "/pages/gallery",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-gallery__{vp}__{theme}.png",
+      "figma": {
+        "desktop": "S9",
+        "mobile": "S10"
+      }
+    },
+    {
+      "id": "pages-content-sets",
+      "route": "/pages/content-sets?lg=en",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-content-sets__{vp}__{theme}.png"
+    },
+    {
+      "id": "pages-authors-list",
+      "route": "/pages/authors",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-authors-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pages-author-detail",
+      "route": "/pages/authors",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": ".author-photo-preview",
+      "file": "pages-author-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pages-author-create",
+      "route": "/pages/authors/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pages-author-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-products-list",
+      "route": "/pim/products",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-products-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-product-detail",
+      "route": "/pim/products/1C01/N",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-product-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-product-create",
+      "route": "/pim/products/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-product-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-categories-list",
+      "route": "/pim/categories",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-categories-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-category-detail",
+      "route": "/pim/categories/sofas",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": ".basic-card input",
+      "file": "pim-category-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-category-create",
+      "route": "/pim/categories/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-category-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-feature-sets-list",
+      "route": "/pim/feature-sets",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-feature-sets-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-feature-set-detail",
+      "route": "/pim/feature-sets/bundle",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-feature-set-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-features-list",
+      "route": "/pim/features",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-features-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-feature-detail",
+      "route": "/pim/features/description",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-feature-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-quality-list",
+      "route": "/pim/gap-definitions",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-quality-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-quality-detail",
+      "route": "/pim/gap-definitions/pl-description",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-quality-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pim-quality-create",
+      "route": "/pim/gap-definitions/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pim-quality-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "points-list",
+      "route": "/points/list",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "points-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "points-detail",
+      "route": "/points/list",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "points-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "points-create",
+      "route": "/points/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "points-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "points-types",
+      "route": "/points/types",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "points-types__{vp}__{theme}.png"
+    },
+    {
+      "id": "forms-submissions-list",
+      "route": "/forms/list",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "forms-submissions-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "forms-submission-detail",
+      "route": "/forms/list",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "forms-submission-detail__{vp}__{theme}.png",
+      "needsData": true,
+      "note": "a fresh seed has no contact form submission"
+    },
+    {
+      "id": "forms-bookings-list",
+      "route": "/forms/bookings",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "forms-bookings-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "forms-booking-detail",
+      "route": "/forms/bookings",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "forms-booking-detail__{vp}__{theme}.png",
+      "needsData": true,
+      "note": "needs a booking"
+    },
+    {
+      "id": "forms-leads-list",
+      "route": "/forms/leads",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "forms-leads-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "forms-lead-detail",
+      "route": "/forms/leads",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "forms-lead-detail__{vp}__{theme}.png",
+      "needsData": true,
+      "note": "a fresh seed has no form lead"
+    },
+    {
+      "id": "accounts-customers-list",
+      "route": "/accounts/customers",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "accounts-customers-list__{vp}__{theme}.png",
+      "masks": [
+        ".data-table__cell[data-column=\"created_at\"]"
+      ]
+    },
+    {
+      "id": "accounts-customer-detail",
+      "route": "/accounts/customers",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": ".status-badge",
+      "file": "accounts-customer-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "orders-list",
+      "route": "/checkout-orders/orders",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "orders-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "orders-detail",
+      "route": "/checkout-orders/orders",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "orders-detail__{vp}__{theme}.png",
+      "needsData": true,
+      "note": "a fresh seed has no checkout order"
+    },
+    {
+      "id": "agreements-list",
+      "route": "/agreements/list",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "agreements-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "agreements-detail",
+      "route": "/agreements/list",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "agreements-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "agreements-create",
+      "route": "/agreements/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "agreements-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "agreements-consents-list",
+      "route": "/agreements/consents",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "agreements-consents-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "agreements-consent-person",
+      "route": "/agreements/consents",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": ".page-layout__body section h2",
+      "file": "agreements-consent-person__{vp}__{theme}.png"
+    },
+    {
+      "id": "emails-dashboard",
+      "route": "/emails",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "emails-dashboard__{vp}__{theme}.png"
+    },
+    {
+      "id": "emails-channel-edit",
+      "route": "/emails",
+      "resolver": "first-link",
+      "links": [
+        "[data-testid=\"emails-channel-card\"]"
+      ],
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": ".page-header__meta span.t-muted",
+      "file": "emails-channel-edit__{vp}__{theme}.png"
+    },
+    {
+      "id": "emails-template-list",
+      "route": "/emails/templates/accounts-new-account",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "emails-template-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "emails-template-edit",
+      "route": "/emails/templates/accounts-new-account",
+      "resolver": "first-link",
+      "links": [
+        "[data-testid=\"emails-template-card\"]"
+      ],
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": ".ProseMirror",
+      "file": "emails-template-edit__{vp}__{theme}.png"
+    },
+    {
+      "id": "emails-lang-config",
+      "route": "/emails",
+      "resolver": "first-link",
+      "links": [
+        "[data-testid=\"emails-channel-card\"]",
+        "[data-testid=\"emails-lang-config-card\"]"
+      ],
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": ".ProseMirror",
+      "file": "emails-lang-config__{vp}__{theme}.png"
+    },
+    {
+      "id": "faq-groups-list",
+      "route": "/faq/groups",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "faq-groups-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "faq-group-detail",
+      "route": "/faq/groups/shipping",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "faq-group-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "faq-group-create",
+      "route": "/faq/groups/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "faq-group-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "faq-items-list",
+      "route": "/faq/items",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "faq-items-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "faq-item-detail",
+      "route": "/faq/items",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "faq-item-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "faq-item-create",
+      "route": "/faq/items/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "faq-item-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-prices-list",
+      "route": "/pricing/prices",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-prices-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-price-detail",
+      "route": "/pricing/prices/1C01%2FN",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-price-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-tax-list",
+      "route": "/pricing/tax-classes",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-tax-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-tax-detail",
+      "route": "/pricing/tax-classes/standard-rate",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-tax-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-tax-create",
+      "route": "/pricing/tax-classes/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-tax-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-channels-list",
+      "route": "/pricing/channels",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-channels-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-channel-detail",
+      "route": "/pricing/channels/default-europe",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-channel-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "pricing-channel-create",
+      "route": "/pricing/channels/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pricing-channel-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "stock-manage",
+      "route": "/stock/manage",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "stock-manage__{vp}__{theme}.png"
+    },
+    {
+      "id": "translation-jobs",
+      "route": "/translation-jobs",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "translation-jobs__{vp}__{theme}.png"
+    },
+    {
+      "id": "atlas-sources-list",
+      "route": "/atlas/list",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "atlas-sources-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "atlas-source-detail",
+      "route": "/atlas/list",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": "[role=\"tabpanel\"] input",
+      "file": "atlas-source-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "atlas-auto-matched",
+      "route": "/atlas/auto-matched",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "atlas-auto-matched__{vp}__{theme}.png"
+    },
+    {
+      "id": "atlas-duplicates",
+      "route": "/atlas/duplicates",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "atlas-duplicates__{vp}__{theme}.png"
+    },
+    {
+      "id": "atlas-review",
+      "route": "/atlas/review",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "atlas-review__{vp}__{theme}.png"
+    },
+    {
+      "id": "atlas-find",
+      "route": "/atlas/find",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "atlas-find__{vp}__{theme}.png"
+    },
+    {
+      "id": "enrichment-review",
+      "route": "/enrichment",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "enrichment-review__{vp}__{theme}.png"
+    },
+    {
+      "id": "enrichment-rules-list",
+      "route": "/enrichment/settings/spawn-rules",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "enrichment-rules-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "enrichment-rule-detail",
+      "route": "/enrichment/settings/spawn-rules/atlas-duplicate-in-pim",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "enrichment-rule-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "enrichment-rule-create",
+      "route": "/enrichment/settings/spawn-rules/new",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "enrichment-rule-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "enrichment-tasks",
+      "route": "/enrichment/runs",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "enrichment-tasks__{vp}__{theme}.png"
+    },
+    {
+      "id": "promo-list",
+      "route": "/promo/list",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "promo-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "promo-detail",
+      "route": "/promo/list",
+      "resolver": "first-row",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "promo-detail__{vp}__{theme}.png"
+    },
+    {
+      "id": "promo-create",
+      "route": "/promo/create",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "promo-create__{vp}__{theme}.png"
+    },
+    {
+      "id": "pf-gap",
+      "route": "/pricefighter/gap",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pf-gap__{vp}__{theme}.png"
+    },
+    {
+      "id": "pf-strategies",
+      "route": "/pricefighter/strategies",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pf-strategies__{vp}__{theme}.png"
+    },
+    {
+      "id": "pf-history",
+      "route": "/pricefighter/history",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "pf-history__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-inbox",
+      "route": "/leads/inbox",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-inbox__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-conversation",
+      "route": "/leads/inbox",
+      "resolver": "first-link",
+      "links": [
+        "a[href^=\"/leads/conversations/\"]"
+      ],
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-conversation__{vp}__{theme}.png",
+      "needsData": true,
+      "note": "a fresh seed has no leads conversation (BDD creates them)"
+    },
+    {
+      "id": "leads-review",
+      "route": "/leads/inbox",
+      "resolver": "first-link",
+      "links": [
+        "a[href^=\"/leads/inbox/\"]"
+      ],
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-review__{vp}__{theme}.png",
+      "needsData": true,
+      "note": "needs a draft in the review queue"
+    },
+    {
+      "id": "leads-companies",
+      "route": "/leads/companies",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-companies__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-company",
+      "route": "/leads/companies",
+      "resolver": "first-link",
+      "links": [
+        "a[href^=\"/leads/companies/\"]:not([href=\"/leads/companies/new\"])"
+      ],
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-company__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-company-new",
+      "route": "/leads/companies/new",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-company-new__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-board",
+      "route": "/leads/board",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-board__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-import",
+      "route": "/leads/import",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-import__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-settings",
+      "route": "/leads/settings",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-settings__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-stages",
+      "route": "/leads/settings/stages",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-stages__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-lead-types",
+      "route": "/leads/settings/lead-types",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-lead-types__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-templates",
+      "route": "/leads/settings/templates",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-templates__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-template-edit",
+      "route": "/leads/settings/templates",
+      "resolver": "first-link",
+      "links": [
+        "a[href^=\"/leads/settings/templates/\"]"
+      ],
+      "fallbackRow": true,
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-template-edit__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-sequences",
+      "route": "/leads/settings/sequences",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-sequences__{vp}__{theme}.png"
+    },
+    {
+      "id": "leads-sending",
+      "route": "/leads/settings/sending",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "leads-sending__{vp}__{theme}.png"
+    },
+    {
+      "id": "access-roles-list",
+      "route": "/access/roles",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "access-roles-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "access-role-builtin",
+      "route": "/access/roles/viewer",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": "[data-testid=\"permission-matrix\"]",
+      "file": "access-role-builtin__{vp}__{theme}.png"
+    },
+    {
+      "id": "access-staff-list",
+      "route": "/access/staff",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "access-staff-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "access-audit",
+      "route": "/access/audit",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "access-audit__{vp}__{theme}.png",
+      "masks": [
+        ".data-table__cell[data-column=\"created_at\"]"
+      ]
+    },
+    {
+      "id": "access-applications-list",
+      "route": "/access/applications",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "access-applications-list__{vp}__{theme}.png"
+    },
+    {
+      "id": "access-application-detail",
+      "route": "/access/applications",
+      "resolver": "first-link",
+      "links": [
+        "a[href^=\"/access/applications/\"]:not([href=\"/access/applications/new\"])"
+      ],
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "readySelector": "[data-testid=\"application-name\"]",
+      "file": "access-application-detail__{vp}__{theme}.png",
+      "needsData": true,
+      "note": "a fresh seed has no access application (only BDD scenarios create them)",
+      "masks": [
+        ".data-table__cell[data-column=\"expires_at\"]",
+        ".data-table__cell[data-column=\"age_days\"]",
+        ".data-table__cell[data-column=\"last_used_at\"]"
+      ]
+    },
+    {
+      "id": "ui-catalogue",
+      "route": "/ui",
+      "resolver": "fixed",
+      "state": "default",
+      "viewports": [
+        "desktop",
+        "mobile"
+      ],
+      "themes": [
+        "dark",
+        "light"
+      ],
+      "file": "ui-catalogue__{vp}__{theme}.png"
+    }
+  ]
+}

@@ -3,7 +3,7 @@ import { mount } from "@vue/test-utils";
 
 import BulkActionBar from "@/boots/BulkActionBar/index.vue";
 
-const buttonAction = { key: "enable", labelKey: "pim.enable_all", buttonClass: "bg-positive-200 t-basic-100" };
+const buttonAction = { key: "enable", labelKey: "pim.enable_all", variant: "primary" };
 const dropdownAction = {
   key: "visibility",
   labelKey: "pim.change_visibility",
@@ -14,16 +14,18 @@ const dropdownAction = {
 };
 
 const stubs = {
-  Dropdown: {
-    name: "Dropdown",
-    props: ["values", "placeholder"],
-    emits: ["onSelect"],
-    template: "<div class='stub-dropdown' @click=\"$emit('onSelect', values[0].value)\">{{ placeholder }}</div>",
+  BasicSelect: {
+    name: "BasicSelect",
+    props: ["options", "placeholder", "modelValue"],
+    emits: ["update:modelValue"],
+    template:
+      "<div class='stub-dropdown' @click=\"$emit('update:modelValue', options[0].value)\">{{ placeholder }}</div>",
   },
   BasicButton: {
     name: "BasicButton",
-    props: ["text"],
-    template: "<button class='stub-button' @click=\"$emit('click')\">{{ text }}</button>",
+    props: ["text", "variant"],
+    template:
+      "<button class='stub-button' :data-variant='variant' @click=\"$emit('click')\">{{ text }}<slot /></button>",
   },
 };
 
@@ -70,13 +72,25 @@ describe("BulkActionBar boot", () => {
     expect(wrapper.emitted("clear")).toBeTruthy();
   });
 
+  it("passes each action's variant to its button; secondary without one", () => {
+    const legacy = { key: "old", labelKey: "pim.old" };
+    const wrapper = mount(BulkActionBar, {
+      props: { count: 3, actions: [buttonAction, legacy] },
+      global: { stubs },
+    });
+    const [enable, old] = wrapper.findAll(".stub-button");
+    expect(enable.attributes("data-variant")).toBe("primary");
+    expect(enable.text()).toBe("pim.enable_all");
+    expect(old.attributes("data-variant")).toBe("secondary");
+  });
+
   it("renders multiple actions in order (buttons + dropdown)", () => {
     const wrapper = mount(BulkActionBar, {
       props: {
         count: 1,
         actions: [
           buttonAction,
-          { key: "disable", labelKey: "pim.disable_all", buttonClass: "bg-negative-200" },
+          { key: "disable", labelKey: "pim.disable_all", variant: "danger" },
           dropdownAction,
         ],
       },

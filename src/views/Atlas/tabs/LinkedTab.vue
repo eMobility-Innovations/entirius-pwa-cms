@@ -1,26 +1,25 @@
 <template>
-  <div class="linked-tab p-300 ovy-auto h-100">
-    <div class="flex ai-ct jc-sb mb-300 flex-wrap gap-200">
+  <div class="flex flex-column">
+    <div class="flex ai-ct jc-sb mb-8 flex-wrap gap-5">
       <h2 class="fs-400 fw-600">{{ $t("atlas.tabs.linked") }}</h2>
-      <button
-        class="suppliers-primary-btn"
+      <BasicButton
+        variant="primary"
         data-testid="linked-create-btn"
         @click="openCreate"
       >
-        <FontAwesomeIcon icon="plus" />
         {{ $t("atlas.linked.create_button") }}
-      </button>
+      </BasicButton>
     </div>
 
     <div
       v-if="!loading && shouldShowNoPreferredBanner"
-      class="bg-warning-100 t-warning-300 p-200 br-sm mb-300"
+      class="bg-warning-subtle t-warning p-5 rounded mb-8"
       data-testid="linked-no-preferred-banner"
     >
       <p class="fs-200">{{ $t("atlas.linked.no_preferred_warning") }}</p>
     </div>
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
 
     <DataTable
       v-show="!loading"
@@ -36,51 +35,49 @@
               ? $t('atlas.linked.preferred')
               : $t('atlas.linked.not_preferred')
           "
-          :variant="value ? 'positive' : 'neutral'"
+          :tone="value ? 'positive' : 'neutral'"
         />
       </template>
       <template #cell-is_active="{ value }">
         <StatusBadge
           :label="value ? $t('common.active') : $t('common.inactive')"
-          :variant="value ? 'positive' : 'negative'"
+          :tone="value ? 'positive' : 'negative'"
         />
       </template>
       <template #cell-actions="{ row }">
-        <div class="flex ai-ct gap-100" @click.stop>
-          <button
+        <div class="flex ai-ct gap-2" @click.stop>
+          <IconButton mutates
             v-if="!isMonitoringSupplier && !row.is_primary"
-            class="row-action-btn bg-positive-100 t-positive-300"
-            :title="$t('atlas.linked.set_preferred_button')"
+            icon="primary"
+            size="sm"
+            :label="$t('atlas.linked.set_preferred_button')"
             :data-testid="`linked-set-preferred-${row.id}`"
             @click="setPrimary(row)"
-          >
-            <FontAwesomeIcon icon="star" />
-          </button>
-          <button
+          />
+          <IconButton mutates
             v-else-if="!isMonitoringSupplier"
-            class="row-action-btn bg-warning-100 t-warning-300"
-            :title="$t('atlas.linked.unset_preferred_button')"
+            icon="primary"
+            size="sm"
+            :pressed="true"
+            :label="$t('atlas.linked.unset_preferred_button')"
             :data-testid="`linked-unset-preferred-${row.id}`"
             @click="unsetPrimary(row)"
-          >
-            <FontAwesomeIcon icon="star" />
-          </button>
-          <button
-            class="row-action-btn bg-basic-200 t-basic-700"
-            :title="$t('common.edit')"
+          />
+          <IconButton
+            icon="edit"
+            size="sm"
+            :label="$t('common.edit')"
             :data-testid="`linked-edit-${row.id}`"
             @click="openEdit(row)"
-          >
-            <FontAwesomeIcon icon="pen" />
-          </button>
-          <button
-            class="row-action-btn bg-negative-100 t-negative-300"
-            :title="$t('common.delete')"
+          />
+          <IconButton
+            icon="delete"
+            variant="danger"
+            size="sm"
+            :label="$t('common.delete')"
             :data-testid="`linked-delete-${row.id}`"
             @click="confirmDelete(row)"
-          >
-            <FontAwesomeIcon icon="trash-can" />
-          </button>
+          />
         </div>
       </template>
     </DataTable>
@@ -93,12 +90,13 @@
       width="420px"
       @close="closeForm"
     >
-      <form class="flex flex-column gap-200" @submit.prevent="submitForm">
+      <form class="flex flex-column gap-5" @submit.prevent="submitForm">
         <FormField
           :label="$t('atlas.linked.real_product_sku_label')"
           required
+          :error="errors.real_product_sku?.msg || ''"
         >
-          <div class="flex ai-ct gap-200">
+          <div class="flex ai-ct gap-3">
             <EntitySearchPicker
               v-model="formData.real_product_sku"
               :display-value="skuLabel"
@@ -110,23 +108,15 @@
               @update:display-value="skuLabel = $event"
               @clear="skuLabel = ''"
             />
-            <button
+            <IconButton
               v-if="formData.real_product_sku"
-              type="button"
-              class="row-action-btn bg-basic-200 t-basic-700"
-              :title="$t('atlas.linked.sku_preview')"
+              icon="preview"
+              variant="outline"
+              :label="$t('atlas.linked.sku_preview')"
               data-testid="linked-sku-preview-btn"
               @click="openPreview"
-            >
-              <FontAwesomeIcon icon="magnifying-glass" />
-            </button>
+            />
           </div>
-          <p
-            v-if="errors.real_product_sku"
-            class="form-error t-negative-300 fs-200"
-          >
-            {{ errors.real_product_sku.msg }}
-          </p>
         </FormField>
         <FormField :label="$t('atlas.linked.priority_label')">
           <NumberInput
@@ -139,6 +129,7 @@
         <FormField :label="$t('atlas.linked.external_id_label')">
           <BasicInput
             v-model="formData.external_id"
+            :maxlength="128"
             data-testid="linked-form-external-id"
           />
         </FormField>
@@ -146,17 +137,15 @@
           v-if="!isMonitoringSupplier"
           :label="$t('atlas.linked.is_preferred_label')"
         >
-          <Switcher
-            :selected="formData.is_primary"
+          <BasicSwitch
+            v-model="formData.is_primary"
             data-testid="linked-form-is-preferred"
-            @onSelect="formData.is_primary = !formData.is_primary"
           />
         </FormField>
         <FormField :label="$t('atlas.form.is_active_label')">
-          <Switcher
-            :selected="formData.is_active"
+          <BasicSwitch
+            v-model="formData.is_active"
             data-testid="linked-form-is-active"
-            @onSelect="formData.is_active = !formData.is_active"
           />
         </FormField>
         <FormField :label="$t('atlas.linked.notes_label')">
@@ -165,40 +154,33 @@
             data-testid="linked-form-notes"
           />
         </FormField>
-        <div class="flex ai-ct jc-end gap-200 mt-300">
-          <button
-            type="button"
-            class="suppliers-secondary-btn"
-            data-testid="linked-form-cancel"
-            @click="closeForm"
-          >
+        <div class="flex ai-ct jc-end gap-5 mt-8">
+          <BasicButton data-testid="linked-form-cancel" @click="closeForm">
             {{ $t("common.cancel") }}
-          </button>
-          <button
+          </BasicButton>
+          <BasicButton
+            variant="primary"
             type="submit"
-            class="suppliers-primary-btn"
             :disabled="formBusy"
             data-testid="linked-form-submit"
           >
-            <FontAwesomeIcon icon="floppy-disk" />
             {{ $t("common.save") }}
-          </button>
+          </BasicButton>
         </div>
       </form>
     </SideDrawer>
 
-    <Confirmation-modal
-      :visible="deleteVisible"
-      @accept="executeDelete"
-      @reject="deleteVisible = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="deleteVisible"
+      @confirm="executeDelete"
+      @cancel="deleteVisible = false"
+      :title="$t('atlas.linked.delete_title')"
     >
-      <template #header>
-        <h2>{{ $t("atlas.linked.delete_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>{{ $t("atlas.linked.delete_body") }}</p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
 
     <SideDrawer
       :visible="previewVisible"
@@ -221,12 +203,12 @@
           />
           <FontAwesomeIcon
             v-else
-            icon="image"
+            :icon="$icons.image"
             class="sku-preview__placeholder"
           />
         </div>
-        <h3 class="fs-400 fw-600 mt-200">{{ previewProduct.name }}</h3>
-        <dl class="sku-preview__meta fs-200 mt-200">
+        <h3 class="fs-400 fw-600 mt-5">{{ previewProduct.name }}</h3>
+        <dl class="sku-preview__meta fs-200 mt-5">
           <dt>{{ $t("atlas.linked.col.sku") }}</dt>
           <dd>{{ previewProduct.sku }}</dd>
           <dt>EAN</dt>
@@ -240,7 +222,6 @@
 </template>
 
 <script>
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { useFormErrors, extractApiMessage } from "@/composables/useFormErrors";
@@ -266,7 +247,7 @@ const EMPTY_LINK = (supplierIdx) => ({
 
 export default {
   name: "LinkedTab",
-  components: { ConfirmationModal },
+  components: {},
   props: {
     supplier: { type: Object, default: null },
   },
@@ -536,53 +517,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.linked-tab {
-  display: flex;
-  flex-direction: column;
-}
-.suppliers-primary-btn,
-.suppliers-secondary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid;
-  cursor: pointer;
-}
-.suppliers-primary-btn {
-  background: var(--c-support-400);
-  border-color: var(--c-support-400);
-  color: var(--c-basic-100);
-}
-.suppliers-primary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.suppliers-secondary-btn {
-  background: var(--c-basic-100);
-  border-color: var(--c-basic-400);
-  color: var(--c-basic-700);
-}
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.form-error {
-  margin: 0;
-  margin-top: 2px;
-}
 .sku-preview {
-  padding: var(--spacing-300, 12px);
+  padding: var(--space-3);
 }
 .sku-preview__image {
   display: flex;
@@ -590,8 +526,8 @@ export default {
   justify-content: center;
   width: 100%;
   height: 220px;
-  background: var(--c-basic-100);
-  border-radius: var(--radius-sm);
+  background: var(--surface-base);
+  border-radius: var(--radius-base);
   overflow: hidden;
   img {
     max-width: 100%;
@@ -600,15 +536,15 @@ export default {
   }
 }
 .sku-preview__placeholder {
-  font-size: 48px;
-  color: var(--c-basic-400);
+  font-size: var(--fs-700);
+  color: var(--text-muted);
 }
 .sku-preview__meta {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 4px 12px;
+  gap: var(--space-1) var(--space-3);
   dt {
-    color: var(--c-basic-600);
+    color: var(--text-secondary);
   }
   dd {
     margin: 0;

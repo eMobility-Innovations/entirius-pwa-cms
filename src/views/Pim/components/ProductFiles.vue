@@ -47,7 +47,7 @@ const creatingCategory = ref(false);
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 const FILE_TYPE_BADGES = {
-  1: { label: "Image", variant: "informative" },
+  1: { label: "Image", variant: "info" },
   2: { label: "PDF", variant: "warning" },
   3: { label: "Document", variant: "neutral" },
   4: { label: "Video", variant: "positive" },
@@ -351,14 +351,14 @@ onMounted(() => {
 
 <template>
   <div class="product-files">
-    <div class="product-files__header flex ai-ct jc-sb mb-300">
+    <div class="product-files__header flex ai-ct jc-sb mb-8">
       <h3 class="fs-500 fw-600">{{ $t("pim.files") }}</h3>
-      <span v-if="files.length" class="fs-200 t-basic-500">
+      <span v-if="files.length" class="fs-200 t-muted">
         {{ files.length }} {{ files.length === 1 ? "file" : "files" }}
       </span>
     </div>
 
-    <Loader v-if="loading" />
+    <Loader block v-if="loading" />
 
     <template v-else>
       <!-- Upload drop zone -->
@@ -372,11 +372,11 @@ onMounted(() => {
         @dragleave="onDragLeave"
         @drop="onDrop"
       >
-        <FontAwesomeIcon icon="upload" class="t-basic-400 fs-500" />
-        <span class="t-basic-600 fs-200 mt-100">{{
+        <FontAwesomeIcon :icon="$icons.upload" class="t-muted fs-500" />
+        <span class="t-secondary fs-200 mt-2">{{
           $t("pim.drop_files_here")
         }}</span>
-        <span class="t-basic-400 fs-200 mt-100">{{
+        <span class="t-muted fs-200 mt-2">{{
           $t("pim.files_supported_hint")
         }}</span>
       </label>
@@ -389,21 +389,21 @@ onMounted(() => {
 
       <!-- Upload popup (shown after file is staged) -->
       <div v-if="pendingFile" class="product-files__popup">
-        <div class="product-files__popup-header flex ai-ct gap-200 mb-200">
-          <FontAwesomeIcon icon="file" class="t-support-400 fs-400" />
-          <span class="fs-300 fw-600 t-basic-800">{{ pendingFile.name }}</span>
+        <div class="product-files__popup-header flex ai-ct gap-5 mb-5">
+          <FontAwesomeIcon :icon="$icons.file" class="t-accent fs-400" />
+          <span class="fs-300 fw-600 t-body">{{ pendingFile.name }}</span>
         </div>
 
         <div class="product-files__popup-fields">
           <div class="product-files__field">
-            <label class="product-files__label">{{
+            <label class="product-files__label field-label">{{
               $t("pim.file_category")
             }}</label>
-            <Dropdown
-              :values="categoryDropdownValues"
-              :selected="uploadCategory ? [uploadCategory] : []"
+            <BasicSelect
+              :options="categoryDropdownValues"
+              :model-value="uploadCategory"
               :placeholder="$t('pim.select_category')"
-              @onSelect="onUploadCategorySelect"
+              @update:model-value="onUploadCategorySelect"
             />
           </div>
           <div
@@ -411,12 +411,14 @@ onMounted(() => {
             :key="`upload-label-${lang}`"
             class="product-files__field"
           >
-            <label class="product-files__label">
+            <label class="product-files__label field-label">
               {{ $t("pim.file_label") }}
-              <span
-                class="chip chip--sm bg-support-200 t-support-400"
-                >{{ lang.toUpperCase() }}</span
-              >
+              <StatusBadge
+                tone="accent"
+                size="sm"
+                :dot="false"
+                :label="lang.toUpperCase()"
+              />
             </label>
             <BasicInput
               :model-value="uploadLabelT9n[lang] || ''"
@@ -426,23 +428,28 @@ onMounted(() => {
         </div>
 
         <!-- Category quick-add (inside popup) -->
-        <div v-if="showCategoryCreate" class="product-files__cat-create mt-200">
+        <div v-if="showCategoryCreate" class="product-files__cat-create mt-5">
           <div class="product-files__cat-create-fields">
             <div class="product-files__field">
-              <label class="product-files__label">Code *</label>
-              <BasicInput v-model="newCategoryCode" placeholder="e.g. manual" />
+              <label class="product-files__label field-label required">{{ $t("pim.code") }}</label>
+              <BasicInput
+                v-model="newCategoryCode"
+                :placeholder="$t('pim.file_category_code_placeholder')"
+              />
             </div>
             <div
               v-for="lang in formLanguages"
               :key="`cat-name-${lang}`"
               class="product-files__field"
             >
-              <label class="product-files__label">
+              <label class="product-files__label field-label">
                 {{ $t("pim.name") }}
-                <span
-                  class="chip chip--sm bg-support-200 t-support-400"
-                  >{{ lang.toUpperCase() }}</span
-                >
+                <StatusBadge
+                  tone="accent"
+                  size="sm"
+                  :dot="false"
+                  :label="lang.toUpperCase()"
+                />
               </label>
               <BasicInput
                 :model-value="newCategoryNameT9n[lang] || ''"
@@ -450,74 +457,78 @@ onMounted(() => {
               />
             </div>
           </div>
-          <div class="product-files__cat-create-actions mt-100">
-            <BasicButton
-              class="btn-primary"
-              :text="$t('pim.create_category')"
-              :isDisabled="creatingCategory || !newCategoryCode"
+          <div class="product-files__cat-create-actions mt-2">
+            <BasicButton mutates
+              variant="secondary"
+              :disabled="creatingCategory || !newCategoryCode"
               @click="createCategory"
-            />
+            >
+              {{ $t('pim.create_category') }}
+            </BasicButton>
             <BasicButton
-              class="btn-outline"
-              :text="$t('common.cancel')"
+              variant="secondary"
               @click="cancelCategoryCreate"
-            />
+            >
+              {{ $t('common.cancel') }}
+            </BasicButton>
           </div>
         </div>
 
-        <div class="product-files__popup-actions mt-200">
-          <BasicButton
-            class="btn-primary"
-            :text="$t('pim.upload_file')"
-            :isDisabled="uploadingFile"
+        <div class="product-files__popup-actions mt-5">
+          <BasicButton mutates
+            variant="primary"
+            :disabled="uploadingFile"
             @click="confirmUpload"
-          />
+          >
+            {{ $t('pim.upload_file') }}
+          </BasicButton>
           <BasicButton
-            class="btn-outline"
-            :text="$t('common.cancel')"
-            :isDisabled="uploadingFile"
+            variant="secondary"
+            :disabled="uploadingFile"
             @click="cancelUpload"
-          />
+          >
+            {{ $t('common.cancel') }}
+          </BasicButton>
         </div>
       </div>
 
       <!-- Empty state -->
       <div v-if="!files.length && !pendingFile" class="product-files__empty">
-        <FontAwesomeIcon icon="file" class="t-basic-400 fs-600" />
-        <span class="t-basic-500 fs-200 mt-200">{{ $t("pim.no_files") }}</span>
+        <FontAwesomeIcon :icon="$icons.file" class="t-muted fs-600" />
+        <span class="t-muted fs-200 mt-5">{{ $t("pim.no_files") }}</span>
       </div>
 
       <!-- File list -->
-      <div v-if="files.length" class="product-files__list mt-300">
+      <div v-if="files.length" class="product-files__list mt-8">
         <div v-for="pf in files" :key="pf.pk" class="product-files__row">
           <!-- Row 1: icon + filename + type badge + delete -->
           <div class="product-files__row-top">
             <FontAwesomeIcon
               :icon="fileIcon(pf)"
-              class="product-files__icon t-basic-500"
+              class="product-files__icon t-muted"
             />
             <div class="product-files__meta">
               <a
                 v-if="fileUrl(pf)"
                 :href="fileUrl(pf)"
                 target="_blank"
-                rel="noopener"
-                class="product-files__name product-files__name--link t-basic-800 fs-300 fw-500"
+                rel="noopener noreferrer"
+                class="product-files__name product-files__name--link t-body fs-300 fw-500"
               >
                 {{ fileName(pf) || "—" }}
               </a>
               <span
                 v-else
-                class="product-files__name t-basic-800 fs-300 fw-500"
+                class="product-files__name t-body fs-300 fw-500"
               >
                 {{ fileName(pf) || "—" }}
               </span>
               <div
-                class="product-files__details flex ai-ct gap-200 fs-200 t-basic-500"
+                class="product-files__details flex ai-ct gap-5 fs-200 t-muted"
               >
                 <StatusBadge
                   v-if="fileTypeBadge(pf)"
-                  :variant="fileTypeBadge(pf).variant"
+                  :tone="fileTypeBadge(pf).variant"
                   :label="fileTypeBadge(pf).label"
                 />
                 <span v-if="pf.file && pf.file.category_name">{{
@@ -525,23 +536,22 @@ onMounted(() => {
                 }}</span>
               </div>
             </div>
-            <button
+            <IconButton
               v-if="!readonly"
-              class="product-files__edit-btn"
-              :aria-label="$t('pim.settings')"
+              icon="edit"
+              size="sm"
+              :label="$t('pim.settings')"
               @click="toggleEditRow(fileData(pf).pk)"
-            >
-              <FontAwesomeIcon icon="pen" />
-            </button>
-            <button
+            />
+            <IconButton mutates
               v-if="!readonly"
-              class="product-files__delete-btn"
-              :aria-label="$t('pim.confirm_delete_media')"
+              icon="delete"
+              size="sm"
+              variant="danger"
+              :label="$t('common.delete')"
               :disabled="deletingFilePk === pf.pk"
               @click="deleteFile(pf.pk)"
-            >
-              <FontAwesomeIcon icon="trash-can" />
-            </button>
+            />
           </div>
 
           <!-- Row 2: inline editing (category + labels) — toggled -->
@@ -555,18 +565,14 @@ onMounted(() => {
           >
             <div class="product-files__row-edit-fields">
               <div class="product-files__field product-files__field--compact">
-                <label class="product-files__label">{{
+                <label class="product-files__label field-label">{{
                   $t("pim.file_category")
                 }}</label>
-                <Dropdown
-                  :values="categoryDropdownValues"
-                  :selected="
-                    editingStates[fileData(pf).pk].category_code
-                      ? [editingStates[fileData(pf).pk].category_code]
-                      : []
-                  "
+                <BasicSelect
+                  :options="categoryDropdownValues"
+                  :model-value="editingStates[fileData(pf).pk].category_code"
                   :placeholder="$t('pim.select_category')"
-                  @onSelect="(sel) => onCategorySelect(fileData(pf).pk, sel)"
+                  @update:model-value="(sel) => onCategorySelect(fileData(pf).pk, sel)"
                 />
               </div>
               <div
@@ -574,12 +580,14 @@ onMounted(() => {
                 :key="`label-${fileData(pf).pk}-${lang}`"
                 class="product-files__field product-files__field--compact"
               >
-                <label class="product-files__label">
+                <label class="product-files__label field-label">
                   {{ $t("pim.file_label") }}
-                  <span
-                    class="chip chip--sm bg-support-200 t-support-400"
-                    >{{ lang.toUpperCase() }}</span
-                  >
+                  <StatusBadge
+                    tone="accent"
+                    size="sm"
+                    :dot="false"
+                    :label="lang.toUpperCase()"
+                  />
                 </label>
                 <BasicInput
                   :model-value="
@@ -593,18 +601,20 @@ onMounted(() => {
                 />
               </div>
             </div>
-            <div class="product-files__row-edit-actions mt-100">
-              <BasicButton
-                class="btn-primary"
-                :text="$t('common.save')"
-                :isDisabled="savingFilePk === fileData(pf).pk"
+            <div class="product-files__row-edit-actions mt-2">
+              <BasicButton mutates
+                variant="secondary"
+                :disabled="savingFilePk === fileData(pf).pk"
                 @click="saveFileMetadata(fileData(pf).pk)"
-              />
+              >
+                {{ $t('common.save') }}
+              </BasicButton>
               <BasicButton
-                class="btn-outline"
-                :text="$t('common.close')"
+                variant="secondary"
                 @click="closeEditRow(fileData(pf).pk)"
-              />
+              >
+                {{ $t('common.close') }}
+              </BasicButton>
             </div>
           </div>
         </div>
@@ -616,9 +626,9 @@ onMounted(() => {
 <style lang="scss" scoped>
 .product-files {
   &__dropzone {
-    border: 2px dashed var(--c-basic-400);
-    border-radius: 6px;
-    padding: 24px;
+    border: 2px dashed var(--border-default);
+    border-radius: var(--radius-base);
+    padding: var(--space-6);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -629,53 +639,53 @@ onMounted(() => {
 
     &:hover,
     &:focus-visible {
-      border-color: var(--c-support-300);
-      background: var(--c-basic-150);
+      border-color: var(--accent);
+      background: var(--surface-raised);
       outline: none;
     }
 
     &--dragover {
-      border-color: var(--c-support-400);
-      background: var(--c-basic-200);
+      border-color: var(--accent);
+      background: var(--surface-raised);
     }
   }
 
   &__popup {
-    padding: 16px;
-    border: 1px solid var(--c-support-300);
-    border-radius: 6px;
-    background: var(--c-basic-100);
+    padding: var(--space-4);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-base);
+    background: var(--surface-base);
     box-shadow: var(--shadow-md);
   }
 
   &__popup-fields {
     display: flex;
-    gap: 12px;
+    gap: var(--space-3);
     flex-wrap: wrap;
     align-items: flex-end;
   }
 
   &__popup-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   &__cat-create {
-    padding: 12px;
-    border: 1px solid var(--c-support-200);
-    border-radius: 6px;
-    background: var(--c-basic-150);
+    padding: var(--space-3);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-base);
+    background: var(--surface-raised);
   }
 
   &__cat-create-fields {
     display: flex;
-    gap: 12px;
+    gap: var(--space-3);
     flex-wrap: wrap;
   }
 
   &__cat-create-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   &__field {
@@ -689,59 +699,55 @@ onMounted(() => {
 
   &__label {
     display: block;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--c-basic-500);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-1);
   }
 
   &__empty {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 20px;
-    gap: 8px;
+    padding: var(--space-10) var(--space-5);
+    gap: var(--space-2);
   }
 
   &__list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   &__row {
-    border: 1px solid var(--c-basic-200);
-    border-radius: 6px;
-    background: var(--c-basic-100);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-base);
+    background: var(--surface-base);
   }
 
   &__row-top {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
+    gap: var(--space-3);
+    padding: var(--space-3);
   }
 
   &__row-edit {
-    padding: 12px;
-    border-top: 1px solid var(--c-basic-200);
+    padding: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
   }
 
   &__row-edit-fields {
     display: flex;
-    gap: 12px;
+    gap: var(--space-3);
     flex-wrap: wrap;
     align-items: flex-end;
   }
 
   &__row-edit-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   &__icon {
-    font-size: 20px;
+    font-size: var(--fs-500);
     flex-shrink: 0;
     width: 24px;
     text-align: center;
@@ -770,51 +776,6 @@ onMounted(() => {
   &__details {
     margin-top: 2px;
   }
-
-  &__edit-btn {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: var(--radius-sm);
-    background-color: var(--c-basic-200);
-    color: var(--c-basic-600);
-    cursor: pointer;
-    transition: background-color 0.15s;
-
-    &:hover {
-      background-color: var(--c-support-200);
-      color: var(--c-support-400);
-    }
-  }
-
-  &__delete-btn {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: var(--radius-sm);
-    background-color: var(--c-negative-100);
-    color: var(--c-negative-300);
-    cursor: pointer;
-    transition: background-color 0.15s;
-
-    &:hover:not(:disabled) {
-      background-color: var(--c-negative-200);
-      color: var(--c-basic-100);
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  }
 }
 
 .sr-only {
@@ -829,13 +790,13 @@ onMounted(() => {
   border: 0;
 }
 
-.mt-100 {
-  margin-top: var(--space-100);
+.mt-2 {
+  margin-top: var(--space-2);
 }
-.mt-200 {
-  margin-top: var(--space-200);
+.mt-5 {
+  margin-top: var(--space-5);
 }
-.mt-300 {
-  margin-top: var(--space-300);
+.mt-8 {
+  margin-top: var(--space-8);
 }
 </style>

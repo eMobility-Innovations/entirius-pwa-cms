@@ -1,148 +1,110 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#pim-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pim/categories')"
-      />
-    </Teleport>
-    <Teleport to="#pim-toolbar-right" defer>
-      <template v-if="activeTab === 'details'">
-        <span v-if="isDirty" class="chip bg-warning-100 t-warning-300">
-          {{ $t("unsaved.changes") }}
-        </span>
+  <PageLayout class="fs-300 t-body">
+    <template v-if="category.idx || !loading" #header>
+      <PageHeader :title="pageTitle" back="/pim/categories">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
+        <template v-if="activeTab === 'details' && !notFound && !loading" #actions>
+          <div class="flex ai-ct jc-fe wrap gap-3">
+            <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
+            <BasicSwitch v-model="form.is_active" :label="$t('pim.active')" />
+            <ActionBar :actions="headerActions" />
+          </div>
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
+
+      <EmptyState
+        v-else-if="notFound"
+        icon="categories"
+        :title="$t('pim.category_not_found')"
+        :message="$t('pim.category_not_found_hint')"
+      >
         <BasicButton
-          :text="$t('common.save')"
-          class="bg-support-400 t-basic-100"
-          @click="saveCategory"
-        />
-        <BasicButton
-          text=""
-          icon="trash-can"
-          class="bg-negative-100 t-negative-300"
-          @click="showDeleteConfirm = true"
-        />
-      </template>
-    </Teleport>
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-if="loading" />
+          variant="secondary"
+          @click="$router.push('/pim/categories')"
+        >
+          {{ $t('pim.back_to_categories') }}
+        </BasicButton>
+      </EmptyState>
 
       <template v-else>
-        <BasicTabs v-model="activeTab" :options="tabs" class="mb-400" />
+        <BasicTabs v-model="activeTab" :options="tabs" class="mb-8" />
 
         <div v-if="activeTab === 'details'">
-          <div
-            v-if="category.breadcrumb_path"
-            class="detail-breadcrumb mb-400 t-basic-500 fs-200"
-          >
-            <font-awesome-icon icon="folder-tree" class="mr-100" />
+          <p v-if="category.breadcrumb_path" class="flex ai-ct gap-2 mb-8 t-muted fs-200">
+            <font-awesome-icon :icon="$icons.categories" aria-hidden="true" />
             {{ category.breadcrumb_path }}
-          </div>
+          </p>
 
-          <div class="detail-section mb-400">
-            <h2 class="fs-500 fw-600 mb-200">{{ $t("pim.basic_info") }}</h2>
-            <div class="detail-grid">
-              <div class="detail-field">
-                <label class="detail-label">IDX</label>
-                <span class="detail-value">{{ category.idx }}</span>
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{ $t("pim.parent") }}</label>
-                <span class="detail-value">{{
-                  category.parent_category_idx || "---"
-                }}</span>
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{ $t("pim.position") }}</label>
-                <span class="detail-value">{{
-                  category.position ?? "---"
-                }}</span>
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{ $t("pim.depth") }}</label>
-                <span class="detail-value">{{ category.tree_deep }}</span>
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{ $t("pim.status") }}</label>
-                <Switcher
-                  :label="$t('pim.active')"
-                  :selected="form.is_active"
-                  @onSelect="form.is_active = !form.is_active"
-                />
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{ $t("pim.in_menu") }}</label>
-                <Switcher
-                  :label="$t('pim.show_in_menu')"
-                  :selected="form.is_in_menu"
-                  @onSelect="form.is_in_menu = !form.is_in_menu"
-                />
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{ $t("pim.products") }}</label>
-                <span class="detail-value">{{
-                  category.product_count || 0
-                }}</span>
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{
-                  $t("pim.subcategories")
-                }}</label>
-                <span class="detail-value">{{
-                  category.subcategory_count || 0
-                }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="detail-section mb-400">
-            <div class="translation-field">
-              <div class="translation-field__header">
-                <label class="detail-label">{{ $t("pim.name") }} ({{ defaultLang.toUpperCase() }})</label>
-                <BasicButton
-                  v-if="secondaryLanguages.length"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslations('name')"
-                />
-              </div>
-              <BasicInput v-model="form.name_t9n[defaultLang]" />
-            </div>
-            <div class="translation-field mt-300">
-              <div class="translation-field__header">
-                <label class="detail-label">{{ $t("pim.description") }} ({{ defaultLang.toUpperCase() }})</label>
-                <BasicButton
-                  v-if="secondaryLanguages.length"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslations('description')"
-                />
-              </div>
-              <BasicWysiwyg v-model="form.description_t9n[defaultLang]" />
-            </div>
-            <!-- Internal AI-grounding desc — single-language, NOT the storefront description_t9n -->
-            <div v-if="hasDesc" class="mt-300">
-              <FormField
-                :label="$t('pim.internal_desc_label')"
-                :tooltip="$t('pim.internal_desc_tooltip')"
-              >
-                <TextAreaBasic v-model="form.desc" />
+          <BasicCard :title="$t('pim.basic_info')" gap class="mb-8">
+            <div class="form-grid">
+              <FormField label="IDX">
+                <BasicInput :model-value="category.idx" readonly />
+              </FormField>
+              <FormField :label="$t('pim.parent')">
+                <BasicInput :model-value="category.parent_category_idx || '---'" readonly />
+              </FormField>
+              <FormField :label="$t('pim.position')">
+                <BasicInput :model-value="category.position ?? '---'" readonly />
+              </FormField>
+              <FormField :label="$t('pim.depth')">
+                <BasicInput :model-value="category.tree_deep" readonly />
+              </FormField>
+              <FormField :label="$t('pim.products')">
+                <BasicInput :model-value="category.product_count || 0" readonly />
+              </FormField>
+              <FormField :label="$t('pim.subcategories')">
+                <BasicInput :model-value="category.subcategory_count || 0" readonly />
+              </FormField>
+              <FormField :label="$t('pim.in_menu')">
+                <BasicSwitch v-model="form.is_in_menu" :label="$t('pim.show_in_menu')" />
               </FormField>
             </div>
-          </div>
+          </BasicCard>
 
-          <div class="detail-section mb-400">
-            <h2 class="fs-500 fw-600 mb-200">{{ $t("pim.category_image") }}</h2>
+          <BasicCard :title="$t('pim.name_and_description')" gap class="mb-8">
+            <div class="form-grid">
+              <ProductT9nField
+                v-for="field in CONTENT_FIELDS"
+                :key="field"
+                v-model="form[`${field}_t9n`][defaultLang]"
+                :label="fieldLabel(field)"
+                :language="defaultLang"
+                :control="fieldControl(field)"
+                :translatable="secondaryLanguages.length > 0"
+                class="form-grid__wide"
+                @translate="openTranslations(field)"
+              />
+              <!-- Internal AI-grounding desc — single-language, NOT the storefront description_t9n -->
+              <FormField
+                v-if="hasDesc"
+                :label="$t('pim.internal_desc_label')"
+                :hint="$t('pim.internal_desc_tooltip')"
+                class="form-grid__wide"
+              >
+                <BasicTextarea v-model="form.desc" />
+              </FormField>
+            </div>
+          </BasicCard>
+
+          <BasicCard :title="$t('pim.category_image')" gap class="mb-8">
             <div v-if="form.image_url" class="category-image">
-              <img :src="fullImageUrl" class="category-image__preview" />
-              <button class="category-image__delete" @click="form.image_url = ''">
-                <font-awesome-icon icon="trash-can" />
-              </button>
+              <img :src="fullImageUrl" :alt="$t('pim.category_image')" class="category-image__preview" />
+              <IconButton
+                mutates
+                icon="delete"
+                variant="danger"
+                size="sm"
+                :label="$t('common.delete')"
+                class="category-image__delete"
+                @click="form.image_url = ''"
+              />
             </div>
             <div
-              v-else
+              v-else-if="!readonly"
               class="category-image__dropzone"
               :class="{ 'category-image__dropzone--dragover': isDraggingImage }"
               role="button"
@@ -153,10 +115,10 @@
               @dragleave="isDraggingImage = false"
               @drop.prevent="onImageDrop"
             >
-              <span v-if="uploadingImage" class="t-basic-500 fs-200">...</span>
+              <Loader v-if="uploadingImage" :size="32" />
               <template v-else>
-                <font-awesome-icon icon="upload" class="t-basic-400 fs-400" />
-                <span class="t-basic-500 fs-200 mt-100">{{ $t("pim.drop_files_here") }}</span>
+                <font-awesome-icon :icon="$icons.upload" class="t-muted fs-400" />
+                <span class="t-muted fs-200 mt-2">{{ $t("pim.drop_files_here") }}</span>
               </template>
             </div>
             <input
@@ -164,78 +126,46 @@
               type="file"
               accept="image/*"
               style="display: none"
+              :disabled="readonly"
               @change="onCategoryImageUpload"
             />
-          </div>
+          </BasicCard>
 
-          <div class="detail-section mb-400">
-            <h2 class="fs-500 fw-600 mb-200">{{ $t("pim.seo_settings") }}</h2>
-            <div class="detail-grid mb-300">
-              <div class="detail-field">
-                <label class="detail-label">
-                  {{ $t("pim.index") }}
-                  <HelpTooltip :text="$t('pim.index_help')" />
-                </label>
-                <Switcher
-                  :selected="!form.noindex"
-                  @onSelect="form.noindex = !form.noindex"
+          <BasicCard :title="$t('pim.seo_settings')" gap class="mb-8">
+            <div class="form-grid">
+              <FormField :label="$t('pim.index')" :hint="$t('pim.index_help')">
+                <BasicSwitch
+                  :model-value="!form.noindex"
+                  @update:model-value="(on) => (form.noindex = !on)"
                 />
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">
-                  {{ $t("pim.follow") }}
-                  <HelpTooltip :text="$t('pim.follow_help')" />
-                </label>
-                <Switcher
-                  :selected="!form.nofollow"
-                  @onSelect="form.nofollow = !form.nofollow"
+              </FormField>
+              <FormField :label="$t('pim.follow')" :hint="$t('pim.follow_help')">
+                <BasicSwitch
+                  :model-value="!form.nofollow"
+                  @update:model-value="(on) => (form.nofollow = !on)"
                 />
-              </div>
+              </FormField>
+              <FormField
+                :label="$t('pim.og_image_url')"
+                :hint="$t('pim.og_image_url_help')"
+                class="form-grid__wide"
+                :error="formErrors.getFieldError('og_image_url')?.msg || ''"
+              >
+                <BasicInput v-model="form.og_image_url" format="url" type="url" :maxlength="512" />
+              </FormField>
+              <ProductT9nField
+                v-for="field in SEO_FIELDS"
+                :key="field"
+                v-model="form[`${field}_t9n`][defaultLang]"
+                :label="fieldLabel(field)"
+                :language="defaultLang"
+                :control="fieldControl(field)"
+                :translatable="secondaryLanguages.length > 0"
+                class="form-grid__wide"
+                @translate="openTranslations(field)"
+              />
             </div>
-            <div class="mb-300">
-              <label class="detail-label">
-                {{ $t("pim.og_image_url") }}
-                <HelpTooltip :text="$t('pim.og_image_url_help')" />
-              </label>
-              <BasicInput v-model="form.og_image_url" />
-            </div>
-            <div class="translation-field mt-300">
-              <div class="translation-field__header">
-                <label class="detail-label">{{ $t("pim.meta_title") }} ({{ defaultLang.toUpperCase() }})</label>
-                <BasicButton
-                  v-if="secondaryLanguages.length"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslations('meta_title')"
-                />
-              </div>
-              <BasicInput v-model="form.meta_title_t9n[defaultLang]" />
-            </div>
-            <div class="translation-field mt-300">
-              <div class="translation-field__header">
-                <label class="detail-label">{{ $t("pim.meta_description") }} ({{ defaultLang.toUpperCase() }})</label>
-                <BasicButton
-                  v-if="secondaryLanguages.length"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslations('meta_description')"
-                />
-              </div>
-              <TextAreaBasic v-model="form.meta_description_t9n[defaultLang]" rows="3" />
-            </div>
-            <div class="translation-field mt-300">
-              <div class="translation-field__header">
-                <label class="detail-label">{{ $t("pim.canonical_url") }} ({{ defaultLang.toUpperCase() }})</label>
-                <BasicButton
-                  v-if="secondaryLanguages.length"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslations('canonical_url')"
-                />
-              </div>
-              <BasicInput v-model="form.canonical_url_t9n[defaultLang]" />
-            </div>
-          </div>
+          </BasicCard>
         </div>
 
         <CategoryProducts
@@ -244,7 +174,6 @@
           :category-idx="category.idx"
         />
       </template>
-    </div>
 
     <TranslationsDrawer
       :visible="!!translatingField"
@@ -259,19 +188,18 @@
         <BasicWysiwyg variant="lite" :model-value="modelValue" @update:model-value="onUpdate" />
       </template>
       <template v-else-if="translatingFieldIsTextArea" #input="{ modelValue, onUpdate }">
-        <TextAreaBasic :model-value="modelValue" @update:model-value="onUpdate" rows="3" />
+        <BasicTextarea :model-value="modelValue" @update:model-value="onUpdate" rows="3" />
       </template>
     </TranslationsDrawer>
 
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deleteCategory"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      @confirm="deleteCategory"
+      @cancel="showDeleteConfirm = false"
+      :title="$t('pim.confirm_delete_title')"
     >
-      <template #header
-        ><h2>{{ $t("pim.confirm_delete") }}</h2></template
-      >
-      <template #description>
+      <template #default>
         <p>
           {{
             category.subcategory_count
@@ -282,15 +210,19 @@
           }}
         </p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
 
-    <UnsavedChangesModal
-      :visible="!!pendingNav"
-      @save="saveAndLeave"
+    <ConfirmDialog
+      :open="!!pendingNav"
+      @confirm="saveAndLeave"
       @discard="confirmLeave"
-      @stay="cancelLeave"
+      @cancel="cancelLeave"
+      :title="$t('unsaved.title')"
+      :message="$t('unsaved.message')"
+      :confirm-label="$t('unsaved.save_and_leave')"
+      :discard-label="$t('unsaved.discard')"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -298,18 +230,27 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { useUnsavedChanges } from "@/composables/useUnsavedChanges";
-import UnsavedChangesModal from "@/functionals/Unsaved-changes-modal/index.vue";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
+import { usePageReadonly } from "@/composables/useReadonly";
 import { GET_Category, PATCH_Category, DELETE_Category, POST_UploadPicture } from "@/api/pim/api";
 import CategoryProducts from "./components/CategoryProducts.vue";
-import { extractApiMessage } from "@/composables/useFormErrors";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
+import ProductT9nField from "./components/ProductT9nField.vue";
+import { extractApiMessage, useFormErrors } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
+
+// Translatable fields per card, and the control each one takes (the drawer uses the same).
+const CONTENT_FIELDS = ["name", "description"];
+const SEO_FIELDS = ["meta_title", "meta_description", "canonical_url"];
+const WYSIWYG = { is: "BasicWysiwyg", attrs: {} };
+const TEXTAREA = { is: "BasicTextarea", attrs: { rows: 3 } };
+const INPUT = { is: "BasicInput", attrs: {} };
 
 export default {
   name: "CategoryDetail",
   components: {
-    UnsavedChangesModal,
-    ConfirmationModal,
     CategoryProducts,
+    PimChannelSelect,
+    ProductT9nField,
   },
   beforeRouteLeave(to, from, next) {
     this.guardNavigation(to, from, next);
@@ -319,13 +260,17 @@ export default {
     const notify = useNotifyStore();
     const pimChannel = usePimChannelStore();
     const unsaved = useUnsavedChanges();
-    return { loader, notify, pimChannel, ...unsaved };
+    const formErrors = useFormErrors();
+    // The page's read-only mode reaches the image drop zone (FormField and the buttons follow it on their own).
+    const readonly = usePageReadonly();
+    return { loader, notify, pimChannel, formErrors, ...unsaved, CONTENT_FIELDS, SEO_FIELDS, readonly };
   },
   data() {
     return {
       activeTab: "details",
       category: {},
       loading: true,
+      notFound: false,
       showDeleteConfirm: false,
       translatingField: null,
       isDraggingImage: false,
@@ -381,14 +326,18 @@ export default {
       return `${this.translatingField}_t9n`;
     },
     translatingFieldLabel() {
-      const labels = {
-        name: this.$t("pim.name"),
-        description: this.$t("pim.description"),
-        meta_title: this.$t("pim.meta_title"),
-        meta_description: this.$t("pim.meta_description"),
-        canonical_url: this.$t("pim.canonical_url"),
-      };
-      return labels[this.translatingField] || this.translatingField;
+      return this.translatingField ? this.fieldLabel(this.translatingField) : "";
+    },
+    pageTitle() {
+      const name = this.category.name_t9n?.[this.defaultLang];
+      return name || this.category.idx || this.$t("pim.category_detail");
+    },
+    headerActions() {
+      return [
+        { key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("common.delete"),
+          onClick: () => (this.showDeleteConfirm = true) },
+        { key: "save", role: "primary", label: this.$t("common.save"), onClick: this.saveCategory },
+      ];
     },
     fullImageUrl() {
       const url = this.form.image_url || "";
@@ -398,10 +347,10 @@ export default {
       return `${base}${url}`;
     },
     translatingFieldIsWysiwyg() {
-      return ["description"].includes(this.translatingField);
+      return this.fieldControl(this.translatingField) === WYSIWYG;
     },
     translatingFieldIsTextArea() {
-      return ["meta_description"].includes(this.translatingField);
+      return this.fieldControl(this.translatingField) === TEXTAREA;
     },
   },
   watch: {
@@ -440,6 +389,14 @@ export default {
       const file = e.dataTransfer.files?.[0];
       if (file) this.uploadCategoryImage(file);
     },
+    fieldLabel(field) {
+      return this.$t(`pim.${field}`);
+    },
+    fieldControl(field) {
+      if (field === "description") return WYSIWYG;
+      if (field === "meta_description") return TEXTAREA;
+      return INPUT;
+    },
     openTranslations(fieldName) {
       this.translatingField = fieldName;
     },
@@ -450,6 +407,7 @@ export default {
     },
     async fetchCategory() {
       this.loading = true;
+      this.notFound = false;
       try {
         const { data } = await GET_Category(
           this.channelIdx,
@@ -458,6 +416,8 @@ export default {
         this.category = data;
         this.resetForm();
       } catch (err) {
+        this.notFound = isNotFound(err);
+        if (this.notFound) return;
         this.notify.spawnNotification({
           type: "negative",
           msg: extractApiMessage(err, this.$t("notifications.error")),
@@ -490,6 +450,9 @@ export default {
       this.track(this.form);
     },
     async saveCategory() {
+      // Only a URL typed here is checked: a stored one the operator did not touch never blocks other edits.
+      const urlChanged = this.form.og_image_url !== (this.category.og_image_url || "");
+      if (urlChanged && !this.formErrors.validateFormats(this.form, { og_image_url: { format: "url" } })) return;
       this.loader.loaderStart();
       try {
         const payload = {};
@@ -556,38 +519,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.detail-section {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: var(--space-200);
-}
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-200);
-}
-.detail-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.detail-label {
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-}
-.detail-value {
-  font-size: var(--fs-300);
-  color: var(--c-basic-800);
-}
-.detail-breadcrumb {
-  padding: 8px 12px;
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-sm);
-}
 .category-image {
   position: relative;
   display: inline-block;
@@ -595,67 +526,41 @@ export default {
   &__preview {
     width: 200px;
     height: 140px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--c-basic-300);
+    border-radius: var(--radius-base);
+    border: 1px solid var(--border-subtle);
     object-fit: cover;
     display: block;
   }
 
   &__delete {
     position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: none;
-    background: var(--c-negative-100);
-    color: var(--c-negative-300);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 12px;
-    box-shadow: var(--shadow-sm);
-
-    &:hover {
-      background: var(--c-negative-200);
-      color: var(--c-basic-100);
-    }
+    top: var(--space-2);
+    right: var(--space-2);
   }
 
   &__dropzone {
     width: 100%;
-    padding: var(--space-300) var(--space-200);
+    padding: var(--space-8) var(--space-5);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    border: 2px dashed var(--c-basic-300);
-    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-subtle);
+    border-radius: var(--radius-base);
     transition: background 0.15s, border-color 0.15s;
 
     &:hover,
     &:focus-visible {
-      background: var(--c-basic-200);
-      border-color: var(--c-basic-400);
+      background: var(--surface-raised);
+      border-color: var(--border-default);
       outline: none;
     }
 
     &--dragover {
-      background: var(--c-support-100);
-      border-color: var(--c-support-400);
+      background: var(--accent-subtle);
+      border-color: var(--accent);
     }
   }
-}
-.translation-field__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-100);
-}
-.translation-field__btn {
-  font-size: var(--fs-200);
 }
 </style>

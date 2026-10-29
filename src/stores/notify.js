@@ -29,11 +29,23 @@ export const useNotifyStore = defineStore('notify', () => {
     _scheduleHide(next.uuid, next.timeout)
   }
 
-  function spawnNotification({ title = '', msg = '', type = 'positive', timeout = DEFAULT_TIMEOUT }) {
+  // A toast spawned with `covers` (the standard access refusal) stands for its own text and the texts it covers
+  // while it is shown, and for any negative toast until the current task ends: the view's catch of the refused
+  // request runs in that task's microtasks (its own text, any text). Another request's error lands in a later task.
+  function isCovered(msg) {
+    return [...notifications.value, ...pending.value].some(
+      (n) => n.covers.length && (n.msg === msg || n.covers.includes(msg) || n.quiet)
+    )
+  }
+
+  function spawnNotification({ title = '', msg = '', type = 'positive', timeout = DEFAULT_TIMEOUT, covers = [] }) {
     msg = unref(msg) || ''
     if (!title && !msg) msg = t('notifications.error') // never spawn an empty toast
+    if (type === 'negative' && isCovered(msg)) return null
     const uuid = `alert-${uuidv4()}`
-    const item = { uuid, title, msg, type, timeout }
+    const cover = covers.filter(Boolean)
+    const item = { uuid, title, msg, type, timeout, covers: cover, quiet: cover.length > 0 }
+    if (item.quiet) setTimeout(() => (item.quiet = false))
     if (notifications.value.length >= MAX_VISIBLE) {
       pending.value.push(item)
       return uuid

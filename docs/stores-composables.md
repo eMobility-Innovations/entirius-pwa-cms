@@ -21,6 +21,13 @@ All 12 stores (`src/stores/`) use composition (setup) syntax with `defineStore`.
   back-navigation from a hit's details does not wipe the results. One search,
   no history, in-memory only.
 - **`useMuninStore`** (`munin.js`) — module/panel enablement. See below.
+- **`useAccessStore`** (`access.js`) — what the logged-in user may do, from django-access `GET /api/access/v2/me/`
+  (memory only — never a cookie, web storage or router state). `can(area, level = "read")`, `canAny(areas, level)`,
+  `isStaff`, `managesAccess`, `gateMode`, `available`, `status` (`idle` · `loading` · `ready` · `absent` · `error`),
+  `ensureLoaded()` (single-flight), `refresh()` (at most once per 5 s), `reset()`. Without the access module
+  (munin) every `can` is true; installed but `me` failed (`error`) every `can` is false until a retry loads it. See
+  `docs/panels-routing.md` § `meta.area`.
+- **`useConfigHealthStore`** (`configHealth.js`) — munin `health/` rows (`failing`, `passing`, `stateOf(code)`, `failingFor(code)`), 30 s poll, `recheck()` runs the probes; `aiState` / `aiUsable` = the AI toolbox state every AI action follows (health row, else the public registry). See AGENTS.md "Configuration health".
 - **`useNotifyStore`** (`notify.js`) — `spawnNotification({ title, msg, type,
   timeout })`. Types: `informative`, `positive`, `negative`, `warning`. Queues
   beyond 3 visible toasts (`MAX_VISIBLE`), pause/resume timers on hover.
@@ -39,8 +46,19 @@ All 12 stores (`src/stores/`) use composition (setup) syntax with `defineStore`.
   ContentDB translation jobs. `fetchJobs(channelIdx)`, `startPolling()` (polls
   while `hasActiveJobs`), `stopPolling()`, `setStatusFilter()`.
 - **`useUserStore`** (`user.js`) — auth (JWT + refresh), session-expiry
-  monitor, theme (`"default"`/`"dark"`), sidebar, `activeApp`, language,
-  preferences. Cookie persistence via `universal-cookie`.
+  monitor (refresh 60 s before the access token expires, at least 10 s out;
+  the expiry is the token's `exp` - `iat` counted from receipt, kept in the
+  `expiryDate` cookie, so client clock skew does not matter; the call is
+  `refreshAccessToken()` in `api/createClient.js`, shared with the 401 retry
+  and the pre-request check), `logout()` — the only logout: ends the refresh
+  session, then blacklists the refresh token (a failure is ignored), then
+  `clearAuth()`; a request waiting on a refresh of the ended session never
+  settles, so no panel toasts it — theme (`"default"`/`"dark"`), sidebar,
+  language, field hints (`hints` / `setHints`, the `cms_hints` preference; the boots read the same ref from
+  `src/composables/fieldHints.js`), preferences. `loadPreferences(extra)` applies the hints choice only from a real
+  profile: `extra` an object (one without `cms_hints` → hints on); `extra` null means the profile call failed and
+  the stored choice stands. `useLoginSession` hands `{}` for a profile without `extra`. `clearAuth()` sets hints on
+  and removes `cms_hints` from localStorage. Cookie persistence via `universal-cookie`. Every session cookie is `SameSite=Strict`, and `Secure` on an https page.
 
 ### `useMuninStore` API
 
@@ -66,7 +84,7 @@ Backs panel/module gating (see `docs/panels-routing.md` for the full model).
 
 ## Composables
 
-Located in `src/composables/` (9 total). Opt-in for new code; existing
+Located in `src/composables/` (12 total). Opt-in for new code; existing
 components keep using stores directly via the `setup()` return pattern.
 
 - **`useEntityFetch`** — factories for async-search inputs:
@@ -76,9 +94,20 @@ components keep using stores directly via the `setup()` return pattern.
   `detail`, DRF field dicts) into per-field errors. Returns `errors`,
   `hasErrors`, `summary`, `handleApiError(err)`, `getFieldError`,
   `clearErrors`, `validateRequired(form, rules)`.
+- **`usePimCapabilities`** — PIM version capabilities by probing, not by version
+  string. `requiredPerFeatureSet` (PIM >= 3.3.0: per-set required flags) is
+  decided once per session: `loadRequiredFeatures(setIdx)` probes
+  `required-features/` (404 = legacy, cached) and `noteFeatureList(items)` reads
+  `is_required_override` from a features list. Views gate new UI on it.
 - **`useHandyKitSubscriber`** — watches `handy.triggerListener` to bind
   Handy-kit payloads onto component data (`instance`/`flat`/`custom`/`mixed`
   bind modes). Returns `{ setupSubscriber, open_Handykit }`.
+- **`useLoginSession`** — turns a token pair into a CMS session (cookies,
+  content permissions, profile + preferences, user, munin modules, access `me`), then
+  `markAuthenticated()` — the app leaves the login wall only after all of it.
+  Every login method calls `completeLogin({ access, refresh, customer_id })`;
+  `consumeReturnRoute()` returns and forgets the route a session-expired
+  logout stored.
 - **`useLoader`** — thin wrapper over `useLoaderStore`. Returns `{ loading,
   handyLoading, start, finish, handyStart, handyFinish }`.
 - **`useNotify`** — notification shortcuts over `useNotifyStore`: `{ success,
@@ -92,6 +121,10 @@ components keep using stores directly via the `setup()` return pattern.
 - **`useUnsavedChanges`** — dirty-tracking for edit forms: `snapshot(data)`,
   `track(formData)`, `isDirty`, `guardNavigation(to, from, next)`,
   `confirmLeave()`/`cancelLeave()`. Warns on `beforeunload` while dirty.
+- **`useReadonly`** — the read-only mode of a page (django-access). `PageLayout`
+  calls `usePageReadonly(force)` (the route's `meta.area`, else its panel's first
+  area; the access store injected as `ACCESS_STORE`, provided by `App.vue`) and
+  `provideReadonly(flag)`; the boots read `useReadonly()` (false outside a page).
 - **`useVariantMatching`** — pure functions for variant-based conditional
   field visibility in config-driven UIs (Pages builder config-kit):
   `buildSettedConfigsValues`, `checkCoresDependency`, `checkPropsDependency`,

@@ -1,82 +1,75 @@
 <template>
   <div class="buttons-controller" :id="`buttons-controller-${componentId}`">
-    <div class="mb-50 flex jc-sb ai-ct">
+    <div class="mb-1 flex jc-sb ai-ct">
       <span v-if="label">{{ label }}</span>
 
-      <ToolTip
-        class="right t-support-300 fs-200"
-        :tip="
-          value
-            ? $t('controllers.tooltip_select_button')
-            : $t('controllers.tooltip_add_button')
-        "
+      <BasicTooltip
+        v-if="value"
+        class="t-accent fs-200"
+        :text="$t('controllers.tooltip_select_button')"
+        variant="help"
       >
-      </ToolTip>
+      </BasicTooltip>
+      <!-- Why the items menu is disabled: content, visible with hints off too. -->
+      <p v-else class="t-muted fs-200 m-0">{{ $t('controllers.tooltip_add_button') }}</p>
     </div>
 
-    <div class="grid grid-col-3 gap-100 mt-200" v-if="mode">
-      <BasicInput
-        class="bg-basic-100 lh-base-elem"
-        :label="tFieldLabel('label', $t('controllers.set_label'))"
-        v-model="link_label"
-        :key="`${force_refresh_v_model}-label`"
-      />
-      <BasicInput
-        class="bg-basic-100 lh-base-elem"
-        :label="tFieldLabel('url', $t('controllers.set_url'))"
-        v-model="link_url"
-        :key="`${force_refresh_v_model}-url`"
-      />
-      <Dropdown
-        class="bg-basic-100 br-50 b-basic-400"
-        :placeholder="$t('controllers.link_type')"
-        :values="[
+    <div class="grid grid-col-3 gap-2 mt-5" v-if="mode">
+      <FormField :label="tFieldLabel('label', $t('controllers.set_label'))" :key="`${force_refresh_v_model}-label`">
+        <BasicInput
+          class="bg-base lh-base-elem"
+          v-model="link_label"
+        />
+      </FormField>
+      <FormField :label="tFieldLabel('url', $t('controllers.set_url'))" :key="`${force_refresh_v_model}-url`">
+        <BasicInput
+          class="bg-base lh-base-elem"
+          v-model="link_url"
+        />
+      </FormField>
+      <BasicSelect
+        :floating-label="$t('controllers.link_type')"
+        v-model="link_type"
+        :options="[
           { label: tFieldLabel('internal', 'In'), value: 'internal' },
           { label: tFieldLabel('external', 'Out'), value: 'external' },
         ]"
-        :selected="link_type ? [link_type] : []"
-        @onSelect="link_type = $event"
       />
     </div>
 
-    <div class="grid grid-col-3 gap-100 mt-100 ai-ct" v-if="mode">
-      <Dropdown
+    <div class="grid grid-col-3 gap-2 mt-2 ai-ct" v-if="mode">
+      <BasicSelect
+        :floating-label="$t('controllers.decorator')"
         v-if="config && config.decorator && config.decorators.length"
-        :placeholder="$t('controllers.select_decorator')"
-        class="bg-basic-100 br-50 b-basic-400 fs-200"
-        :values="
+        v-model="link_decorator"
+        :options="
           config.decorators.map((d) => {
             return { label: d, value: d };
           })
         "
-        :selected="link_decorator ? [link_decorator] : []"
-        :isDisabled="Boolean(link_decorator)"
-        :can_remove_selected="true"
-        @onRemoveSelected="link_decorator = null"
-        :icon="link_decorator ? 'close-mini' : 'arrow-right-2'"
-        @onSelect="link_decorator = $event"
+        clearable
       />
       <div
-        class="inline-flex jc-sb ai-ct bg-basic-100 h-100 br-50 b-basic-400 ph-100"
+        class="inline-flex jc-sb ai-ct bg-base h-100 rounded b-default ph-2"
         v-if="
           config && config.decorator && config.decorators.length && config.rtl
         "
       >
-        <Switcher
-          class="mr-50"
+        <BasicSwitch
+          class="mr-1"
           :label="$t('controllers.rtl_label')"
-          :selected="link_rtl"
-          @onSelect="link_rtl = !link_rtl"
+          v-model="link_rtl"
         />
-        <ToolTip
-          :tip="$t('controllers.rtl_tip')"
-          class="fs-300 right t-primary-100"
+        <BasicTooltip
+          :text="$t('controllers.rtl_tip')"
+          class="fs-300 t-accent"
+          variant="help"
         />
       </div>
       <div class="grid">
         <BasicButton
-          :text="mode === 'add' ? $t('common.add') : $t('common.save')"
-          class="bg-basic-200 b-basic-400 bg-basic-100-hover br-50"
+          variant="secondary"
+          class="rounded"
           @click="
             set_button({
               link_url,
@@ -86,46 +79,51 @@
               link_rtl,
             })
           "
-        />
+        >
+          {{ mode === 'add' ? $t('common.add') : $t('common.save') }}
+        </BasicButton>
       </div>
     </div>
-    <div class="mt-50">
+    <div class="mt-1">
       <div class="flex">
         <BasicButton
-          :text="!mode ? $t('routes.set_new') : $t('common.close')"
-          class="b-basic-400 bg-basic-100 bg-basic-300-hover br-50 fs-100 mr-50"
-          :class="{ 'bg-basic-800 t-basic-100 bg-basic-700-hover': mode }"
+          :variant="mode ? 'primary' : 'secondary'"
+          class="rounded fs-200 mr-1"
           @click="!mode ? (mode = 'add') : (mode = null)"
-        />
-        <Dropdown
-          class="bg-basic-100 br-50 b-basic-400 fg-1"
-          :class="[!Boolean(value) ? 'bg-basic-200 t-basic-400' : '']"
-          :placeholder="`${$t('controllers.setted')} (${
-            !value ? [].length : value.length
-          }/${
+        >
+          {{ !mode ? $t('routes.set_new') : $t('common.close') }}
+        </BasicButton>
+        <BasicSelect
+          :floating-label="`${$t('controllers.set_items')} (${value ? value.length : 0}/${
             config && config.max ? config.max : $t('controllers.unlimited')
           })`"
-          :isDisabled="!Boolean(value)"
-          :values="
+          class="fg-1"
+          :model-value="editing"
+          :disabled="!Boolean(value)"
+          :options="
             !value
               ? []
               : value.map((b, i) => {
                   return {
                     label: `${b.link_label} / [to_: ${b.link_url} | type_: ${b.link_type}]`,
                     value: i,
-                    label_ext: $t('common.delete'),
-                    label_ext_class: 't-negative-200',
                   };
                 })
           "
-          @onSelect="
+          @update:model-value="
             ($event) => {
               on_edit($event);
               force_refresh_v_model += force_refresh_v_model;
             }
           "
-          @onExtension="
-            editing = $event;
+        />
+        <IconButton
+          v-if="editing !== null"
+          icon="delete"
+          variant="danger"
+          class="ml-1"
+          :label="$t('common.delete')"
+          @click="
             on_delete({
               link_url,
               link_label,

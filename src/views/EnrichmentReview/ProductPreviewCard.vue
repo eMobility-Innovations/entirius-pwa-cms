@@ -1,8 +1,20 @@
 <template>
-  <div class="product-preview">
+  <!-- Flat inside the preview drawer: the drawer is the frame and holds the dialog's heading, the name is plain text. -->
+  <BasicCard class="product-preview" :flat="flat" :title="product && !loading && !flat ? productName : ''">
+    <template v-if="product && !loading" #actions>
+      <BasicButton
+        variant="secondary"
+        data-testid="enrichment-preview-go-pim"
+        @click="goToPim"
+      >
+        {{ $t("enrichment.preview.go_to_pim") }}
+      </BasicButton>
+    </template>
+
     <Loader v-show="loading" />
 
     <template v-if="!loading && product">
+      <p v-if="flat" class="product-preview__name fs-400 fw-600 t-strong">{{ productName }}</p>
       <div class="product-preview__hero">
         <img
           v-if="heroUrl"
@@ -11,11 +23,9 @@
           class="product-preview__img"
         />
         <div v-else class="product-preview__img product-preview__img--ph">
-          <FontAwesomeIcon icon="image" />
+          <FontAwesomeIcon :icon="$icons.image" />
         </div>
       </div>
-
-      <h3 class="fs-400 fw-600 mb-200">{{ product.name || sku }}</h3>
 
       <dl class="product-preview__meta">
         <div class="product-preview__row">
@@ -28,7 +38,7 @@
         </div>
         <div v-if="product.product_class_name" class="product-preview__row">
           <dt>{{ $t("enrichment.preview.class") }}</dt>
-          <dd>{{ product.product_class_name }}</dd>
+          <dd>{{ productType }}</dd>
         </div>
         <div class="product-preview__row">
           <dt>{{ $t("enrichment.preview.status") }}</dt>
@@ -39,7 +49,7 @@
                   ? $t('enrichment.preview.enabled')
                   : $t('enrichment.preview.disabled')
               "
-              :variant="product.is_enabled ? 'positive' : 'neutral'"
+              :tone="product.is_enabled ? 'positive' : 'neutral'"
             />
           </dd>
         </div>
@@ -56,7 +66,7 @@
           <dd>
             <StatusBadge
               :label="String(product.gap_count)"
-              :variant="product.gap_count > 0 ? 'warning' : 'positive'"
+              :tone="product.gap_count > 0 ? 'warning' : 'positive'"
             />
           </dd>
         </div>
@@ -65,35 +75,27 @@
 
     <EmptyState
       v-if="!loading && !product"
-      icon="triangle-exclamation"
+      icon="warning"
       :title="$t('enrichment.preview.not_found')"
       :message="sku || ''"
     />
-
-    <div v-if="product" class="product-preview__actions">
-      <button
-        type="button"
-        class="product-preview__btn bg-support-400 t-basic-100"
-        data-testid="enrichment-preview-go-pim"
-        @click="goToPim"
-      >
-        <FontAwesomeIcon icon="up-right-from-square" />
-        {{ $t("enrichment.preview.go_to_pim") }}
-      </button>
-    </div>
-  </div>
+  </BasicCard>
 </template>
 
 <script>
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { GET_Product } from "@/api/pim/api";
+import { isNotFound } from "@/api/createClient";
+import { GET_Product, GET_ProductPictures } from "@/api/pim/api";
+
+const PRODUCT_TYPES = ["base", "simple", "configurable", "bundle"];
 
 export default {
   name: "ProductPreviewCard",
   props: {
     sku: { type: String, default: null },
     channelIdx: { type: String, default: "" },
+    flat: { type: Boolean, default: false },
   },
   setup() {
     return { notify: useNotifyStore() };
@@ -101,12 +103,23 @@ export default {
   data() {
     return {
       product: null,
+      mainPicture: "",
       loading: false,
     };
   },
   computed: {
+    productName() {
+      return this.product?.name || this.sku;
+    },
+    // "ProductSimple" reads as the PIM's own type name ("Simple"); a class it does not know is "Custom".
+    productType() {
+      const type = this.product.product_class_name.toLowerCase().replace(/^product/, "");
+      return this.$t(`pim.type_${PRODUCT_TYPES.includes(type) ? type : "custom"}`);
+    },
+    // The product detail has no picture field (og_image is the SEO sharing URL, often empty): the picture is the
+    // main one of the product's pictures, og_image only when it has none.
     heroUrl() {
-      const path = this.product?.og_image;
+      const path = this.mainPicture || this.product?.og_image;
       if (!path) return "";
       if (path.startsWith("http")) return path;
       return (process.env.VUE_APP_API_URL || "") + path;
@@ -123,11 +136,16 @@ export default {
       }
       this.loading = true;
       this.product = null;
+      this.mainPicture = "";
       try {
-        const { data } = await GET_Product(this.channelIdx, this.sku);
+        const [{ data }, mainPicture] = await Promise.all([
+          GET_Product(this.channelIdx, this.sku),
+          this.fetchMainPicture(),
+        ]);
         this.product = data;
+        this.mainPicture = mainPicture;
       } catch (err) {
-        if (!(err?.response?.status === 404 || err?.error === "NOT_FOUND")) {
+        if (!(isNotFound(err))) {
           this.notify.spawnNotification({
             type: "negative",
             msg: extractApiMessage(err, this.$t("notifications.error")),
@@ -138,6 +156,17 @@ export default {
         this.loading = false;
       }
     },
+    // The "main"-role picture, else the first one. A failed request only leaves the placeholder: the details stay.
+    async fetchMainPicture() {
+      try {
+        const { data } = await GET_ProductPictures(this.channelIdx, this.sku);
+        const pictures = data.results || data || [];
+        const main = pictures.find(({ picture_role }) => picture_role?.toLowerCase() === "main") || pictures[0];
+        return main?.picture?.image_url || "";
+      } catch {
+        return "";
+      }
+    },
     goToPim() {
       this.$router.push({ name: "PimProductDetail", params: { sku: this.sku } });
     },
@@ -146,20 +175,17 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.product-preview {
-  padding: var(--space-300);
-}
 .product-preview__hero {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-bottom: var(--space-300);
+  margin-bottom: var(--space-8);
 }
 .product-preview__img {
   max-width: 100%;
   max-height: 240px;
   object-fit: contain;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-base);
 }
 .product-preview__img--ph {
   width: 100%;
@@ -167,9 +193,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--c-basic-200);
-  color: var(--c-basic-400);
-  font-size: 2rem;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--fs-700);
 }
 .product-preview__meta {
   margin: 0;
@@ -177,35 +203,17 @@ export default {
 .product-preview__row {
   display: grid;
   grid-template-columns: 130px 1fr;
-  gap: var(--space-200);
+  gap: var(--space-5);
   align-items: center;
-  padding: var(--space-100) 0;
-  border-bottom: 1px solid var(--c-basic-200);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
   dt {
     font-size: var(--fs-200);
-    color: var(--c-basic-500);
+    color: var(--text-muted);
   }
   dd {
     margin: 0;
     word-break: break-word;
-  }
-}
-.product-preview__actions {
-  margin-top: var(--space-300);
-}
-.product-preview__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-100);
-  height: var(--elem-height);
-  padding: 0 16px;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-200);
-  cursor: pointer;
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 }
 </style>

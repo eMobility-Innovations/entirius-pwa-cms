@@ -7,7 +7,7 @@
  * than inferred from the flag.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
+import { mount as vueMount, flushPromises } from "@vue/test-utils";
 
 // This repo's happy-dom environment provides sessionStorage but not localStorage, and the
 // component reads the return route from it. Supply the minimum the component uses.
@@ -24,9 +24,18 @@ if (!window.localStorage) {
   });
 }
 
+// The refreshed upstream form wraps fields; preserve slots in component stubs.
+const mount = (component) => vueMount(component, { global: { stubs: {
+  BasicButton: { props: ["text"], template: '<basic-button-stub :text="text"><slot /></basic-button-stub>' },
+  FormField: { template: '<div><slot /></div>' },
+  PasswordField: { template: '<basic-input-stub />' },
+} } });
+
 const postSsoLoginUrl = vi.fn();
 const postLogin = vi.fn();
 const spawnNotification = vi.fn();
+
+vi.mock("@/composables/useLoginSession", () => ({ useLoginSession: () => ({ completeLogin: vi.fn() }), consumeReturnRoute: () => null }));
 
 vi.mock("@/api/sso/api", () => ({
   POST_SsoLoginUrl: (...a) => postSsoLoginUrl(...a),
@@ -51,7 +60,7 @@ import LoginWall from "@/functionals/Login-wall/Login-wall.vue";
 
 /** BasicButton is globally stubbed, so its label is an attribute, not rendered text. */
 const buttonLabels = (wrapper) =>
-  wrapper.findAll("basic-button-stub").map((b) => b.attributes("text"));
+  wrapper.findAll("basic-button-stub").map((b) => b.attributes("text")).filter(Boolean);
 
 let assign;
 

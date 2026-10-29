@@ -20,7 +20,7 @@ export default {
   props: {
     stroke_color_class: {
       type: String,
-      default: "stroke-positive-200",
+      default: "t-positive",
     },
     active: {
       type: Boolean,
@@ -53,6 +53,7 @@ export default {
 
   rect {
     fill: none;
+    stroke: currentColor; // the colour comes from the t-* class in stroke_color_class
     stroke-width: 1;
     stroke-dasharray: 0, 0;
 

@@ -146,3 +146,38 @@ describe("MediaGallery alt_text_t9n", () => {
     expect(wrapper.vm.translatingAlt).toBe(false);
   });
 });
+
+describe("MediaGallery AI menu on a picture", () => {
+  const tiles = {
+    draggable: { props: ["modelValue"], template: "<div><slot v-for='(element, index) in modelValue' name='item' :element='element' :index='index' /></div>" },
+    MediaTile: { template: "<div><slot name='actions' /></div>" },
+    BasicMenu: { name: "BasicMenu", props: ["items"], template: "<div><slot name='trigger' /></div>" },
+    IconButton: true,
+    ConfirmationModal: true,
+    TranslationsDrawer: true,
+  };
+  const mountWith = (props = {}) =>
+    mount(MediaGallery, { props: { channelIdx: "ch-main", sku: "SKU-1", ...props }, global: { stubs: tiles } });
+
+  beforeEach(() => {
+    mockGetPictures.mockResolvedValue({ data: { results: [picture()] } });
+    mockGetVideos.mockResolvedValue({ data: { results: [{ pk: 3, position: 1, video: { video_url: "https://youtu.be/x" } }] } });
+  });
+
+  it("a picture's menu runs the chosen action on that picture; a video has none", async () => {
+    const actions = [{ key: "image-enhance", label: "Enhance" }];
+    const wrapper = mountWith({ aiActions: actions });
+    await flushPromises();
+    const menus = wrapper.findAllComponents({ name: "BasicMenu" });
+    expect(menus).toHaveLength(1);
+    expect(menus[0].props("items")).toEqual(actions);
+    menus[0].vm.$emit("select", actions[0]);
+    expect(wrapper.emitted("ai-run")).toEqual([[{ template: "image-enhance", pictureRef: "7" }]]);
+  });
+
+  it("no actions, no menu", async () => {
+    const wrapper = mountWith();
+    await flushPromises();
+    expect(wrapper.findAllComponents({ name: "BasicMenu" })).toHaveLength(0);
+  });
+});

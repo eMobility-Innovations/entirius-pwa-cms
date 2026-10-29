@@ -9,7 +9,7 @@
           <h4 class="gap-detail__heading">{{ $t('pricefighter.detail_components') }}</h4>
           <dl class="gap-detail__facts">
             <dt>{{ $t('pricefighter.reference_price') }} (R)</dt>
-            <dd>{{ fmt(row.reference_price) }} <span class="t-basic-500 fs-100">({{ row.estimator }})</span></dd>
+            <dd>{{ fmt(row.reference_price) }} <span class="t-muted fs-200">({{ row.estimator }})</span></dd>
             <dt>{{ $t('pricefighter.baseline') }} (B)</dt>
             <dd>{{ fmt(bounds ? bounds.baseline : row.baseline) }}</dd>
             <dt>{{ $t('pricefighter.floor') }} (F)</dt>
@@ -25,7 +25,7 @@
             <dt>{{ $t('pricefighter.reason') }}</dt>
             <dd>{{ row.reason }}</dd>
             <dt>{{ $t('pricefighter.strategy') }} / {{ $t('pricefighter.mode') }}</dt>
-            <dd>{{ row.strategy }} / {{ row.mode }}<span v-if="row.price_war" class="t-negative-300"> · {{ $t('pricefighter.price_war') }}</span></dd>
+            <dd>{{ row.strategy }} / {{ row.mode }}<span v-if="row.price_war" class="t-negative"> · {{ $t('pricefighter.price_war') }}</span></dd>
           </dl>
         </div>
 
@@ -33,39 +33,10 @@
         <div class="gap-detail__block gap-detail__block--wide">
           <h4 class="gap-detail__heading">
             {{ $t('pricefighter.observations') }}
-            <StatusBadge :label="`${validCount}/${observations.length} ${$t('pricefighter.valid')}`" variant="informative" />
+            <StatusBadge :label="`${validCount}/${observations.length} ${$t('pricefighter.valid')}`" tone="info" />
           </h4>
-          <p v-if="loadError" class="t-negative-300 fs-200">{{ loadError }}</p>
-          <p v-else-if="!observations.length" class="t-basic-500 fs-200">{{ $t('pricefighter.no_observations') }}</p>
-          <table v-else class="gap-detail__obs">
-            <thead>
-              <tr>
-                <th>{{ $t('pricefighter.source') }}</th>
-                <th>{{ $t('pricefighter.price') }}</th>
-                <th>{{ $t('pricefighter.stock') }}</th>
-                <th>{{ $t('pricefighter.observed_at') }}</th>
-                <th>{{ $t('pricefighter.status') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(obs, i) in observations"
-                :key="i"
-                :class="{ 'gap-detail__obs-row--invalid': obs.flag !== 'valid' }"
-              >
-                <td>{{ obs.source_idx }}</td>
-                <td>{{ obs.price }} {{ obs.currency || '' }}</td>
-                <td>{{ obs.stock != null ? obs.stock : '—' }}</td>
-                <td>{{ obs.ts }}</td>
-                <td>
-                  <StatusBadge
-                    :label="$t(`pricefighter.flag_${obs.flag}`)"
-                    :variant="obs.flag === 'valid' ? 'positive' : 'neutral'"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <p v-if="loadError" class="t-negative fs-200">{{ loadError }}</p>
+          <ObservationsTable v-else :observations="observations" />
         </div>
       </div>
     </template>
@@ -78,6 +49,7 @@ import { t } from '@/i18n'
 import { GET_PfDecisionDetail, GET_PfBounds } from '@/api/pricefighter/api'
 import { extractApiMessage } from '@/composables/useFormErrors'
 import { pfFormat } from '../constants'
+import ObservationsTable from './ObservationsTable.vue'
 
 const props = defineProps({
   row: {
@@ -116,13 +88,13 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .gap-detail {
-  padding: var(--space-200) 0;
+  padding: var(--space-5) 0;
 }
 
 .gap-detail__grid {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-500);
+  gap: var(--space-12);
 }
 
 .gap-detail__block {
@@ -137,54 +109,30 @@ onMounted(async () => {
 .gap-detail__heading {
   display: flex;
   align-items: center;
-  gap: var(--space-100);
+  gap: var(--space-2);
   font-size: var(--fs-200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-  margin: 0 0 var(--space-200) 0;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-5) 0;
 }
 
 .gap-detail__facts {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 4px var(--space-200);
+  gap: var(--space-1) var(--space-5);
   margin: 0;
   font-size: var(--fs-300);
 
   dt {
-    color: var(--c-basic-500);
+    color: var(--text-muted);
   }
 
   dd {
     margin: 0;
-    color: var(--c-basic-800);
+    color: var(--text-body);
     font-weight: 600;
   }
-}
-
-.gap-detail__obs {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-200);
-
-  th {
-    text-align: left;
-    padding: 4px 8px;
-    color: var(--c-basic-500);
-    text-transform: uppercase;
-    font-size: var(--fs-100);
-    border-bottom: 1px solid var(--c-basic-300);
-  }
-
-  td {
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--c-basic-200);
-  }
-}
-
-.gap-detail__obs-row--invalid {
-  color: var(--c-basic-500);
 }
 </style>

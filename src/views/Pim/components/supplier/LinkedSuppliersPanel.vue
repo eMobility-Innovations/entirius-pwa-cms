@@ -1,6 +1,6 @@
 <template>
   <div class="linked-suppliers">
-    <h3 class="fs-200 fw-600 t-basic-500 mb-200 supplier-section__heading">
+    <h3 class="fs-200 fw-600 t-muted mb-5 supplier-section__heading">
       {{ $t("pim.supplier.linked_title") }}
     </h3>
     <ul class="linked-suppliers__list">
@@ -16,29 +16,29 @@
             <StatusBadge
               v-if="item.is_preferred && !item.manual_override"
               :label="$t('pim.supplier.auto_preferred_badge')"
-              variant="positive"
-              class="ml-100"
+              tone="positive"
+              class="ml-2"
             />
             <StatusBadge
               v-if="item.manual_override"
               :label="$t('pim.supplier.manual_override_badge')"
-              variant="warning"
-              class="ml-100"
+              tone="warning"
+              class="ml-2"
             />
           </div>
           <div class="linked-suppliers__metrics">
-            <span class="t-basic-500"
+            <span class="t-muted"
               >{{ $t("pim.supplier.cost") }}:
-              <strong class="t-basic-800">{{ formatCost(item.cost) }}</strong></span
+              <strong class="t-body">{{ formatCost(item.cost) }}</strong></span
             >
-            <span class="t-basic-500"
+            <span class="t-muted"
               >{{ $t("pim.supplier.stock") }}:
-              <strong class="t-basic-800">{{ formatStock(item.stock) }}</strong></span
+              <strong class="t-body">{{ formatStock(item.stock) }}</strong></span
             >
           </div>
         </div>
       </li>
-      <li v-if="!items.length" class="t-basic-500 fs-200">
+      <li v-if="!items.length" class="t-muted fs-200">
         {{ $t("pim.supplier.no_supplier") }}
       </li>
     </ul>
@@ -72,14 +72,14 @@ export default {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-100);
+  gap: var(--space-2);
 }
 
 .linked-suppliers__item {
-  padding: var(--space-200) var(--space-300);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
-  background: var(--c-basic-100);
+  padding: var(--space-5) var(--space-8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  background: var(--surface-base);
 }
 
 .linked-suppliers__row {
@@ -87,23 +87,23 @@ export default {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 
 .linked-suppliers__name {
   display: flex;
   align-items: center;
-  gap: var(--space-100);
+  gap: var(--space-2);
 }
 
 .linked-suppliers__star {
-  color: var(--c-warning-300);
+  color: var(--warning);
   font-size: var(--fs-400);
 }
 
 .linked-suppliers__metrics {
   display: flex;
-  gap: var(--space-300);
+  gap: var(--space-8);
   font-size: var(--fs-200);
 }
 

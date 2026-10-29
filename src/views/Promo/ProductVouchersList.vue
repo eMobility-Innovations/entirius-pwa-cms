@@ -2,15 +2,17 @@
   <div class="config-list">
     <div class="config-list__toolbar">
       <BasicButton
-        :text="$t('promo.pv_new')"
-        class="btn-primary"
+        variant="primary"
         @click="openCreate"
-      />
+      >
+        {{ $t('promo.pv_new') }}
+      </BasicButton>
     </div>
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
 
     <DataTable
+      empty-size="md"
       v-show="!loading"
       :columns="columns"
       :rows="items"
@@ -20,32 +22,31 @@
     >
       <template #cell-face_value="{ row }">
         <span class="fw-600">{{ row.face_value }}</span>
-        <span class="t-basic-400">{{ row.currency }}</span>
+        <span class="t-muted">{{ row.currency }}</span>
       </template>
       <template #cell-tax_type="{ row }">
-        <span class="config-badge bg-basic-200 t-basic-600">{{
-          taxLabel(row.tax_type)
-        }}</span>
+        <Tag :label="taxLabel(row.tax_type)" />
       </template>
       <template #cell-is_active="{ row }">
         <StatusBadge
           :label="row.is_active ? $t('promo.active') : $t('promo.inactive')"
-          :variant="row.is_active ? 'positive' : 'negative'"
+          :tone="row.is_active ? 'positive' : 'negative'"
         />
       </template>
     </DataTable>
 
     <Pagination
       v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      @onChangePage="onPageChange"
+      :page="paginationState.page"
+      :pages="paginationState.pages"
+      @update:page="onPageChange"
     />
 
     <SideDrawer :visible="drawerOpen" :title="drawerTitle" @close="closeDrawer">
       <div class="voucher-form">
         <FormField
           :label="$t('promo.pv_product_id')"
-          :tooltip="$t('promo.pv_product_id_tip')"
+          :hint="$t('promo.pv_product_id_tip')"
           required
           :error="errors.product_id"
         >
@@ -55,13 +56,13 @@
             :min="1"
             :max="9999999"
           />
-          <span v-else class="t-basic-600">#{{ form.product_id }}</span>
+          <BasicInput v-else :model-value="`#${form.product_id}`" readonly />
         </FormField>
 
         <div class="voucher-form__row">
           <FormField
             :label="$t('promo.pv_face_value')"
-            :tooltip="$t('promo.pv_face_value_tip')"
+            :hint="$t('promo.pv_face_value_tip')"
             required
             :error="errors.face_value"
           >
@@ -76,30 +77,28 @@
             required
             :error="errors.currency_iso3"
           >
-            <Dropdown
+            <BasicSelect
               v-if="!isEdit"
-              :values="currencyOptions"
-              :selected="form.currency_iso3 ? [form.currency_iso3] : []"
+              :options="currencyOptions"
+              v-model="form.currency_iso3"
               :placeholder="$t('promo.pv_currency')"
-              @onSelect="(v) => (form.currency_iso3 = v)"
             />
-            <span v-else class="t-basic-600">{{ form.currency_iso3 }}</span>
+            <BasicInput v-else :model-value="form.currency_iso3" readonly />
           </FormField>
         </div>
 
         <FormField :label="$t('promo.pv_tax_type')" required>
-          <Dropdown
-            :values="taxOptions"
-            :selected="form.tax_type ? [form.tax_type] : []"
+          <BasicSelect
+            :options="taxOptions"
+            v-model="form.tax_type"
             :placeholder="$t('promo.pv_tax_type')"
-            @onSelect="(v) => (form.tax_type = v)"
           />
         </FormField>
 
         <div class="voucher-form__row">
           <FormField
             :label="$t('promo.pv_validity_days')"
-            :tooltip="$t('promo.pv_validity_days_tip')"
+            :hint="$t('promo.pv_validity_days_tip')"
           >
             <NumberInput
               v-model="form.validity_period_days_override"
@@ -108,55 +107,42 @@
             />
           </FormField>
           <FormField :label="$t('promo.pv_validity_precision')">
-            <Dropdown
-              :values="precisionOptions"
-              :selected="
-                form.validity_precision_override
-                  ? [form.validity_precision_override]
-                  : []
-              "
+            <BasicSelect
+              :options="precisionOptions"
+              v-model="form.validity_precision_override"
               :placeholder="$t('promo.pv_default')"
-              @onSelect="(v) => (form.validity_precision_override = v)"
             />
           </FormField>
         </div>
 
         <FormField :label="$t('promo.pv_expiry_starts_from')">
-          <Dropdown
-            :values="expiryStartsOptions"
-            :selected="
-              form.expiry_starts_from_override
-                ? [form.expiry_starts_from_override]
-                : []
-            "
+          <BasicSelect
+            :options="expiryStartsOptions"
+            v-model="form.expiry_starts_from_override"
             :placeholder="$t('promo.pv_default')"
-            @onSelect="(v) => (form.expiry_starts_from_override = v)"
           />
         </FormField>
 
         <FormField
           :label="$t('promo.pv_blacklist')"
-          :tooltip="$t('promo.pv_blacklist_tip')"
+          hint-level="important"
+          :hint="$t('promo.pv_blacklist_tip')"
         >
-          <Switcher
-            :selected="form.blacklist_other_vouchers"
-            @onSelect="
-              form.blacklist_other_vouchers = !form.blacklist_other_vouchers
-            "
+          <BasicSwitch
+            v-model="form.blacklist_other_vouchers"
           />
         </FormField>
 
         <FormField v-if="isEdit" :label="$t('promo.active')">
-          <Switcher
-            :selected="form.is_active"
-            @onSelect="form.is_active = !form.is_active"
+          <BasicSwitch
+            v-model="form.is_active"
           />
         </FormField>
 
         <!-- Product filters (nested; INCLUSION / EXCLUSION) -->
         <div v-if="isEdit" class="voucher-form__filters">
-          <h3 class="fs-300 fw-600 mb-200">{{ $t("promo.pv_filters") }}</h3>
-          <p class="fs-200 t-basic-500 mb-300">
+          <h3 class="fs-300 fw-600 mb-5">{{ $t("promo.pv_filters") }}</h3>
+          <p class="fs-200 t-muted mb-8">
             {{ $t("promo.pv_filters_hint") }}
           </p>
 
@@ -165,10 +151,11 @@
             :key="f.id"
             class="filter-row flex ai-ct jc-sb"
           >
-            <span class="fs-200">
-              <span class="config-badge bg-basic-200 t-basic-600">{{
-                modeLabel(f.mode)
-              }}</span>
+            <span class="flex ai-ct wrap gap-2 fs-200">
+              <StatusBadge
+                :label="modeLabel(f.mode)"
+                :tone="f.mode === 'exclusion' ? 'negative' : 'positive'"
+              />
               {{
                 $t("promo.pv_filter_summary", {
                   p: f.products.length,
@@ -180,33 +167,31 @@
                 · {{ $t("promo.pv_filter_common") }}</span
               >
             </span>
-            <div class="flex ai-ct gap-100">
-              <BasicButton
-                :text="$t('promo.btn_edit')"
-                class="btn-secondary"
-                @click="editFilter(f)"
-              />
-              <BasicButton
-                :text="$t('promo.btn_delete')"
-                class="btn-secondary"
+            <div class="flex ai-ct gap-2">
+              <IconButton icon="edit" :label="$t('promo.btn_edit')" size="sm" @click="editFilter(f)" />
+              <IconButton mutates
+                icon="delete"
+                :label="$t('promo.btn_delete')"
+                variant="danger"
+                size="sm"
                 @click="deleteFilter(f.id)"
               />
             </div>
           </div>
 
           <div class="filter-add">
-            <Dropdown
-              :values="modeOptions"
-              :selected="newFilter.mode ? [newFilter.mode] : []"
-              :placeholder="$t('promo.pv_filter_mode')"
-              @onSelect="(v) => (newFilter.mode = v)"
-            />
-            <div
+            <FormField :label="$t('promo.pv_filter_mode')">
+              <BasicSelect
+                :options="modeOptions"
+                v-model="newFilter.mode"
+                :placeholder="$t('promo.pv_filter_mode')"
+              />
+            </FormField>
+            <FormField
               v-for="kind in entityKinds"
               :key="kind.type"
-              class="filter-picker"
+              :label="$t(kind.labelKey)"
             >
-              <label class="fs-200 t-basic-500">{{ $t(kind.labelKey) }}</label>
               <EntitySearchPicker
                 :model-value="null"
                 :fetch-fn="(s) => fetchEntities(kind.type, s)"
@@ -215,78 +200,55 @@
                 @update:display-value="(d) => onPickDisplay(kind.type, d)"
               />
               <div v-if="newFilter[kind.type].length" class="chips">
-                <span
+                <Tag
                   v-for="item in newFilter[kind.type]"
                   :key="item.pk"
-                  class="config-chip"
-                >
-                  {{ item.label }}
-                  <button
-                    class="config-chip__x"
-                    @click="removeEntity(kind.type, item.pk)"
-                  >
-                    &times;
-                  </button>
-                </span>
+                  :label="String(item.label)"
+                  removable
+                  @remove="removeEntity(kind.type, item.pk)"
+                />
               </div>
-            </div>
-            <Switcher
+            </FormField>
+            <BasicSwitch
               :label="$t('promo.pv_filter_common')"
               :hint="$t('promo.filter_common_tip')"
-              :selected="newFilter.take_common_part"
-              @onSelect="
-                newFilter.take_common_part = !newFilter.take_common_part
-              "
+              v-model="newFilter.take_common_part"
             />
-            <div class="flex ai-ct gap-100">
-              <BasicButton
-                :text="
-                  editingFilterId
-                    ? $t('promo.btn_save')
-                    : $t('promo.pv_filter_add')
-                "
-                class="btn-primary"
+            <div class="flex ai-ct gap-2">
+              <BasicButton mutates
+                variant="secondary"
                 @click="saveFilter"
-              />
+              >
+                {{ editingFilterId
+                    ? $t('promo.btn_save')
+                    : $t('promo.pv_filter_add') }}
+              </BasicButton>
               <BasicButton
                 v-if="editingFilterId"
-                :text="$t('promo.btn_cancel')"
-                class="btn-secondary"
+                variant="secondary"
                 @click="cancelFilterEdit"
-              />
+              >
+                {{ $t('promo.btn_cancel') }}
+              </BasicButton>
             </div>
           </div>
         </div>
 
-        <div class="voucher-form__actions">
-          <BasicButton
-            v-if="isEdit"
-            :text="$t('promo.btn_delete')"
-            class="btn-secondary"
-            @click="showDelete = true"
-          />
-          <BasicButton
-            :text="$t('promo.btn_save')"
-            class="btn-primary"
-            :is-disabled="saving"
-            @click="save"
-          />
-        </div>
+        <ActionBar :actions="drawerActions" class="mt-10" />
       </div>
     </SideDrawer>
 
-    <Confirmation-modal
-      :visible="showDelete"
-      @accept="doDelete"
-      @reject="showDelete = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDelete"
+      @confirm="doDelete"
+      @cancel="showDelete = false"
+      :title="$t('promo.pv_delete_title')"
     >
-      <template #header
-        ><h2>{{ $t("promo.pv_delete_title") }}</h2></template
-      >
-      <template #description
+      <template #default
         ><p>{{ $t("promo.pv_delete_msg") }}</p></template
       >
-    </Confirmation-modal>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -294,7 +256,6 @@
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { useCheckoutChannelStore } from "@/stores/checkoutChannel";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import { GET_RegionalCurrencies } from "@/api/regional/api";
 import { GET_Products, GET_Categories, GET_Attributes } from "@/api/pim/api";
 import {
@@ -308,7 +269,7 @@ import {
   DELETE_VoucherProductFilter,
   GET_VoucherMeta,
 } from "@/api/voucher/api";
-import { enumDescKey } from "./promo-enum-hints";
+import { enumDescKey, enumLabel } from "./promo-enum-hints";
 
 function emptyForm() {
   return {
@@ -336,7 +297,7 @@ function emptyFilter() {
 
 export default {
   name: "ProductVouchersList",
-  components: { ConfirmationModal },
+  components: {},
   setup() {
     return {
       notify: useNotifyStore(),
@@ -428,6 +389,14 @@ export default {
         },
       ];
     },
+    drawerActions() {
+      const del = { key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("promo.btn_delete"),
+        onClick: () => (this.showDelete = true) };
+      return [
+        ...(this.isEdit ? [del] : []),
+        { key: "save", role: "primary", label: this.$t("promo.btn_save"), onClick: this.save, disabled: this.saving },
+      ];
+    },
     drawerTitle() {
       return this.isEdit ? this.$t("promo.pv_edit") : this.$t("promo.pv_new");
     },
@@ -457,11 +426,11 @@ export default {
     },
     taxLabel(v) {
       const f = this.meta.tax_types.find((t) => t.value === v);
-      return f ? f.label : v;
+      return enumLabel("tax_type", v, f?.label);
     },
     modeLabel(v) {
       const f = this.meta.filter_modes.find((t) => t.value === v);
-      return f ? f.label : v;
+      return enumLabel("filter_mode", v, f?.label);
     },
     async fetchMeta() {
       try {
@@ -748,84 +717,42 @@ export default {
 .config-list__toolbar {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: var(--space-400);
+  margin-bottom: var(--space-10);
 }
 
 .voucher-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-300);
+  gap: var(--space-8);
 }
 
 .voucher-form__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-300);
+  gap: var(--space-8);
 }
 
 .voucher-form__filters {
-  border-top: 1px solid var(--c-basic-300);
-  padding-top: var(--space-300);
-}
-
-.voucher-form__actions {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-200);
-  margin-top: var(--space-400);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-8);
 }
 
 .filter-row {
-  padding: var(--space-200) 0;
-  border-bottom: 1px solid var(--c-basic-200);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .filter-add {
   display: flex;
   flex-direction: column;
-  gap: var(--space-200);
-  margin-top: var(--space-300);
-}
-
-.filter-picker {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-50);
+  gap: var(--space-5);
+  margin-top: var(--space-8);
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-100);
-  margin-top: var(--space-100);
-}
-
-.config-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-200);
-  background: var(--c-basic-200);
-  color: var(--c-basic-700);
-}
-
-.config-chip__x {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  color: var(--c-basic-500);
-  padding: 0;
-}
-
-.config-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-200);
-  font-weight: 600;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 </style>

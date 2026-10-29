@@ -15,7 +15,7 @@ export function ssoRoutes() {
       path: SSO_CALLBACK_ROUTE,
       name: "SsoCallback",
       component: () =>
-        import(/* webpackChunkName: "auth" */ "../views/Sso/Callback.vue"),
+        import(/* webpackChunkName: "auth" */ "../views/SsoCallback/SsoCallback.vue"),
       // The whole point of this route is to CREATE the session, so it cannot require one.
       // App.vue renders any route with requiresAuth === false instead of the login wall.
       meta: {

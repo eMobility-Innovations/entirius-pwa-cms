@@ -60,7 +60,12 @@ Variant strings must EXACTLY match `prop:value` format. Typos cause silent failu
 
 ## Environment Validation
 
-**Build-time:** `EnvCheckPlugin` in `vue.config.js` prints warnings for missing vars.
+**Build-time:** `EnvCheckPlugin` in `scripts/build-config.cjs` fails production compilation if `VUE_APP_API_URL` or `VUE_APP_CHANNEL` is missing or blank. Development compilation warns; panels remain optional for module discovery. Run `npm run test:build-config` to exercise the webpack plugin. Production builds also reject dev auto-login credentials through `scripts/build-env.js`.
+
+Every build emits `build-info.json`: source SHA, package version, public API URL, channel, and SSO enabled/only booleans. Deployments compare these with the intended host before publishing. No credentials or tokens are included. A production build fails when
+`VUE_APP_USERNAME` or `VUE_APP_PASSWORD` is set (`scripts/build-env.js`): every `VUE_APP_*` value is compiled into the
+bundle, and the pair is for the dev server only (`.env.development.local`). It ships no source maps
+(`productionSourceMap: false`).
 
 **Runtime:** `src/utils/env-check.js` validates at import. Exports `envStatus = { valid, errors[], warnings[] }`.
 
@@ -68,5 +73,24 @@ Variant strings must EXACTLY match `prop:value` format. Typos cause silent failu
 
 **Adding new required env var:**
 1. Add to `ENV_VARS` in `src/utils/env-check.js`
-2. Add to `REQUIRED_ENV` in `vue.config.js`
+2. Add to `REQUIRED_ENV` in `scripts/build-config.cjs`
 3. Add to `.env.example`
+
+## Builder Controllers
+
+Vue components that handle configuration UI:
+
+- **InputFieldController** - Text inputs
+- **GroupFieldsController** - Repeatable field groups
+- **ButtonsController** - Button configuration
+- **ImagesController** - Image selection/upload
+
+Located in: `src/configs/builder/components/`
+
+## In-app Documentation
+
+Additional documentation available in the app:
+
+- Navigate to the `/pages/doc` route after login (`/doc` and `/docs` redirect there)
+- Config system: `src/views/Docs/config_docs.md`
+- Props system: `src/views/Docs/props_docs.md`

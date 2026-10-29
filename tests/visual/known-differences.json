@@ -1,0 +1,332 @@
+{
+  "source": "roadmap 00006-cms-redesign r04 tech-notes §6 (KD01–KD19), r05 decisions 1, 2, 4 (KD20–KD22). Figma is frozen; code wins (Q5).",
+  "treatments": {
+    "token": "parity checks the code token, not the Figma value",
+    "ignore-colour": "overlay and landmarks ignore colour in the scope",
+    "mask": "region excluded from the overlay heat map",
+    "geometry-tolerance": "landmark geometry compared within the tolerance",
+    "no-reference": "no Figma reference; parity and contrast only"
+  },
+  "differences": [
+    {
+      "id": "KD01",
+      "decision": "Q1",
+      "figma": "accent #239AAB (library var …/40:41)",
+      "code": "accent #00ACC1 for text, icons, borders, active indicator",
+      "scope": "everywhere",
+      "treatment": "token"
+    },
+    {
+      "id": "KD02",
+      "decision": "D1",
+      "figma": "teal fills with white text (primary button, FAB, tile \"+\", active chip) in #239AAB",
+      "code": "accent-fill #0E7C86 + white",
+      "scope": "buttons, FAB, chips",
+      "treatment": "token"
+    },
+    {
+      "id": "KD03",
+      "decision": "Q2",
+      "figma": "content areas in the old CMS blue-grey #0C1017 #1E2830 #2D3A48 #8899AB #B4C3D1",
+      "code": "basic-* surfaces, borders, muted text",
+      "scope": "tables, tiles, inputs, panels",
+      "treatment": "token + ignore-colour"
+    },
+    {
+      "id": "KD04",
+      "decision": "Q2/D2",
+      "figma": "shell warm greys #111111, #1A1A1A, #2B2B2B, #0E0B0A",
+      "code": "mapped by r01 onto black / basic-*",
+      "scope": "shell containers",
+      "treatment": "token"
+    },
+    {
+      "id": "KD05",
+      "decision": "D2",
+      "figma": "frame background gradient #0C1017 → #141A24 (leftover)",
+      "code": "page bg black #0D0A09",
+      "scope": "page background",
+      "treatment": "token + ignore-colour"
+    },
+    {
+      "id": "KD06",
+      "decision": "D2",
+      "figma": "card fill #161616 → #252525",
+      "code": "named gradient card (same values)",
+      "scope": "panel cards",
+      "treatment": "token (parity only)"
+    },
+    {
+      "id": "KD07",
+      "decision": "r01",
+      "figma": "muted text #727276, hairline #2B2B2B @ .50",
+      "code": "brand basic-700 / hairline token as r01 decides",
+      "scope": "text-muted, dividers",
+      "treatment": "token"
+    },
+    {
+      "id": "KD08",
+      "decision": "r01",
+      "figma": "status badge #10B981 on #0D2618",
+      "code": "status tokens from r01",
+      "scope": "status badges",
+      "treatment": "token"
+    },
+    {
+      "id": "KD09",
+      "decision": "D5",
+      "figma": "radii 2/3/4/5 → 4; 10/12/16 → xl/2xl; 19/22/50 → full; cards 24",
+      "code": "Tailwind-named scale 4/8/12/16/24/32/full",
+      "scope": "all radii",
+      "treatment": "token (radius after mapping)"
+    },
+    {
+      "id": "KD10",
+      "decision": "D4",
+      "figma": "off-grid spacing 14.5, 11.8, 12.77, 120.74, 5 px steps",
+      "code": "4 px grid --space-*",
+      "scope": "all spacing",
+      "treatment": "geometry-tolerance ±2 px"
+    },
+    {
+      "id": "KD11",
+      "decision": "D3",
+      "figma": "Lexend Deca / Inter rasterised by Figma",
+      "code": "same families rasterised by Chromium",
+      "scope": "all text",
+      "treatment": "never pixel-compared; font gate + parity"
+    },
+    {
+      "id": "KD12",
+      "decision": "C4",
+      "figma": "tables copied from a dev build",
+      "code": "DataTable structure, token restyle only",
+      "scope": "table internals (S4, S5, list screens)",
+      "treatment": "mask"
+    },
+    {
+      "id": "KD13",
+      "decision": "C9",
+      "figma": "content-builder section blocks and tiles as they were",
+      "code": "token-only restyle",
+      "scope": "section bodies and tiles (S6–S8)",
+      "treatment": "mask"
+    },
+    {
+      "id": "KD14",
+      "decision": "—",
+      "figma": "Figma copy and data (\"Hello\", sample rows, counts, \"Ultramarines Throne Sofa\")",
+      "code": "seed data, PL UI strings",
+      "scope": "all text content",
+      "treatment": "never compared"
+    },
+    {
+      "id": "KD15",
+      "decision": "r05",
+      "figma": "header has no theme toggle, no config-health or notification buttons",
+      "code": "header controls placed by r05",
+      "scope": "header right cluster",
+      "treatment": "mask until r05 lands"
+    },
+    {
+      "id": "KD16",
+      "decision": "—",
+      "figma": "sidebar lists a fixed panel set (incl. locked \"Stany magazynowe\")",
+      "code": "panels from Munin (17 enabled here)",
+      "scope": "sidebar",
+      "treatment": "geometry of an item, not the count"
+    },
+    {
+      "id": "KD17",
+      "decision": "Q3",
+      "figma": "no light theme",
+      "code": "derived light theme",
+      "scope": "every light capture",
+      "treatment": "no-reference (parity + contrast only)"
+    },
+    {
+      "id": "KD18",
+      "decision": "—",
+      "figma": "hidden GitHub text layers inside the docs Item component",
+      "code": "—",
+      "scope": "sidebar items",
+      "treatment": "ignore"
+    },
+    {
+      "id": "KD19",
+      "decision": "—",
+      "figma": "mobile frames' content runs past 852 px (Container h 3129)",
+      "code": "viewport capture",
+      "scope": "mobile S-screens",
+      "treatment": "compare the viewport only"
+    },
+    {
+      "id": "KD20",
+      "decision": "r05 d1",
+      "figma": "no sidebar collapse",
+      "code": "collapsed 64 px icon rail (user preference)",
+      "scope": "sidebar",
+      "treatment": "capture expanded only; the rail is checked by e2e, not image diff"
+    },
+    {
+      "id": "KD21",
+      "decision": "r05 d2",
+      "figma": "chevron on every panel row",
+      "code": "single-entry panels are leaf links without chevron",
+      "scope": "sidebar L1",
+      "treatment": "ignore chevron on those rows"
+    },
+    {
+      "id": "KD22",
+      "decision": "r05 d4",
+      "figma": "inactive sub-item text #727276",
+      "code": "basic-800 #9A9CAA, as the docs sidebar",
+      "scope": "sidebar L2",
+      "treatment": "token"
+    },
+    {
+      "id": "KD23",
+      "decision": "plan 11 (polish button model)",
+      "figma": "content icon buttons 32 px next to 31 px text buttons in one action bar",
+      "code": "IconButton md = --elem-height, the text button height, so an ActionBar lines up",
+      "scope": "IconButton md, ActionBar",
+      "treatment": "geometry-tolerance"
+    },
+    {
+      "id": "KD24",
+      "decision": "plan 13 (display)",
+      "figma": "badge role 12/15 Inter 600",
+      "code": "StatusBadge 600 weight, 19 px tall (was 500, 22 px); the dot takes the tone text colour; every .chip is a dotless StatusBadge",
+      "scope": "status and category pills",
+      "treatment": "no-reference"
+    },
+    {
+      "id": "KD25",
+      "decision": "plan 13 (display)",
+      "figma": "pagination: current page boxed",
+      "code": "current page: 1 px accent border, no accent-subtle fill; prev/next round 32 px with a border-default ring, disabled at opacity .5; hover surface-hover",
+      "scope": "Pagination",
+      "treatment": "no-reference"
+    },
+    {
+      "id": "KD26",
+      "decision": "plan 13 (display)",
+      "figma": "counts 20 px pills",
+      "code": "counts are CountBadges: 20 px (was 16), surface-hover fill in FilterChip, BasicTabs and the MobileFilterPanel trigger (at -8 px)",
+      "scope": "FilterChip, BasicTabs, MobileFilterPanel",
+      "treatment": "no-reference"
+    },
+    {
+      "id": "KD27",
+      "decision": "plan 13 (display)",
+      "figma": "—",
+      "code": "overlay Loader: 64 px accent rings (the old arc was 100 px), fades in and out; inline loaders unchanged, the name is a visually hidden „Ładowanie…”",
+      "scope": "Loader overlay",
+      "treatment": "no-reference"
+    },
+    {
+      "id": "KD28",
+      "decision": "plan 14 (page frame)",
+      "figma": "back arrow left of the H1",
+      "code": "before PageHeader lands: icon-only back controls are 32 px ghost IconButtons (40 px hit area on a phone); labelled ones ghost sm BasicButtons with the same hit area",
+      "scope": "back controls",
+      "treatment": "geometry-tolerance"
+    },
+    {
+      "id": "KD29",
+      "decision": "plan 16 (inputs)",
+      "figma": "search field icon leading",
+      "code": "BasicInput icon is leading (the text starts after it); FormField labels carry for (a click focuses the control), the required * sits before the ? help button; BasicDatePicker trigger looks like an input with the calendar icon",
+      "scope": "form fields",
+      "treatment": "no-reference"
+    },
+    {
+      "id": "KD30",
+      "decision": "plan 18 (sweep 2)",
+      "figma": "—",
+      "code": "multi-choice lists are BasicSelect multiple („Wybrano: N” for several, the plain label as placeholder); confirmations with a custom footer are BasicModal (a bottom sheet on a phone); the Builder section order is the labelled FloatingActions pill",
+      "scope": "selects, dialogs, Builder",
+      "treatment": "no-reference"
+    },
+    {
+      "id": "KD31",
+      "decision": "plan 19 (join)",
+      "figma": "—",
+      "code": "the rich-text toolbar formatting tools are outline sm IconButtons with a pressed state (H1–H3 stay text buttons, R7); the text / table mode switch is a BasicSelect",
+      "scope": "BasicWysiwyg",
+      "treatment": "no-reference"
+    },
+    {
+      "id": "KD-P5-S4-row-actions",
+      "decision": "plan 27 (Q5, ui-rules § Delete)",
+      "figma": "row actions „Edytuj” / „Usuń” as ghost buttons with a 12 px icon and text (S4 39:3716, 39:3722)",
+      "code": "„Edytuj” is a ghost sm text button without an icon (C5: no icon unless the design needs one); delete is an icon-only danger sm IconButton named „Usuń”",
+      "scope": "Pages content list rows",
+      "treatment": "geometry-tolerance"
+    },
+    {
+      "id": "KD-P5-S4-filters-row",
+      "decision": "plan 27 (Q5)",
+      "figma": "„Język treści” label In 12/500 sentence case; no translate action in the frame",
+      "code": "the label is the FormField field label (12/600 uppercase, text-muted); „Przetłumacz wszystko” (contentdb_translator installed) is a secondary button left of the labelled select, above it on a phone",
+      "scope": "Pages content list filters row",
+      "treatment": "geometry-tolerance"
+    },
+    {
+      "id": "KD-P5-S6-actions",
+      "decision": "plan 28 (R5, ui-rules § Edit view)",
+      "figma": "copy · settings · „Zapisz szkic” · „Zapisz i publikuj” only (S6 46:6574)",
+      "code": "a dirty document shows the „Niezapisane zmiany” badge left of the ActionBar; „Opcje dokumentu” (edit) follows settings when the client config defines document options; settings toggles the advanced row and shows close while it is open",
+      "scope": "Pages content editor header",
+      "treatment": "geometry-tolerance"
+    },
+    {
+      "id": "KD-P5-S6-section-actions",
+      "decision": "plan 28 (C6, R6)",
+      "figma": "section trash drawn as an outline 32 px box like eye/pen/copy; mobile tile-group reorder is the old grid-dot glyph (S7 52:1641)",
+      "code": "delete is a danger IconButton (no box, negative icon); reorder is the `reorder` meaning on both viewports; the eye is named „Aktualna konfiguracja: <values>” (its tooltip)",
+      "scope": "Pages content editor section blocks and tile groups",
+      "treatment": "mask"
+    },
+    {
+      "id": "KD-P5-S7-sticky-hairline",
+      "decision": "plan 28 (R4)",
+      "figma": "bottom hairline under the sticky page header (S7 52:1271)",
+      "code": "no line: the head sits on the page background, spacing separates it",
+      "scope": "Pages content editor sticky header (phone)",
+      "treatment": "geometry-tolerance"
+    },
+    {
+      "id": "KD-P5-S1-card-glyph",
+      "decision": "plan 26 (handoff 26, plan 30)",
+      "figma": "panel-card glyph 13.5 × 18 in a 24 px box; description at opacity .80",
+      "code": "glyph at `--fs-500` (20 px, no 18 px token); description `text-muted` without the extra opacity",
+      "scope": "Home PanelCard",
+      "treatment": "token"
+    },
+    {
+      "id": "KD-P5-S1-glow",
+      "decision": "plan 26 (handoff 26, plan 30)",
+      "figma": "glow band behind the cards (sign 1340 × 1306, blur 120, opacity .10)",
+      "code": "600 px band pinned to the bottom of the content region, fading 158 px into `--surface-page`, `--brand-gradient-accent-from/-to`; it does not scroll with the cards; no frame for 769–1023 px (2 columns kept, R9)",
+      "scope": "Home background",
+      "treatment": "mask"
+    },
+    {
+      "id": "KD-P5-S9-media-tile",
+      "decision": "plan 29 (handoff 29, plan 30)",
+      "figma": "the image fills a plain tile, no caption",
+      "code": "MediaTile keeps its 8 px inner padding and the caption / actions footer (image `object-fit: cover`); grid 4 × 188 from 1280 px, 2 × 188 below (4 would overflow beside the sidebar; no frame), 2 × 150 on a phone",
+      "scope": "Gallery grid tiles",
+      "treatment": "mask"
+    },
+    {
+      "id": "KD-P5-S9-controls",
+      "decision": "plan 29 (handoff 29, plan 30)",
+      "figma": "controls-row gap 5, grid gap 10; selects 31 px high",
+      "code": "controls-row and grid gaps 8 px (no 5 or 10 px token); selects 32 px (`--elem-height`)",
+      "scope": "Gallery controls row and grid",
+      "treatment": "token"
+    }
+  ]
+}

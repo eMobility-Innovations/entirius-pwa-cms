@@ -31,9 +31,7 @@ function mountWith(paymentMethod) {
   return mount(OrderDetail, {
     global: {
       mocks: { $route: { params: { uid: "0200000003" }, query: {} }, $router: { push: vi.fn() } },
-      // The toolbar teleports to #checkout-orders-toolbar-left, which only exists
-      // in the real layout — an unstubbed Teleport throws during patching here.
-      stubs: { teleport: true, DataTable: true },
+      stubs: { DataTable: true },
     },
   });
 }

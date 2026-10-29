@@ -1,28 +1,34 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct jc-sb mb-400 gap-300">
-        <h1 class="fs-700 fw-600">{{ $t("atlas.list_title") }}</h1>
-        <button
-          class="suppliers-primary-btn"
-          data-testid="suppliers-create-btn"
-          @click="openCreate"
-        >
-          <FontAwesomeIcon icon="plus" />
-          {{ $t("atlas.create_button") }}
-        </button>
-      </div>
-
-      <!-- Filter panel -->
-      <div class="flex ai-ct mb-400">
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('atlas.list_title')">
+        <template #actions>
+          <BasicButton
+            variant="primary"
+            data-testid="suppliers-create-btn"
+            @click="openCreate"
+          >
+            {{ $t('atlas.create_button') }}
+          </BasicButton>
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
+      <div class="flex ai-ct flex-wrap gap-5">
+        <BasicInput
+          v-model="search"
+          :placeholder="$t('common.start_typing')"
+          icon="search"
+          class="supplier-list__search"
+          data-testid="suppliers-search-input"
+          @input="debouncedFetch(searchAndFetch)"
+        />
         <MobileFilterPanel
           :active-count="activeFilterCount"
           :trigger-label="$t('builder.filters')"
         >
-          <p class="fs-200 t-basic-600">{{ $t("atlas.filter.kind") }}</p>
-          <div class="flex ai-ct flex-wrap gap-100">
+          <p class="fs-200 t-secondary">{{ $t("atlas.filter.kind") }}</p>
+          <div class="flex ai-ct flex-wrap gap-2">
             <FilterChip
               v-for="opt in kindOptions"
               :key="opt.value"
@@ -32,10 +38,10 @@
               @click="setKindFilter(opt.value)"
             />
           </div>
-          <p class="fs-200 t-basic-600">
+          <p class="fs-200 t-secondary">
             {{ $t("atlas.filter.status") }}
           </p>
-          <div class="flex ai-ct flex-wrap gap-100">
+          <div class="flex ai-ct flex-wrap gap-2">
             <FilterChip
               v-for="opt in statusOptions"
               :key="opt.value"
@@ -47,21 +53,12 @@
           </div>
         </MobileFilterPanel>
       </div>
+    </template>
 
-      <div class="supplier-list__toolbar">
-        <BasicInput
-          v-model="search"
-          :placeholder="$t('common.start_typing')"
-          icon="search"
-          class="supplier-list__search"
-          data-testid="suppliers-search-input"
-          @input="debouncedFetch(searchAndFetch)"
-        />
-      </div>
-
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="suppliers"
@@ -71,58 +68,53 @@
         @sort="onSort"
         @row-click="onRowClick"
       >
-        <template #cell-idx="{ value }">
-          <span class="cell-truncate" :title="value">{{ value }}</span>
-        </template>
-        <template #cell-name="{ value }">
-          <span class="cell-truncate" :title="value">{{ value }}</span>
-        </template>
         <template #cell-kind="{ value }">
-          <StatusBadge :label="$t(`atlas.kind.${value}`)" :variant="kindVariant(value)" />
+          <StatusBadge :label="$t(`atlas.kind.${value}`)" :tone="kindVariant(value)" />
         </template>
         <template #cell-source_type="{ value }">
           <StatusBadge
             :label="$t(`atlas.type.${value || 'feed'}`)"
-            variant="neutral"
+            tone="neutral"
           />
         </template>
         <template #cell-is_active="{ value }">
           <StatusBadge
             :label="value ? $t('common.active') : $t('common.inactive')"
-            :variant="value ? 'positive' : 'negative'"
+            :tone="value ? 'positive' : 'negative'"
           />
         </template>
         <template #cell-default_currency_id="{ value }">
           {{ regionalStore.currencyById(value)?.iso3 || "—" }}
         </template>
         <template #cell-actions="{ row }">
-          <div class="flex ai-ct gap-100" @click.stop>
-            <button
-              class="row-action-btn bg-support-100 t-support-400"
-              :title="$t('common.edit')"
+          <div class="flex ai-ct gap-2" @click.stop>
+            <IconButton
+              icon="edit"
+              :label="$t('common.edit')"
+              size="sm"
               :data-testid="`suppliers-edit-${row.idx}`"
               @click="onEdit(row)"
-            >
-              <FontAwesomeIcon icon="pen" />
-            </button>
-            <button
-              class="row-action-btn bg-negative-100 t-negative-300"
-              :title="$t('common.delete')"
+            />
+            <IconButton
+              icon="delete"
+              :label="$t('common.delete')"
+              variant="danger"
+              size="sm"
               :data-testid="`suppliers-delete-${row.idx}`"
               @click="openDelete(row)"
-            >
-              <FontAwesomeIcon icon="trash-can" />
-            </button>
+            />
           </div>
         </template>
       </DataTable>
 
+    <template #footer>
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-    </div>
+    </template>
 
     <!-- Create supplier drawer -->
     <SideDrawer
@@ -131,187 +123,160 @@
       width="420px"
       @close="closeCreate"
     >
-      <form class="flex flex-column gap-200" @submit.prevent="submitCreate">
-        <FormField :label="$t('atlas.form.idx_label')" required>
+      <form class="flex flex-column gap-5" @submit.prevent="submitCreate">
+        <FormField
+          :label="$t('atlas.form.idx_label')"
+          required
+          :error="errors.idx?.msg || ''"
+        >
           <BasicInput
             v-model="createForm.idx"
+            format="key"
+            :maxlength="64"
             placeholder="example-supplier"
             data-testid="suppliers-create-idx"
           />
-          <p
-            v-if="errors.idx"
-            class="form-error t-negative-300 fs-200"
-            data-testid="suppliers-create-error-idx"
-          >
-            {{ errors.idx.msg }}
-          </p>
         </FormField>
-        <FormField :label="$t('atlas.form.name_label')" required>
+        <FormField
+          :label="$t('atlas.form.name_label')"
+          required
+          :error="errors.name?.msg || ''"
+        >
           <BasicInput
             v-model="createForm.name"
+            :maxlength="128"
             data-testid="suppliers-create-name"
           />
-          <p v-if="errors.name" class="form-error t-negative-300 fs-200">
-            {{ errors.name.msg }}
-          </p>
         </FormField>
         <FormField :label="$t('atlas.form.kind_label')">
-          <Dropdown
-            :values="kindDropdownOptions"
-            :selected="[createForm.kind]"
+          <BasicSelect
+            :options="kindDropdownOptions"
+            v-model="createForm.kind"
             data-testid="suppliers-create-kind"
-            @onSelect="(val) => (createForm.kind = val)"
           />
         </FormField>
         <FormField :label="$t('atlas.form.type_label')">
-          <Dropdown
-            :values="typeDropdownOptions"
-            :selected="[createForm.source_type]"
+          <BasicSelect
+            :options="typeDropdownOptions"
+            v-model="createForm.source_type"
             data-testid="suppliers-create-type"
-            @onSelect="(val) => (createForm.source_type = val)"
           />
         </FormField>
         <FormField :label="$t('atlas.form.default_language_label')">
-          <Dropdown
-            :values="regionalStore.languageOptions"
-            :selected="
-              createForm.default_language_id
-                ? [createForm.default_language_id]
-                : []
-            "
+          <BasicSelect
+            :options="regionalStore.languageOptions"
+            v-model="createForm.default_language_id"
             :placeholder="$t('atlas.form.select_language')"
             data-testid="suppliers-create-language"
-            @onSelect="(val) => (createForm.default_language_id = val)"
           />
         </FormField>
         <FormField :label="$t('atlas.form.default_currency_label')">
-          <Dropdown
-            :values="regionalStore.currencyOptions"
-            :selected="
-              createForm.default_currency_id
-                ? [createForm.default_currency_id]
-                : []
-            "
+          <BasicSelect
+            :options="regionalStore.currencyOptions"
+            v-model="createForm.default_currency_id"
             :placeholder="$t('atlas.form.select_currency')"
             data-testid="suppliers-create-currency"
-            @onSelect="(val) => (createForm.default_currency_id = val)"
           />
         </FormField>
-        <FormField :label="$t('atlas.form.sku_prefix_label')">
+        <FormField :label="$t('atlas.form.sku_prefix_label')" :error="errors.sku_prefix?.msg || ''">
           <BasicInput
             v-model="createForm.sku_prefix"
+            format="key"
+            :maxlength="10"
             placeholder="SUP"
             data-testid="suppliers-create-sku-prefix"
           />
         </FormField>
-        <div class="flex ai-ct jc-end gap-200 mt-300">
-          <button
+        <div class="flex ai-ct jc-end gap-5 mt-8">
+          <BasicButton
+            variant="secondary"
             type="button"
-            class="suppliers-secondary-btn"
             data-testid="suppliers-create-cancel"
             @click="closeCreate"
           >
-            {{ $t("common.cancel") }}
-          </button>
-          <button
+            {{ $t('common.cancel') }}
+          </BasicButton>
+          <BasicButton
+            variant="primary"
             type="submit"
-            class="suppliers-primary-btn"
             :disabled="creating"
             data-testid="suppliers-create-submit"
           >
-            <FontAwesomeIcon icon="floppy-disk" />
-            {{ $t("common.save") }}
-          </button>
+            {{ $t('common.save') }}
+          </BasicButton>
         </div>
       </form>
     </SideDrawer>
 
     <!-- Delete confirmation modal -->
-    <Confirmation-modal
-      :visible="deleteVisible"
-      @accept="submitDelete"
-      @reject="closeDelete"
+    <BasicModal
+      :open="deleteVisible"
+      size="sm"
+      :title="$t('atlas.delete.modal_title')"
+      @update:open="(open) => open || closeDelete()"
     >
-      <template #header>
-        <h2>{{ $t("atlas.delete.modal_title") }}</h2>
-      </template>
-      <template #description>
-        <p class="mb-200">
-          <strong>{{ deleteTarget?.name }}</strong> ({{ deleteTarget?.idx }})
+      <p class="mb-5">
+        <strong>{{ deleteTarget?.name }}</strong> ({{ deleteTarget?.idx }})
+      </p>
+      <BasicRadioGroup
+        v-model="deleteForce"
+        :options="deleteModeOptions"
+        :aria-label="$t('atlas.delete.modal_title')"
+        class="mb-3"
+      />
+      <!-- The line follows the chosen option: the safe deactivation reads neutral, the permanent delete negative. -->
+      <p
+        v-if="deleteForce"
+        class="flex ai-ct gap-2 fs-200 fw-600 t-negative mb-5"
+        data-testid="suppliers-delete-warning"
+      >
+        <FontAwesomeIcon :icon="$icons.warning" aria-hidden="true" />
+        {{ $t("atlas.delete.hard_warning") }}
+      </p>
+      <p v-else class="fs-200 t-muted mb-5" data-testid="suppliers-delete-note">
+        {{ $t("atlas.delete.soft_note") }}
+      </p>
+      <div
+        v-if="deleteForce && deleteImpact"
+        class="suppliers-delete-impact"
+        data-testid="suppliers-delete-impact-banner"
+      >
+        <p class="fs-200 mb-2">
+          {{
+            $t("atlas.delete.impact_links", {
+              count: deleteImpact.affected_links_count,
+            })
+          }}
         </p>
-        <div class="flex flex-column gap-100 mb-200">
-          <label class="flex ai-ct gap-100 pointer">
-            <input
-              type="radio"
-              :value="false"
-              v-model="deleteForce"
-              data-testid="suppliers-delete-soft-radio"
-            />
-            <span class="fs-300">{{
-              $t("atlas.delete.mode_soft_label")
-            }}</span>
-          </label>
-          <label class="flex ai-ct gap-100 pointer">
-            <input
-              type="radio"
-              :value="true"
-              v-model="deleteForce"
-              data-testid="suppliers-delete-hard-radio"
-            />
-            <span class="fs-300 t-negative-300 fw-600">{{
-              $t("atlas.delete.mode_hard_label")
-            }}</span>
-          </label>
-        </div>
-        <div
-          v-if="deleteForce && deleteImpact"
-          class="suppliers-delete-impact"
-          data-testid="suppliers-delete-impact-banner"
-        >
-          <p class="fs-200 mb-100">
-            {{
-              $t("atlas.delete.impact_links", {
-                count: deleteImpact.affected_links_count,
-              })
-            }}
-          </p>
-          <p class="fs-200">
-            {{
-              $t("atlas.delete.impact_pushed_skus", {
-                count: deleteImpact.affected_pushed_skus_count,
-              })
-            }}
-          </p>
-        </div>
-        <p v-if="!deleteForce" class="fs-200 t-basic-500 mt-200">
-          {{ $t("atlas.delete.default_warning") }}
+        <p class="fs-200">
+          {{
+            $t("atlas.delete.impact_pushed_skus", {
+              count: deleteImpact.affected_pushed_skus_count,
+            })
+          }}
         </p>
-      </template>
+      </div>
       <template #footer>
-        <button
-          class="modal-btn modal-btn--secondary"
+        <BasicButton
+          variant="secondary"
           data-testid="suppliers-delete-cancel"
           @click="closeDelete"
         >
-          {{ $t("common.cancel") }}
-        </button>
-        <button
-          class="modal-btn modal-btn--delete"
-          :class="{ 'modal-btn--danger': deleteForce }"
+          {{ $t('common.cancel') }}
+        </BasicButton>
+        <BasicButton mutates
+          variant="danger-solid"
           :disabled="deleting"
           data-testid="suppliers-delete-confirm"
           @click="submitDelete"
         >
-          <FontAwesomeIcon icon="trash-can" />
-          {{
-            deleteForce
-              ? $t("atlas.delete.confirm_button_hard")
-              : $t("atlas.delete.confirm_button_soft")
-          }}
-        </button>
+          {{ deleteForce
+              ? $t('atlas.delete.confirm_button_hard')
+              : $t('atlas.delete.confirm_button_soft') }}
+        </BasicButton>
       </template>
-    </Confirmation-modal>
-  </div>
+    </BasicModal>
+  </PageLayout>
 </template>
 
 <script>
@@ -319,7 +284,6 @@ import { useNotifyStore } from "@/stores/notify";
 import { useRegionalStore } from "@/stores/regional";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { useFormErrors, extractApiMessage } from "@/composables/useFormErrors";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import {
   GET_Sources,
   POST_Source,
@@ -327,9 +291,11 @@ import {
   GET_SupplierDeleteImpact,
 } from "@/api/atlas/api";
 
+const CREATE_FORMATS = { idx: { format: "key" }, sku_prefix: { format: "key" } };
+
 const KIND_VARIANTS = {
   procurement: "positive",
-  monitoring: "informative",
+  monitoring: "info",
   enrichment: "neutral",
 };
 
@@ -345,13 +311,12 @@ const EMPTY_FORM = () => ({
 
 export default {
   name: "SourceList",
-  components: { ConfirmationModal },
   setup() {
     const notify = useNotifyStore();
     const regionalStore = useRegionalStore();
     regionalStore.fetchAll();
     const { search, debouncedFetch } = useSearchDebounce();
-    const { errors, handleApiError, clearErrors } = useFormErrors();
+    const { errors, handleApiError, clearErrors, validateFormats } = useFormErrors();
     return {
       notify,
       regionalStore,
@@ -360,6 +325,7 @@ export default {
       errors,
       handleApiError,
       clearErrors,
+      validateFormats,
     };
   },
   data() {
@@ -413,6 +379,20 @@ export default {
         { value: "enrichment", label: this.$t("atlas.kind.enrichment") },
       ];
     },
+    deleteModeOptions() {
+      return [
+        {
+          value: false,
+          label: this.$t("atlas.delete.mode_soft_label"),
+          testid: "suppliers-delete-soft-radio",
+        },
+        {
+          value: true,
+          label: this.$t("atlas.delete.mode_hard_label"),
+          testid: "suppliers-delete-hard-radio",
+        },
+      ];
+    },
     typeDropdownOptions() {
       return [
         { value: "feed", label: this.$t("atlas.type.feed") },
@@ -426,7 +406,8 @@ export default {
           key: "idx",
           label: this.$t("atlas.col.idx"),
           sortable: true,
-          width: "minmax(120px, 180px)",
+          width: "180px",
+          priority: 2,
         },
         {
           key: "name",
@@ -439,24 +420,28 @@ export default {
           label: this.$t("atlas.col.kind"),
           sortable: false,
           width: "120px",
+          priority: 2,
         },
         {
           key: "source_type",
           label: this.$t("atlas.col.type"),
           sortable: false,
           width: "100px",
+          priority: 2,
         },
         {
           key: "default_currency_id",
           label: this.$t("atlas.col.currency"),
           sortable: false,
           width: "80px",
+          priority: 2,
         },
         {
           key: "target_warehouse_code",
           label: this.$t("atlas.col.warehouse"),
           sortable: false,
           width: "120px",
+          priority: 2,
         },
         {
           key: "is_active",
@@ -464,7 +449,7 @@ export default {
           sortable: true,
           width: "100px",
         },
-        { key: "actions", label: "", sortable: false, width: "100px" },
+        { key: "actions", label: "", sortable: false, actions: true },
       ];
     },
     paginationState() {
@@ -548,8 +533,9 @@ export default {
       this.createVisible = false;
     },
     async submitCreate() {
-      this.creating = true;
       this.clearErrors();
+      if (!this.validateFormats(this.createForm, CREATE_FORMATS)) return;
+      this.creating = true;
       try {
         const payload = { ...this.createForm };
         Object.keys(payload).forEach((k) => {
@@ -629,93 +615,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.cell-truncate {
-  display: block;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.supplier-list__toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
-  flex-wrap: wrap;
-}
 .supplier-list__search {
   flex: 1;
   min-width: 150px;
   max-width: 400px;
 }
-.suppliers-primary-btn,
-.suppliers-secondary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-.suppliers-primary-btn {
-  background: var(--c-support-400);
-  border-color: var(--c-support-400);
-  color: var(--c-basic-100);
-}
-.suppliers-primary-btn:hover:not(:disabled) {
-  filter: brightness(1.05);
-}
-.suppliers-primary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.suppliers-secondary-btn {
-  background: var(--c-basic-100);
-  border-color: var(--c-basic-400);
-  color: var(--c-basic-700);
-}
-.suppliers-secondary-btn:hover {
-  background: var(--c-basic-200);
-  border-color: var(--c-basic-500);
-}
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-.row-action-btn:hover {
-  opacity: 0.85;
-}
 .suppliers-delete-impact {
-  background: var(--c-negative-100);
-  color: var(--c-negative-300);
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-}
-.modal-btn--danger {
-  background: var(--c-negative-100);
-  border-color: var(--c-negative-300);
-  color: var(--c-negative-300);
-}
-.modal-btn--danger:hover {
-  background: var(--c-negative-200);
-  color: var(--c-basic-100);
-}
-.form-error {
-  margin: 0;
-  margin-top: 2px;
+  background: var(--negative-subtle);
+  color: var(--negative);
+  padding: var(--space-5);
+  border-radius: var(--radius-base);
 }
 </style>

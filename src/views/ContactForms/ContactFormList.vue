@@ -1,13 +1,10 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("cf.submissions") }}</h1>
-      </div>
-
-      <div class="flex ai-ct gap-300 mb-400">
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('cf.submissions')" />
+    </template>
+    <template #toolbar>
+      <div class="flex ai-ct flex-wrap gap-8 rg-3">
         <BasicInput
           v-model="search"
           :placeholder="$t('common.start_typing')"
@@ -15,32 +12,34 @@
           class="form-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
-        <Dropdown
-          :values="typeFilterOptions"
-          :selected="[typeFilter]"
-          :placeholder="$t('cf.type')"
+        <BasicSelect
+          :floating-label="$t('cf.type')"
+          :options="typeFilterOptions"
+          :model-value="typeFilter"
           class="form-list__filter"
-          @onSelect="onTypeFilter"
+          @update:model-value="onTypeFilter"
         />
-        <Dropdown
-          :values="channelFilterOptions"
-          :selected="[channelFilter]"
-          :placeholder="$t('cf.channel')"
+        <BasicSelect
+          :floating-label="$t('cf.channel')"
+          :options="channelFilterOptions"
+          :model-value="channelFilter"
           class="form-list__filter"
-          @onSelect="onChannelFilter"
+          @update:model-value="onChannelFilter"
         />
-        <Dropdown
-          :values="statusFilterOptions"
-          :selected="[statusFilter]"
-          :placeholder="$t('cf.status')"
+        <BasicSelect
+          :floating-label="$t('cf.status')"
+          :options="statusFilterOptions"
+          :model-value="statusFilter"
           class="form-list__filter"
-          @onSelect="onStatusFilter"
+          @update:model-value="onStatusFilter"
         />
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="submissions"
@@ -51,14 +50,14 @@
         @row-click="onRowClick"
       >
         <template #cell-type="{ value }">
-          <span :class="value ? 't-basic-800' : 't-basic-400'">{{
-            value || "---"
+          <span :class="value ? 't-body' : 't-muted'">{{
+            value || "—"
           }}</span>
         </template>
         <template #cell-status="{ value }">
           <StatusBadge
             :label="statusLabel(value)"
-            :variant="statusVariant(value)"
+            :tone="statusVariant(value)"
           />
         </template>
         <template #cell-created_at="{ value }">
@@ -66,13 +65,14 @@
         </template>
       </DataTable>
 
+    <template v-if="totalCount > pageSize" #footer>
       <Pagination
-        v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-    </div>
-  </div>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -127,7 +127,7 @@ export default {
     },
     columns() {
       return [
-        { key: "id", label: this.$t("cf.id"), sortable: false, width: "140px" },
+        { key: "id", label: this.$t("cf.id"), sortable: false, width: "140px", priority: 2 },
         {
           key: "email",
           label: this.$t("cf.email"),
@@ -139,6 +139,7 @@ export default {
           label: this.$t("cf.type"),
           sortable: true,
           width: "140px",
+          priority: 2,
         },
         {
           key: "status",
@@ -151,18 +152,21 @@ export default {
           label: this.$t("cf.slug"),
           sortable: false,
           width: "1fr",
+          priority: 2,
         },
         {
           key: "channel_idx",
           label: this.$t("cf.channel"),
           sortable: false,
           width: "1fr",
+          priority: 2,
         },
         {
           key: "created_at",
           label: this.$t("cf.created_at"),
           sortable: true,
           width: "180px",
+          priority: 2,
         },
       ];
     },
@@ -196,7 +200,7 @@ export default {
       }
     },
     formatDate(isoStr) {
-      if (!isoStr) return "---";
+      if (!isoStr) return "—";
       const d = new Date(isoStr);
       return d.toLocaleDateString("en-GB", {
         day: "2-digit",
@@ -224,7 +228,7 @@ export default {
     statusVariant(status) {
       const map = {
         todo: "warning",
-        in_progress: "informative",
+        in_progress: "info",
         done: "positive",
       };
       return map[status] || "neutral";
@@ -235,7 +239,7 @@ export default {
         in_progress: this.$t("cf.status_in_progress"),
         done: this.$t("cf.status_done"),
       };
-      return map[status] || status || "---";
+      return map[status] || status || "—";
     },
     async fetchSubmissions() {
       this.loading = true;
@@ -285,9 +289,17 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .form-list__search {
   flex: 1;
   max-width: 400px;
+
+  // A phone gives the search its own row above the filters.
+  @include max-tablet {
+    flex-basis: 100%;
+    max-width: none;
+  }
 }
 
 .form-list__filter {

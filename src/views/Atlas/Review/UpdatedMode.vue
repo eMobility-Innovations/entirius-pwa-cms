@@ -1,18 +1,18 @@
 <template>
   <div class="updated-mode">
-    <div class="updated-mode__header flex ai-ct jc-sb mb-200 flex-wrap gap-200">
+    <div class="updated-mode__header flex ai-ct jc-sb mb-5 flex-wrap gap-5">
       <div>
         <h3 class="fs-300 fw-600 m-0">
           {{ $t("atlas.review.updated.title") }}
         </h3>
-        <p class="fs-200 t-basic-500 mt-100 mb-0">
+        <p class="fs-200 t-muted mt-2 mb-0">
           {{ $t("atlas.review.updated.help") }}
         </p>
       </div>
-      <div class="flex ai-ct gap-200">
+      <div class="flex ai-ct gap-5">
         <span
           v-if="!loading"
-          class="fs-200 t-basic-600"
+          class="fs-200 t-secondary"
           data-testid="updated-counter"
         >
           {{ $t("atlas.review.updated.counter", {
@@ -25,7 +25,7 @@
 
     <div
       v-if="perSupplierCounts.length"
-      class="updated-mode__sidebar flex ai-ct flex-wrap gap-100 mb-300"
+      class="flex ai-ct flex-wrap gap-2 mb-8"
       data-testid="updated-sidebar"
     >
       <FilterChip
@@ -55,7 +55,7 @@
       @clear="clearSelection"
     />
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
 
     <DataTable
       v-show="!loading"
@@ -64,20 +64,19 @@
       row-key="id"
       selectable
       multi-select
-      :empty-text="$t('atlas.review.updated.empty')"
       @select="onSelect"
     >
       <template #cell-source_name="{ row }">
         <span class="fs-200">{{ row.source_name || row.source_idx || "—" }}</span>
       </template>
       <template #cell-status="{ value }">
-        <StatusBadge :label="value" :variant="statusVariant(value)" />
+        <StatusBadge :label="value" :tone="statusVariant(value)" />
       </template>
       <template #cell-updated="{ row }">
         <StatusBadge
           v-if="isRowUpdated(row)"
           :label="$t('atlas.products.col.updated')"
-          variant="warning"
+          tone="warning"
           :data-testid="`updated-badge-${row.id}`"
         />
       </template>
@@ -85,16 +84,16 @@
         <span>{{ formatCost(row.cost, row.currency) }}</span>
       </template>
       <template #cell-last_change="{ row }">
-        <span class="fs-200 t-basic-600">{{ formatDate(row.data_changed_at) }}</span>
+        <span class="fs-200 t-secondary">{{ formatDate(row.data_changed_at) }}</span>
+      </template>
+      <template #empty>
+        <EmptyState
+          icon="notificationsOff"
+          :title="$t('atlas.review.updated.empty')"
+          :message="$t('atlas.review.updated.empty_message')"
+        />
       </template>
     </DataTable>
-
-    <EmptyState
-      v-if="!loading && !visibleRows.length"
-      icon="bell-slash"
-      :title="$t('atlas.review.updated.empty')"
-      :message="$t('atlas.review.updated.empty_message')"
-    />
   </div>
 </template>
 
@@ -107,7 +106,7 @@ import { GET_SupplierProducts } from "@/api/atlas/api";
 
 const STATUS_VARIANTS = {
   new: "neutral",
-  queued: "informative",
+  queued: "info",
   approved: "positive",
   rejected: "negative",
   pushed_pending_images: "warning",
@@ -196,13 +195,13 @@ export default {
         actions.push({
           key: "force_repush",
           labelKey: "atlas.products.bulk.force_repush_selected",
-          buttonClass: "bg-warning-100 t-warning-300",
+          variant: "secondary",
         });
       }
       actions.push({
         key: "acknowledge",
         labelKey: "atlas.products.bulk.acknowledge_selected",
-        buttonClass: "bg-positive-100 t-positive-300",
+        variant: "primary",
       });
       return actions;
     },
@@ -331,9 +330,5 @@ export default {
 .updated-mode {
   display: flex;
   flex-direction: column;
-}
-.updated-mode__sidebar {
-  padding: var(--space-100) 0;
-  border-bottom: 1px solid var(--c-basic-200);
 }
 </style>

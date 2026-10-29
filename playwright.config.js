@@ -1,6 +1,9 @@
 const { defineConfig, devices } = require('@playwright/test');
 require('dotenv').config();
 
+// CMS_BASE_URL points the suite at an already running CMS (zeno :8180) and skips the dev server.
+const CMS_BASE_URL = process.env.CMS_BASE_URL;
+
 /**
  * Playwright Test Configuration
  * For Vue 2 CMS - Critical Smoke Tests
@@ -25,7 +28,7 @@ module.exports = defineConfig({
 
   // Shared settings for all tests
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: CMS_BASE_URL || 'http://localhost:8080',
 
     // Browser settings
     headless: true,
@@ -43,8 +46,8 @@ module.exports = defineConfig({
     actionTimeout: 10000,
   },
 
-  // Development server
-  webServer: {
+  // Development server (skipped when CMS_BASE_URL targets a running CMS)
+  webServer: CMS_BASE_URL ? undefined : {
     command: 'npm run serve',
     port: 8080,
     timeout: 120000,

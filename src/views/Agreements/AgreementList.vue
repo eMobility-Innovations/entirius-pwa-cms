@@ -1,30 +1,10 @@
 <template>
-  <div class="agm-list__wrapper p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("agm.definitions") }}</h1>
-      </div>
-
-      <!-- Filter tabs -->
-      <div class="flex ai-ct mb-400">
-        <MobileFilterPanel
-          :active-count="activeFilter !== 'all' ? 1 : 0"
-          :trigger-label="$t('builder.filters')"
-        >
-          <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
-          <FilterChip
-            v-for="tab in filterTabs"
-            :key="tab.key"
-            :label="tab.label"
-            :active="activeFilter === tab.key"
-            @click="setFilter(tab.key)"
-          />
-        </MobileFilterPanel>
-      </div>
-
-      <div class="flex ai-ct gap-300 mb-400">
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('agm.definitions')" />
+    </template>
+    <template #toolbar>
+      <div class="agm-list__toolbar">
         <BasicInput
           v-model="search"
           :placeholder="$t('common.start_typing')"
@@ -32,11 +12,22 @@
           class="agm-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
+        <div class="filter-chip-row" role="group" :aria-label="$t('agm.category')">
+          <FilterChip
+            v-for="tab in filterTabs"
+            :key="tab.key"
+            :label="tab.label"
+            :active="activeFilter === tab.key"
+            @click="setFilter(tab.key)"
+          />
+        </div>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="definitions"
@@ -47,28 +38,28 @@
         @row-click="onRowClick"
       >
         <template #cell-category="{ value }">
-          <span v-if="value" class="chip bg-support-100 t-support-400">
-            {{ value }}
-          </span>
-          <span v-else class="t-basic-400">---</span>
+          <Tag v-if="value" :label="value" />
+          <span v-else class="t-muted">---</span>
         </template>
         <template #cell-is_active="{ value }">
           <StatusBadge
             :label="value ? $t('agm.active') : $t('agm.inactive')"
-            :variant="value ? 'positive' : 'negative'"
+            :tone="value ? 'positive' : 'negative'"
           />
         </template>
       </DataTable>
 
+      <FloatingActions :actions="fabActions" />
+
+    <template #footer>
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-
-      <FloatingActions :actions="fabActions" />
-    </div>
-  </div>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -101,7 +92,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("agm.create_definition"),
           handler: () => this.$router.push("/agreements/create"),
         },
@@ -128,24 +119,27 @@ export default {
           label: this.$t("agm.slug"),
           sortable: false,
           width: "180px",
+          priority: 2,
         },
         {
           key: "category",
           label: this.$t("agm.category"),
           sortable: false,
-          width: "120px",
+          width: "max-content",
+          priority: 2,
         },
         {
           key: "consent_channel",
           label: this.$t("agm.consent_channel"),
           sortable: false,
           width: "120px",
+          priority: 2,
         },
         {
           key: "is_active",
           label: this.$t("agm.status"),
           sortable: true,
-          width: "100px",
+          width: "max-content",
         },
       ];
     },
@@ -218,20 +212,16 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.agm-list__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
 .agm-list__search {
   flex: 1;
+  min-width: 150px;
   max-width: 400px;
 }
-
-@media only screen and (max-width: 768px) {
-  .agm-list__wrapper {
-    padding: 16px !important;
-    overflow-x: visible !important;
-
-    > div {
-      overflow-x: visible !important;
-    }
-  }
-}
-
 </style>

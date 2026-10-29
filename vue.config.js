@@ -3,9 +3,11 @@ const webpack = require('webpack');
 
 const path = require('path');
 const fs = require('fs');
+const { DEV_ONLY_ENV, assertNoDevCredentials } = require('./scripts/build-env');
 
-const REQUIRED_ENV = ['VUE_APP_API_URL', 'VUE_APP_CHANNEL', 'VUE_APP_PANELS'];
-const OPTIONAL_ENV = ['VUE_APP_DEBUG', 'VUE_APP_LANG', 'VUE_APP_USERNAME', 'VUE_APP_PASSWORD'];
+assertNoDevCredentials(process.env);
+
+const { EnvCheckPlugin, BuildInfoPlugin } = require('./scripts/build-config.cjs');
 
 const CLIENT_CONFIG_FILES = [
   'configs/__core_config.json',
@@ -55,29 +57,9 @@ class ClientConfigCheckPlugin {
   }
 }
 
-class EnvCheckPlugin {
-  apply(compiler) {
-    compiler.hooks.afterCompile.tap('EnvCheckPlugin', () => {
-      const missing = REQUIRED_ENV.filter(k => !process.env[k]);
-      const optional = OPTIONAL_ENV.filter(k => !process.env[k]);
-
-      if (missing.length) {
-        console.log('\n\x1b[31m%s\x1b[0m', '[env-check] Missing REQUIRED env vars:');
-        missing.forEach(k => console.log('  \x1b[31m✗\x1b[0m %s', k));
-      }
-      if (optional.length) {
-        console.log('\n\x1b[33m%s\x1b[0m', '[env-check] Missing optional env vars:');
-        optional.forEach(k => console.log('  \x1b[33m-\x1b[0m %s', k));
-      }
-      if (missing.length) {
-        console.log('\n\x1b[36m%s\x1b[0m\n', 'Run: cp .env.example .env  -- then fill in the required values.');
-      }
-    });
-  }
-}
-
 module.exports = defineConfig({
   transpileDependencies: true,
+  productionSourceMap: false,
 
   css: {
     extract: {
@@ -93,6 +75,7 @@ module.exports = defineConfig({
         __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false
       }),
       new EnvCheckPlugin(),
+      new BuildInfoPlugin(),
       new ClientConfigCheckPlugin()
     ],
     module: {

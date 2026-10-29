@@ -1,19 +1,23 @@
 <template>
   <div class="handy-kit" @click.self="requestClose">
     <div
-      class="handy-kit-core fs-300 t-basic-700 flex flex-column b-basic-400 br-50"
+      class="handy-kit-core fs-300 t-body flex flex-column b-default rounded"
     >
-      <div class="handy-kit-body flex-column fg-1 ov-h bg-basic-100">
+      <div class="handy-kit-body flex-column fg-1 ov-h bg-base">
         <component :is="handyType.id" class="fg-1 ovy-auto" ref="activeKit" />
       </div>
-      <Loading :isHandy="true" v-if="handyLoading" />
+      <Transition name="loader-fade"><Loader v-if="handyLoading" overlay contained /></Transition>
     </div>
     <Teleport to="body">
-      <UnsavedChangesModal
-        :visible="showUnsavedConfirm"
-        @stay="showUnsavedConfirm = false"
+      <ConfirmDialog
+        :open="showUnsavedConfirm"
+        @cancel="showUnsavedConfirm = false"
         @discard="forceClose"
-        @save="saveAndClose"
+        @confirm="saveAndClose"
+        :title="$t('unsaved.title')"
+        :message="$t('unsaved.message')"
+        :confirm-label="$t('unsaved.save_and_leave')"
+        :discard-label="$t('unsaved.discard')"
       />
     </Teleport>
   </div>
@@ -22,8 +26,6 @@
 <script>
 import { useLoaderStore } from "@/stores/loader";
 import { useHandyStore } from "@/stores/handy";
-import Loading from "../../components/Loading.vue";
-import UnsavedChangesModal from "../Unsaved-changes-modal/index.vue";
 
 import ImagesKit from "./kits/images-kit/images-kit.vue";
 import ConfigsKit from "./kits/configs-kit/index.vue";
@@ -87,8 +89,6 @@ export default {
     AttrsKit,
     CategoriesKit,
     ContentRoleKit,
-    UnsavedChangesModal,
-    Loading,
   },
 };
 </script>

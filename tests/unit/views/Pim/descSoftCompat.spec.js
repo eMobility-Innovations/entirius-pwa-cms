@@ -49,12 +49,6 @@ vi.mock("@/composables/useUnsavedChanges", () => ({
 import FeatureEdit from "@/views/Pim/FeatureEdit.vue";
 import CategoryDetail from "@/views/Pim/CategoryDetail.vue";
 
-// Both views Teleport their toolbars into the Pim layout — targets must pre-exist.
-beforeEach(() => {
-  document.body.innerHTML =
-    '<div id="pim-toolbar-left"></div><div id="pim-toolbar-right"></div>';
-});
-
 const featurePayload = (over = {}) => ({
   idx: "material",
   feature_type: 3,
@@ -76,8 +70,6 @@ const featurePayload = (over = {}) => ({
 });
 
 const heavyStubs = {
-  PimBreadcrumb: true,
-  PimCard: { template: "<div><slot /></div>" },
   OptionsManager: true,
   ConfirmationModal: true,
   UnsavedChangesModal: true,

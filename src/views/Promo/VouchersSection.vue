@@ -1,7 +1,9 @@
 <template>
   <div class="vouchers-section">
-    <div class="vouchers-section__subnav mb-400">
-      <SegmentedControl v-model="subTab" :options="subTabOptions" />
+    <div class="vouchers-section__subnav mb-10">
+      <ReadonlyOff>
+        <SegmentedControl v-model="subTab" :options="subTabOptions" />
+      </ReadonlyOff>
     </div>
     <VouchersList v-if="subTab === 'vouchers'" />
     <CampaignsList v-else-if="subTab === 'campaigns'" />
@@ -15,10 +17,12 @@ import VouchersList from "./VouchersList.vue";
 import CampaignsList from "./CampaignsList.vue";
 import ProductVouchersList from "./ProductVouchersList.vue";
 import ChannelSettings from "./ChannelSettings.vue";
+import { ReadonlyOff } from "@/composables/useReadonly";
 
 export default {
   name: "VouchersSection",
   components: {
+    ReadonlyOff,
     VouchersList,
     CampaignsList,
     ProductVouchersList,

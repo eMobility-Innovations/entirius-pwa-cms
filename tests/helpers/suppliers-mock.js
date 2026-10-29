@@ -341,6 +341,13 @@ async function installSuppliersMock(page, { seed, muninEnabled = true } = {}) {
     await route.fulfill(notFound(`Unmocked PIM endpoint: ${path}`));
   });
 
+  // --- Regional reference data (source forms: country, currency, language selects). Unmocked, the fake token gets
+  // a 401 from the live service, the refresh fails and the app ends the session on the login wall. ---
+  await page.route('**/api/regional/v2/admin/**', async (route) => {
+    logRequest(route);
+    await route.fulfill(ok(paged([])));
+  });
+
   // --- Munin (gates panel visibility) ---
   await page.route('**/api/munin/v2/**', async (route) => {
     logRequest(route);

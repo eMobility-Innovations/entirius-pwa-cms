@@ -1,74 +1,59 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <!-- Left toolbar -->
-    <Teleport to="#layout-extender-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pages/layout-extender')"
-      />
-      <div v-if="!loading" class="nav-editor__toolbar-name">
-        <span class="fw-600 t-basic-700">{{ docName || $route.params.uid || "—" }}</span>
-      </div>
-      <ChannelMultiSelect
-        v-if="!loading"
-        v-model="selectedChannels"
-        :channels="contentDBChannelStore.channels"
-        :label="$t('layout_extender.channels')"
-        :all-label="$t('layout_extender.all')"
-        class="nav-editor__channel-dropdown"
-      />
-    </Teleport>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="docName || $route.params.uid || '—'" back="/pages/layout-extender">
+        <template v-if="!loading" #actions>
+          <div class="flex ai-ct jc-fe wrap gap-3">
+            <StatusBadge
+              v-if="isDirty"
+              tone="warning"
+              :dot="false"
+              :label="$t('layout_extender.unsaved')"
+              data-testid="nav-editor-unsaved-badge"
+            />
+            <ChannelMultiSelect
+              v-model="selectedChannels"
+              :channels="contentDBChannelStore.channels"
+              :label="$t('layout_extender.channels')"
+              :all-label="$t('layout_extender.all')"
+              class="nav-editor__channel-dropdown"
+            />
+            <ActionBar :actions="headerActions" />
+          </div>
+        </template>
+      </PageHeader>
+    </template>
 
-    <!-- Right toolbar -->
-    <Teleport to="#layout-extender-toolbar-right" defer>
-      <template v-if="!loading">
-        <span v-if="isDirty" class="chip bg-warning-100 t-warning-300">
-          {{ $t("layout_extender.unsaved") }}
-        </span>
-        <BasicButton
-          :text="$t('layout_extender.save_draft')"
-          class="btn-outline"
-          @click="saveDraft"
-        />
-        <BasicButton
-          :text="$t('layout_extender.publish')"
-          class="bg-support-400 t-basic-100"
-          :disabled="!uid"
-          @click="publish"
-        />
-      </template>
-    </Teleport>
-
-    <!-- Content -->
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-show="loading" />
+    <Loader block v-if="loading" />
 
       <template v-if="!loading">
         <draggable
           v-model="navigationItems"
+          :disabled="readonly"
           item-key="id"
           handle=".handle"
-          ghost-class="bg-support-100"
+          ghost-class="bg-accent-subtle"
           :force-fallback="true"
-          fallback-class="nav-drag-ghost"
+          fallback-class="drag-ghost"
           @change="markDirty"
         >
           <template #item="{ element, index }">
             <div class="nav-item">
               <!-- Item header row -->
               <div class="nav-item__row">
-                <span class="handle t-basic-400 pointer">
-                  <FontAwesomeIcon icon="grip-vertical" />
-                </span>
-                <span class="fg-1 fw-500 t-basic-700 fs-300">{{ element.label || "—" }}</span>
-                <span
-                  class="fs-200 ph-100 br-50"
-                  :class="element.display_as === 'megamenu' ? 'bg-support-100 t-support-400' : 'bg-basic-300 t-basic-700'"
-                >
-                  {{ element.display_as === "megamenu" ? $t("layout_extender.mega_menu") : $t("layout_extender.simple_link") }}
-                </span>
+                <IconButton
+                  icon="drag"
+                  :label="$t('layout_extender.reorder_item', { label: element.label || '—' })"
+                  class="handle"
+                  @keydown.alt.up.prevent="moveInList(navigationItems, index, -1, $event)"
+                  @keydown.alt.down.prevent="moveInList(navigationItems, index, 1, $event)"
+                />
+                <span class="nav-item__label fg-1 fw-500 t-body fs-300">{{ element.label || "—" }}</span>
+                <Tag
+                  class="nav-item__type"
+                  :label="element.display_as === 'megamenu' ? $t('layout_extender.mega_menu') : $t('layout_extender.simple_link')"
+                  :data-testid="element.display_as === 'megamenu' ? 'nav-item-type-megamenu' : 'nav-item-type-link'"
+                />
                 <SubscriberSetter
                   v-if="element.display_as === 'megamenu' && element.columns.length > 1"
                   :handyType="{ id: 'order-kit', label: $t('layout_extender.reorder_columns') }"
@@ -81,24 +66,34 @@
                   }"
                   @on_AssetPass="reorderColumns(index, $event)"
                 >
-                  <span class="nav-action" :title="$t('layout_extender.reorder_columns')">
-                    <FontAwesomeIcon icon="grip" />
-                  </span>
+                  <IconButton
+                    icon="reorder"
+                    :stop="false"
+                    :label="$t('layout_extender.reorder_columns')"
+                  />
                 </SubscriberSetter>
-                <span
+                <IconButton
                   v-if="element.display_as === 'megamenu'"
+                  icon="expand"
+                  :label="$t('layout_extender.columns')"
                   class="nav-action"
                   :class="{ 'nav-action--rotated': expandedItems.includes(element.id) }"
+                  :aria-expanded="expandedItems.includes(element.id)"
                   @click="toggleExpand(element.id)"
-                >
-                  <FontAwesomeIcon icon="chevron-down" />
-                </span>
-                <span class="nav-action" @click="openEditItem(element, index)">
-                  <FontAwesomeIcon icon="pen-to-square" />
-                </span>
-                <span class="nav-action nav-action--danger" @click="removeItem(index)">
-                  <FontAwesomeIcon icon="trash-can" />
-                </span>
+                />
+                <IconButton
+                  icon="edit"
+                  :label="$t('common.edit')"
+                  class="nav-action"
+                  @click="openEditItem(element, index)"
+                />
+                <IconButton
+                  icon="delete"
+                  :label="$t('common.delete')"
+                  variant="danger"
+                  class="nav-action nav-action--danger"
+                  @click="removeItem(index)"
+                />
               </div>
 
               <!-- Expanded megamenu columns -->
@@ -106,7 +101,7 @@
                 v-if="element.display_as === 'megamenu' && expandedItems.includes(element.id)"
                 class="nav-item__expanded"
               >
-                <p class="section-label mb-200">{{ $t("layout_extender.columns") }}</p>
+                <p class="section-label mb-5">{{ $t("layout_extender.columns") }}</p>
 
                 <div class="nav-columns">
                   <div
@@ -129,60 +124,92 @@
                           </template>
                           <template v-else>
                             <span
-                              class="fw-600 fs-300 t-basic-700 pointer"
+                              class="fw-600 fs-300 t-body pointer"
                               @dblclick="startEditHeading(index, colIdx)"
                             >{{ col.heading || $t("layout_extender.heading") }}</span>
-                            <span
+                            <IconButton
                               v-if="channelLanguages.length > 1"
-                              class="nav-action nav-action--sm"
+                              icon="translate"
+                              :label="$t('layout_extender.translations')"
+                              size="sm"
                               @click="openColumnTranslation(index, colIdx)"
-                            >
-                              <i class="icon-language"></i>
-                            </span>
+                            />
                           </template>
                         </div>
-                        <span class="nav-action nav-action--danger nav-action--sm" @click="removeColumn(index, colIdx)">
-                          <FontAwesomeIcon icon="trash-can" />
-                        </span>
+                        <IconButton
+                          icon="delete"
+                          :label="$t('common.delete')"
+                          variant="danger"
+                          size="sm"
+                          data-testid="nav-column-delete"
+                          @click="removeColumn(index, colIdx)"
+                        />
                       </div>
+                      <!-- Sortable's fallback drag, like the item list: the handle is a button element, which Firefox
+                           never starts a native HTML5 drag from. -->
                       <draggable
                         v-model="col.links"
+                        :disabled="readonly"
                         item-key="id"
                         handle=".link-handle"
-                        ghost-class="bg-support-100"
+                        ghost-class="bg-accent-subtle"
+                        :force-fallback="true"
+                        fallback-class="drag-ghost"
                         @change="markDirty"
                       >
                         <template #item="{ element: link, index: linkIdx }">
-                          <div class="nav-link-row" @click="openEditLink(element, index, col, colIdx, link, linkIdx)">
-                            <span class="link-handle t-basic-400">
-                              <FontAwesomeIcon icon="grip-vertical" style="font-size: 10px" />
-                            </span>
-                            <span class="nav-link-row__text">
-                              <span class="t-basic-400">·</span> {{ link.label }}
-                            </span>
-                            <span
-                              class="nav-link-row__delete"
-                              @click.stop="removeLink(index, colIdx, linkIdx)"
+                          <div class="nav-link-row">
+                            <IconButton
+                              icon="drag"
+                              :label="$t('layout_extender.reorder_item', { label: link.label || '—' })"
+                              size="sm"
+                              class="link-handle"
+                              @keydown.alt.up.prevent="moveInList(col.links, linkIdx, -1, $event)"
+                              @keydown.alt.down.prevent="moveInList(col.links, linkIdx, 1, $event)"
+                            />
+                            <BasicButton
+                              variant="ghost"
+                              size="sm"
+                              class="nav-link-row__text"
+                              @click="openEditLink(element, index, col, colIdx, link, linkIdx)"
                             >
-                              <FontAwesomeIcon icon="xmark" />
-                            </span>
+                              {{ link.label }}
+                            </BasicButton>
+                            <IconButton
+                              icon="delete"
+                              :label="$t('common.delete')"
+                              variant="danger"
+                              size="sm"
+                              class="nav-link-row__delete"
+                              @click="removeLink(index, colIdx, linkIdx)"
+                            />
                           </div>
                         </template>
                       </draggable>
-                      <a class="nav-add-link" @click="openAddLink(element, index, col, colIdx)">
-                        + {{ $t("layout_extender.add_link") }}
-                      </a>
+                      <BasicButton
+                        variant="ghost"
+                        size="sm"
+                        class="mt-1"
+                        @click="openAddLink(element, index, col, colIdx)"
+                      >
+                        {{ $t("layout_extender.add_link") }}
+                      </BasicButton>
                     </template>
 
                     <!-- Banner column -->
                     <template v-else-if="col.type === 'banner'">
                       <div class="nav-column__header">
-                        <span class="fw-600 fs-300 t-basic-700">{{ $t("layout_extender.banner") }}</span>
-                        <span class="nav-action nav-action--danger nav-action--sm" @click="removeColumn(index, colIdx)">
-                          <FontAwesomeIcon icon="trash-can" />
-                        </span>
+                        <span class="fw-600 fs-300 t-body">{{ $t("layout_extender.banner") }}</span>
+                        <IconButton
+                          icon="delete"
+                          :label="$t('common.delete')"
+                          variant="danger"
+                          size="sm"
+                          data-testid="nav-column-delete"
+                          @click="removeColumn(index, colIdx)"
+                        />
                       </div>
-                      <div v-if="col.media_url" class="mb-100">
+                      <div v-if="col.media_url" class="mb-2">
                         <img
                           v-if="!brokenImages.has(col.media_url)"
                           :src="resolveMediaUrl(col.media_url)"
@@ -191,51 +218,47 @@
                           @error="onImageError(col.media_url)"
                         />
                         <div v-else class="nav-banner-placeholder">
-                          <FontAwesomeIcon icon="image" class="t-basic-400" style="font-size: 20px" />
+                          <FontAwesomeIcon :icon="$icons.image" class="t-muted" style="font-size: var(--fs-500)" />
                         </div>
                       </div>
-                      <p v-if="col.caption" class="fs-200 t-basic-600 mb-100">{{ col.caption }}</p>
-                      <button class="nav-btn-outline" @click="openEditColumn(element, index, col, colIdx)">
+                      <p v-if="col.caption" class="fs-200 t-secondary mb-2">{{ col.caption }}</p>
+                      <BasicButton size="sm" @click="openEditColumn(element, index, col, colIdx)">
                         {{ $t("layout_extender.edit_banner") }}
-                      </button>
+                      </BasicButton>
                     </template>
                   </div>
                 </div>
 
                 <!-- Add column buttons -->
-                <div class="flex gap-200 mt-300">
-                  <button
-                    class="nav-btn-outline"
-                    :disabled="element.columns.length >= 4"
-                    @click="addLinksColumn(index)"
-                  >
-                    + {{ $t("layout_extender.add_column") }}
-                  </button>
-                  <button
-                    class="nav-btn-outline"
-                    :disabled="element.columns.length >= 4"
-                    @click="addBannerColumn(index)"
-                  >
-                    + {{ $t("layout_extender.add_banner") }}
-                  </button>
+                <div class="flex gap-5 mt-8">
+                  <BasicButton :disabled="element.columns.length >= 4" @click="addLinksColumn(index)">
+                    {{ $t("layout_extender.add_column") }}
+                  </BasicButton>
+                  <BasicButton :disabled="element.columns.length >= 4" @click="addBannerColumn(index)">
+                    {{ $t("layout_extender.add_banner") }}
+                  </BasicButton>
                 </div>
               </div>
             </div>
           </template>
         </draggable>
 
-        <div v-if="!navigationItems.length" class="nav-empty">
-          {{ $t("layout_extender.no_items") }}
-        </div>
+        <EmptyState
+          v-if="!navigationItems.length"
+          icon="empty"
+          :title="$t('layout_extender.no_items')"
+          class="nav-empty"
+        />
 
         <BasicButton
-          :text="$t('layout_extender.add_item')"
-          icon="plus"
-          class="bg-support-400 t-basic-100 mt-300"
+          variant="primary"
+          class="mt-8"
+          data-testid="nav-editor-add-item"
           @click="openAddItem"
-        />
+        >
+          {{ $t('layout_extender.add_item') }}
+        </BasicButton>
       </template>
-    </div>
 
     <!-- Edit item modal -->
     <EditMenuItemModal
@@ -280,7 +303,7 @@
       @cancel="translatingColumnCtx = null"
       @save="onColumnHeadingSave"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -294,6 +317,7 @@ import EditMenuItemModal from "@/functionals/EditMenuItemModal.vue";
 import EditLinkModal from "@/functionals/EditLinkModal.vue";
 import EditBannerModal from "@/functionals/EditBannerModal.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { usePageReadonly } from "@/composables/useReadonly";
 
 function uuid() {
   return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -307,7 +331,7 @@ export default {
     const notify = useNotifyStore();
     const contentDBChannelStore = useContentDBChannelStore();
     const pimChannelStore = usePimChannelStore();
-    return { loader, notify, contentDBChannelStore, pimChannelStore };
+    return { loader, notify, contentDBChannelStore, pimChannelStore, readonly: usePageReadonly() };
   },
   data() {
     return {
@@ -360,6 +384,19 @@ export default {
       }
       return this.contentDBChannelStore.defaultLanguage;
     },
+    headerActions() {
+      return [
+        { key: "save-draft", label: this.$t("layout_extender.save_draft"), role: "secondary", onClick: this.saveDraft },
+        {
+          key: "publish",
+          label: this.$t("layout_extender.publish"),
+          role: "primary",
+          disabled: !this.uid,
+          onClick: this.publish,
+          testid: "nav-editor-publish",
+        },
+      ];
+    },
     translatingColumnValues() {
       if (!this.translatingColumnCtx) return {};
       const { itemIndex, colIndex } = this.translatingColumnCtx;
@@ -409,6 +446,15 @@ export default {
     },
     markDirty() {
       // vuedraggable already mutates navigationItems — computed isDirty picks it up
+    },
+    // The keyboard path of a drag handle (Alt+Arrow): one step up or down inside its own list. Moving the row's node
+    // drops the focus, so the handle takes it back.
+    moveInList(list, index, delta, event) {
+      const target = index + delta;
+      if (target < 0 || target >= list.length) return;
+      const handle = event?.currentTarget;
+      list.splice(target, 0, list.splice(index, 1)[0]);
+      this.$nextTick(() => handle?.focus());
     },
     resolveMediaUrl(path) {
       if (!path) return "";
@@ -614,82 +660,70 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.nav-editor__toolbar-name {
-  display: flex;
-  align-items: center;
-}
+@import "@/assets/scss/utils/media-query";
 
 .nav-item {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .nav-item__row {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  padding: 12px var(--space-200);
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
   transition: background 0.1s;
 
   &:hover {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
+  }
+
+  // A phone keeps the name on the first line; the type badge and the actions share the second.
+  @include max-tablet {
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3);
   }
 }
 
-.nav-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--c-basic-500);
-  transition: background 0.1s, color 0.1s, transform 0.2s;
-  flex-shrink: 0;
-
-  &:hover {
-    background: var(--c-basic-300);
-    color: var(--c-basic-700);
+.nav-item__label {
+  @include max-tablet {
+    flex-basis: 80%;
   }
+}
 
-  &--danger:hover {
-    background: var(--c-negative-100);
-    color: var(--c-negative-200);
+.nav-item__type {
+  @include max-tablet {
+    margin-right: auto;
   }
+}
 
-  &--rotated {
-    transform: rotate(180deg);
-  }
-
-  &--sm {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
-  }
+// `.nav-action` / `--danger` on the row buttons are the e2e hooks (tests/e2e/08-navigation-editor.spec.js), not styles.
+.nav-action--rotated {
+  transform: rotate(180deg);
 }
 
 .nav-item__expanded {
-  margin-top: 8px;
-  margin-left: 40px;
-  padding-left: var(--space-200);
-  border-left: 2px solid var(--c-basic-300);
+  margin-top: var(--space-2);
+  margin-left: var(--space-10);
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--border-subtle);
 }
 
 .nav-columns {
   display: flex;
-  gap: var(--space-200);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 
 .nav-column {
   min-width: 160px;
   flex: 1;
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
-  padding: 12px var(--space-200);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  padding: var(--space-3) var(--space-5);
 }
 
 .nav-editor__channel-dropdown {
@@ -701,13 +735,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .nav-column__heading-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
 }
@@ -719,68 +753,36 @@ export default {
 .nav-link-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 4px 0;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--c-basic-700);
-
-  &:hover {
-    color: var(--c-support-400);
-  }
-
-  &:hover .nav-link-row__delete {
-    opacity: 1;
-  }
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
 }
 
 .nav-link-row__text {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   flex: 1;
   min-width: 0;
 }
 
-.link-handle {
-  cursor: grab;
+// The drag handle and the delete button show on the row's hover or keyboard focus; a phone always shows them.
+// IconButton puts the class on its inner button, which carries no scope id: hence :deep().
+.nav-link-row :deep(.link-handle),
+.nav-link-row :deep(.nav-link-row__delete) {
   opacity: 0;
   transition: opacity 0.1s;
-  font-size: 10px;
-  flex-shrink: 0;
-}
 
-.nav-link-row:hover .link-handle {
-  opacity: 1;
-}
-
-.nav-link-row__delete {
-  opacity: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  color: var(--c-basic-400);
-  cursor: pointer;
-  transition: opacity 0.1s, color 0.1s;
-
-  &:hover {
-    color: var(--c-negative-200);
+  @include max-tablet {
+    opacity: 1;
   }
 }
 
-.nav-add-link {
-  display: inline-block;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--c-support-400);
-  cursor: pointer;
-  font-weight: 500;
+.nav-link-row :deep(.link-handle) {
+  cursor: grab;
+}
 
-  &:hover {
-    text-decoration: underline;
+.nav-link-row:hover,
+.nav-link-row:focus-within {
+  :deep(.link-handle),
+  :deep(.nav-link-row__delete) {
+    opacity: 1;
   }
 }
 
@@ -788,7 +790,7 @@ export default {
   width: 100%;
   max-height: 100px;
   object-fit: cover;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-base);
 }
 
 .nav-banner-placeholder {
@@ -797,62 +799,9 @@ export default {
   justify-content: center;
   width: 100%;
   height: 60px;
-  background: var(--c-basic-200);
-  border-radius: var(--radius-sm);
-  border: 1px dashed var(--c-basic-400);
-}
-
-.nav-btn-outline {
-  display: inline-flex;
-  align-items: center;
-  height: var(--elem-height);
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  color: var(--c-basic-700);
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-basic-400);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.1s;
-
-  &:hover {
-    background: var(--c-basic-200);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.nav-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-400);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--c-basic-300);
-  color: var(--c-basic-500);
-  min-height: 8rem;
-}
-
-@media only screen and (max-width: 768px) {
-  .p-500 {
-    padding: 16px !important;
-  }
+  background: var(--surface-raised);
+  border-radius: var(--radius-base);
+  border: 1px dashed var(--border-default);
 }
 </style>
 
-<style lang="scss">
-.nav-drag-ghost {
-  max-width: 480px;
-  opacity: 0.9;
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-support-400);
-  border-radius: 6px;
-  box-shadow: var(--shadow-md);
-  padding: 12px var(--space-200);
-}
-</style>

@@ -1,27 +1,19 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <Teleport v-if="toolbarReady" to="#forms-toolbar-left">
-        <BasicButton
-          icon="arrow-left"
-          :text="$t('cf.back_to_list')"
-          class="bg-basic-200 t-basic-600"
-          @click="$router.push('/forms/bookings')"
-        />
-      </Teleport>
-
-      <Loader v-if="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <!-- the header renders in every state: its back control stays while loading or after a failed load -->
+      <PageHeader :title="$t('cf.booking_detail')" back="/forms/bookings">
+        <template v-if="booking?.linked_lead" #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
       <template v-else-if="booking">
-        <div class="flex ai-ct mb-400">
-          <h1 class="fs-700 fw-600">{{ $t("cf.booking_detail") }}</h1>
-        </div>
 
         <div class="cf-booking-grid">
-          <div class="cf-card">
-            <h2 class="cf-card__title">{{ $t("cf.meeting_start") }}</h2>
+          <BasicCard :title="$t('cf.meeting_start')" gap>
             <dl class="cf-field-list">
               <div class="cf-field-list__row">
                 <dt>{{ $t("cf.meeting_start") }}</dt>
@@ -39,7 +31,7 @@
                 <dt>{{ $t("cf.name") }}</dt>
                 <dd>
                   <span v-if="booking.name">{{ booking.name }}</span>
-                  <span v-else class="t-basic-400">---</span>
+                  <span v-else class="t-muted">---</span>
                 </dd>
               </div>
               <div class="cf-field-list__row">
@@ -65,15 +57,15 @@
                 <dd>
                   <a
                     v-if="booking.meet_link"
-                    :href="booking.meet_link"
+                    :href="safeHref(booking.meet_link)"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="cf-inline-link"
                   >
                     {{ $t("cf.open_meet") }}
-                    <font-awesome-icon icon="video" />
+                    <font-awesome-icon :icon="$icons.video" />
                   </a>
-                  <span v-else class="t-basic-400">---</span>
+                  <span v-else class="t-muted">---</span>
                 </dd>
               </div>
               <div class="cf-field-list__row">
@@ -81,15 +73,14 @@
                 <dd>{{ formatDateTime(booking.created_at) }}</dd>
               </div>
             </dl>
-          </div>
+          </BasicCard>
 
-          <div class="cf-card">
-            <h2 class="cf-card__title">{{ $t("cf.lead_status") }}</h2>
+          <BasicCard :title="$t('cf.lead_status')" gap>
             <template v-if="booking.linked_lead">
-              <div class="mb-200">
+              <div class="mb-5">
                 <StatusBadge
                   :label="leadStatusLabel($t, booking.linked_lead.status)"
-                  :variant="leadStatusVariant(booking.linked_lead.status)"
+                  :tone="leadStatusVariant(booking.linked_lead.status)"
                 />
               </div>
               <dl class="cf-field-list">
@@ -99,7 +90,7 @@
                     <span v-if="booking.linked_lead.name">{{
                       booking.linked_lead.name
                     }}</span>
-                    <span v-else class="t-basic-400">---</span>
+                    <span v-else class="t-muted">---</span>
                   </dd>
                 </div>
                 <div class="cf-field-list__row">
@@ -112,20 +103,10 @@
                     <span v-if="booking.linked_lead.deal_value">{{
                       booking.linked_lead.deal_value
                     }}</span>
-                    <span v-else class="t-basic-400">---</span>
+                    <span v-else class="t-muted">---</span>
                   </dd>
                 </div>
               </dl>
-              <div class="mt-300">
-                <BasicButton
-                  icon="bullseye"
-                  :text="$t('cf.open_lead')"
-                  class="bg-support-400 t-basic-100"
-                  @click="
-                    $router.push(`/forms/leads/${booking.linked_lead.id}`)
-                  "
-                />
-              </div>
             </template>
             <EmptyState
               v-else
@@ -133,11 +114,10 @@
               :title="$t('cf.no_linked_lead')"
               :message="''"
             />
-          </div>
+          </BasicCard>
         </div>
       </template>
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -146,6 +126,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { GET_Booking } from "@/api/contactForms/api";
 import { leadStatusLabel, leadStatusVariant } from "./helpers/leadStatus";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { safeHref } from "@/utils/safeHref";
 
 export default {
   name: "BookingDetail",
@@ -158,14 +139,22 @@ export default {
     return {
       booking: null,
       loading: false,
-      toolbarReady: false,
     };
   },
+  computed: {
+    headerActions() {
+      const leadId = this.booking.linked_lead.id;
+      return [
+        { key: "open-lead", role: "primary", label: this.$t("cf.open_lead"),
+          onClick: () => this.$router.push(`/forms/leads/${leadId}`) },
+      ];
+    },
+  },
   mounted() {
-    this.toolbarReady = !!document.getElementById("forms-toolbar-left");
     this.fetchBooking();
   },
   methods: {
+    safeHref,
     leadStatusLabel,
     leadStatusVariant,
     formatDateTime(iso) {
@@ -201,59 +190,44 @@ export default {
 .cf-booking-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: var(--space-300);
+  gap: var(--space-8);
 }
 
-.cf-card {
-  padding: var(--space-300);
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
-}
-
-.cf-card__title {
-  font-size: var(--fs-200);
-  font-weight: 600;
-  color: var(--c-basic-500);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--space-200);
-}
 
 .cf-field-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-100);
+  gap: var(--space-2);
   margin: 0;
 }
 
 .cf-field-list__row {
   display: grid;
   grid-template-columns: 160px 1fr;
-  gap: var(--space-200);
+  gap: var(--space-5);
   align-items: baseline;
 }
 
 .cf-field-list__row > dt {
   font-size: var(--fs-200);
   font-weight: 600;
-  color: var(--c-basic-500);
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
 .cf-field-list__row > dd {
   margin: 0;
-  color: var(--c-basic-800);
+  color: var(--text-body);
   word-break: break-word;
 }
 
 .cf-inline-link {
-  color: var(--c-support-400);
+  color: var(--text-accent);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-50);
+  gap: var(--space-1);
 }
 
 .cf-inline-link:hover {
@@ -263,9 +237,9 @@ export default {
 .cf-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: var(--fs-200);
-  padding: 2px 6px;
-  background: var(--c-basic-200);
-  border-radius: var(--radius-sm);
-  color: var(--c-basic-700);
+  padding: 2px var(--space-1);
+  background: var(--surface-raised);
+  border-radius: var(--radius-base);
+  color: var(--text-body);
 }
 </style>

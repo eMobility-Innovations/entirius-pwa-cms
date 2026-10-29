@@ -3,6 +3,17 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 
 /* import specific icons */
 import {
+  faInbox,
+  faTableColumns,
+  faGear,
+  faFileLines,
+  faRepeat,
+  faArrowUp,
+  faArrowDown,
+  faTrash,
+  faBell,
+  faEllipsisVertical,
+  faPaperPlane,
   faClipboardCheck,
   faFloppyDisk,
   faUpload,
@@ -13,6 +24,7 @@ import {
   faGrip,
   faGripVertical,
   faXmark,
+  faCircleXmark,
   faBackward,
   faPlus,
   faTable,
@@ -29,6 +41,10 @@ import {
   faBold,
   faItalic,
   faUnderline,
+  faListUl,
+  faBellSlash,
+  faHighlighter,
+  faPalette,
   faPenToSquare,
   faGears,
   faListCheck,
@@ -55,11 +71,11 @@ import {
   faWarehouse,
   faLanguage,
   faFileCsv,
-  faSquare,
   faCheckSquare,
   faMoon,
   faSun,
   faLock,
+  faUserShield,
   faFilter,
   faExpand,
   faCompress,
@@ -75,6 +91,8 @@ import {
   faUsers,
   faAt,
   faClockRotateLeft,
+  faClock,
+  faBuilding,
   faKey,
   faEyeSlash,
   faDownload,
@@ -96,14 +114,32 @@ import {
   faSquareCheck,
   faWandMagicSparkles,
   faScaleBalanced,
+  faArrowsUpDown,
+  faFileArrowUp,
+  faFile,
+  faPaperclip,
+  faCode,
+  faCircleNotch,
 } from "@fortawesome/free-solid-svg-icons";
 
 /* import font awesome icon component */
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { ICONS } from "./icons";
 
 export default function registerFontAwesome(app) {
   /* add icons to the library */
   library.add(
+    faInbox,
+    faTableColumns,
+    faGear,
+    faFileLines,
+    faRepeat,
+    faArrowUp,
+    faArrowDown,
+    faTrash,
+    faBell,
+    faEllipsisVertical,
+    faPaperPlane,
     faClipboardCheck,
     faFloppyDisk,
     faUpload,
@@ -114,6 +150,7 @@ export default function registerFontAwesome(app) {
     faGrip,
     faGripVertical,
     faXmark,
+    faCircleXmark,
     faBackward,
     faPlus,
     faTable,
@@ -130,6 +167,10 @@ export default function registerFontAwesome(app) {
     faBold,
     faItalic,
     faUnderline,
+    faListUl,
+    faBellSlash,
+    faHighlighter,
+    faPalette,
     faPenToSquare,
     faGears,
     faListCheck,
@@ -156,11 +197,11 @@ export default function registerFontAwesome(app) {
     faWarehouse,
     faLanguage,
     faFileCsv,
-    faSquare,
     faCheckSquare,
     faMoon,
     faSun,
     faLock,
+    faUserShield,
     faFilter,
     faExpand,
     faCompress,
@@ -176,6 +217,8 @@ export default function registerFontAwesome(app) {
     faUsers,
     faAt,
     faClockRotateLeft,
+    faClock,
+    faBuilding,
     faKey,
     faEyeSlash,
     faDownload,
@@ -196,9 +239,18 @@ export default function registerFontAwesome(app) {
     faBullseye,
     faSquareCheck,
     faWandMagicSparkles,
-    faScaleBalanced
+    faScaleBalanced,
+    faArrowsUpDown,
+    faFileArrowUp,
+    faFile,
+    faPaperclip,
+    faCode,
+    faCircleNotch
   );
 
   /* add font awesome icon component */
   app.component("FontAwesomeIcon", FontAwesomeIcon);
+
+  /* templates pick icons by meaning: :icon="$icons.edit" (icons.js) */
+  app.config.globalProperties.$icons = ICONS;
 }

@@ -1,19 +1,21 @@
 <template>
+  <!-- One page needs no navigation. -->
   <nav
-    class="pagination inline-flex ai-ct gap-50"
+    v-if="state.pages > 1"
+    class="pagination inline-flex ai-ct gap-1"
     :style="`--cell-size: ${nav_size}px`"
     aria-label="pagination"
   >
     <button
       type="button"
-      class="page-cell"
-      :disabled="pagination.page <= 1"
+      class="page-cell page-cell--arrow"
+      :disabled="disabled || state.page <= 1"
       aria-label="previous page"
       @click="
-        changePage({ num: pagination.page - 1, isDisabled: false }, 'prev')
+        changePage({ num: state.page - 1, isDisabled: false }, 'prev')
       "
     >
-      <i class="icon-arrow-right-2 rotate-180"></i>
+      <FontAwesomeIcon :icon="$icons.prev" />
     </button>
 
     <template
@@ -31,8 +33,9 @@
         v-else
         type="button"
         class="page-cell"
-        :class="{ 'page-cell--active': pagination.page === num.num }"
-        :aria-current="pagination.page === num.num ? 'page' : null"
+        :class="{ 'page-cell--active': state.page === num.num }"
+        :aria-current="state.page === num.num ? 'page' : null"
+        :disabled="disabled || undefined"
         @click="changePage(num)"
       >
         {{ num.num }}
@@ -41,25 +44,34 @@
 
     <button
       type="button"
-      class="page-cell"
-      :disabled="pagination.page >= pagination.pages"
+      class="page-cell page-cell--arrow"
+      :disabled="disabled || state.page >= state.pages"
       aria-label="next page"
       @click="
-        changePage({ num: pagination.page + 1, isDisabled: false }, 'next')
+        changePage({ num: state.page + 1, isDisabled: false }, 'next')
       "
     >
-      <i class="icon-arrow-right-2"></i>
+      <FontAwesomeIcon :icon="$icons.next" />
     </button>
   </nav>
 </template>
 
 <script>
+// `v-model:page` + `pages` (docs/ui-components.md § P3 display); `disabled` while the list loads: no page is taken.
 export default {
+  emits: ["update:page"],
   props: {
-    pagination: {
-      type: Object,
-      required: false,
-      default: () => ({ page: 1, pages: 1 }),
+    page: {
+      type: Number,
+      default: 1,
+    },
+    pages: {
+      type: Number,
+      default: 1,
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
     },
     nav_size: {
       type: Number,
@@ -69,11 +81,9 @@ export default {
   methods: {
     changePage(num, mode) {
       if (num.isDisabled) return;
-      if (mode === "prev" && this.pagination.page <= 1) return;
-      if (mode === "next" && this.pagination.page >= this.pagination.pages) {
-        return;
-      }
-      this.$emit("onChangePage", num.num);
+      if (mode === "prev" && this.state.page <= 1) return;
+      if (mode === "next" && this.state.page >= this.state.pages) return;
+      this.$emit("update:page", num.num);
     },
     paginate(current, last) {
       const onSides = 1;
@@ -113,26 +123,31 @@ export default {
     },
   },
   computed: {
+    state() {
+      return { page: this.page, pages: this.pages };
+    },
     calculatePages() {
-      return this.paginate(this.pagination.page, this.pagination.pages);
+      return this.paginate(this.state.page, this.state.pages);
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
+// Pages are 32 px squares 4 px apart, the current one boxed in accent; the arrows are round.
 .pagination {
   max-width: fit-content;
 
   .page-cell {
+    box-sizing: border-box;
     min-width: var(--cell-size, 2rem);
     height: var(--cell-size, 2rem);
-    padding: 0 6px;
-    border: 0;
-    border-radius: 6px;
+    padding: 0 var(--space-1);
+    border: 1px solid transparent;
+    border-radius: var(--radius-base);
     background: transparent;
-    color: var(--c-basic-700);
-    font-size: inherit;
+    color: var(--text-body);
+    font-size: var(--fs-200);
     font-family: inherit;
     display: inline-flex;
     align-items: center;
@@ -140,27 +155,28 @@ export default {
     cursor: pointer;
 
     &:hover:not(:disabled):not(.page-cell--active):not(.page-cell--gap) {
-      background: var(--c-basic-200);
+      background: var(--surface-hover);
     }
 
-    &:focus-visible {
-      outline: 2px solid var(--c-support-400);
-      outline-offset: 1px;
+    &--arrow {
+      border-color: var(--border-default);
+      border-radius: var(--radius-full);
+      color: var(--text-secondary);
     }
 
     &--active {
-      background: var(--c-support-100);
-      color: var(--c-primary-100);
+      border-color: var(--accent);
+      color: var(--text-strong);
       font-weight: 600;
     }
 
     &--gap {
       cursor: default;
-      color: var(--c-basic-500);
+      color: var(--text-muted);
     }
 
     &:disabled {
-      opacity: 0.4;
+      opacity: 0.5;
       cursor: default;
     }
   }

@@ -1,11 +1,11 @@
 <template>
   <div class="json-diff">
     <div class="json-diff__col">
-      <div class="json-diff__label t-basic-500">{{ $t("pim.supplier.diff.before") }}</div>
+      <div class="json-diff__label t-muted">{{ $t("pim.supplier.diff.before") }}</div>
       <pre class="json-diff__value json-diff__value--before">{{ format(before) }}</pre>
     </div>
     <div class="json-diff__col">
-      <div class="json-diff__label t-basic-500">{{ $t("pim.supplier.diff.after") }}</div>
+      <div class="json-diff__label t-muted">{{ $t("pim.supplier.diff.after") }}</div>
       <pre class="json-diff__value json-diff__value--after">{{ format(after) }}</pre>
     </div>
   </div>
@@ -32,39 +32,41 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+// Before and after sit side by side while each gets 16 rem, else they stack; a longer JSON line scrolls inside
+// its pane instead of breaking keys mid-word or widening a table cell.
 .json-diff {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-200);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  width: 100%;
+  contain: inline-size;
+}
+.json-diff__col {
+  flex: 1 1 16rem;
+  min-width: 0;
 }
 .json-diff__label {
-  font-size: var(--fs-100);
+  font-size: var(--fs-200);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: var(--space-100);
+  margin-bottom: var(--space-2);
 }
 .json-diff__value {
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-200);
+  padding: var(--space-5);
+  border-radius: var(--radius-base);
+  background: var(--surface-raised);
   font-family: var(--font-mono, monospace);
-  font-size: var(--fs-100);
-  white-space: pre-wrap;
-  word-break: break-word;
+  font-size: var(--fs-200);
+  white-space: pre;
   max-height: 240px;
-  overflow-y: auto;
+  overflow: auto;
+  scrollbar-width: thin;
   margin: 0;
 }
 .json-diff__value--before {
-  border-left: 2px solid var(--c-negative-300);
+  border-left: 2px solid var(--negative);
 }
 .json-diff__value--after {
-  border-left: 2px solid var(--c-positive-300);
-}
-
-@media (max-width: 640px) {
-  .json-diff {
-    grid-template-columns: 1fr;
-  }
+  border-left: 2px solid var(--positive);
 }
 </style>

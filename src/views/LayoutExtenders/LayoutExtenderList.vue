@@ -1,138 +1,112 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#layout-extender-toolbar-left" defer>
-      <span class="fs-300 fw-600 t-basic-700">{{ $t("layout_extender.list_title") }}</span>
-      <Dropdown
-        v-if="channelOptions.length"
-        :values="channelOptions"
-        :selected="selectedChannel ? [selectedChannel] : []"
-        :placeholder="$t('layout_extender.all_channels')"
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('layout_extender.list_title')" />
+    </template>
+
+    <template v-if="channelOptions.length" #toolbar>
+      <BasicSelect
+        :floating-label="$t('layout_extender.channels')"
+        :options="channelOptions"
+        :model-value="selectedChannel"
         class="le-list__channel-dropdown"
-        @onSelect="onChannelFilter"
+        @update:model-value="onChannelFilter"
       />
-    </Teleport>
+    </template>
 
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-show="loading" />
+    <!-- v-show, not v-if: the table stays mounted across fetchItems() (after delete, copy), keeping its sort. -->
+    <Loader block v-show="loading" />
 
-      <DataTable
-        v-show="!loading"
-        :columns="columns"
-        :rows="filteredItems"
-        row-key="uid"
-        :empty-text="$t('layout_extender.no_items')"
-        @row-click="onRowClick"
-      >
-        <template #cell-name="{ row }">
-          <span class="le-list__name-cell">{{ row.name || row.uid }}</span>
-        </template>
-
-        <template #cell-type="{ row }">
-          <span class="bg-basic-300 t-basic-700 fs-200 ph-100 br-50">
-            {{ row.type === "header" ? "Header" : "Footer" }}
-          </span>
-        </template>
-
-        <template #cell-language="{ row }">
-          <span class="t-basic-600">{{ (row.language || "").toUpperCase() }}</span>
-        </template>
-
-        <template #cell-channels="{ row }">
-          <div class="flex gap-50 flex-wrap">
-            <span
-              v-for="ch in (row.channels || [])"
-              :key="ch"
-              class="bg-basic-300 t-basic-700 fs-200 ph-100 br-50"
-            >{{ ch }}</span>
-          </div>
-        </template>
-
-        <template #cell-status="{ row }">
-          <StatusBadge
-            :label="row.is_published ? $t('layout_extender.published') : $t('layout_extender.draft')"
-            :variant="row.is_published ? 'positive' : 'informative'"
-          />
-        </template>
-
-        <template #cell-updated_at="{ row }">
-          <div>
-            <span class="t-basic-600 fs-300">
-              {{ row.updated_at ? new Date(row.updated_at).toLocaleDateString("en-GB") : "—" }}
-            </span>
-            <p v-if="row.updated_by" class="t-basic-500 fs-200">by {{ row.updated_by }}</p>
-          </div>
-        </template>
-
-        <template #cell-actions="{ row }">
-          <div class="le-list__actions">
-            <span class="le-list__action" @click.stop="onEdit(row)">
-              <FontAwesomeIcon icon="pen-to-square" />
-            </span>
-            <span class="le-list__action" @click.stop="onPreview(row)">
-              <FontAwesomeIcon icon="eye" />
-            </span>
-            <span class="le-list__action" @click.stop="onCopy(row)">
-              <FontAwesomeIcon icon="copy" />
-            </span>
-            <span
-              v-if="!row.is_system"
-              class="le-list__action le-list__action--danger"
-              @click.stop="onDeleteClick(row)"
-            >
-              <FontAwesomeIcon icon="trash-can" />
-            </span>
-          </div>
-        </template>
-      </DataTable>
-    </div>
-
-    <ConfirmationModal
-      :visible="confirmVisible"
-      @accept="onDeleteConfirm"
-      @reject="confirmVisible = false"
+    <DataTable
+      v-show="!loading"
+      empty-size="md"
+      :columns="columns"
+      :rows="filteredItems"
+      row-key="uid"
+      :empty-text="$t('layout_extender.no_items')"
+      @row-click="onRowClick"
     >
-      <template #header>
-        <h2>{{ $t("layout_extender.delete_confirm") }}</h2>
-      </template>
-    </ConfirmationModal>
+      <template #cell-name="{ row }">{{ row.name || row.uid }}</template>
 
-    <ConfirmationModal
-      :visible="copyVisible"
-      @accept="onCopyConfirm"
-      @reject="closeCopy"
-    >
-      <template #header>
-        <h2>{{ $t("layout_extender.copy_title") }}</h2>
+      <template #cell-type="{ row }">
+        <Tag :label="row.type === 'header' ? $t('layout_extender.type_header') : $t('layout_extender.type_footer')" />
       </template>
-      <template #description>
-        <div class="le-copy">
-          <label class="le-copy__label">{{ $t("layout_extender.copy_target_channel") }}</label>
-          <Dropdown
-            :values="copyChannelOptions"
-            :selected="copyTargetChannel ? [copyTargetChannel] : []"
-            :placeholder="$t('layout_extender.copy_select_channel')"
-            @onSelect="onCopyTargetSelect"
-          />
-          <label class="le-copy__label">{{ $t("layout_extender.copy_name") }}</label>
-          <BasicInput v-model="copyName" />
+
+      <template #cell-language="{ row }">
+        <span class="t-secondary">{{ (row.language || "").toUpperCase() }}</span>
+      </template>
+
+      <template #cell-channels="{ row }">
+        <div v-if="(row.channels || []).length" class="flex gap-1 flex-wrap">
+          <Tag v-for="ch in row.channels" :key="ch" :label="ch" />
+        </div>
+        <span v-else class="t-muted">—</span>
+      </template>
+
+      <template #cell-status="{ row }">
+        <StatusBadge
+          :label="row.is_published ? $t('layout_extender.published') : $t('layout_extender.draft')"
+          :tone="row.is_published ? 'positive' : 'info'"
+        />
+      </template>
+
+      <template #cell-updated_at="{ row }">
+        <div>
+          <span class="t-secondary fs-300">{{ formatDate(row.updated_at, { timeStyle: undefined }) || "—" }}</span>
+          <p v-if="row.updated_by" class="t-muted fs-200">
+            {{ $t("layout_extender.updated_by", { name: row.updated_by }) }}
+          </p>
         </div>
       </template>
-      <template #footer>
-        <BasicButton
-          :text="$t('common.cancel')"
-          class="bg-basic-200 t-basic-600"
-          @click="closeCopy"
-        />
-        <BasicButton
-          :text="$t('layout_extender.copy_action')"
-          icon="copy"
-          class="bg-support-400 t-basic-100"
-          :disabled="!copyTargetChannel || copying"
-          @click="onCopyConfirm"
-        />
+
+      <template #cell-actions="{ row }">
+        <div class="le-list__actions">
+          <IconButton icon="edit" :label="$t('common.edit')" size="sm" @click="onEdit(row)" />
+          <IconButton icon="preview" :label="$t('common.preview')" size="sm" @click="onPreview(row)" />
+          <IconButton icon="duplicate" :label="$t('common.copy')" size="sm" @click="onCopy(row)" />
+          <IconButton
+            v-if="!row.is_system"
+            icon="delete"
+            :label="$t('common.delete')"
+            variant="danger"
+            size="sm"
+            @click="onDeleteClick(row)"
+          />
+        </div>
       </template>
-    </ConfirmationModal>
-  </div>
+    </DataTable>
+
+    <ConfirmDialog
+      tone="danger"
+      :open="confirmVisible"
+      @confirm="onDeleteConfirm"
+      @cancel="confirmVisible = false"
+      :title="$t('layout_extender.delete_confirm')"
+    >
+    </ConfirmDialog>
+
+    <BasicModal
+      :open="copyVisible"
+      size="sm"
+      :title="$t('layout_extender.copy_title')"
+      :actions="copyActions"
+      @update:open="(open) => open || closeCopy()"
+    >
+      <div class="flex-column gap-4">
+        <FormField :label="$t('layout_extender.copy_target_channel')" required>
+          <BasicSelect
+            :options="copyChannelOptions"
+            :model-value="copyTargetChannel"
+            :placeholder="$t('layout_extender.copy_select_channel')"
+            @update:model-value="onCopyTargetSelect"
+          />
+        </FormField>
+        <FormField :label="$t('layout_extender.copy_name')">
+          <BasicInput v-model="copyName" />
+        </FormField>
+      </div>
+    </BasicModal>
+  </PageLayout>
 </template>
 
 <script>
@@ -140,12 +114,11 @@ import { GET_Content, GET_ContentTypes, DELETE_Content, POST_Content } from "@/a
 import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { useContentDBChannelStore } from "@/stores/contentDBChannel";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { formatDate } from "@/utils/format";
 
 export default {
   name: "LayoutExtenderList",
-  components: { ConfirmationModal },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -169,13 +142,19 @@ export default {
   computed: {
     columns() {
       return [
-        { key: "name", label: this.$t("layout_extender.name"), width: "1fr" },
-        { key: "type", label: this.$t("layout_extender.type"), width: "120px" },
-        { key: "language", label: this.$t("layout_extender.language"), width: "100px" },
-        { key: "channels", label: this.$t("layout_extender.channels"), width: "160px" },
-        { key: "status", label: this.$t("layout_extender.status"), width: "120px" },
-        { key: "updated_at", label: this.$t("layout_extender.updated"), width: "160px" },
-        { key: "actions", label: this.$t("layout_extender.actions"), width: "160px", align: "right" },
+        {
+          key: "name",
+          label: this.$t("layout_extender.name"),
+          width: "1fr",
+          truncate: true,
+          title: (row) => row.name || row.uid,
+        },
+        { key: "type", label: this.$t("layout_extender.type"), width: "120px", priority: 2 },
+        { key: "language", label: this.$t("layout_extender.language"), width: "100px", priority: 2 },
+        { key: "channels", label: this.$t("layout_extender.channels"), width: "160px", priority: 2 },
+        { key: "status", label: this.$t("layout_extender.status"), width: "max-content" },
+        { key: "updated_at", label: this.$t("layout_extender.updated"), width: "160px", priority: 2 },
+        { key: "actions", label: this.$t("layout_extender.actions"), align: "right", actions: true },
       ];
     },
     channelOptions() {
@@ -187,6 +166,18 @@ export default {
     filteredItems() {
       if (!this.selectedChannel) return this.items;
       return this.items.filter((row) => (row.channels || []).includes(this.selectedChannel));
+    },
+    copyActions() {
+      return [
+        { key: "cancel", label: this.$t("common.cancel"), role: "secondary", onClick: this.closeCopy },
+        {
+          key: "copy",
+          label: this.$t("layout_extender.copy_action"),
+          role: "primary",
+          disabled: !this.copyTargetChannel || this.copying,
+          onClick: this.onCopyConfirm,
+        },
+      ];
     },
     copyChannelOptions() {
       return this.contentDBChannelStore.channels.map((ch) => ({
@@ -200,6 +191,7 @@ export default {
     this.contentDBChannelStore.fetchChannelsAndLanguages();
   },
   methods: {
+    formatDate,
     onChannelFilter(val) {
       this.selectedChannel = this.selectedChannel === val ? null : val;
     },
@@ -360,61 +352,10 @@ export default {
   max-width: 240px;
 }
 
-.le-list__name-cell {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.le-copy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-100);
-}
-
-.le-copy__label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--c-basic-600);
-
-  &:not(:first-child) {
-    margin-top: var(--space-200);
-  }
-}
-
 .le-list__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   justify-content: flex-end;
-}
-
-.le-list__action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--c-basic-500);
-  transition: background 0.1s, color 0.1s;
-
-  &:hover {
-    background: var(--c-basic-200);
-    color: var(--c-basic-700);
-  }
-
-  &--danger:hover {
-    background: var(--c-negative-100);
-    color: var(--c-negative-200);
-  }
-}
-
-@media only screen and (max-width: 768px) {
-  .p-500 {
-    padding: 16px !important;
-  }
 }
 </style>

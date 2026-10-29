@@ -1,5 +1,7 @@
 import { reactive, ref, computed } from "vue"
 import { t } from "@/i18n"
+import { SessionEndedError } from "@/api/createClient"
+import { formatError } from "@/utils/formats"
 
 /** Join a DRF field value ([msg] | msg) into a single non-empty string. */
 function asMessage(value) {
@@ -49,6 +51,19 @@ function resolveErrorBody(err) {
   return null
 }
 
+// The v2 handler's fixed summary of every DRF ValidationError (django_utils v2_errors).
+const GENERIC_VALIDATION_MESSAGE = "Request validation failed."
+
+/**
+ * A v2 400's own reason in place of the fixed summary: a service refusal (a ValueError, no field) carries its
+ * reason only in `details`. A message the endpoint wrote itself stays first.
+ */
+function validationReason(data) {
+  if (data.message && data.message !== GENERIC_VALIDATION_MESSAGE) return ""
+  if (!Array.isArray(data.details)) return ""
+  return data.details.find((d) => !d?.field && d?.description)?.description || ""
+}
+
 /**
  * Extract a human-readable message from an API error response.
  * v2 shape: `{ error, message, debug_id, details: [...] }`
@@ -59,6 +74,10 @@ function resolveErrorBody(err) {
 export function extractApiMessage(err, fallback = "") {
   const data = resolveErrorBody(err)
   if (!data) return fallback
+  // An access refusal already has its standard toast (createClient): the same text, so the view's toast is covered.
+  if (data.accessHandled) return t("access.denied_action")
+  const reason = validationReason(data)
+  if (reason) return reason
   if (typeof data.message === "string" && data.message) return data.message
   if (typeof data.detail === "string" && data.detail) return data.detail
   if (Array.isArray(data.details) && data.details[0]?.description) return data.details[0].description
@@ -89,6 +108,7 @@ export function useFormErrors() {
   })
 
   function handleApiError(err) {
+    if (err instanceof SessionEndedError) return
     clearErrors()
     lastMessage.value = extractApiMessage(err)
     lastDebugId.value = extractDebugId(err)
@@ -149,6 +169,19 @@ export function useFormErrors() {
     return valid
   }
 
+  // Formats (src/utils/formats.js) before a save: rules = { field: { format, min, max, pattern } }. Keeps the errors
+  // already set (run it after validateRequired); an empty value is required's business, a valid one loses its old error.
+  function validateFormats(form, rules) {
+    let valid = true
+    for (const [field, { format, ...limits }] of Object.entries(rules)) {
+      const msg = formatError(format, form[field], limits)
+      if (msg) errors[field] = fieldError(msg)
+      else if (form[field] !== null && form[field] !== undefined && form[field] !== "") delete errors[field]
+      valid = valid && !msg
+    }
+    return valid
+  }
+
   return {
     errors,
     hasErrors,
@@ -160,5 +193,6 @@ export function useFormErrors() {
     clearFieldError,
     clearErrors,
     validateRequired,
+    validateFormats,
   }
 }

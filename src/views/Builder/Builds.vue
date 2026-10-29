@@ -1,79 +1,60 @@
 <template>
-  <div class="site-genator t-basic-700 fs-300 ph-500 h-100 ovy-auto">
-    <FloatingActions :actions="fabActions" />
-    <div class="flex jc-sb ai-ct mv-300">
-      <MobileFilterPanel
-        :active-count="activeFilters.length"
-        :trigger-label="$t('builder.filters')"
-      >
-        <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
-        <template v-if="user && user.buildTypes">
-          <FilterChip
-            v-for="t in user.buildTypes.filter(
-              (bt) => bt._for === content_type
-            )"
-            :key="`filter-${t.slug}`"
-            :label="tBuildType(t.slug, t.label)"
-            :active="activeFilters.includes(t.slug)"
-            @click="setFilter(t)"
+  <PageLayout class="content-list" roomy>
+    <template #header>
+      <PageHeader :title="$t('nav.content_list')" />
+    </template>
+    <template #toolbar>
+      <div class="content-list__filters">
+        <div v-if="buildTypes.length" class="content-list__chip-group">
+          <span id="content-list-filter-label" class="content-list__label">{{ $t("builder.filters") }}</span>
+          <div class="content-list__chips" role="group" aria-labelledby="content-list-filter-label">
+            <FilterChip
+              v-for="t in buildTypes"
+              :key="`filter-${t.slug}`"
+              :label="tBuildType(t.slug, t.label)"
+              :active="activeFilters.includes(t.slug)"
+              :aria-pressed="String(activeFilters.includes(t.slug))"
+              @click="setFilter(t)"
+            />
+            <IconButton
+              v-if="activeFilters.length"
+              icon="close"
+              size="sm"
+              :label="$t('builder.clear_filters')"
+              @click="clearFilters"
+            />
+          </div>
+        </div>
+        <div class="content-list__controls">
+          <BasicInput
+            v-model="search"
+            :placeholder="$t('builder.search_documents')"
+            icon="search"
+            class="content-list__search"
+            data-testid="content-list-search"
+            @input="debouncedFetch(() => init({}))"
           />
-        </template>
-        <FilterChip
-          v-if="activeFilters.length"
-          label="✕"
-          @click="activeFilters = []"
-        />
-      </MobileFilterPanel>
-      <div class="flex gap-100 js-fe">
-        <BasicButton
-          v-if="translatorAvailable"
-          :text="$t('builder.translate_all')"
-          icon="language"
-          class="bg-support-100 t-support-400"
-          @click="showTranslateModal = true"
-        />
-        <Dropdown
-          v-if="availableLanguages && language"
-          :values="
-            availableLanguages.map((val) => {
-              return {
-                label: `${val.iso2}`,
-                value: val.iso2,
-              };
-            })
-          "
-          style="width: 4rem"
-          :selected="[!language ? null : language.toUpperCase()]"
-          @onSelect="
-            ($event) => {
-              if ($event.toLowerCase() === language) return;
-              $router
-                .replace({ query: { lg: $event.toLowerCase() } })
-                .catch(() => {});
-              init({ language: $event });
-            }
-          "
-          :placeholder="$t('builder.language')"
-          class="bg-basic-100 b-basic-400 t-basic-600 fs-200 br-50"
-        />
+          <BasicButton v-if="translatorAvailable" variant="secondary" @click="showTranslateModal = true">
+            {{ $t("builder.translate_all") }}
+          </BasicButton>
+          <FormField v-if="availableLanguages && language" :label="$t('builder.content_language')" layout="inline">
+            <BasicSelect
+              class="content-list__select"
+              :options="languageOptions"
+              :model-value="language.toUpperCase()"
+              :placeholder="$t('builder.language')"
+              @update:model-value="setLanguage"
+            />
+          </FormField>
+        </div>
       </div>
-    </div>
+    </template>
 
-    <template
-      v-for="(doc, i) in activeFilters.length
-        ? docs.filter((doc) => {
-            return activeFilters.indexOf(doc.type) > -1;
-          })
-        : docs"
-    >
-      <div
-        :key="`content_type-${i}`"
-        v-if="doc.data.length"
-        class="doc-section mb-400"
-      >
+    <template v-for="(doc, i) in visibleDocs" :key="`content_type-${doc.type ?? i}`">
+      <div v-if="doc.data.length" class="doc-section mb-10">
         <div class="doc-section__header">
           {{ tBuildType(doc.type, doc.label) }}
-          <span class="doc-section__count">{{ doc.data.length }}</span>
+          <CountBadge :count="doc.data.length" />
         </div>
 
         <DataTable
@@ -99,8 +80,7 @@
           </template>
 
           <template #cell-updated_at="{ value }">
-            {{ new Date(value).toLocaleDateString("en") }}
-            {{ new Date(value).toLocaleTimeString("pl") }}
+            {{ formatDate(value) }}
           </template>
 
           <template #cell-status="{ row }">
@@ -108,100 +88,73 @@
               :label="
                 row.is_published ? $t('builder.published') : $t('builder.draft')
               "
-              :variant="row.is_published ? 'positive' : 'informative'"
+              :tone="row.is_published ? 'positive' : 'info'"
             />
           </template>
 
           <template #cell-actions="{ row }">
-            <button
+            <BasicButton
+              size="sm"
+              variant="ghost"
               class="data-table__action-btn"
-              @click.stop="
-                $router.push({
-                  name: 'Builder',
-                  params: { type: doc.type, uid: row.uid },
-                  query: { lg: language },
-                })
-              "
+              @click="navigateToEditor(row, doc.type)"
             >
-              <i class="icon-edit" />
-              {{
-                !user?.buildTypes?.some((type) =>
-                  type.actions?.includes("create")
-                )
-                  ? $t("builder.preview")
-                  : $t("builder.edit")
-              }}
-            </button>
-            <button
+              {{ canCreate ? $t('builder.edit') : $t('builder.preview') }}
+            </BasicButton>
+            <IconButton
               v-if="doc.type !== 'legal-page'"
-              class="data-table__action-btn data-table__action-btn--danger"
-              :class="[
-                !user?.buildTypes?.some((type) =>
-                  type.actions?.includes('create')
-                )
-                  ? 'data-table__action-btn--disabled'
-                  : '',
-              ]"
-              @click.stop="
-                () => {
-                  confirmation_modal = true;
-                  to_remove = [doc.type, row.uid];
-                }
-              "
-            >
-              <i class="icon-bin" />
-              {{ $t("builder.delete") }}
-            </button>
+              icon="delete"
+              :label="$t('builder.delete')"
+              variant="danger"
+              size="sm"
+              class="data-table__action-btn"
+              :disabled="!canCreate"
+              @click="askRemove(doc.type, row.uid)"
+            />
           </template>
         </DataTable>
-        <div class="mv-100 ph-100" v-if="doc.pagination">
+        <div class="mv-2 ph-2" v-if="doc.pagination">
           <Pagination
             :nav_size="32"
-            :pagination="doc.pagination"
-            @onChangePage="setPagination({ page: $event, type: doc.type })"
+            :page="doc.pagination.page"
+            :pages="doc.pagination.pages"
+            @update:page="setPagination({ page: $event, type: doc.type })"
           />
         </div>
       </div>
-      <ConfirmationModal
-        :visible="confirmation_modal"
-        @accept="
-          () => {
-            removeDoc(to_remove[0], to_remove[1]);
-            confirmation_modal = false;
-          }
-        "
-        @reject="confirmation_modal = false"
-      >
-        <template #header>
-          <h2>{{ $t("builder.confirm_title") }}</h2>
-        </template>
-        <template #description>
-          <p>{{ $t("builder.confirm_msg") }}</p>
-        </template>
-      </ConfirmationModal>
     </template>
 
-    <div
+    <EmptyState
       v-if="contentTypes !== null && !hasVisibleContent"
-      class="flex ai-ct jc-ct gap-200 p-500 br-50 b-basic-300 bg-basic-100 t-basic-500"
-      style="min-height: 14rem; flex-direction: column"
-    >
-      <p class="fs-400 fw-600 t-basic-600">
-        {{ $t("builder.no_content_title") }}
-      </p>
-      <p class="fs-200 t-basic-500 ta-ct" style="max-width: 30rem">
-        {{ $t("builder.no_content_msg") }}
-      </p>
-    </div>
+      icon="empty"
+      :title="searchName ? $t('builder.no_search_results') : $t('builder.no_content_title')"
+      :message="searchName ? '' : $t('builder.no_content_msg')"
+    />
 
-    <TranslateAllContentModal
-      :visible="showTranslateModal"
-      :channel-idx="contentDBChannel.activeChannel?.idx || ''"
+    <ConfirmDialog
+      tone="danger"
+      :open="confirmation_modal"
+      :title="$t('builder.confirm_title')"
+      @confirm="confirmRemove"
+      @cancel="confirmation_modal = false"
+    >
+      <p>{{ $t("builder.confirm_msg") }}</p>
+    </ConfirmDialog>
+
+    <FloatingActions :actions="fabActions" />
+
+    <TranslateDialog
+      v-model:open="showTranslateModal"
+      scope="content"
       :title="$t('builder.translate_all')"
-      @close="showTranslateModal = false"
+      :summary="$t('builder.translate_all_description')"
+      :languages="translateLanguages"
+      :source-language="contentDBChannel.defaultLanguage || ''"
+      :estimate-fn="translateFns.estimateFn"
+      :submit-fn="translateFns.submitFn"
       @translated="init({})"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -215,6 +168,9 @@ import { useNotifyStore } from "@/stores/notify";
 import { useUserStore } from "@/stores/user";
 import { useContentDBChannelStore } from "@/stores/contentDBChannel";
 import { useMuninStore } from "@/stores/munin";
+import { useAccessStore } from "@/stores/access";
+import { AREAS } from "@/configs/areas";
+import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import config_options from "@/../__client/configs/__config_options";
 
 const section_options = (value, look_for = null) => {
@@ -223,8 +179,9 @@ const section_options = (value, look_for = null) => {
   return config_options[value];
 };
 
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
-import TranslateAllContentModal from "@/functionals/TranslateAllContentModal/index.vue";
+import TranslateDialog from "@/components/TranslateDialog/index.vue";
+import { contentTranslateFns } from "./translateFns";
+import { formatDate } from "@/utils/format";
 export default {
   setup() {
     const loader = useLoaderStore();
@@ -232,7 +189,8 @@ export default {
     const userStore = useUserStore();
     const contentDBChannel = useContentDBChannelStore();
     const munin = useMuninStore();
-    return { loader, notify, userStore, contentDBChannel, munin };
+    const access = useAccessStore();
+    return { loader, notify, userStore, contentDBChannel, munin, access, ...useSearchDebounce() };
   },
   data() {
     return {
@@ -255,36 +213,66 @@ export default {
     translatorAvailable() {
       return this.munin.isModuleInstalled("contentdb_translator");
     },
+    translateLanguages() {
+      return this.contentDBChannel.availableLanguages.map((lang) => ({ label: lang.toUpperCase(), value: lang }));
+    },
+    translateFns() {
+      return contentTranslateFns(this.contentDBChannel.activeChannel?.idx || "");
+    },
     user() {
       return this.userStore.user;
+    },
+    // django-access decides when it is there; without it, the contentdb content-permissions (today's logic).
+    canCreate() {
+      if (this.access.available) return this.access.can(AREAS.CONTENT_PAGES, "write");
+      return Boolean(this.user?.buildTypes?.some((type) => type.actions?.includes("create")));
     },
     availableLanguages() {
       return this.contentDBChannel.languages;
     },
+    languageOptions() {
+      return (this.availableLanguages || []).map((val) => ({ label: `${val.iso2}`, value: val.iso2 }));
+    },
+    buildTypes() {
+      return (this.user?.buildTypes || []).filter((bt) => bt._for === this.content_type);
+    },
+    // The document name the lists are narrowed to (the API matches a part of the name, any case).
+    searchName() {
+      return this.search.trim();
+    },
+    visibleDocs() {
+      if (!this.activeFilters.length) return this.docs;
+      return this.docs.filter((doc) => this.activeFilters.includes(doc.type));
+    },
     fabActions() {
-      if (!this.user || !this.user.buildTypes) return [];
-      return this.user.buildTypes
-        .filter((bt) => bt._for === this.content_type)
-        .map((bt, index) => {
-          const config_max = this.section_options(bt.slug, "max_self");
-          const doc_count = this.docs[index] ? this.docs[index]["count"] : 0;
-          const is_disabled =
-            !bt.actions.includes("create") || doc_count >= config_max;
-          return {
-            icon: "plus",
-            label: this.tBuildType(bt.slug, bt.label),
-            handler: () => this.create_new(bt),
-            disabled: is_disabled,
-          };
-        });
+      return this.buildTypes.map((bt) => {
+        const config_max = this.section_options(bt.slug, "max_self");
+        // Paired by type: the build types and the loaded groups come from two lists in different orders.
+        const doc_count = this.docs.find((doc) => doc.type === bt.slug)?.count ?? 0;
+        const is_disabled =
+          !bt.actions.includes("create") || doc_count >= config_max;
+        return {
+          icon: "add",
+          label: this.tBuildType(bt.slug, bt.label),
+          handler: () => this.create_new(bt),
+          disabled: is_disabled,
+        };
+      });
     },
     contentColumns() {
       return [
-        { key: "name", label: this.$t("builder.name"), width: "1fr" },
+        {
+          key: "name",
+          label: this.$t("builder.name"),
+          width: "1fr",
+          truncate: true,
+          title: (row) => row.name || row.uid,
+        },
         {
           key: "updated_at",
           label: this.$t("builder.edit_date"),
           width: "160px",
+          priority: 2,
         },
         {
           key: "status",
@@ -292,17 +280,34 @@ export default {
           width: "110px",
           align: "center",
         },
-        { key: "actions", label: "", width: "140px", align: "right" },
+        { key: "actions", label: "", align: "right", actions: true },
       ];
     },
     hasVisibleContent() {
-      const filtered = this.activeFilters.length
-        ? this.docs.filter((doc) => this.activeFilters.indexOf(doc.type) > -1)
-        : this.docs;
-      return filtered.some((doc) => doc.data && doc.data.length > 0);
+      return this.visibleDocs.some((doc) => doc.data && doc.data.length > 0);
     },
   },
   methods: {
+    formatDate,
+    setLanguage(value) {
+      if (value.toLowerCase() === this.language) return;
+      this.$router.replace({ query: { lg: value.toLowerCase() } }).catch(() => {});
+      this.init({ language: value });
+    },
+    // The clear button disappears with the filters: focus moves to the first chip instead of the page body.
+    async clearFilters() {
+      this.activeFilters = [];
+      await this.$nextTick();
+      this.$el.querySelector(".content-list__chips .filter-chip")?.focus();
+    },
+    askRemove(type, uid) {
+      this.to_remove = [type, uid];
+      this.confirmation_modal = true;
+    },
+    confirmRemove() {
+      this.removeDoc(this.to_remove[0], this.to_remove[1]);
+      this.confirmation_modal = false;
+    },
     navigateToEditor(row, type) {
       this.$router.push({
         name: "Builder",
@@ -319,6 +324,7 @@ export default {
           type: type,
           page: page,
           limit: limit,
+          ...(this.searchName ? { name: this.searchName } : {}),
         });
 
         this.docs = this.docs.map((doc) => {
@@ -409,6 +415,7 @@ export default {
             CDB_TYPE: content_type,
             type: type.slug,
             language: lg ? lg.toUpperCase() : null,
+            ...(this.searchName ? { name: this.searchName } : {}),
           });
         });
 
@@ -426,7 +433,8 @@ export default {
 
           arr.push({
             data: content,
-            count: content.length,
+            // A search narrows the rows, not the number of documents a type holds (the FAB's create cap reads it).
+            count: (this.searchName && this.docs.find((doc) => doc.type === content_type)?.count) || content.length,
             pagination,
             type: content_type,
             label: this.contentTypes.find((type) => type.slug === content_type)
@@ -481,88 +489,110 @@ export default {
     next();
   },
   components: {
-    ConfirmationModal,
-    TranslateAllContentModal,
+    TranslateDialog,
   },
 };
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
+// Filters row (Figma S4): "Filtry:" and the type chips left, the language select right; a phone stacks the label,
+// scrolls the chips sideways in one row and puts the labelled select under them (S5).
+.content-list__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.content-list__chip-group,
+.content-list__chips,
+.content-list__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.content-list__chips {
+  flex-wrap: wrap;
+}
+
+.content-list__label {
+  font-size: var(--fs-200);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.content-list__controls {
+  gap: var(--space-3);
+}
+
+.content-list__select {
+  width: 180px;
+}
+
+.content-list__search {
+  width: 220px;
+}
+
+@include max-tablet {
+  .content-list__chip-group,
+  .content-list__controls {
+    flex: 1 0 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .content-list__chip-group {
+    flex-wrap: nowrap;
+  }
+
+  .content-list__search {
+    width: 100%;
+  }
+
+  // The chips' 36 px touch area stays inside the scroll box.
+  .content-list__chips {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-block: var(--space-1);
+  }
+}
+
 .doc-section {
-  border-radius: 5px;
+  border-radius: var(--radius-base);
   overflow: hidden;
-  border: 1px solid var(--c-basic-300);
+  border: 1px solid var(--border-subtle);
 }
 .doc-section__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  font-size: 12px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--fs-200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-600);
-  background-color: var(--c-basic-100);
-  border-bottom: 1px solid var(--c-basic-300);
-}
-.doc-section__count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 50px;
-  background-color: var(--c-basic-300);
-  color: var(--c-basic-600);
+  color: var(--text-secondary);
+  background-color: var(--surface-base);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .data-table__name-link {
   display: block;
   min-width: 0;
-  color: var(--c-basic-700);
+  color: var(--text-body);
   text-decoration: none;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   &:hover {
-    color: var(--c-support-400);
-  }
-}
-.data-table__action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  font-size: 12px;
-  color: var(--c-basic-600);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  &:hover {
-    background-color: var(--c-basic-300);
-    border-color: var(--c-basic-400);
-  }
-  &--danger:hover {
-    color: var(--c-negative-200);
-    border-color: var(--c-negative-200);
-    background-color: var(--c-basic-100);
-  }
-  &--disabled {
-    opacity: 0.35;
-    pointer-events: none;
-  }
-}
-@media only screen and (max-width: 768px) {
-  .site-genator {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    color: var(--text-accent);
   }
 }
 </style>

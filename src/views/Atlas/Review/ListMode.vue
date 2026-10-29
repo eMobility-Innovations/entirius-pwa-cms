@@ -1,11 +1,11 @@
 <template>
   <div class="list-mode">
     <div
-      class="flex ai-ct gap-200 mb-300 flex-wrap"
+      class="flex ai-ct gap-5 mb-8 flex-wrap"
       data-testid="list-bulk-toolbar"
     >
       <span
-        class="t-basic-600 fs-200"
+        class="t-secondary fs-200"
         data-testid="list-selected-count"
         :data-selected-count="selected.length"
       >
@@ -13,58 +13,27 @@
           $t("atlas.review.list.selected_count", { count: selected.length })
         }}
       </span>
-      <button
-        v-if="kind === 'procurement'"
-        class="bulk-btn bulk-btn--approve"
-        :disabled="!selected.length || busy || hasMonitoringSelected"
-        :title="
-          hasMonitoringSelected
-            ? $t('atlas.products.monitoring_tooltip')
-            : ''
-        "
-        data-testid="list-bulk-approve"
-        @click="bulkConfirm('approve')"
-      >
-        <FontAwesomeIcon icon="check" />
-        {{ $t("atlas.review.list.bulk_approve") }}
-      </button>
-      <button
-        class="bulk-btn bulk-btn--reject"
-        :disabled="!selected.length || busy"
-        data-testid="list-bulk-reject"
-        @click="bulkConfirm('reject')"
-      >
-        <FontAwesomeIcon icon="xmark" />
-        {{ $t("atlas.review.list.bulk_reject") }}
-      </button>
-      <button
-        class="bulk-btn bulk-btn--requeue"
-        :disabled="!hasRejectedSelected || busy"
-        data-testid="list-bulk-requeue"
-        @click="bulkConfirm('requeue')"
-      >
-        <FontAwesomeIcon icon="rotate" />
-        {{ $t("atlas.review.list.bulk_requeue") }}
-      </button>
-      <button
-        v-if="kind === 'procurement'"
-        class="bulk-btn bulk-btn--push"
-        :disabled="!hasApprovedSelected || busy || hasMonitoringSelected"
-        :title="
-          hasMonitoringSelected
-            ? $t('atlas.products.monitoring_tooltip')
-            : ''
-        "
-        data-testid="list-bulk-push"
-        @click="bulkPush"
-      >
-        <FontAwesomeIcon icon="upload" />
-        {{ $t("atlas.review.list.push_approved") }}
-      </button>
+      <template v-for="action in bulkActions" :key="action.key">
+        <BasicTooltip v-if="action.reason" :text="action.reason">
+          <BasicButton :variant="action.variant" :disabled="true" :data-testid="`list-bulk-${action.key}`">
+            {{ action.label }}
+          </BasicButton>
+        </BasicTooltip>
+        <BasicButton
+          v-else
+          :variant="action.variant"
+          :disabled="action.disabled"
+          :data-testid="`list-bulk-${action.key}`"
+          @click="action.onClick"
+        >
+          {{ action.label }}
+        </BasicButton>
+      </template>
     </div>
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
     <DataTable
+      empty-size="md"
       v-show="!loading"
       :columns="columns"
       :rows="rows"
@@ -74,32 +43,33 @@
       @row-click="openDetail"
     >
       <template #cell-_select="{ row }">
-        <input
-          type="checkbox"
-          :checked="selected.includes(row.id)"
+        <BasicCheckbox
+          :model-value="selected.includes(row.id)"
           :data-testid="`list-row-checkbox-${row.id}`"
-          @click.stop="toggleSelect(row.id)"
-        />
+          @click.stop
+          @update:model-value="toggleSelect(row.id)"
+        >
+          <span class="visually-hidden">{{ row.name || row.external_id }}</span>
+        </BasicCheckbox>
       </template>
       <template #cell-status="{ value }">
-        <StatusBadge :label="value" :variant="statusVariant(value)" />
+        <StatusBadge :label="value" :tone="statusVariant(value)" />
       </template>
       <template #cell-cost="{ row }">
-        <span class="t-basic-700 fw-600">
+        <span class="t-body fw-600">
           {{ formatCost(row.cost, row.currency) }}
         </span>
       </template>
     </DataTable>
 
-    <Confirmation-modal
-      :visible="confirmVisible"
-      @accept="bulkExecute"
-      @reject="confirmVisible = false"
+    <ConfirmDialog
+      :open="confirmVisible"
+      :tone="(pendingAction === 'reject') ? 'danger' : 'default'"
+      @confirm="bulkExecute"
+      @cancel="confirmVisible = false"
+      :title="$t('atlas.review.list.confirm_title')"
     >
-      <template #header>
-        <h2>{{ $t("atlas.review.list.confirm_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>
           {{
             $t(`atlas.review.list.confirm_${pendingAction}`, {
@@ -108,7 +78,7 @@
           }}
         </p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
 
     <SideDrawer
       :visible="detailVisible"
@@ -125,37 +95,8 @@
           />
           <RawDataPanel :product="detailProduct" />
         </div>
-        <div class="list-detail__actions">
-          <button
-            v-if="canApprove(detailProduct)"
-            class="bulk-btn bulk-btn--approve"
-            :disabled="detailBusy"
-            data-testid="list-detail-approve"
-            @click="detailAction('approve')"
-          >
-            <FontAwesomeIcon icon="check" />
-            {{ $t("atlas.review.approve_button") }}
-          </button>
-          <button
-            v-if="canSkip(detailProduct)"
-            class="bulk-btn bulk-btn--requeue"
-            :disabled="detailBusy"
-            data-testid="list-detail-skip"
-            @click="detailAction('skip')"
-          >
-            <FontAwesomeIcon icon="rotate" />
-            {{ $t("atlas.review.skip_button") }}
-          </button>
-          <button
-            v-if="canReject(detailProduct)"
-            class="bulk-btn bulk-btn--reject"
-            :disabled="detailBusy"
-            data-testid="list-detail-reject"
-            @click="detailAction('reject')"
-          >
-            <FontAwesomeIcon icon="xmark" />
-            {{ $t("atlas.review.reject_button") }}
-          </button>
+        <div v-if="detailActions.length" class="list-detail__actions">
+          <ActionBar :actions="detailActions" />
         </div>
       </div>
     </SideDrawer>
@@ -175,7 +116,6 @@
 </template>
 
 <script>
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import ProductCard from "./ProductCard.vue";
 import RawDataPanel from "./RawDataPanel.vue";
 import RawDataModal from "./RawDataModal.vue";
@@ -196,7 +136,7 @@ import {
 
 const STATUS_VARIANTS = {
   new: "neutral",
-  queued: "informative",
+  queued: "info",
   approved: "positive",
   rejected: "negative",
   pushed_pending_images: "warning",
@@ -216,10 +156,16 @@ const ACTION_FN = {
   skip: POST_QueueProduct,
 };
 
+const BULK_LABELS = {
+  approve: "atlas.review.list.bulk_approve",
+  reject: "atlas.review.list.bulk_reject",
+  requeue: "atlas.review.list.bulk_requeue",
+  push: "atlas.review.list.push_approved",
+};
+
 export default {
   name: "ListMode",
   components: {
-    ConfirmationModal,
     ProductCard,
     RawDataPanel,
     RawDataModal,
@@ -256,12 +202,14 @@ export default {
           label: this.$t("atlas.review.list.col.external_id"),
           width: "1fr",
           sortable: true,
+          priority: 2,
         },
         {
           key: "source_idx",
           label: this.$t("atlas.review.list.col.supplier"),
           width: "120px",
           sortable: false,
+          priority: 2,
         },
         {
           key: "name",
@@ -272,7 +220,7 @@ export default {
         {
           key: "status",
           label: this.$t("atlas.col.status"),
-          width: "100px",
+          width: "max-content",
           sortable: true,
         },
         {
@@ -280,14 +228,58 @@ export default {
           label: this.$t("atlas.review.list.col.cost"),
           width: "120px",
           sortable: true,
+          numeric: true,
+          priority: 2,
         },
         {
           key: "stock",
           label: this.$t("atlas.review.list.col.stock"),
           width: "80px",
           sortable: true,
+          numeric: true,
+          priority: 2,
         },
       ];
+    },
+    // Bulk actions on the selection: secondary (R5), reject danger; approve and push are PIM-bound, so a
+    // monitoring row in the selection locks them: disabled, the reason in a tooltip.
+    bulkActions() {
+      const selected = this.selected.length > 0;
+      const locked = this.hasMonitoringSelected ? this.$t("atlas.products.monitoring_tooltip") : "";
+      const procurement = this.kind === "procurement";
+      const bulk = (key, variant, enabled, reason = "") => ({
+        key,
+        label: this.$t(BULK_LABELS[key]),
+        variant,
+        reason,
+        disabled: !enabled || this.busy || Boolean(reason),
+        onClick: key === "push" ? this.bulkPush : () => this.bulkConfirm(key),
+      });
+      return [
+        procurement && bulk("approve", "secondary", selected, locked),
+        bulk("reject", "danger", selected),
+        bulk("requeue", "secondary", this.hasRejectedSelected),
+        procurement && bulk("push", "secondary", this.hasApprovedSelected, locked),
+      ].filter(Boolean);
+    },
+    // The drawer's footer (R5): approve is the one primary, skip secondary, reject danger.
+    detailActions() {
+      const p = this.detailProduct;
+      if (!p) return [];
+      const action = (key, label, role, show) =>
+        show && {
+          key,
+          label: this.$t(label),
+          role,
+          disabled: this.detailBusy,
+          testid: `list-detail-${key}`,
+          onClick: () => this.detailAction(key),
+        };
+      return [
+        action("approve", "atlas.review.approve_button", "primary", this.canApprove(p)),
+        action("skip", "atlas.review.skip_button", "secondary", this.canSkip(p)),
+        action("reject", "atlas.review.reject_button", "danger", this.canReject(p)),
+      ].filter(Boolean);
     },
     selectedRows() {
       return this.rows.filter((r) => this.selected.includes(r.id));
@@ -466,42 +458,6 @@ export default {
   display: flex;
   flex-direction: column;
 }
-.bulk-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  font-size: var(--fs-200);
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  border: 1px solid;
-  cursor: pointer;
-}
-.bulk-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.bulk-btn--approve {
-  background: var(--c-positive-100);
-  border-color: var(--c-positive-300);
-  color: var(--c-positive-300);
-}
-.bulk-btn--reject {
-  background: var(--c-negative-100);
-  border-color: var(--c-negative-300);
-  color: var(--c-negative-300);
-}
-.bulk-btn--requeue {
-  background: var(--c-warning-100);
-  border-color: var(--c-warning-300);
-  color: var(--c-warning-300);
-}
-.bulk-btn--push {
-  background: var(--c-support-100);
-  border-color: var(--c-support-400);
-  color: var(--c-support-400);
-}
 
 /* Detail drawer: fill the body so content scrolls and the action bar pins to the bottom. */
 .list-detail-wrap {
@@ -515,18 +471,14 @@ export default {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-300);
-  padding-bottom: var(--space-300);
+  gap: var(--space-8);
+  padding-bottom: var(--space-8);
 }
 .list-detail__actions {
   flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-200);
-  padding: var(--space-200) var(--space-300);
-  margin: 0 calc(-1 * var(--space-300)) calc(-1 * var(--space-300));
-  background: var(--c-basic-100);
-  border-top: 1px solid var(--c-basic-300);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04);
+  padding: var(--space-5) var(--space-8);
+  margin: 0 calc(-1 * var(--space-8)) calc(-1 * var(--space-8));
+  background: var(--surface-base);
+  border-top: 1px solid var(--border-subtle);
 }
 </style>

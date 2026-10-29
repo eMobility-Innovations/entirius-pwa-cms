@@ -44,9 +44,17 @@ const existingRule = {
   display_order: 1,
 };
 
+const SwitchStub = {
+  name: "BasicSwitch",
+  props: ["modelValue", "label"],
+  emits: ["update:modelValue"],
+  template: "<div />",
+};
+
 const mountEdit = ({ key, push } = {}) =>
   mount(GapDefinitionEdit, {
     global: {
+      components: { BasicSwitch: SwitchStub },
       mocks: {
         $route: { params: key ? { key } : {}, query: {}, path: "/pim/gap-definitions" },
         $router: { push: push || (() => {}), replace: () => {} },
@@ -55,7 +63,6 @@ const mountEdit = ({ key, push } = {}) =>
         teleport: true,
         ConfirmationModal: true,
         NumberInput: true,
-        Switcher: true,
         ChannelMultiSelect: true,
       },
     },
@@ -178,6 +185,20 @@ describe("GapDefinitionEdit", () => {
     expect(spawnNotification).toHaveBeenCalledWith(
       expect.objectContaining({ msg: "pim.gap_definition_saved" })
     );
+  });
+
+  it("the raw params switch enters raw mode seeded from the structured params", async () => {
+    const wrapper = mountEdit();
+    await flushPromises();
+
+    const rawSwitch = wrapper
+      .findAllComponents(SwitchStub)
+      .find((sw) => sw.props("label") === "pim.gap_raw_params");
+    expect(rawSwitch.props("modelValue")).toBe(false);
+    await rawSwitch.vm.$emit("update:modelValue", true);
+
+    expect(wrapper.vm.rawParamsMode).toBe(true);
+    expect(JSON.parse(wrapper.vm.rawParamsText)).toEqual(wrapper.vm.buildStructuredParams());
   });
 
   it("raw JSON fallback rejects invalid JSON without posting", async () => {

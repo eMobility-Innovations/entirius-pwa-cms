@@ -1,8 +1,8 @@
 <template>
-  <div class="stance-switcher mt-200 fs-200">
-    <div class="mb-100">
-      <span v-if="label" class="mr-100">{{ label }}</span>
-      <span class="current-value t-support-400 underline">{{
+  <div class="stance-switcher mt-5 fs-200">
+    <div class="mb-2">
+      <span v-if="label" class="mr-2">{{ label }}</span>
+      <span class="current-value t-accent underline">{{
         getCurrentLabel
       }}</span>
     </div>
@@ -73,7 +73,7 @@ export default {
   -webkit-appearance: none;
   width: 100%;
   height: 1px;
-  background: var(--c-basic-400);
+  background: var(--surface-hover);
   outline: none;
 }
 
@@ -82,17 +82,17 @@ export default {
   appearance: none;
   width: 1rem;
   height: 1rem;
-  background: var(--c-basic-600);
-  outline: 4px solid var(--c-basic-100);
-  border-radius: 50%;
+  background: var(--surface-inverse);
+  outline: 4px solid var(--surface-base);
+  border-radius: var(--radius-full);
   cursor: pointer;
 }
 
 .range-slider::-moz-range-thumb {
   width: 1rem;
   height: 1rem;
-  background: var(--c-basic-600);
-  border-radius: 50%;
+  background: var(--surface-inverse);
+  border-radius: var(--radius-full);
   cursor: pointer;
 }
 </style>

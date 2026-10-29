@@ -1,192 +1,176 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <!-- Segment switcher: Discounts / Vouchers -->
-      <div class="promo-list__tabs mb-400">
-        <SegmentedControl v-model="activeTab" :options="tabOptions" />
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('nav.promo_list')">
+        <template #meta>
+          <PromoChannelSelect />
+        </template>
+      </PageHeader>
+    </template>
+
+    <template #toolbar>
+      <!-- Discounts / Vouchers: a switch only when there is something to switch to (B-83), or a way back from a
+           locked vouchers deep link -->
+      <SegmentedControl
+        v-if="showTabs"
+        v-model="activeTab"
+        :options="tabOptions"
+        class="mb-8"
+      />
+      <div v-if="activeTab === 'discounts'" class="promo-list__toolbar">
+        <BasicInput
+          v-model="search"
+          :placeholder="$t('common.start_typing')"
+          :aria-label="$t('common.start_typing')"
+          icon="search"
+          class="promo-list__search"
+          @input="debouncedFetch(searchAndFetch)"
+        />
+        <MobileFilterPanel
+          :active-count="activeFilterCount"
+          :trigger-label="$t('builder.filters')"
+        >
+          <p class="fs-200 t-secondary">{{ $t("builder.filters") }}</p>
+          <FilterChip
+            v-for="tab in statusTabs"
+            :key="tab.key"
+            :label="tab.label"
+            :active="statusFilter === tab.key"
+            @click="setStatusFilter(tab.key)"
+          />
+          <BasicSelect
+            :floating-label="$t('promo.col_modifier')"
+            :options="modifierOptions"
+            :model-value="modifierFilter"
+            class="promo-list__modifier-filter"
+            @update:model-value="onModifierFilter"
+          />
+        </MobileFilterPanel>
+      </div>
+    </template>
+
+    <!-- DISCOUNTS tab -->
+    <template v-if="activeTab === 'discounts'">
+      <!-- Bulk action bar (visible only when selection exists) -->
+      <div v-if="hasSelection" class="promo-list__bulk-bar mb-8">
+        <span class="promo-list__bulk-count t-body fw-600">
+          {{ $t("promo.bulk_selected", { n: selectionCount }) }}
+        </span>
+        <div class="promo-list__bulk-actions">
+          <BasicButton mutates variant="secondary" @click="startBulk('activate')">
+            {{ $t('promo.bulk_activate') }}
+          </BasicButton>
+          <BasicButton mutates variant="secondary" @click="startBulk('deactivate')">
+            {{ $t('promo.bulk_deactivate') }}
+          </BasicButton>
+          <BasicButton mutates variant="danger" @click="startBulk('delete')">
+            {{ $t('promo.bulk_delete') }}
+          </BasicButton>
+          <BasicButton variant="secondary" @click="clearSelection">
+            {{ $t('promo.bulk_clear') }}
+          </BasicButton>
+        </div>
       </div>
 
-      <!-- DISCOUNTS tab -->
-      <template v-if="activeTab === 'discounts'">
-        <!-- Bulk action bar (visible only when selection exists) -->
-        <div v-if="hasSelection" class="promo-list__bulk-bar mb-300">
-          <span class="promo-list__bulk-count t-basic-700 fw-600">
-            {{ $t("promo.bulk_selected", { n: selectionCount }) }}
-          </span>
-          <div class="promo-list__bulk-actions">
-            <BasicButton
-              :text="$t('promo.bulk_activate')"
-              class="bg-positive-200 t-basic-100"
-              @click="startBulk('activate')"
-            />
-            <BasicButton
-              :text="$t('promo.bulk_deactivate')"
-              class="bg-basic-200 t-basic-600"
-              @click="startBulk('deactivate')"
-            />
-            <BasicButton
-              :text="$t('promo.bulk_delete')"
-              icon="trash-can"
-              class="bg-negative-100 t-negative-300"
-              @click="startBulk('delete')"
-            />
-            <BasicButton
-              :text="$t('promo.bulk_clear')"
-              class="bg-basic-200 t-basic-600"
-              @click="clearSelection"
-            />
-          </div>
-        </div>
+      <!-- Select-all-matching banner -->
+      <div
+        v-if="pageFullySelected && totalCount > rules.length && !selectAllMatching"
+        class="promo-list__select-banner bg-accent-subtle t-strong fs-200 ph-5 pv-2 rounded mb-8"
+      >
+        {{ $t("promo.bulk_select_all_page", { n: rules.length }) }}
+        <BasicButton variant="ghost" size="sm" @click="selectAllMatching = true">
+          {{ $t("promo.bulk_select_all_matching", { total: totalCount }) }}
+        </BasicButton>
+      </div>
+      <div
+        v-else-if="selectAllMatching"
+        class="promo-list__select-banner bg-accent-subtle t-strong fs-200 ph-5 pv-2 rounded mb-8"
+      >
+        {{ $t("promo.bulk_all_selected", { total: totalCount }) }}
+        <BasicButton variant="ghost" size="sm" @click="clearSelection">
+          {{ $t("promo.bulk_clear_selection") }}
+        </BasicButton>
+      </div>
 
-        <!-- Filters toolbar (always visible) -->
-        <div class="promo-list__toolbar">
-          <BasicInput
-            v-model="search"
-            :placeholder="$t('common.start_typing')"
-            icon="search"
-            class="promo-list__search"
-            @input="debouncedFetch(searchAndFetch)"
+      <Loader block v-show="loading" />
+
+      <DataTable
+        empty-size="md"
+        v-show="!loading"
+        :key="tableKey"
+        :columns="columns"
+        :rows="rules"
+        row-key="id"
+        :empty-text="$t('promo.no_rules')"
+        :sortable="true"
+        :selectable="true"
+        :multi-select="true"
+        @sort="onSort"
+        @row-click="onRowClick"
+        @select="onSelect"
+      >
+        <template #cell-modifier="{ row }">
+          <Tag
+            :label="modifierShortLabel(row.modifier)"
+            :title="modifierLabel(row.modifier)"
           />
-          <MobileFilterPanel
-            :active-count="activeFilterCount"
-            :trigger-label="$t('builder.filters')"
-          >
-            <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
-            <FilterChip
-              v-for="tab in statusTabs"
-              :key="tab.key"
-              :label="tab.label"
-              :active="statusFilter === tab.key"
-              @click="setStatusFilter(tab.key)"
-            />
-            <Dropdown
-              :values="modifierOptions"
-              :selected="modifierFilter ? [modifierFilter] : []"
-              :placeholder="$t('promo.all_modifiers')"
-              class="promo-list__modifier-filter"
-              @onSelect="onModifierFilter"
-            />
-          </MobileFilterPanel>
-        </div>
+        </template>
+        <template #cell-code_count="{ row }">
+          <CountBadge :count="row.code_count ?? 0" />
+        </template>
+        <template #cell-is_active="{ row }">
+          <StatusBadge
+            :label="row.is_active ? $t('promo.active') : $t('promo.inactive')"
+            :tone="row.is_active ? 'positive' : 'negative'"
+          />
+        </template>
+        <template #cell-automatic_applications="{ row }">
+          <StatusBadge
+            v-if="row.automatic_applications"
+            :label="$t('promo.automatic')"
+            tone="neutral"
+          />
+          <span v-else class="t-muted">—</span>
+        </template>
+      </DataTable>
 
-        <!-- Select-all-matching banner -->
-        <div
-          v-if="pageFullySelected && totalCount > rules.length && !selectAllMatching"
-          class="promo-list__select-banner bg-support-100 t-support-400 fs-200 ph-200 pv-100 br-50 mb-300"
-        >
-          {{ $t("promo.bulk_select_all_page", { n: rules.length }) }}
-          <button
-            class="promo-list__select-banner-link t-support-400 fw-600"
-            @click="selectAllMatching = true"
-          >
-            {{ $t("promo.bulk_select_all_matching", { total: totalCount }) }}
-          </button>
-        </div>
-        <div
-          v-else-if="selectAllMatching"
-          class="promo-list__select-banner bg-support-100 t-support-400 fs-200 ph-200 pv-100 br-50 mb-300"
-        >
-          {{ $t("promo.bulk_all_selected", { total: totalCount }) }}
-          <button
-            class="promo-list__select-banner-link t-support-400 fw-600"
-            @click="clearSelection"
-          >
-            {{ $t("promo.bulk_clear_selection") }}
-          </button>
-        </div>
+      <FloatingActions :actions="fabActions" />
 
-        <Loader v-show="loading" />
+      <!-- Bulk delete confirmation modal -->
+      <ConfirmDialog
+        tone="danger"
+        :open="pendingBulkAction === 'delete'"
+        @confirm="onBulkDeleteAccept"
+        @cancel="pendingBulkAction = null"
+        :title="$t('promo.bulk_confirm_delete_title')"
+      >
+        <template #default>
+          <p>{{ $t("promo.bulk_confirm_delete", { n: selectionCount }) }}</p>
+        </template>
+      </ConfirmDialog>
+    </template>
 
-        <DataTable
-          v-show="!loading"
-          :key="tableKey"
-          :columns="columns"
-          :rows="rules"
-          row-key="id"
-          :empty-text="$t('promo.no_rules')"
-          :sortable="true"
-          :selectable="true"
-          :multi-select="true"
-          @sort="onSort"
-          @row-click="onRowClick"
-          @select="onSelect"
-        >
-          <template #cell-name="{ row }">
-            <span class="promo-rule-name">{{ row.name }}</span>
-          </template>
-          <template #cell-modifier="{ row }">
-            <span
-              class="promo-modifier-badge bg-support-100 t-support-400"
-              :title="modifierLabel(row.modifier)"
-            >{{ modifierShortLabel(row.modifier) }}</span>
-          </template>
-          <template #cell-target="{ row }">
-            <span class="bg-basic-200 t-basic-600 fs-200 ph-100 br-50 fw-600">{{
-              row.target
-            }}</span>
-          </template>
-          <template #cell-code_count="{ row }">
-            <span class="bg-basic-200 t-basic-600 fs-200 ph-100 br-50 fw-600">{{
-              row.code_count
-            }}</span>
-          </template>
-          <template #cell-is_active="{ row }">
-            <StatusBadge
-              :label="row.is_active ? $t('promo.active') : $t('promo.inactive')"
-              :variant="row.is_active ? 'positive' : 'negative'"
-            />
-          </template>
-          <template #cell-automatic_applications="{ row }">
-            <StatusBadge
-              v-if="row.automatic_applications"
-              :label="$t('promo.automatic')"
-              variant="neutral"
-            />
-            <span v-else class="t-basic-400">—</span>
-          </template>
-          <template #cell-priority="{ row }">
-            <span class="t-basic-600">{{ row.priority }}</span>
-          </template>
-        </DataTable>
-
-        <Pagination
-          v-if="totalCount > pageSize"
-          :pagination="paginationState"
-          @onChangePage="onPageChange"
+    <!-- VOUCHERS tab (gated on the checkout_voucher module) -->
+    <template v-else-if="activeTab === 'vouchers'">
+      <VouchersSection v-if="vouchersEnabled" />
+      <div v-else class="promo-vouchers-disabled">
+        <EmptyState
+          icon="lock"
+          :title="$t('promo.vouchers_unavailable_title')"
+          :message="$t('promo.vouchers_unavailable')"
         />
+      </div>
+    </template>
 
-        <FloatingActions :actions="fabActions" />
-
-        <!-- Bulk delete confirmation modal -->
-        <Confirmation-modal
-          :visible="pendingBulkAction === 'delete'"
-          @accept="onBulkDeleteAccept"
-          @reject="pendingBulkAction = null"
-        >
-          <template #header>
-            <h2>{{ $t("promo.bulk_confirm_delete_title") }}</h2>
-          </template>
-          <template #description>
-            <p>{{ $t("promo.bulk_confirm_delete", { n: selectionCount }) }}</p>
-          </template>
-        </Confirmation-modal>
-      </template>
-
-      <!-- VOUCHERS tab (gated on the checkout_voucher module) -->
-      <template v-else-if="activeTab === 'vouchers'">
-        <VouchersSection v-if="vouchersEnabled" />
-        <div v-else class="promo-vouchers-disabled">
-          <EmptyState
-            icon="lock"
-            :title="$t('promo.vouchers_unavailable_title')"
-            :message="$t('promo.vouchers_unavailable')"
-          />
-        </div>
-      </template>
-    </div>
-  </div>
+    <template #footer>
+      <Pagination
+        v-if="activeTab === 'discounts' && totalCount > pageSize"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -197,13 +181,13 @@ import { useCheckoutChannelStore } from "@/stores/checkoutChannel";
 import { modifierShortLabel } from "./promo-modifiers";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { GET_DiscountRules, GET_DiscountMeta, POST_BulkRules } from "@/api/promo/api";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import VouchersSection from "./VouchersSection.vue";
+import PromoChannelSelect from "./PromoChannelSelect.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 export default {
   name: "PromoList",
-  components: { VouchersSection, ConfirmationModal },
+  components: { VouchersSection, PromoChannelSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -252,6 +236,9 @@ export default {
       }
       return tabs;
     },
+    showTabs() {
+      return this.tabOptions.length > 1 || this.activeTab !== "discounts";
+    },
     statusTabs() {
       return [
         { key: "all", label: this.$t("promo.filter_all") },
@@ -285,18 +272,22 @@ export default {
           label: this.$t("promo.col_modifier"),
           sortable: false,
           width: "160px",
+          priority: 2,
         },
         {
           key: "target",
           label: this.$t("promo.col_target"),
           sortable: false,
-          width: "100px",
+          width: "160px",
+          priority: 2,
         },
         {
           key: "code_count",
           label: this.$t("promo.col_codes"),
           sortable: false,
           width: "80px",
+          priority: 2,
+          numeric: true,
         },
         {
           key: "is_active",
@@ -309,19 +300,22 @@ export default {
           label: this.$t("promo.col_automatic"),
           sortable: false,
           width: "100px",
+          priority: 2,
         },
         {
           key: "priority",
           label: this.$t("promo.col_priority"),
           sortable: true,
           width: "80px",
+          priority: 2,
+          numeric: true,
         },
       ];
     },
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("promo.create_rule"),
           handler: () => this.$router.push("/promo/create"),
         },
@@ -499,16 +493,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.promo-list__tabs {
-  display: flex;
-  align-items: center;
-}
-
 .promo-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 
@@ -527,12 +515,12 @@ export default {
 .promo-list__bulk-bar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
+  gap: var(--space-5);
   flex-wrap: wrap;
-  padding: var(--space-200);
-  background-color: var(--c-basic-200);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--c-basic-300);
+  padding: var(--space-5);
+  background-color: var(--surface-raised);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-subtle);
 }
 
 .promo-list__bulk-count {
@@ -542,50 +530,15 @@ export default {
 
 .promo-list__bulk-actions {
   display: flex;
-  gap: var(--space-100);
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .promo-list__select-banner {
   display: flex;
   align-items: center;
-  gap: var(--space-100);
+  gap: var(--space-2);
   flex-wrap: wrap;
-}
-
-.promo-list__select-banner-link {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-  font-size: inherit;
-  text-decoration: underline;
-
-  &:focus-visible {
-    outline: 2px solid var(--c-support-400);
-  }
-}
-
-.promo-rule-name {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.promo-modifier-badge {
-  display: inline-block;
-  max-width: 100%;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-200);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
-  cursor: default;
 }
 
 .promo-vouchers-disabled {

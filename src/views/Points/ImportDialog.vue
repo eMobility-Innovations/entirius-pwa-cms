@@ -1,102 +1,45 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <div class="flex ai-ct mb-500">
-        <BasicButton
-          text=""
-          icon="arrow-left"
-          class="bg-basic-200 t-basic-600"
-          @click="$router.push('/points/list')"
+  <BasicModal
+    :open="open"
+    :title="$t('dp.import')"
+    :actions="actions"
+    @close="$emit('close')"
+  >
+    <div class="flex-column gap-4">
+      <FormField :label="$t('dp.import_file')" hint-level="important" hint=".csv">
+        <ImportChooseFile :file-name="selectedFile?.name" @select="onFileSelect" />
+      </FormField>
+
+      <FormField :label="$t('dp.import_type')">
+        <BasicSelect
+          :options="typeOptions"
+          v-model="typeCode"
+          :placeholder="$t('common.select')"
         />
-      </div>
+      </FormField>
 
-      <h1 class="fs-700 fw-600 mb-500">{{ $t("dp.import") }}</h1>
+      <FormField :label="$t('dp.import_mode')">
+        <BasicRadioGroup v-model="mode" name="points-import-mode" :options="modeOptions" />
+      </FormField>
 
-      <div class="import-card">
-        <!-- File input -->
-        <div class="detail-field mb-400">
-          <label class="detail-label">{{ $t("dp.import_file") }}</label>
-          <input
-            ref="fileInput"
-            type="file"
-            accept=".csv"
-            class="file-input"
-            @change="onFileChange"
-          />
-          <span v-if="!selectedFile" class="fs-200 t-basic-400">
-            {{ $t("dp.import_file") }} (.csv)
-          </span>
-          <span v-else class="fs-200 t-basic-700 fw-600">
-            {{ selectedFile.name }}
-          </span>
-          <BasicButton
-            :text="$t('gallery.upload')"
-            icon="file-arrow-up"
-            class="bg-basic-200 t-basic-700 mt-200"
-            @click="$refs.fileInput.click()"
-          />
-        </div>
+      <FormField :label="$t('dp.import_channel')">
+        <BasicInput v-model="channelIdx" />
+      </FormField>
 
-        <!-- Type selection -->
-        <div class="detail-field mb-400">
-          <label class="detail-label">{{ $t("dp.import_type") }}</label>
-          <Dropdown
-            :values="typeOptions"
-            :selected="typeCode ? [typeCode] : []"
-            :placeholder="$t('common.select')"
-            @onSelect="(val) => (typeCode = val)"
-          />
-        </div>
-
-        <!-- Mode selection -->
-        <div class="detail-field mb-400">
-          <label class="detail-label">{{ $t("dp.import_mode") }}</label>
-          <div class="flex flex-column gap-200 mt-100">
-            <label class="radio-option">
-              <input v-model="mode" type="radio" value="incremental" />
-              <span class="fs-300">{{ $t("dp.import_mode_incremental") }}</span>
-            </label>
-            <label class="radio-option">
-              <input v-model="mode" type="radio" value="full" />
-              <span class="fs-300">{{ $t("dp.import_mode_full") }}</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Optional channel -->
-        <div class="detail-field mb-500">
-          <label class="detail-label">{{ $t("dp.import_channel") }}</label>
-          <BasicInput
-            v-model="channelIdx"
-            :placeholder="$t('dp.import_channel')"
-            class="import-input"
-          />
-        </div>
-
-        <!-- Result summary -->
-        <div v-if="importResult" class="import-result mb-400">
-          <StatusBadge label="Import complete" variant="positive" />
-          <p class="fs-300 t-basic-700 mt-200">
-            {{
-              $t("dp.import_success", {
-                created: importResult.created || 0,
-                updated: importResult.updated || 0,
-                disabled: importResult.disabled || 0,
-              })
-            }}
-          </p>
-        </div>
-
-        <BasicButton
-          :text="$t('dp.import_submit')"
-          icon="file-import"
-          class="bg-support-400 t-basic-100"
-          :disabled="submitting || !selectedFile"
-          @click="submitImport"
-        />
+      <div v-if="importResult" class="flex-column gap-3">
+        <StatusBadge :label="$t('dp.import_complete')" tone="positive" />
+        <p class="fs-300 t-body">
+          {{
+            $t("dp.import_success", {
+              created: importResult.created || 0,
+              updated: importResult.updated || 0,
+              disabled: importResult.disabled || 0,
+            })
+          }}
+        </p>
       </div>
     </div>
-  </div>
+  </BasicModal>
 </template>
 
 <script>
@@ -104,9 +47,17 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { GET_Types, POST_Import } from "@/api/deliverypoints/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import ImportChooseFile from "@/views/Stock/ImportChooseFile.vue";
 
+// The import is not routed (the service imports with `manage.py import_deliverypoints`); the dialog is kept for when
+// the panel opens it again.
 export default {
   name: "ImportDialog",
+  components: { ImportChooseFile },
+  props: {
+    open: { type: Boolean, default: false },
+  },
+  emits: ["close"],
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -124,12 +75,34 @@ export default {
     };
   },
   computed: {
+    actions() {
+      return [
+        { key: "cancel", role: "secondary", label: this.$t("common.cancel"), onClick: () => this.$emit("close") },
+        { key: "import", role: "primary", label: this.$t("dp.import_submit"), onClick: this.submitImport,
+          disabled: this.submitting || !this.selectedFile, loading: this.submitting },
+      ];
+    },
+    modeOptions() {
+      return [
+        { value: "incremental", label: this.$t("dp.import_mode_incremental") },
+        { value: "full", label: this.$t("dp.import_mode_full") },
+      ];
+    },
     typeOptions() {
       return this.types.map((t) => ({ label: t.name, value: t.code }));
     },
   },
-  mounted() {
-    this.fetchTypes();
+  // Mounted while closed: the types load, and the last file and result clear, each time the dialog opens.
+  watch: {
+    open: {
+      immediate: true,
+      handler(isOpen) {
+        if (!isOpen) return;
+        this.selectedFile = null;
+        this.importResult = null;
+        this.fetchTypes();
+      },
+    },
   },
   methods: {
     async fetchTypes() {
@@ -143,8 +116,8 @@ export default {
         });
       }
     },
-    onFileChange(event) {
-      this.selectedFile = event.target.files[0] || null;
+    onFileSelect(file) {
+      this.selectedFile = file;
       this.importResult = null;
     },
     async submitImport() {
@@ -172,9 +145,6 @@ export default {
         });
 
         this.selectedFile = null;
-        if (this.$refs.fileInput) {
-          this.$refs.fileInput.value = "";
-        }
       } catch (err) {
         this.notify.spawnNotification({
           type: "negative",
@@ -188,48 +158,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped>
-.import-card {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 28px;
-  max-width: 600px;
-}
-
-.detail-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.detail-label {
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-}
-
-.import-input {
-  max-width: 300px;
-}
-
-.file-input {
-  display: none;
-}
-
-.radio-option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-200);
-  cursor: pointer;
-}
-
-.import-result {
-  padding: 16px;
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-200);
-}
-</style>

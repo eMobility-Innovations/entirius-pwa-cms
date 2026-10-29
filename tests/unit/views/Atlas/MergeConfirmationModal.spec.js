@@ -7,25 +7,21 @@ vi.mock("@/api/atlas/api", () => ({
   POST_MergeByEan: (...args) => mockPostMergeByEan(...args),
 }));
 
-vi.mock("@/functionals/Confirmation-modal/index.vue", () => ({
-  default: {
-    name: "ConfirmationModal",
-    props: ["visible"],
-    template:
-      "<div class='stub-modal'><slot name='header' /><slot name='description' /></div>",
-  },
-}));
-
 import MergeConfirmationModal from "@/views/Atlas/components/MergeConfirmationModal.vue";
 
 const globalStubs = {
+  BasicModal: {
+    name: "BasicModal",
+    props: ["open"],
+    template: "<div class='stub-modal'><slot name='title' /><slot /><slot name='footer' /></div>",
+  },
   FormField: {
     name: "FormField",
     props: ["label"],
     template: "<div class='stub-field' :data-label='label'><slot /></div>",
   },
-  TextAreaBasic: {
-    name: "TextAreaBasic",
+  BasicTextarea: {
+    name: "BasicTextarea",
     props: ["modelValue", "disabled"],
     emits: ["update:modelValue"],
     template:

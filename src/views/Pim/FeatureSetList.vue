@@ -1,12 +1,13 @@
 <template>
-  <div class="pim-list-layout p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 flex-1 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("pim.feature_sets") }}</h1>
-      </div>
-
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pim.feature_sets')">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
       <div class="feature-set-list__toolbar">
         <BasicInput
           v-model="search"
@@ -16,10 +17,12 @@
           @input="debouncedFetch(searchAndFetch)"
         />
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="featureSets"
@@ -30,28 +33,23 @@
         @row-click="onRowClick"
       >
         <template #cell-is_default="{ value }">
-          <span
-            class="chip"
-            :class="
-              value
-                ? 'bg-positive-100 t-positive-300'
-                : 'bg-basic-200 t-basic-500'
-            "
-          >
-            {{ value ? $t("pim.yes") : $t("pim.no") }}
-          </span>
+          <StatusBadge
+            :tone="value ? 'positive' : 'neutral'"
+            :dot="false"
+            :label="value ? $t('pim.yes') : $t('pim.no')"
+          />
         </template>
       </DataTable>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-    <Pagination
-      v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      class="mt-200"
-      @onChangePage="onPageChange"
-    />
-  </div>
+    <template v-if="totalCount > pageSize" #footer>
+      <Pagination
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -60,10 +58,12 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { GET_FeatureSetsGlobal, POST_FeatureSet } from "@/api/pim/api";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 export default {
   name: "FeatureSetList",
+  components: { PimChannelSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -93,7 +93,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("pim.create_feature_set"),
           handler: () => this.onCreate(),
         },
@@ -101,7 +101,7 @@ export default {
     },
     columns() {
       return [
-        { key: "idx", label: "IDX", sortable: true, width: "1fr" },
+        { key: "idx", label: "IDX", sortable: true, width: "1fr", priority: 2 },
         {
           key: "name",
           label: this.$t("pim.name"),
@@ -113,6 +113,7 @@ export default {
           label: this.$t("pim.description"),
           sortable: false,
           width: "2fr",
+          priority: 2,
         },
         {
           key: "is_default",
@@ -204,15 +205,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.pim-list-layout {
-  display: flex;
-  flex-direction: column;
-}
 .feature-set-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 .feature-set-list__search {

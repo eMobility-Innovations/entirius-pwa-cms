@@ -1,9 +1,10 @@
 <template>
-  <div class="mapping-row b-basic-300 br-sm p-200 mb-100">
+  <div class="mapping-row b-subtle rounded p-5 mb-2">
     <div class="mapping-row__grid">
       <FormField
         :label="$t('atlas.mappings.category.source_field')"
-        :tooltip="$t('atlas.mappings.category.source_field_help')"
+        hint-level="important"
+        :hint="$t('atlas.mappings.category.source_field_help')"
       >
         <EntitySearchPicker
           v-if="isNew"
@@ -19,27 +20,38 @@
         <BasicInput
           v-else
           v-model="local.source_field"
-          :is-disabled="true"
+          :disabled="true"
           :data-testid="`cat-mapping-source-${rowKey}`"
         />
       </FormField>
       <FormField :label="$t('atlas.mappings.category.source_value')">
-        <SourceValuePicker
-          v-if="isNew"
-          v-model="local.source_value"
-          :supplier-idx="supplierIdx"
-          :source-field="local.source_field"
-          :placeholder="
-            $t('atlas.mappings.category.source_value_placeholder')
-          "
-          :test-id="`cat-mapping-value-${rowKey}`"
-        />
-        <BasicInput
-          v-else
-          v-model="local.source_value"
-          :is-disabled="true"
-          :data-testid="`cat-mapping-value-${rowKey}`"
-        />
+        <div class="flex gap-1">
+          <BasicInput
+            v-model="local.source_value"
+            :maxlength="512"
+            class="flex-1"
+            :disabled="!isNew"
+            :placeholder="isNew ? $t('atlas.mappings.category.source_value_placeholder') : ''"
+            :data-testid="`cat-mapping-value-${rowKey}`"
+            @update:model-value="sourceValuePicked = false"
+          />
+          <BasicMenu
+            v-if="isNew"
+            :items="sourceValueItems"
+            :label="$t('atlas.mappings.category.source_value_picker_open')"
+            @open="loadSourceValues"
+            @select="pickSourceValue($event.value)"
+          >
+            <template #trigger>
+              <IconButton
+                icon="expand"
+                :label="$t('atlas.mappings.category.source_value_picker_open')"
+                :disabled="!local.source_field"
+                :data-testid="`cat-mapping-values-${rowKey}`"
+              />
+            </template>
+          </BasicMenu>
+        </div>
       </FormField>
       <FormField :label="$t('atlas.mappings.category.target_category_idx')">
         <EntitySearchPicker
@@ -55,6 +67,7 @@
         <BasicInput
           v-else
           v-model="local.target_category_idx"
+          :maxlength="64"
           :placeholder="
             $t('atlas.mappings.category.target_category_no_channel_hint')
           "
@@ -62,41 +75,41 @@
         />
       </FormField>
     </div>
-    <div class="flex ai-ct gap-100 mt-200 jc-end">
+    <div class="flex ai-ct gap-2 mt-5 jc-end">
       <span
         v-if="rowWarnings.length"
-        class="row-warning t-warning-300"
+        class="row-warning t-warning"
         :title="warningTitle"
         :data-testid="`cat-mapping-warning-${rowKey}`"
       >
-        <FontAwesomeIcon icon="triangle-exclamation" />
+        <FontAwesomeIcon :icon="$icons.warning" />
         <span class="fs-200 fw-600">{{ rowWarnings.length }}</span>
       </span>
-      <button
+      <IconButton
         v-if="!isNew"
-        class="row-action-btn bg-negative-100 t-negative-300"
-        :title="$t('common.delete')"
+        icon="delete"
+        variant="danger"
+        size="sm"
+        :label="$t('common.delete')"
         :data-testid="`cat-mapping-delete-${rowKey}`"
         @click="$emit('delete', mapping)"
-      >
-        <FontAwesomeIcon icon="trash-can" />
-      </button>
-      <button
-        class="suppliers-primary-btn"
+      />
+      <BasicButton
+        size="sm"
         :disabled="busy"
         :data-testid="`cat-mapping-save-${rowKey}`"
         @click="emitSave"
       >
-        <FontAwesomeIcon icon="floppy-disk" />
         {{ $t("common.save") }}
-      </button>
+      </BasicButton>
     </div>
   </div>
 </template>
 
 <script>
 import { GET_Categories } from "@/api/pim/api";
-import SourceValuePicker from "./SourceValuePicker.vue";
+import { GET_DataValues } from "@/api/atlas/api";
+import { extractApiMessage } from "@/composables/useFormErrors";
 
 const EMPTY = () => ({
   source_field: "",
@@ -106,7 +119,6 @@ const EMPTY = () => ({
 
 export default {
   name: "CategoryMappingRow",
-  components: { SourceValuePicker },
   props: {
     mapping: { type: Object, default: null },
     busy: { type: Boolean, default: false },
@@ -123,6 +135,12 @@ export default {
     return {
       local: this.mapping ? { ...this.mapping } : EMPTY(),
       _categoryCache: [],
+      sourceValues: { field: null, values: [] },
+      sourceValuesState: "idle",
+      sourceValuesError: "",
+      // A value picked from the menu shows the full list again; typing filters it. Not reset by a new source_field:
+      // that field's full list shows, which is what a pick there would show anyway.
+      sourceValuePicked: false,
     };
   },
   computed: {
@@ -146,6 +164,21 @@ export default {
         }`,
       }));
       return [...tokens, ...dataKeys];
+    },
+    // The feed's values of the source field that contain the typed text — all of them while the field holds a value
+    // picked from this list and not typed over since (reopening shows the full list); null values are skipped,
+    // numbers read as text. A failed load shows the API message instead of the list.
+    sourceValueItems() {
+      const note = (label) => [{ key: "note", heading: true, label }];
+      if (this.sourceValuesState === "loading") return note(this.$t("entity_picker.searching"));
+      if (this.sourceValuesState === "error") return note(this.sourceValuesError);
+      const values = this.sourceValues.values.filter((v) => v.value != null);
+      const q = this.sourceValuePicked ? "" : String(this.local.source_value ?? "").trim().toLowerCase();
+      const suffix = this.$t("atlas.mappings.category.source_value_picker_count_suffix");
+      const items = values
+        .filter((v) => String(v.value).toLowerCase().includes(q))
+        .map((v) => ({ key: String(v.value), value: String(v.value), label: `${v.value} · ${v.count} ${suffix}` }));
+      return items.length ? items : note(this.$t("entity_picker.no_results"));
     },
     categoryDisplayValue() {
       const cached = this._categoryCache.find(
@@ -175,11 +208,32 @@ export default {
     },
   },
   methods: {
+    pickSourceValue(value) {
+      this.local.source_value = value;
+      this.sourceValuePicked = true;
+    },
     emitSave() {
       this.$emit("save", { ...this.local, id: this.mapping?.id });
     },
     sourceFieldFetchFn() {
       return Promise.resolve(this.sourceFieldOptions);
+    },
+    // One successful request per source field; a failed one is not kept, the next open asks again. An answer for a
+    // source field that is no longer chosen is dropped.
+    async loadSourceValues() {
+      const field = this.local.source_field;
+      if (!field || this.sourceValues.field === field) return;
+      this.sourceValuesState = "loading";
+      try {
+        const { data } = await GET_DataValues(this.supplierIdx, { source_field: field });
+        if (field !== this.local.source_field) return;
+        this.sourceValues = { field, values: data?.values || [] };
+        this.sourceValuesState = "idle";
+      } catch (err) {
+        if (field !== this.local.source_field) return;
+        this.sourceValuesError = extractApiMessage(err, this.$t("notifications.error"));
+        this.sourceValuesState = "error";
+      }
     },
     async categoryFetchFn(query) {
       if (!this.channelIdx) return [];
@@ -204,45 +258,17 @@ export default {
 
 <style lang="scss" scoped>
 .mapping-row {
-  background: var(--c-basic-100);
+  background: var(--surface-base);
 }
 .mapping-row__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-200);
-}
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.suppliers-primary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  font-size: var(--fs-200);
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--c-support-400);
-  background: var(--c-support-400);
-  color: var(--c-basic-100);
-  cursor: pointer;
-}
-.suppliers-primary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  gap: var(--space-5);
 }
 .row-warning {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 var(--space-50);
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
 }
 </style>

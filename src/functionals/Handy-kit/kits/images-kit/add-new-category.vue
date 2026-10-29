@@ -2,27 +2,26 @@
   <div>
     <h4 class="mb-md">{{ $t("images.add_new_category") }}</h4>
     <hr class="mv-lg" />
-    <BasicInput
-      class="size-sm"
-      :label="$t('images.category_name')"
-      v-model="newTag"
-    />
-    <ButtonBasic
-      :text="$t('common.save')"
-      :styles="'full'"
-      @click="addNewTag"
-      class="bg-primary-100 txt-gray-700 w-full sticky-btn mt-md"
-    />
+    <FormField :label="$t('images.category_name')">
+      <BasicInput
+        class="size-sm"
+        v-model="newTag"
+      />
+    </FormField>
+    <BasicButton variant="primary" class="w-full sticky-btn mt-md" @click="addNewTag">
+      {{ $t("common.save") }}
+    </BasicButton>
     <hr class="mv-lg" />
     <p class="mt-lg">{{ $t("images.photos") }}</p>
     <div class="images-categories">
-      <ButtonBasic
-        class="outline txt-gray-700 w-full sticky-btn mt-md"
+      <BasicButton
         v-for="(t, i) in tags"
         :key="`${i}-tag-${t}`"
-        :text="t.label"
-        :isDisabled="true"
-      />
+        class="w-full sticky-btn mt-md"
+        disabled
+      >
+        {{ t.label }}
+      </BasicButton>
     </div>
   </div>
 </template>

@@ -1,0 +1,21 @@
+@import "./media-query";
+
+// A thumb-sized hit area below tablet with the visual unchanged: a transparent `::after` centred on the control, at
+// least `$width` × `$height` and never smaller than the control. Where a neighbour sits closer than the hit area
+// reaches, pass the control's size plus the gap (half the gap on each side), so two hit areas meet but never overlap.
+// The control must not clip its own `::after` (`overflow: hidden`) and must not use its `::after` for anything else.
+@mixin touch-target($width: var(--space-10), $height: $width) {
+  @include max-tablet {
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, #{$width});
+      height: max(100%, #{$height});
+      transform: translate(-50%, -50%);
+    }
+  }
+}

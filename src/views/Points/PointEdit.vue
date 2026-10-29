@@ -1,75 +1,51 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#points-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/points/list')"
-      />
-    </Teleport>
-    <Teleport to="#points-toolbar-right" defer>
-      <span v-if="isDirty" class="chip bg-warning-100 t-warning-300">
-        {{ $t("unsaved.changes") }}
-      </span>
-      <BasicButton
-        v-if="isEdit && !isCarrier"
-        text=""
-        icon="trash-can"
-        class="bg-negative-100 t-negative-300"
-        @click="showDeleteConfirm = true"
-      />
-      <BasicButton
-        :text="$t('common.save')"
-        class="bg-support-400 t-basic-100"
-        @click="savePoint"
-      />
-    </Teleport>
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-if="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template v-if="!loading" #header>
+      <PageHeader
+        :title="isEdit ? String(point.name || point.code || '') : $t('dp.create_point')"
+        back="/points/list"
+      >
+        <template #actions>
+          <div class="flex ai-ct jc-fe wrap gap-3">
+            <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
+            <BasicSwitch
+              :label="$t('dp.is_active')"
+              v-model="form.is_active"
+            />
+            <ActionBar :actions="headerActions" />
+          </div>
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
       <template v-else>
-        <div class="flex ai-ct jc-sb mb-500">
-          <h1 class="fs-700 fw-600">
-            {{ isEdit ? point.name || point.code : $t("dp.create_point") }}
-          </h1>
-          <Switcher
-            :label="$t('dp.is_active')"
-            :selected="form.is_active"
-            @onSelect="form.is_active = !form.is_active"
-          />
-        </div>
-
         <!-- Carrier read-only banner -->
         <div
           v-if="isCarrier"
-          class="flex ai-ct gap-200 mb-300 p-300 bg-support-100 br-50 t-support-400 fs-200"
+          class="flex ai-ct gap-5 mb-8 p-8 bg-accent-subtle rounded t-strong fs-200"
         >
-          <font-awesome-icon icon="lock" />
+          <font-awesome-icon :icon="$icons.lock" />
           <span>{{ $t("dp.carrier_point_read_only") }}</span>
         </div>
 
-        <!-- Address section -->
-        <div class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("dp.address") }}</h2>
-
+        <BasicCard :title="$t('dp.address')" gap class="mb-8">
           <!-- Geocode address search -->
-          <div v-if="!isCarrier" class="mb-300">
+          <template v-if="!isCarrier">
             <div
               v-if="!geocodeAvailable"
-              class="flex ai-ct gap-200 p-200 bg-support-100 br-50 t-support-400 fs-200 mb-200"
+              class="flex ai-ct gap-5 p-5 bg-accent-subtle rounded t-strong fs-200"
             >
-              <font-awesome-icon icon="info-circle" />
+              <font-awesome-icon :icon="$icons.info" />
               <span>{{ $t("dp.geocoding_unavailable") }}</span>
             </div>
-            <div class="geocode-search">
-              <label class="detail-label">{{ $t("dp.address_search") }}</label>
-              <div class="geocode-search__input-wrap">
+            <FormField :label="$t('dp.address_search')">
+              <div class="geocode-search">
                 <BasicInput
                   v-model="geocodeQuery"
                   :placeholder="$t('dp.address_search_placeholder')"
                   icon="search"
-                  :isDisabled="!geocodeAvailable"
+                  :disabled="!geocodeAvailable"
                   @input="debouncedGeocode"
                 />
                 <div
@@ -86,305 +62,287 @@
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </FormField>
+          </template>
 
-          <div class="detail-grid">
-            <div class="detail-field">
-              <label class="detail-label required">{{ $t("dp.code") }}</label>
+          <div class="form-grid">
+            <FormField
+              :label="$t('dp.code')"
+              required
+              :error="formErrors.getFieldError('code')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.code"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('code')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label required">{{ $t("dp.name") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.name')"
+              required
+              :error="formErrors.getFieldError('name')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.name"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('name')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label required">{{ $t("dp.type") }}</label>
-              <Dropdown
-                :values="typeOptions"
-                :selected="form.type_id ? [form.type_id] : []"
+            </FormField>
+            <FormField
+              :label="$t('dp.type')"
+              required
+              :error="formErrors.getFieldError('type_id')?.msg || ''"
+            >
+              <BasicSelect
+                :options="typeOptions"
+                v-model="form.type_id"
                 :placeholder="$t('common.select')"
-                :isDisabled="isCarrier || (isEdit && !typeChangeSupported)"
-                :class="{
-                  'b-negative-200': formErrors.getFieldError('type_id'),
-                }"
-                @onSelect="(val) => (form.type_id = val)"
+                :disabled="isCarrier || (isEdit && !typeChangeSupported)"
               />
-              <p
-                v-if="formErrors.getFieldError('type_id')"
-                class="t-negative-200 fs-100"
-              >
-                {{ formErrors.getFieldError("type_id").msg }}
-              </p>
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.channels") }}</label>
-              <Dropdown
+            </FormField>
+            <FormField
+              :label="$t('dp.channels')"
+              :error="formErrors.getFieldError('channel_ids')?.msg || ''"
+            >
+              <BasicSelect
                 v-if="isCarrier"
-                :values="[{ label: $t('dp.global'), value: '__global' }]"
-                :selected="['__global']"
-                :isDisabled="true"
+                :options="[{ label: $t('dp.global'), value: '__global' }]"
+                :model-value="'__global'"
+                :disabled="true"
               />
-              <Dropdown
+              <BasicSelect
                 v-else
-                :custom_droplist="true"
-                :placeholder="`${$t('dp.channels')} (${
-                  form.channel_ids.length || $t('dp.global')
-                })`"
-              >
-                <template #custom>
-                  <div
-                    v-for="ch in channelOptions"
-                    :key="ch.value"
-                    class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                    :class="{
-                      '-primary-100': form.channel_ids.includes(ch.value),
-                    }"
-                    @click.stop="toggleChannel(ch.value)"
-                  >
-                    <span class="ml-100">{{ ch.label }}</span>
-                    <FontAwesomeIcon
-                      v-if="form.channel_ids.includes(ch.value)"
-                      icon="check"
-                      class="t-positive-200"
-                    />
-                  </div>
-                </template>
-              </Dropdown>
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.street") }}</label>
+                v-model="form.channel_ids"
+                :options="channelOptions"
+                :placeholder="$t('dp.global')"
+                multiple
+                searchable
+              />
+            </FormField>
+            <FormField
+              :label="$t('dp.street')"
+              :error="formErrors.getFieldError('street')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.street"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('street')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.city") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.city')"
+              :error="formErrors.getFieldError('city')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.city"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('city')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.state") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.state')"
+              :error="formErrors.getFieldError('state')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.state"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('state')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.post_code") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.post_code')"
+              :error="formErrors.getFieldError('post_code')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.post_code"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('post_code')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.country") }}</label>
-              <Dropdown
+            </FormField>
+            <FormField
+              :label="$t('dp.country')"
+              :error="formErrors.getFieldError('country')?.msg || ''"
+            >
+              <BasicSelect
                 v-if="isCarrier"
-                :values="countryOptions"
-                :selected="form.country ? [form.country] : []"
-                :isDisabled="true"
+                :options="countryOptions"
+                :model-value="form.country"
+                :disabled="true"
               />
-              <Dropdown
+              <BasicSelect
                 v-else
-                :values="countryOptions"
-                :selected="form.country ? [form.country] : []"
+                :options="countryOptions"
+                v-model="form.country"
                 :placeholder="$t('dp.select_country')"
-                :class="{
-                  'b-negative-200': formErrors.getFieldError('country'),
-                }"
-                @onSelect="(val) => (form.country = val)"
               />
-              <p
-                v-if="formErrors.getFieldError('country')"
-                class="t-negative-200 fs-100"
-              >
-                {{ formErrors.getFieldError("country").msg }}
-              </p>
-            </div>
+            </FormField>
           </div>
-        </div>
+        </BasicCard>
 
-        <!-- Location section -->
-        <div class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("dp.location") }}</h2>
-          <div class="detail-grid">
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.lat") }}</label>
+        <BasicCard :title="$t('dp.location')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
+              :label="$t('dp.lat')"
+              :error="formErrors.getFieldError('latitude')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.latitude"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('latitude')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.lon") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.lon')"
+              :error="formErrors.getFieldError('longitude')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.longitude"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('longitude')"
+                :disabled="isCarrier"
               />
-            </div>
+            </FormField>
           </div>
-        </div>
+        </BasicCard>
 
-        <!-- Contact section -->
-        <div class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("dp.contact") }}</h2>
-          <div class="detail-grid">
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.phone") }}</label>
+        <BasicCard :title="$t('dp.contact')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
+              :label="$t('dp.phone')"
+              :error="formErrors.getFieldError('phone')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.phone"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('phone')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.email") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.email')"
+              :error="formErrors.getFieldError('email')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.email"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('email')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.website") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.website')"
+              :error="formErrors.getFieldError('website')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.website"
-                :isDisabled="isCarrier"
-                :validate="formErrors.getFieldError('website')"
+                :disabled="isCarrier"
               />
-            </div>
-            <div class="detail-field">
-              <label class="detail-label">{{ $t("dp.opening_hours") }}</label>
+            </FormField>
+            <FormField
+              :label="$t('dp.opening_hours')"
+              :error="formErrors.getFieldError('opening_hours')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.opening_hours"
-                :isDisabled="isCarrier"
+                :disabled="isCarrier"
               />
-            </div>
-          </div>
-          <div class="detail-field mt-300">
-            <label class="detail-label">{{ $t("dp.hint") }}</label>
-            <TextAreaBasic
-              v-model="form.hint"
-              rows="3"
-              :isDisabled="isCarrier"
-            />
-          </div>
-        </div>
-
-        <!-- Translations section (edit mode only, hidden for single-language setups) -->
-        <div v-if="isEdit && showTranslations" class="detail-section mb-400">
-          <div class="flex ai-ct jc-sb mb-300">
-            <h2 class="fs-500 fw-600">{{ $t("dp.translations") }}</h2>
-            <div
-              v-if="availableLanguageCodes.length"
-              class="flex ai-ct gap-200"
+            </FormField>
+            <FormField
+              :label="$t('dp.hint')"
+              class="form-grid__wide"
+              :error="formErrors.getFieldError('hint')?.msg || ''"
             >
-              <Dropdown
-                :values="availableLanguageCodes"
-                :selected="addingLanguage ? [addingLanguage] : []"
-                :placeholder="$t('dp.language')"
-                class="t9n-lang-select"
-                @onSelect="(val) => (addingLanguage = val)"
+              <BasicTextarea
+                v-model="form.hint"
+                rows="3"
+                :disabled="isCarrier"
               />
-              <BasicButton
-                :text="$t('dp.add_translation')"
-                class="bg-support-400 t-basic-100"
-                :isDisabled="!addingLanguage"
-                @click="addTranslation"
-              />
-            </div>
+            </FormField>
           </div>
+        </BasicCard>
 
-          <p v-if="!translations.length" class="fs-200 t-basic-500">
-            {{ $t("dp.no_translations") }}
-          </p>
+        <!-- Translations (edit mode only, hidden for single-language setups) -->
+        <BasicCard
+          v-if="isEdit && showTranslations"
+          :title="$t('dp.translations')"
+          gap
+          class="mb-8"
+        >
+          <template v-if="availableLanguageCodes.length" #actions>
+            <div class="flex ai-ct gap-3">
+              <BasicSelect
+                :floating-label="$t('dp.language')"
+                :options="availableLanguageCodes"
+                v-model="addingLanguage"
+                class="t9n-lang-select"
+              />
+              <BasicButton mutates
+                variant="secondary"
+                :disabled="!addingLanguage"
+                @click="addTranslation"
+              >
+                {{ $t('dp.add_translation') }}
+              </BasicButton>
+            </div>
+          </template>
 
-          <div
+          <EmptyState
+            v-if="!translations.length"
+            icon="translate"
+            :title="$t('dp.no_translations')"
+          />
+
+          <section
             v-for="t9n in translations"
             :key="t9n.language"
-            class="t9n-row mb-300"
+            class="t9n-row"
+            :aria-label="t9n.language.toUpperCase()"
           >
-            <div class="t9n-lang-header flex ai-ct jc-sb mb-200">
-              <span class="detail-label t-support-400">{{
+            <div class="t9n-lang-header flex ai-ct jc-sb mb-4">
+              <span class="field-label t-accent">{{
                 t9n.language.toUpperCase()
               }}</span>
-              <BasicButton
-                text=""
-                icon="trash-can"
-                class="bg-negative-100 t-negative-300"
+              <IconButton mutates
+                icon="delete"
+                :label="$t('common.delete')"
+                variant="danger"
+                size="sm"
                 @click="deleteTranslation(t9n.language)"
               />
             </div>
-            <div class="detail-grid">
-              <div class="detail-field">
-                <label class="detail-label">{{
-                  $t("dp.translation_name")
-                }}</label>
+            <div class="form-grid">
+              <FormField :label="$t('dp.translation_name')">
                 <BasicInput v-model="t9n.name" />
-              </div>
-              <div class="detail-field">
-                <label class="detail-label">{{
-                  $t("dp.translation_opening_hours")
-                }}</label>
+              </FormField>
+              <FormField :label="$t('dp.translation_opening_hours')">
                 <BasicInput v-model="t9n.opening_hours" />
-              </div>
+              </FormField>
+              <FormField :label="$t('dp.translation_hint')" class="form-grid__wide">
+                <BasicInput v-model="t9n.hint" />
+              </FormField>
             </div>
-            <div class="detail-field mt-200">
-              <label class="detail-label">{{
-                $t("dp.translation_hint")
-              }}</label>
-              <BasicInput v-model="t9n.hint" />
-            </div>
-            <div class="flex jc-fe mt-200">
-              <BasicButton
-                :text="$t('common.save')"
-                class="bg-support-400 t-basic-100"
+            <div class="flex jc-fe mt-4">
+              <BasicButton mutates
+                variant="secondary"
                 @click="saveTranslation(t9n)"
-              />
+              >
+                {{ $t('common.save') }}
+              </BasicButton>
             </div>
-          </div>
-        </div>
+          </section>
+        </BasicCard>
       </template>
-    </div>
 
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deletePoint"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      @confirm="deletePoint"
+      @cancel="showDeleteConfirm = false"
+      :title="$t('dp.confirm_delete_title')"
     >
-      <template #header
-        ><h2>{{ $t("dp.confirm_delete_title") }}</h2></template
-      >
-      <template #description
+      <template #default
         ><p>{{ $t("dp.confirm_delete_point") }}</p></template
       >
-    </Confirmation-modal>
+    </ConfirmDialog>
 
-    <UnsavedChangesModal
-      :visible="!!pendingNav"
-      @save="saveAndLeave"
+    <ConfirmDialog
+      :open="!!pendingNav"
+      @confirm="saveAndLeave"
       @discard="confirmLeave"
-      @stay="cancelLeave"
+      @cancel="cancelLeave"
+      :title="$t('unsaved.title')"
+      :message="$t('unsaved.message')"
+      :confirm-label="$t('unsaved.save_and_leave')"
+      :discard-label="$t('unsaved.discard')"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -407,12 +365,10 @@ import {
   DELETE_PointT9N,
   POST_GeocodeSearch,
 } from "@/api/deliverypoints/api";
-import UnsavedChangesModal from "@/functionals/Unsaved-changes-modal/index.vue";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 
 export default {
   name: "PointEdit",
-  components: { UnsavedChangesModal, ConfirmationModal },
+  components: {},
   setup() {
     const loader = useLoaderStore();
     const munin = useMuninStore();
@@ -457,6 +413,13 @@ export default {
     };
   },
   computed: {
+    // Delete is not offered for a carrier point: it is read-only apart from its on/off switch.
+    headerActions() {
+      const save = { key: "save", role: "primary", label: this.$t("common.save"), onClick: this.savePoint };
+      if (!this.isEdit || this.isCarrier) return [save];
+      const remove = { key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("common.delete") };
+      return [{ ...remove, onClick: () => (this.showDeleteConfirm = true) }, save];
+    },
     isEdit() {
       return !!this.$route.params.id;
     },
@@ -470,9 +433,10 @@ export default {
     typeChangeSupported() {
       return this.munin.isModuleAtLeast("deliverypoints", "1.1.0");
     },
+    // Carrier types are not selectable, but a carrier point still shows its own type.
     typeOptions() {
       return this.types
-        .filter((t) => !t.is_carrier)
+        .filter((t) => !t.is_carrier || t.id === this.form.type_id)
         .map((t) => ({ label: t.name, value: t.id }));
     },
     channelOptions() {
@@ -580,14 +544,6 @@ export default {
       this.form.longitude = result.longitude || "";
       this.geocodeQuery = result.formatted_address || "";
       this.geocodeResults = [];
-    },
-    toggleChannel(pk) {
-      const idx = this.form.channel_ids.indexOf(pk);
-      if (idx >= 0) {
-        this.form.channel_ids.splice(idx, 1);
-      } else {
-        this.form.channel_ids.push(pk);
-      }
     },
     async fetchChannels() {
       try {
@@ -801,41 +757,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.detail-section {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 20px;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-200);
-}
-
-.detail-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.detail-label {
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-}
-
 .t9n-row {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  padding: var(--space-4);
 }
 
 .t9n-lang-header {
-  border-bottom: 1px solid var(--c-basic-200);
-  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-2);
 }
 
 .t9n-lang-select {
@@ -843,12 +773,6 @@ export default {
 }
 
 .geocode-search {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.geocode-search__input-wrap {
   position: relative;
 }
 
@@ -858,27 +782,27 @@ export default {
   left: 0;
   right: 0;
   z-index: 10;
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-basic-400);
-  border-radius: var(--radius-md);
+  background: var(--surface-base);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
   box-shadow: var(--shadow-md);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   max-height: 240px;
   overflow-y: auto;
 }
 
 .geocode-search__result {
-  padding: 10px var(--space-200);
+  padding: var(--space-2) var(--space-5);
   font-size: var(--fs-300);
-  color: var(--c-basic-800);
-  border-bottom: 1px solid var(--c-basic-200);
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-subtle);
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
   }
 }
 </style>

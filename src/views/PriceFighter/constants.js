@@ -7,15 +7,15 @@ export const PF_PAGE_SIZE = 20
 // Strategies strategy badges). Orange (warning) is RESERVED for genuine caution —
 // so it reads the same as the "Clamped ..." constraint badges — never for a normal move.
 //   positive (green)     = price moves up / margin-favourable  → raise
-//   informative (blue)   = active price action, no alarm        → compete, revert_baseline
+//   info (blue)   = active price action, no alarm        → compete, revert_baseline
 //   neutral (grey)       = passive / no real move               → hold, no_recommendation
 //   warning (orange)     = caution (price war / constraint)     → hold_at_floor
 export const RECOMMENDATION_VARIANTS = {
   raise: 'positive',
-  compete: 'informative',
+  compete: 'info',
   hold: 'neutral',
   hold_at_floor: 'warning',
-  revert_baseline: 'informative',
+  revert_baseline: 'info',
   no_recommendation: 'neutral',
 }
 export const RECOMMENDATIONS = Object.keys(RECOMMENDATION_VARIANTS)

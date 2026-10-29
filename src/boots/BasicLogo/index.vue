@@ -1,11 +1,43 @@
 <template>
-  <div class="basic-logo">
-    <img
+  <div class="basic-logo" :class="{ 'basic-logo--on-dark': onDark }">
+    <svg
       v-if="variant === 'full'"
-      :src="logoSrc"
-      alt="Entirius"
-      :style="{ height: size + 'px', width: 'auto', display: 'block' }"
-    />
+      class="basic-logo__wordmark"
+      :width="Math.round((size * WORDMARK_WIDTH) / WORDMARK_HEIGHT)"
+      :height="size"
+      :viewBox="`0 0 ${WORDMARK_WIDTH} ${WORDMARK_HEIGHT}`"
+      role="img"
+      aria-label="Entirius CMS"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <linearGradient :id="`${uid}-sign`" x1="12.28" y1="0" x2="12.28" y2="24" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#00C2D7" />
+          <stop offset="1" stop-color="#55636D" />
+        </linearGradient>
+        <linearGradient :id="`${uid}-name`" x1="0" y1="0.19" x2="0" y2="13.31" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#E5E7EA" />
+          <stop offset="1" stop-color="#C9C9D5" />
+        </linearGradient>
+        <linearGradient :id="`${uid}-cms`" x1="0" y1="5" x2="0" y2="19" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#00C2D7" />
+          <stop offset="1" stop-color="#0E7C86" />
+        </linearGradient>
+      </defs>
+      <path :fill="`url(#${uid}-sign)`" d="M12.2812 0C5.4985 0 0 5.50054 0 12.2858C0 17.6831 3.47908 22.2675 8.31618 23.9172L7.59939 22.1036C4.18791 20.387 1.8468 16.8486 1.8468 12.768C1.8468 7.00309 6.51846 2.3297 12.2812 2.3297C18.044 2.3297 22.7157 7.00309 22.7157 12.768C22.7157 16.9458 20.2622 20.5504 16.718 22.2184L15.9946 24C20.9623 22.4255 24.5625 17.7763 24.5625 12.2858C24.5625 5.50054 19.064 0 12.2812 0Z" />
+      <g class="basic-logo__name" transform="translate(33 5.25)" :fill="`url(#${uid}-name)`">
+          <path d="M72.9453 13.5C72.2328 13.5 71.5703 13.4063 70.9578 13.2188C70.3578 13.0312 69.8078 12.75 69.3078 12.375C68.8203 11.9875 68.3828 11.5125 67.9953 10.95L69.3828 9.35625C69.9953 10.2313 70.5828 10.8375 71.1453 11.175C71.7078 11.5125 72.3765 11.6813 73.1515 11.6813C73.6265 11.6813 74.0578 11.6063 74.4453 11.4563C74.8328 11.3063 75.139 11.1 75.364 10.8375C75.589 10.575 75.7015 10.275 75.7015 9.9375C75.7015 9.7125 75.664 9.5 75.589 9.3C75.514 9.1 75.3953 8.91875 75.2328 8.75625C75.0828 8.59375 74.8828 8.44375 74.6328 8.30625C74.3953 8.16875 74.114 8.05 73.789 7.95C73.464 7.8375 73.089 7.74375 72.664 7.66875C71.989 7.53125 71.4015 7.35 70.9015 7.125C70.4015 6.9 69.9828 6.61875 69.6453 6.28125C69.3078 5.94375 69.0578 5.5625 68.8953 5.1375C68.7328 4.7 68.6515 4.2125 68.6515 3.675C68.6515 3.15 68.764 2.6625 68.989 2.2125C69.2265 1.7625 69.5453 1.375 69.9453 1.05C70.3578 0.7125 70.839 0.45625 71.389 0.28125C71.939 0.0937498 72.5328 0 73.1703 0C73.8453 0 74.464 0.0875 75.0265 0.2625C75.589 0.4375 76.089 0.7 76.5265 1.05C76.964 1.3875 77.3265 1.80625 77.614 2.30625L76.189 3.7125C75.939 3.3 75.6578 2.95625 75.3453 2.68125C75.0328 2.39375 74.689 2.18125 74.314 2.04375C73.939 1.89375 73.539 1.81875 73.114 1.81875C72.6265 1.81875 72.2015 1.89375 71.839 2.04375C71.4765 2.19375 71.189 2.40625 70.9765 2.68125C70.7765 2.94375 70.6765 3.25625 70.6765 3.61875C70.6765 3.88125 70.7265 4.125 70.8265 4.35C70.9265 4.5625 71.0765 4.75625 71.2765 4.93125C71.489 5.09375 71.7703 5.24375 72.1203 5.38125C72.4703 5.50625 72.889 5.61875 73.3765 5.71875C74.064 5.86875 74.6765 6.0625 75.214 6.3C75.7515 6.525 76.2078 6.79375 76.5828 7.10625C76.9578 7.41875 77.239 7.76875 77.4265 8.15625C77.6265 8.54375 77.7265 8.9625 77.7265 9.4125C77.7265 10.25 77.5328 10.975 77.1453 11.5875C76.7578 12.2 76.2078 12.675 75.4953 13.0125C74.7828 13.3375 73.9328 13.5 72.9453 13.5Z" />
+          <path d="M61.2365 13.425C60.224 13.425 59.3177 13.2063 58.5177 12.7688C57.7177 12.3188 57.0865 11.7063 56.624 10.9313C56.174 10.1438 55.949 9.25626 55.949 8.26876V0.168755H57.974V8.10001C57.974 8.73751 58.124 9.31251 58.424 9.82501C58.724 10.325 59.1177 10.725 59.6052 11.025C60.1052 11.325 60.649 11.475 61.2365 11.475C61.8615 11.475 62.424 11.325 62.924 11.025C63.4365 10.725 63.8427 10.325 64.1427 9.82501C64.4427 9.31251 64.5927 8.73751 64.5927 8.10001V0.168755H66.524V8.26876C66.524 9.25626 66.2927 10.1438 65.8302 10.9313C65.3802 11.7063 64.7552 12.3188 63.9552 12.7688C63.1552 13.2063 62.249 13.425 61.2365 13.425Z" />
+          <path d="M51.3437 13.3125V0.1875H52.3562C52.5312 0.1875 52.6999 0.1875 52.8624 0.1875C53.0374 0.1875 53.2062 0.1875 53.3687 0.1875V13.3125H51.3437Z" />
+          <path d="M39.2065 13.3125V0.1875H44.794C45.544 0.1875 46.2315 0.375 46.8565 0.750001C47.494 1.1125 48.0003 1.6125 48.3753 2.25C48.7503 2.875 48.9378 3.58125 48.9378 4.36875C48.9378 5.08125 48.7503 5.74375 48.3753 6.35625C48.0003 6.96875 47.5003 7.4625 46.8753 7.8375C46.2503 8.2 45.5565 8.38125 44.794 8.38125H41.2315V13.3125H39.2065ZM47.0065 13.3125L43.669 7.3875L45.7503 6.91875L49.4628 13.3313L47.0065 13.3125ZM41.2315 6.43125H44.9815C45.344 6.43125 45.669 6.34375 45.9565 6.16875C46.244 5.98125 46.469 5.73125 46.6315 5.41875C46.794 5.09375 46.8753 4.7375 46.8753 4.35C46.8753 3.9125 46.769 3.53125 46.5565 3.20625C46.3565 2.86875 46.069 2.60625 45.694 2.41875C45.3315 2.23125 44.919 2.1375 44.4565 2.1375H41.2315V6.43125Z" />
+          <path d="M34.4137 13.3125V0.1875H35.4262C35.6012 0.1875 35.77 0.1875 35.9325 0.1875C36.1075 0.1875 36.2762 0.1875 36.4387 0.1875V13.3125H34.4137Z" />
+          <path d="M27.0042 13.3125V2.1375H23.3292V0.1875H32.8167V2.1375H29.0292V13.3125H27.0042Z" />
+          <path d="M10.5798 13.3125V0.1875H12.3986L20.4236 10.9313L20.1236 11.1C20.0736 10.7875 20.0298 10.45 19.9923 10.0875C19.9548 9.7125 19.9173 9.31875 19.8798 8.90625C19.8548 8.48125 19.8298 8.0375 19.8048 7.575C19.7923 7.1 19.7798 6.60625 19.7673 6.09375C19.7548 5.58125 19.7486 5.05 19.7486 4.5V0.1875H21.7736V13.3125H19.9173L12.0236 2.9625L12.2298 2.7C12.2923 3.4625 12.3423 4.1125 12.3798 4.65C12.4298 5.175 12.4673 5.625 12.4923 6C12.5298 6.3625 12.5548 6.6625 12.5673 6.9C12.5798 7.125 12.5861 7.3125 12.5861 7.4625C12.5986 7.6125 12.6048 7.74375 12.6048 7.85625V13.3125H10.5798Z" />
+          <path d="M0 13.3125V0.1875H8.26875V2.1375H2.025V11.3625H8.26875V13.3125H0ZM0.91875 7.55625V5.60625H7.2375V7.55625H0.91875Z" />
+      </g>
+      <text class="basic-logo__suffix" x="117" y="18.6" font-size="19" textLength="37" lengthAdjust="spacingAndGlyphs" :fill="`url(#${uid}-cms)`">CMS</text>
+    </svg>
     <svg
       v-else
       :width="size"
@@ -15,45 +47,57 @@
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <linearGradient id="ensoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color: #00e5ff" />
-          <stop offset="30%" style="stop-color: #00acc1" />
-          <stop offset="70%" style="stop-color: #455a64" />
-          <stop offset="100%" style="stop-color: #546e7a" />
+        <linearGradient :id="`${uid}-enso`" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00e5ff" />
+          <stop offset="30%" stop-color="#00acc1" />
+          <stop offset="70%" stop-color="#455a64" />
+          <stop offset="100%" stop-color="#546e7a" />
         </linearGradient>
       </defs>
       <path
         d="M 150 300 A 110 110 0 1 1 250 300 L 240 320 A 130 130 0 1 0 160 320 Z"
-        fill="url(#ensoGradient)"
+        :fill="`url(#${uid}-enso)`"
       />
     </svg>
   </div>
 </template>
 
 <script>
-import logoDark from "@/assets/svg/commons/entirius-dark.png";
-import logoLight from "@/assets/svg/commons/entirius-light.png";
-import { useUserStore } from "@/stores/user";
-
-export default {
-  setup() {
-    const userStore = useUserStore();
-    return { userStore };
-  },
-  props: {
-    size: {
-      type: Number,
-      default: 32,
-    },
-    variant: {
-      type: String,
-      default: "icon",
-    },
-  },
-  computed: {
-    logoSrc() {
-      return this.userStore.theme === "dark" ? logoLight : logoDark;
-    },
-  },
-};
+let nextId = 0;
 </script>
+
+<script setup>
+// The brand mark (D2: its gradients belong to the asset, not to the tokens). `variant="full"` is the "ENTIRIUS CMS"
+// wordmark (Figma: 206 × 32 in the desktop header, 154 × 24 on a phone), `size` its height; the name turns
+// `text-strong` in the light theme, unless `onDark` (an always-dark surface: the sign-in stage). `variant="icon"` is the square sign. Gradient ids are per instance: two logos on
+// one page never share (or lose) a gradient.
+defineProps({
+  size: { type: Number, default: 32 },
+  variant: { type: String, default: "icon", validator: (value) => ["full", "icon"].includes(value) },
+  onDark: { type: Boolean, default: false },
+});
+
+const WORDMARK_WIDTH = 154;
+const WORDMARK_HEIGHT = 24;
+nextId += 1;
+const uid = `basic-logo-${nextId}`;
+</script>
+
+<style lang="scss" scoped>
+.basic-logo {
+  display: inline-flex;
+}
+
+.basic-logo__wordmark {
+  display: block;
+}
+
+.basic-logo__suffix {
+  font-family: var(--font-brand);
+  font-weight: 400;
+}
+
+[data-theme="default"] .basic-logo:not(.basic-logo--on-dark) .basic-logo__name {
+  fill: var(--text-strong);
+}
+</style>

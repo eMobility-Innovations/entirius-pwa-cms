@@ -1,18 +1,18 @@
 <template>
   <div class="quality-tab" data-test="quality-tab">
-    <Loader v-if="loading" />
+    <Loader block v-if="loading" />
 
     <EmptyState
       v-else-if="evaluatedAt == null"
       :title="$t('pim.quality_unevaluated')"
       :message="$t('pim.quality_unevaluated_hint')"
-      icon="circle-info"
+      icon="info"
     />
 
     <EmptyState
       v-else-if="!findings.length"
       :title="$t('pim.quality_no_gaps')"
-      icon="circle-check"
+      icon="success"
     />
 
     <ul v-else class="quality-tab__list">
@@ -24,13 +24,13 @@
       >
         <StatusBadge
           :label="severityLabel(f.severity)"
-          :variant="variant(f.severity)"
+          :tone="variant(f.severity)"
         />
         <span class="quality-tab__label">{{ label(f) }}</span>
-        <span v-if="f.language" class="quality-tab__lang t-basic-500">{{
+        <span v-if="f.language" class="quality-tab__lang t-muted">{{
           f.language
         }}</span>
-        <span v-if="f.inherited" class="quality-tab__inherited t-basic-500">
+        <span v-if="f.inherited" class="quality-tab__inherited t-muted">
           {{ $t("pim.quality_fix_on", { channel: f.source_channel }) }}
         </span>
       </li>
@@ -94,7 +94,7 @@ export default {
 
 <style lang="scss" scoped>
 .quality-tab {
-  padding: var(--space-200) 0;
+  padding: var(--space-5) 0;
 }
 .quality-tab__list {
   list-style: none;
@@ -102,26 +102,26 @@ export default {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 .quality-tab__item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-200);
-  padding: var(--space-200) var(--space-300);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
-  background: var(--c-basic-100);
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  background: var(--surface-base);
 }
 .quality-tab__label {
-  color: var(--c-basic-700);
+  color: var(--text-body);
 }
 .quality-tab__lang {
-  padding: 0 6px;
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-200);
-  font-size: 11px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-base);
+  background: var(--surface-raised);
+  font-size: var(--fs-200);
   text-transform: uppercase;
 }
 .quality-tab__inherited {

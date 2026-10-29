@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { GET_Me, GET_Catalog } from "@/api/access/api";
+import { GET_MatrixMe, GET_Catalog } from "@/api/access/api";
 import { isAccessPanelEnabled } from "@/configs/accessMatrix";
 
 export const useAccessMatrixStore = defineStore("accessMatrix", () => {
@@ -16,7 +16,7 @@ export const useAccessMatrixStore = defineStore("accessMatrix", () => {
 
   async function fetchAll() {
     try {
-      const { data } = await GET_Me();
+      const { data } = await GET_MatrixMe();
       me.value = data;
       if (canRead.value) {
         const catalogResponse = await GET_Catalog();

@@ -2,11 +2,9 @@
   <div>
     <div class="flex jc-sb ai-ct mb-md">
       <label for="file" ref="fileInput">
-        <ButtonBasic
-          :text="'+ ' + $t('images.add_photo')"
-          class="sm outline"
-          @click="$refs.fileInput.click()"
-        />
+        <BasicButton size="sm" @click="$refs.fileInput.click()">
+          {{ $t("images.add_photo") }}
+        </BasicButton>
       </label>
       <p v-if="file" v-text="meta.fileName" />
       <input
@@ -24,34 +22,15 @@
       alt=""
       class="input-file__preview mb-nm"
     />
-    <BasicInput
-      v-if="filePreview"
-      class="size-sm"
-      :label="'Alt text'"
-      v-model="meta.alt"
-    />
-    <!-- <div class="fs-sm" v-if="filePreview">
-      <p class="mb-sm">Wybierz tagi dla zdjęcia:</p>
-      <ButtonBasic
-        class="mr-sm mt-nm"
-        v-for="(t, i) in tags"
-        :key="`${i}-tag-${t}`"
-        :text="t.label"
-        :styles="
-          newFileTags.some((fileTag) => fileTag.slug === t.slug)
-            ? 'secondary'
-            : 'outline'
-        "
-        :size="'sm'"
-        @click="handleFileTag(t)"
+    <FormField v-if="filePreview" :label="'Alt text'">
+      <BasicInput
+        class="size-sm"
+        v-model="meta.alt"
       />
-    </div> -->
-    <ButtonBasic
-      :text="'Upload'"
-      @click="uploadFile"
-      class="bg-primary-100 txt-gray-700 w-full sticky-btn mt-md"
-      v-if="filePreview"
-    />
+    </FormField>
+    <BasicButton v-if="filePreview" variant="primary" class="w-full sticky-btn mt-md" @click="uploadFile">
+      {{ $t("gallery.upload") }}
+    </BasicButton>
   </div>
 </template>
 
@@ -167,7 +146,7 @@ export default {
 .input-file {
   display: none;
   &__preview {
-    border: 1px solid var(--clr-gray-500);
+    border: 1px solid var(--border-default);
   }
 }
 </style>

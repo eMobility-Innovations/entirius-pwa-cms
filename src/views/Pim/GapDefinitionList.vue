@@ -1,24 +1,27 @@
 <template>
-  <div class="pim-list-layout p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 flex-1 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("pim.gap_definitions") }}</h1>
-      </div>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pim.gap_definitions')">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
+      </PageHeader>
+    </template>
 
       <GapStatusAlert />
 
-      <QualitySettingsCard />
+      <QualitySettings />
 
       <div class="gap-def-list__toolbar">
-        <BasicInput
-          v-model="search"
-          :placeholder="$t('common.start_typing')"
-          icon="search"
-          class="gap-def-list__search"
-          @input="debouncedFetch(searchAndFetch)"
-        />
+        <ReadonlyOff>
+          <BasicInput
+            v-model="search"
+            :placeholder="$t('common.start_typing')"
+            icon="search"
+            class="gap-def-list__search"
+            @input="debouncedFetch(searchAndFetch)"
+          />
+        </ReadonlyOff>
         <FilterChip
           :label="$t('pim.gap_only_active')"
           :active="onlyActive"
@@ -27,9 +30,10 @@
         />
       </div>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="rules"
@@ -42,38 +46,33 @@
         <template #cell-severity="{ row }">
           <StatusBadge
             :label="severityLabel(row.severity)"
-            :variant="severityVariant(row.severity)"
+            :tone="severityVariant(row.severity)"
           />
         </template>
         <template #cell-check_key="{ value }">
-          <span class="t-basic-600">{{ checkLabel(value) }}</span>
+          <span class="t-secondary">{{ checkLabel(value) }}</span>
         </template>
         <template #cell-label_t9n="{ row }">
           <span>{{ resolveLabel(row) }}</span>
         </template>
         <template #cell-active="{ value }">
-          <span
-            class="chip"
-            :class="
-              value
-                ? 'bg-positive-100 t-positive-300'
-                : 'bg-basic-200 t-basic-500'
-            "
-          >
-            {{ value ? $t("pim.yes") : $t("pim.no") }}
-          </span>
+          <StatusBadge
+            :tone="value ? 'positive' : 'neutral'"
+            :dot="false"
+            :label="value ? $t('pim.yes') : $t('pim.no')"
+          />
         </template>
       </DataTable>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-    <Pagination
-      v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      class="mt-200"
-      @onChangePage="onPageChange"
-    />
-  </div>
+    <template v-if="totalCount > pageSize" #footer>
+      <Pagination
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -86,12 +85,14 @@ import { GET_GapDefinitions } from "@/api/pim/api";
 import { gapBadgeVariant, resolveGapLabel } from "./quality";
 import { getLang } from "@/i18n";
 import GapStatusAlert from "./components/GapStatusAlert.vue";
-import QualitySettingsCard from "./components/QualitySettingsCard.vue";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
+import QualitySettings from "./components/QualitySettings.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { ReadonlyOff } from "@/composables/useReadonly";
 
 export default {
   name: "GapDefinitionList",
-  components: { GapStatusAlert, QualitySettingsCard },
+  components: { ReadonlyOff, GapStatusAlert, QualitySettings, PimChannelSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -123,7 +124,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("pim.create_gap_definition"),
           handler: () => this.$router.push("/pim/gap-definitions/create"),
         },
@@ -131,12 +132,19 @@ export default {
     },
     columns() {
       return [
-        { key: "key", label: this.$t("pim.gap_key"), sortable: true, width: "1.5fr" },
-        { key: "check_key", label: this.$t("pim.gap_check"), sortable: false, width: "1.5fr" },
-        { key: "label_t9n", label: this.$t("pim.gap_label"), sortable: false, width: "2fr" },
+        { key: "key", label: this.$t("pim.gap_key"), sortable: true, width: "1.5fr", priority: 2 },
+        { key: "check_key", label: this.$t("pim.gap_check"), sortable: false, width: "1.5fr", priority: 2 },
+        {
+          key: "label_t9n",
+          label: this.$t("pim.gap_label"),
+          sortable: false,
+          width: "2fr",
+          truncate: true,
+          title: (row) => this.resolveLabel(row),
+        },
         { key: "severity", label: this.$t("pim.gap_severity"), sortable: true, width: "120px" },
-        { key: "active", label: this.$t("pim.gap_active"), sortable: false, width: "90px" },
-        { key: "display_order", label: this.$t("pim.gap_order"), sortable: true, width: "90px" },
+        { key: "active", label: this.$t("pim.gap_active"), sortable: false, width: "90px", priority: 2 },
+        { key: "display_order", label: this.$t("pim.gap_order"), sortable: true, width: "90px", priority: 2, numeric: true },
       ];
     },
     paginationState() {
@@ -226,15 +234,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.pim-list-layout {
-  display: flex;
-  flex-direction: column;
-}
 .gap-def-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
+  margin-bottom: var(--space-10);
   flex-wrap: wrap;
 }
 .gap-def-list__search {

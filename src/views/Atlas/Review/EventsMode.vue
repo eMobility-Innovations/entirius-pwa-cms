@@ -1,73 +1,81 @@
 <template>
   <div class="events-mode">
-    <div class="flex ai-ct flex-wrap gap-200 mb-300">
-      <span class="t-basic-600 fs-200">{{
-        $t("atlas.severity.label")
-      }}</span>
-      <FilterChip
-        v-for="opt in severityOptions"
-        :key="opt.value"
-        :label="opt.label"
-        :active="severityFilter === opt.value"
-        :data-testid="`events-severity-${opt.value}`"
-        @click="setSeverity(opt.value)"
-      />
-      <Switcher
-        :label="$t('atlas.logs.show_acknowledged')"
-        :selected="showAcknowledged"
-        data-testid="events-show-ack-toggle"
-        @onSelect="showAcknowledged = !showAcknowledged"
-      />
+    <div class="flex ai-ct flex-wrap gap-5 mb-8">
+      <span :id="severityLabelId" class="t-secondary fs-200">{{ $t("atlas.severity.label") }}</span>
+      <div class="filter-chip-row" role="group" :aria-labelledby="severityLabelId">
+        <FilterChip
+          v-for="opt in severityOptions"
+          :key="opt.value"
+          :label="opt.label"
+          :active="severityFilter === opt.value"
+          :data-testid="`events-severity-${opt.value}`"
+          @click="setSeverity(opt.value)"
+        />
+      </div>
+      <ReadonlyOff>
+        <BasicSwitch
+          :label="$t('atlas.logs.show_acknowledged')"
+          v-model="showAcknowledged"
+          data-testid="events-show-ack-toggle"
+        />
+      </ReadonlyOff>
     </div>
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
     <DataTable
+      empty-size="md"
       v-show="!loading"
       :columns="columns"
       :rows="events"
       row-key="id"
       :empty-text="$t('atlas.review.events.empty_state')"
     >
+      <template #cell-created_at="{ value }">
+        <span class="fs-200 t-secondary">{{ formatDate(value) }}</span>
+      </template>
       <template #cell-severity="{ value }">
-        <StatusBadge :label="value" :variant="severityVariant(value)" />
+        <StatusBadge :label="value" :tone="severityVariant(value)" />
       </template>
       <template #cell-acknowledged_at="{ row }">
-        <button
+        <BasicButton mutates
           v-if="!row.acknowledged_at"
-          class="events-ack-btn bg-support-100 t-support-400"
+          size="sm"
           :data-testid="`events-ack-${row.id}`"
-          @click.stop="acknowledge(row)"
+          @click="acknowledge(row)"
         >
-          <FontAwesomeIcon icon="check" />
           {{ $t("atlas.review.events.acknowledge_button") }}
-        </button>
-        <span v-else class="t-basic-500 fs-200">{{ row.acknowledged_at }}</span>
+        </BasicButton>
+        <span v-else class="t-muted fs-200">{{ formatDate(row.acknowledged_at) }}</span>
       </template>
     </DataTable>
   </div>
 </template>
 
 <script>
+import { useId } from "vue";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { formatDate } from "@/utils/format";
 import {
   GET_IntegrationEvents,
   POST_AcknowledgeEvent,
 } from "@/api/atlas/api";
+import { ReadonlyOff } from "@/composables/useReadonly";
 
 const SEVERITY_VARIANTS = {
   critical: "negative",
   warning: "warning",
-  info: "informative",
+  info: "info",
 };
 
 export default {
   name: "EventsMode",
+  components: { ReadonlyOff },
   props: {
     filters: { type: Object, required: true },
   },
   setup() {
-    return { notify: useNotifyStore() };
+    return { notify: useNotifyStore(), severityLabelId: `${useId()}-severity` };
   },
   data() {
     return {
@@ -96,12 +104,13 @@ export default {
         {
           key: "severity",
           label: this.$t("atlas.severity.label"),
-          width: "100px",
+          width: "max-content",
         },
         {
           key: "source_idx",
           label: this.$t("atlas.review.list.col.supplier"),
           width: "120px",
+          priority: 2,
         },
         {
           key: "event_type",
@@ -113,7 +122,7 @@ export default {
           label: this.$t("atlas.logs.col.message"),
           width: "2fr",
         },
-        { key: "acknowledged_at", label: "", width: "160px" },
+        { key: "acknowledged_at", label: "", actions: true },
       ];
     },
   },
@@ -135,6 +144,7 @@ export default {
     this.fetchEvents();
   },
   methods: {
+    formatDate,
     severityVariant(value) {
       return SEVERITY_VARIANTS[value] || "neutral";
     },
@@ -186,19 +196,5 @@ export default {
 .events-mode {
   display: flex;
   flex-direction: column;
-}
-.events-ack-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: var(--fs-200);
-  font-weight: 600;
-  cursor: pointer;
-}
-.events-ack-btn:hover {
-  opacity: 0.85;
 }
 </style>

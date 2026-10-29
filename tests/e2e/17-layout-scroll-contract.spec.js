@@ -5,12 +5,10 @@ const path = require("path");
 /**
  * The shell clips, so a full-height page has to scroll itself.
  *
- * App.vue renders the route inside `.app-content-col.ov-h.router-container`,
- * within a `.layout` that is `overflow: hidden; height: 100%`, and hands the
- * route `class="h-100"`. A page root that fills the viewport and sets no
- * overflow of its own lays out at content height inside that fixed-height
- * clipping box, and everything past the fold becomes unreachable. That is a
- * real failure this panel shipped with, found in a browser by a person.
+ * App.vue's #app clips the viewport. Its flex app-body contains app-main,
+ * which clips overflow, and app-main__view hands the route its remaining height.
+ * A route outside PageLayout must therefore own its scrolling. This preserves
+ * the fork's Unassigned-section regression across the upstream 3.3 shell change.
  *
  * jsdom applies no scoped SCSS and computes no layout, so a unit test cannot
  * catch it. This measures the compiled stylesheet in a real browser engine:
@@ -23,19 +21,21 @@ const path = require("path");
  */
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const DIST_CSS = path.join(ROOT, "dist", "css");
+const DIST_CSS = path.join(process.env.LAYOUT_DIST || path.join(ROOT, "dist"), "css");
 
 function shellFromAppVue() {
   const app = fs.readFileSync(path.join(ROOT, "src", "App.vue"), "utf8");
-  const layout = app.match(/class="(layout[^"]*)"/);
-  const container = app.match(/class="(app-content-col[^"]*router-container[^"]*)"/);
-  if (!layout || !container) {
+  const root = app.match(/id="app"\s+class="([^"]+)"/);
+  const body = app.match(/class="(app-body[^"]*)"/);
+  const main = app.match(/class="(app-main[^"]*)"/);
+  const view = app.match(/class="(app-main__view[^"]*)"/);
+  if (!root || !body || !main || !view) {
     throw new Error(
-      "Could not find the layout/router-container classes in src/App.vue. " +
+      "Could not find the app/body/main/view classes in src/App.vue. " +
         "The shell moved: update this spec to match it, do not delete the spec."
     );
   }
-  return { layout: layout[1], container: container[1] };
+  return { root: root[1], body: body[1], main: main[1], view: view[1] };
 }
 
 function compiledCss() {
@@ -52,18 +52,22 @@ function compiledCss() {
     .join("\n");
 }
 
-function fixture({ layout, container }, css) {
+function fixture({ root, body, main, view }, css) {
   const rows = Array.from({ length: 60 }, (_, i) => `<p>row ${i}</p>`).join("");
   return `<!doctype html><html><head><style>
     html, body { margin: 0; height: 600px; }
     ${css}
   </style></head><body>
-    <div class="${layout}">
-      <div class="${container}">
-        <div class="access-panel h-100">
-          ${rows}
-          <section id="last-section">Unassigned</section>
-        </div>
+    <div id="app" class="${root}">
+      <div class="${body}">
+        <main class="${main}">
+          <div class="${view}">
+            <div class="access-panel h-100">
+              ${rows}
+              <section id="last-section">Unassigned</section>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   </body></html>`;

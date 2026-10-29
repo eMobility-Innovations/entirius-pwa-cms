@@ -1,29 +1,9 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("dp.points") }}</h1>
-      </div>
-
-      <!-- Filter tabs -->
-      <div class="flex ai-ct mb-400">
-        <MobileFilterPanel
-          :active-count="activeFilter !== 'all' ? 1 : 0"
-          :trigger-label="$t('builder.filters')"
-        >
-          <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
-          <FilterChip
-            v-for="tab in filterTabs"
-            :key="tab.key"
-            :label="tab.label"
-            :active="activeFilter === tab.key"
-            @click="setFilter(tab.key)"
-          />
-        </MobileFilterPanel>
-      </div>
-
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('dp.points')" />
+    </template>
+    <template #toolbar>
       <div class="point-list__toolbar">
         <BasicInput
           v-model="search"
@@ -32,55 +12,67 @@
           class="point-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
-        <Dropdown
-          :values="channelFilterOptions"
-          :selected="[channelFilter]"
-          :placeholder="$t('dp.channel')"
+        <BasicSelect
+          :floating-label="$t('dp.channel')"
+          :model-value="channelFilter"
+          :options="channelFilterOptions"
           class="point-list__channel"
-          @onSelect="onChannelFilter"
+          @update:model-value="onChannelFilter"
         />
-      </div>
-
-      <Loader v-show="loading" />
-
-      <DataTable
-        v-show="!loading"
-        :columns="columns"
-        :rows="points"
-        :sortable="true"
-        row-key="id"
-        :empty-text="$t('dp.no_points')"
-        @sort="onSort"
-        @row-click="onRowClick"
-      >
-        <template #cell-type_name="{ row }">
-          <span v-if="row.type" class="chip t-support-400">
-            <font-awesome-icon
-              v-if="row.type.is_carrier"
-              icon="lock"
-              class="mr-50"
-            />
-            {{ row.type.name }}
-          </span>
-          <span v-else class="t-basic-400">---</span>
-        </template>
-        <template #cell-is_active="{ value }">
-          <StatusBadge
-            :label="value ? $t('dp.active') : $t('dp.inactive')"
-            :variant="value ? 'positive' : 'negative'"
+        <div class="filter-chip-row" role="group" :aria-label="$t('dp.filters')">
+          <FilterChip
+            v-for="tab in filterTabs"
+            :key="tab.key"
+            :label="tab.label"
+            :active="activeFilter === tab.key"
+            @click="setFilter(tab.key)"
           />
-        </template>
-      </DataTable>
+        </div>
+      </div>
+    </template>
 
+    <Loader block v-show="loading" />
+
+    <DataTable
+      empty-size="md"
+      v-show="!loading"
+      :columns="columns"
+      :rows="points"
+      :sortable="true"
+      row-key="id"
+      :empty-text="$t('dp.no_points')"
+      @sort="onSort"
+      @row-click="onRowClick"
+    >
+      <template #cell-type_name="{ row }">
+        <span v-if="row.type" class="flex ai-ct gap-1">
+          <font-awesome-icon
+            v-if="row.type.is_carrier"
+            :icon="$icons.lock"
+            data-testid="point-carrier"
+          />
+          <StatusBadge tone="accent" :dot="false" :label="row.type.name" />
+        </span>
+        <span v-else class="t-muted">---</span>
+      </template>
+      <template #cell-is_active="{ value }">
+        <StatusBadge
+          :label="value ? $t('dp.active') : $t('dp.inactive')"
+          :tone="value ? 'positive' : 'negative'"
+        />
+      </template>
+    </DataTable>
+
+    <FloatingActions :actions="fabActions" />
+
+    <template v-if="!loading && points.length && totalCount > pageSize" #footer>
       <Pagination
-        v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-
-      <FloatingActions :actions="fabActions" />
-    </div>
-  </div>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -93,6 +85,7 @@ import {
   GET_DPChannels,
 } from "@/api/deliverypoints/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 
 export default {
   name: "PointList",
@@ -126,7 +119,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("dp.create_point"),
           handler: () => this.$router.push("/points/create"),
         },
@@ -233,7 +226,9 @@ export default {
             : await GET_Points(params);
         this.points = data.results || [];
         this.totalCount = data.count || 0;
+        if (!this.points.length && this.currentPage > 1) this.resetToFirstPage();
       } catch (err) {
+        if (isNotFound(err) && this.currentPage > 1) return this.resetToFirstPage();
         this.notify.spawnNotification({
           type: "negative",
           msg: extractApiMessage(err, this.$t("notifications.error")),
@@ -259,6 +254,12 @@ export default {
       }
       this.fetchPoints();
     },
+    // A stale `?page=N` (the list shrank, a filter changed) comes back empty or 404: go to page 1, never an empty page
+    // without a pager. Dropping the query key refetches through the `$route.query.page` watcher.
+    resetToFirstPage() {
+      const { page, ...query } = this.$route.query;
+      this.$router.replace({ path: this.$route.path, query });
+    },
     onPageChange(page) {
       this.$router.push({
         path: this.$route.path,
@@ -276,8 +277,7 @@ export default {
 .point-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 .point-list__search {
@@ -291,5 +291,4 @@ export default {
   max-width: 200px;
   flex-shrink: 0;
 }
-
 </style>

@@ -1,83 +1,87 @@
 <template>
-  <div class="supplier-tab" data-test="supplier-tab">
-    <Loader v-if="loading" />
+  <div class="pv-5" data-test="supplier-tab">
+    <Loader block v-if="loading" />
 
     <template v-else-if="!data">
       <EmptyState
         :title="$t('pim.supplier.no_supplier')"
-        icon="circle-info"
+        icon="info"
       />
     </template>
 
     <template v-else>
-      <div class="supplier-tab__header">
+      <div class="flex-column gap-8">
         <LinkedSuppliersPanel :items="linkedSuppliers" />
-        <div class="supplier-tab__status">
-          <div class="supplier-tab__status-line">
+        <BasicCard gap>
+          <div class="flex flex-wrap ai-ct gap-5">
             <StatusBadge
               v-if="unseenCount > 0"
               :label="$t('pim.supplier.status_unseen', { count: unseenCount })"
-              variant="warning"
+              tone="warning"
             />
             <StatusBadge
               v-else
               :label="$t('pim.supplier.status_no_unseen')"
-              variant="positive"
+              tone="positive"
             />
-            <span v-if="lastSync" class="t-basic-500 fs-200">
+            <span v-if="lastSync" class="t-muted fs-200">
               {{ $t("pim.supplier.status_last_sync", { date: lastSync }) }}
             </span>
           </div>
-          <div class="supplier-tab__actions">
+          <div class="flex-column gap-5">
             <div class="supplier-action">
-              <BasicButton
-                :text="repushing ? $t('pim.supplier.actions.force_repush_progress') : $t('pim.supplier.actions.force_repush')"
-                class="btn-outline supplier-action__btn"
+              <BasicButton mutates
+                variant="secondary"
                 :disabled="repushing"
                 data-test="supplier-force-repush"
                 @click="onForceRepush"
-              />
-              <span class="supplier-action__desc t-basic-500 fs-200">
+              >
+                {{ repushing ? $t('pim.supplier.actions.force_repush_progress') : $t('pim.supplier.actions.force_repush') }}
+              </BasicButton>
+              <span class="supplier-action__desc t-muted fs-200">
                 {{ $t("pim.supplier.actions.force_repush_desc") }}
               </span>
             </div>
             <div class="supplier-action">
-              <BasicButton
-                :text="acknowledging ? $t('pim.supplier.actions.acknowledge_progress') : $t('pim.supplier.actions.acknowledge_all')"
-                class="btn-outline supplier-action__btn"
+              <BasicButton mutates
+                variant="secondary"
                 :disabled="acknowledging || unseenCount === 0"
                 data-test="supplier-acknowledge"
                 @click="onAcknowledgeAll"
-              />
-              <span class="supplier-action__desc t-basic-500 fs-200">
+              >
+                {{ acknowledging ? $t('pim.supplier.actions.acknowledge_progress') : $t('pim.supplier.actions.acknowledge_all') }}
+              </BasicButton>
+              <span class="supplier-action__desc t-muted fs-200">
                 {{ $t("pim.supplier.actions.acknowledge_all_desc") }}
               </span>
             </div>
             <div class="supplier-action">
               <BasicButton
-                :text="$t('pim.supplier.actions.force_preferred')"
-                class="btn-outline supplier-action__btn"
+                variant="secondary"
                 data-test="supplier-force-preferred"
                 @click="onForcePreferredClick"
-              />
-              <span class="supplier-action__desc t-basic-500 fs-200">
+              >
+                {{ $t('pim.supplier.actions.force_preferred') }}
+              </BasicButton>
+              <span class="supplier-action__desc t-muted fs-200">
                 {{ $t("pim.supplier.actions.force_preferred_desc") }}
               </span>
             </div>
             <div class="supplier-action">
-              <BasicButton
-                :text="resetting ? $t('pim.supplier.actions.reset_to_auto_progress') : $t('pim.supplier.actions.reset_to_auto')"
-                class="btn-outline supplier-action__btn"
+              <BasicButton mutates
+                variant="secondary"
                 :disabled="resetting"
                 data-test="supplier-reset-auto"
                 @click="onResetToAuto"
-              />
-              <span class="supplier-action__desc t-basic-500 fs-200">
+              >
+                {{ resetting ? $t('pim.supplier.actions.reset_to_auto_progress') : $t('pim.supplier.actions.reset_to_auto') }}
+              </BasicButton>
+              <span class="supplier-action__desc t-muted fs-200">
                 {{ $t("pim.supplier.actions.reset_to_auto_desc") }}
               </span>
             </div>
           </div>
-        </div>
+        </BasicCard>
       </div>
 
       <SupplierTimeline :entries="data.changes || []" data-test="supplier-timeline" />
@@ -109,6 +113,7 @@ import LinkedSuppliersPanel from "./supplier/LinkedSuppliersPanel.vue";
 import SupplierTimeline from "./supplier/SupplierTimeline.vue";
 import ForcePreferredModal from "./supplier/ForcePreferredModal.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { isNotFound } from "@/api/createClient";
 
 export default {
   name: "SupplierTab",
@@ -179,7 +184,7 @@ export default {
         const { data } = await GET_SkuChanges(this.sku);
         this.data = data;
       } catch (err) {
-        if (err?.response?.status === 404 || err?.error === "NOT_FOUND") {
+        if (isNotFound(err)) {
           this.data = null;
         } else {
           this.notify.spawnNotification({
@@ -302,52 +307,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.supplier-tab {
-  padding: var(--space-200) 0;
-}
-.supplier-tab__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-300);
-}
-.supplier-tab__status {
-  padding: var(--space-300);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
-  background: var(--c-basic-100);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-200);
-}
-.supplier-tab__status-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-200);
-}
-.supplier-tab__actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-200);
-}
 .supplier-action {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-200) var(--space-300);
-}
-.supplier-action__btn {
-  flex: 0 0 auto;
-  min-width: 15rem;
-  // override BasicButton's default `jc-sb` (space-between) which, with no
-  // icon, pushes the label to the right edge and looks misaligned
-  justify-content: center;
+  gap: var(--space-5) var(--space-8);
 }
 .supplier-action__desc {
   flex: 1 1 14rem;
   line-height: var(--lh-300, 1.4);
-}
-.supplier-tab__disabled-wrap {
-  display: inline-flex;
 }
 </style>

@@ -1,86 +1,48 @@
 <template>
   <div>
     <div class="">
-      <div class="flex jc-sb ai-ct mb-100">
+      <div class="flex jc-sb ai-ct mb-2">
         <p v-if="label">{{ label }}</p>
-        <ToolTip
-          class="right t-support-300 fs-200"
-          :tip="
-            Object.keys(groups).length
-              ? $t('controllers.tooltip_select_group')
-              : $t('controllers.tooltip_add_group')
-          "
+        <BasicTooltip
+          v-if="value"
+          class="t-accent fs-200"
+          :text="$t('controllers.tooltip_select_group')"
+          variant="help"
         >
-        </ToolTip>
+        </BasicTooltip>
+        <!-- Why the items menu is disabled: content, visible with hints off too. -->
+        <p v-else class="t-muted fs-200 m-0">{{ $t('controllers.tooltip_add_group') }}</p>
       </div>
-      <div class="flex gap-100">
+      <div class="flex gap-2">
         <BasicButton
-          :text="!mode ? $t('routes.set_new') : $t('common.close')"
-          class="b-basic-400 bg-basic-100 bg-basic-300-hover br-50 t-support-400 fs-200"
-          :class="{
-            'bg-basic-300 t-basic-700 bg-support-400-hover t-basic-100-hover b-support-400-hover':
-              mode,
-          }"
+          :variant="mode ? 'primary' : 'secondary'"
+          class="rounded fs-200"
           @click="!mode ? (mode = 'add') : (mode = null)"
-        />
-
-        <Dropdown
-          :custom_droplist="true"
-          :placeholder="`${$t('controllers.setted')} (${
-            !value ? [].length : value.length
-          }${
-            group_rules && group_rules.max
-              ? `/${group_rules.max}`
-              : `/${$t('controllers.unlimited')}`
-          })`"
-          class="br-50 fs-200 fg-1"
-          :class="[
-            !Boolean(value)
-              ? 'bg-basic-200 t-basic-400 b-basic-300'
-              : 'bg-basic-100 b-basic-400 t-basic-600 ',
-          ]"
-          :values="
-            !value
-              ? []
-              : value.map((value, index) => {
-                  const [_first_key, _first_value] = Object.entries(value)[0];
-
-                  return {
-                    label: `${$t('controllers.position')}: ${
-                      index + 1
-                    } (${_first_key} : ${_first_value})`,
-
-                    value: index,
-                    label_ext: $t('common.delete'),
-                    label_ext_class: 't-negative-200',
-                  };
-                })
-          "
-          :isDisabled="!Boolean(value)"
-          @onSelect="
-            ($event) => {
-              on_edit($event);
-              force_refresh += force_refresh;
-            }
-          "
-          @onExtension="
-            ($event) => {
-              editing = $event;
-              on_delete($event);
-            }
-          "
         >
-          <template v-slot:custom>
+          {{ !mode ? $t('routes.set_new') : $t('common.close') }}
+        </BasicButton>
+
+        <BasicMenu class="fg-1" :label="$t('controllers.set_items')">
+          <template #trigger>
+            <BasicButton variant="secondary" class="w-100 fs-200" :disabled="!Boolean(value)">
+              {{
+                `${$t('controllers.set_items')} (${!value ? [].length : value.length}${
+                  group_rules && group_rules.max ? `/${group_rules.max}` : `/${$t('controllers.unlimited')}`
+                })`
+              }}
+            </BasicButton>
+          </template>
+          <template #panel>
             <div v-if="value && value.length">
               <draggable
                 v-model="value_cp"
-                ghost-class="bg-support-400"
+                ghost-class="bg-accent-fill"
                 handle=".dropdown-leaf-group-fields-controller"
                 :item-key="(_, idx) => `custom-dropdown-leaf-${idx}`"
               >
                 <template #item="{ element, index: idx }">
                   <div
-                    class="ph-100 flex jc-sb"
+                    class="ph-2 flex jc-sb"
                     @click="
                       () => {
                         on_edit(idx);
@@ -89,9 +51,9 @@
                     "
                   >
                     <p>{{ $t("controllers.position") }}: {{ idx + 1 }}</p>
-                    <div class="grid grid-col-2 gap-50">
+                    <div class="grid grid-col-2 gap-1">
                       <p
-                        class="t-negative-200"
+                        class="t-negative"
                         @click.stop="
                           () => {
                             editing = idx;
@@ -102,7 +64,7 @@
                         {{ $t("common.delete") }}
                       </p>
                       <p
-                        class="t-basic-500 dropdown-leaf-group-fields-controller"
+                        class="t-muted dropdown-leaf-group-fields-controller"
                       >
                         {{ $t("controllers.drag") }}
                       </p>
@@ -112,12 +74,12 @@
               </draggable>
             </div>
           </template>
-        </Dropdown>
+        </BasicMenu>
       </div>
     </div>
-    <div v-if="group && Object.keys(group).length && mode" class="mt-200">
+    <div v-if="group && Object.keys(group).length && mode" class="mt-5">
       <div
-        class="grid gap-100 ai-fe"
+        class="grid gap-2 ai-fe"
         :class="{
           'grid-col-1': Object.keys(group).length === 1,
           'grid-col-2': Object.keys(group).length === 2,
@@ -132,27 +94,24 @@
             ),
           }"
         >
-          <BasicInput
-            v-if="props_handlers[field.type] === 'BasicInput'"
-            v-model="group[key]"
-            :label="tFieldLabel(key, field.label)"
-            class="br-50 bg-basic-100 mt-300 lh-base-elem"
-            :key="`${force_refresh}-${index}`"
-          />
+          <FormField v-if="props_handlers[field.type] === 'BasicInput'" :label="tFieldLabel(key, field.label)" :key="`${force_refresh}-${index}`">
+            <BasicInput
+              v-model="group[key]"
+              class="rounded bg-base mt-8 lh-base-elem"
+            />
+          </FormField>
           <div
             v-if="props_handlers[field.type] === 'BasicWysiwyg'"
             class="gc-1 gc-4"
           >
-            <p class="mb-50">{{ tFieldLabel(key, field.label) }}</p>
+            <p class="mb-1">{{ tFieldLabel(key, field.label) }}</p>
             <BasicWysiwyg v-model="group[key]" :key="`wysiwyg-${key}`" />
           </div>
-          <div v-if="props_handlers[field.type] === 'Dropdown'">
-            <p class="mb-50">{{ tFieldLabel(key, field.label) }}</p>
-            <Dropdown
-              :selected="[group[key]]"
-              class="br-50 b-basic-400 bg-basic-100"
-              :values="field.options"
-              @onSelect="
+          <FormField v-if="props_handlers[field.type] === 'Dropdown'" :label="tFieldLabel(key, field.label)">
+            <BasicSelect
+              :model-value="group[key]"
+              :options="field.options"
+              @update:model-value="
                 ($event) => {
                   group[key] = $event;
                   force_refresh += force_refresh;
@@ -160,15 +119,15 @@
               "
               :key="`${force_refresh}-${index}`"
             />
-          </div>
+          </FormField>
           <div v-if="props_handlers[field.type] === 'Switcher'">
-            <p class="mb-50">{{ tFieldLabel(key, field.label) }}</p>
-            <Switcher
-              class="mv-100"
-              :selected="group[key]"
-              @onSelect="
-                () => {
-                  group[key] = !group[key];
+            <p class="mb-1">{{ tFieldLabel(key, field.label) }}</p>
+            <BasicSwitch
+              class="mv-2"
+              :model-value="group[key]"
+              @update:model-value="
+                (on) => {
+                  group[key] = on;
                   force_refresh += force_refresh;
                 }
               "
@@ -178,10 +137,12 @@
         </div>
       </div>
       <BasicButton
-        class="bg-basic-300 bg-basic-400-hover br-50 t-basic-600 mt-200 b-basic-400"
-        :text="mode === 'add' ? $t('controllers.add_group') : $t('common.save')"
+        variant="secondary"
+        class="rounded mt-5"
         @click="set_group({ ...group })"
-      />
+      >
+        {{ mode === 'add' ? $t('controllers.add_group') : $t('common.save') }}
+      </BasicButton>
     </div>
   </div>
 </template>
@@ -220,7 +181,6 @@ export default {
       editing: null,
       group: null,
       group_rules: null,
-      groups: {},
       force_refresh: 1,
     };
   },

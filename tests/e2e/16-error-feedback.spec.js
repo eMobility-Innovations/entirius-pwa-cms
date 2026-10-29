@@ -1,6 +1,12 @@
 const { test, expect } = require('@playwright/test');
 const { login } = require('../helpers/auth');
 const { createErrorCollector } = require('../helpers/error-collector');
+const { escapeRegExp } = require('./helpers/text');
+const en = require('../../src/i18n/locales/en.json');
+const pl = require('../../src/i18n/locales/pl.json');
+
+// The feature set is required: FormField's marker (` *`, CSS content) is part of the combobox's accessible name.
+const FEATURE_SET = new RegExp(`^(${escapeRegExp(en.pim.feature_set)}|${escapeRegExp(pl.pim.feature_set)}) \\*$`);
 
 /**
  * Error Feedback Tests (cms-error-handling-global)
@@ -29,19 +35,22 @@ const negToast = (page, text) =>
     : page.locator('.notification--negative');
 
 async function expectNoEmptyErrorUI(page) {
-  for (const el of await page.locator('p.validation-msg:visible').all()) {
-    expect((await el.innerText()).trim(), 'field validation-msg must not be empty').not.toBe('');
+  for (const el of await page.locator('.form-field__error:visible').all()) {
+    expect((await el.innerText()).trim(), 'field error must not be empty').not.toBe('');
   }
   for (const el of await page.locator('.notification__msg:visible').all()) {
     expect((await el.innerText()).trim(), 'toast msg must not be empty').not.toBe('');
   }
 }
 
+// Only toasts that are not already leaving: a leaving toast never settles, so a click on it waits out the test.
 async function dismissToasts(page) {
-  while (await page.locator('.notification__close').count()) {
-    await page.locator('.notification__close').first().click().catch(() => {});
+  const open = page.locator('.notification:not(.alert-leave-active) .notification__close');
+  while (await open.count()) {
+    await open.first().click().catch(() => {});
     await page.waitForTimeout(150);
   }
+  await expect(page.locator('.notification')).toHaveCount(0);
 }
 
 async function apiToken(page) {
@@ -64,11 +73,9 @@ async function firstExistingSku(page) {
 }
 
 async function selectFirstFeatureSet(page) {
-  const dropdown = page
-    .locator('.dropdown-wrapper', { hasText: 'Select feature set' })
-    .first();
-  await dropdown.click();
-  await page.locator('.dropdown-list .dropdown-list-el').first().click();
+  // Named by its FormField label in either UI language.
+  await page.getByRole('combobox', { name: FEATURE_SET }).click();
+  await page.getByRole('option').first().click();
 }
 
 test.describe('Scenario A — required-field validation', () => {
@@ -81,11 +88,14 @@ test.describe('Scenario A — required-field validation', () => {
 
     await page.click('button:has-text("Save")');
 
-    const skuError = page.locator('p.validation-msg').first();
+    const skuError = page.locator('.form-field__error').first();
     await expect(skuError).toBeVisible();
     expect((await skuError.innerText()).trim()).not.toBe('');
 
-    await expect(page.locator('.dropdown-wrapper.dropdown-invalid')).toBeVisible();
+    await expect(page.getByRole('combobox', { name: FEATURE_SET })).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
     await expectNoEmptyErrorUI(page);
 
     expect(collector.getErrors().exceptions).toEqual([]);
@@ -218,7 +228,7 @@ test.describe('Scenario C — response shapes (mocked)', () => {
       await expect(toast.first(), `toast for shape: ${shape.name}`).toBeVisible({ timeout: 10000 });
 
       if (shape.expectFieldError) {
-        const fieldError = page.locator('p.validation-msg', { hasText: shape.expectFieldError });
+        const fieldError = page.locator('.form-field__error', { hasText: shape.expectFieldError });
         await expect(fieldError.first(), `field error for shape: ${shape.name}`).toBeVisible();
       }
 

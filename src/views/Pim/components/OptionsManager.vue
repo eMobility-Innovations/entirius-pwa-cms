@@ -1,24 +1,27 @@
 <template>
   <div class="options-manager">
-    <div class="flex ai-ct jc-sb mb-300">
+    <div class="flex ai-ct jc-sb mb-8">
       <h3 class="fs-400 fw-600">
         {{ $t("pim.options") }}
-        <span v-if="totalCount" class="t-basic-500 fw-400 fs-200"
+        <span v-if="totalCount" class="t-muted fw-400 fs-200"
           >({{ totalCount }})</span
         >
       </h3>
       <BasicButton
-        :text="$t('pim.add_option')"
-        class="bg-support-400 t-basic-100"
+        variant="secondary"
         @click="showAddForm = true"
-      />
+      >
+        {{ $t('pim.add_option') }}
+      </BasicButton>
     </div>
 
     <!-- Search -->
-    <div class="options-manager__search mb-200">
+    <div class="options-manager__search mb-5">
       <BasicInput
         v-model="searchQuery"
         :placeholder="$t('pim.search_to_add')"
+        :aria-label="$t('pim.options')"
+        icon="search"
         @update:model-value="onSearch"
       />
     </div>
@@ -26,52 +29,51 @@
     <!-- Add option form -->
     <div
       v-if="showAddForm"
-      class="options-manager__add-form flex ai-ct gap-200 mb-300"
+      class="options-manager__add-form flex ai-ct gap-5 mb-8"
     >
-      <BasicInput
-        v-model="newOption.idx"
+      <FormField
+        class="flex-1"
         :label="$t('pim.option_code')"
-        class="flex-1"
-      />
-      <BasicInput
-        v-model="newOption.label"
-        :label="$t('pim.default_label')"
-        class="flex-1"
-      />
-      <BasicButton
-        :text="$t('common.save')"
-        class="bg-support-400 t-basic-100"
+        :error="formErrors.getFieldError('idx')?.msg || ''"
+      >
+        <BasicInput
+          v-model="newOption.idx"
+          format="key"
+          :maxlength="128"
+        />
+      </FormField>
+      <FormField class="flex-1" :label="$t('pim.default_label')">
+        <BasicInput
+          v-model="newOption.label"
+        />
+      </FormField>
+      <BasicButton mutates
+        variant="secondary"
         @click="createOption"
-      />
+      >
+        {{ $t('common.save') }}
+      </BasicButton>
       <BasicButton
-        :text="$t('common.cancel')"
-        class="bg-basic-200 t-basic-600"
-        @click="showAddForm = false"
-      />
+        variant="secondary"
+        @click="closeAddForm"
+      >
+        {{ $t('common.cancel') }}
+      </BasicButton>
     </div>
 
-    <Loader v-if="loading" />
+    <Loader block v-if="loading" />
 
-    <div
-      v-else-if="!options.length && !searchQuery"
-      class="t-basic-500 fs-200 p-300"
-    >
-      {{ $t("pim.no_options") }}
-    </div>
+    <EmptyState v-else-if="!options.length && !searchQuery" size="sm" :title="$t('pim.no_options')" />
 
-    <div
-      v-else-if="!options.length && searchQuery"
-      class="t-basic-500 fs-200 p-300"
-    >
-      {{ $t("pim.no_results") }}
-    </div>
+    <EmptyState v-else-if="!options.length && searchQuery" size="sm" :title="$t('pim.no_results')" />
 
     <template v-else>
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        class="mb-200"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        class="mb-5"
+        @update:page="onPageChange"
       />
 
       <!-- Table header -->
@@ -83,23 +85,23 @@
         <span class="options-table__col--label hide-mobile"
           >{{ $t("pim.default_label").toUpperCase() }} (EN)</span
         >
-        <span class="options-table__col--actions">ACTIONS</span>
+        <span class="options-table__col--actions">{{ $t("common.actions").toUpperCase() }}</span>
       </div>
 
       <draggable
         v-model="options"
-        ghost-class="bg-support-100"
+        ghost-class="bg-accent-subtle"
         handle=".drag-handle"
         :item-key="(el) => el.idx"
-        :disabled="!!searchQuery"
+        :disabled="readonly || !!searchQuery"
         @end="onReorder"
       >
         <template #item="{ element, index }">
           <div class="options-table__row flex ai-ct">
-            <span class="options-table__col--num flex ai-ct gap-100">
+            <span class="options-table__col--num flex ai-ct gap-2">
               <span
                 v-if="!searchQuery"
-                class="drag-handle t-basic-400 cursor-grab"
+                class="drag-handle t-muted cursor-grab"
                 >&#x2630;</span
               >
               {{ pageOffset + index + 1 }}
@@ -107,20 +109,22 @@
             <span class="options-table__col--code fw-500">{{
               element.idx
             }}</span>
-            <span class="options-table__col--label t-basic-600 hide-mobile">{{
+            <span class="options-table__col--label t-secondary hide-mobile">{{
               getDefaultLabel(element)
             }}</span>
-            <span class="options-table__col--actions flex ai-ct gap-100">
-              <BasicButton
-                :text="$t('pim.translations')"
-                icon="language"
-                class="bg-basic-200 t-basic-600 icon-only-mobile"
+            <span class="options-table__col--actions flex ai-ct gap-2">
+              <IconButton
+                icon="translate"
+                variant="outline"
+                size="sm"
+                :label="`${$t('pim.translations')}: ${element.idx}`"
                 @click="openTranslations(element)"
               />
-              <BasicButton
-                text=""
-                icon="trash"
-                class="bg-negative-100 t-negative-300"
+              <IconButton
+                icon="delete"
+                :label="$t('common.delete')"
+                variant="danger"
+                size="sm"
                 @click="confirmDelete(element)"
               />
             </span>
@@ -130,9 +134,10 @@
 
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        class="mt-200"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        class="mt-5"
+        @update:page="onPageChange"
       />
     </template>
 
@@ -146,18 +151,17 @@
     />
 
     <!-- Delete confirmation -->
-    <Confirmation-modal
-      :visible="!!deletingOption"
-      @accept="deleteOption"
-      @reject="deletingOption = null"
+    <ConfirmDialog
+      tone="danger"
+      :open="!!deletingOption"
+      @confirm="deleteOption"
+      @cancel="deletingOption = null"
+      :title="$t('pim.confirm_delete_title')"
     >
-      <template #header
-        ><h2>{{ $t("pim.confirm_delete_title") }}</h2></template
-      >
-      <template #description
+      <template #default
         ><p>{{ $t("pim.confirm_delete_option") }}</p></template
       >
-    </Confirmation-modal>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -166,6 +170,7 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import draggable from "vuedraggable";
+import { useReadonly } from "@/composables/useReadonly";
 import {
   GET_FeatureAttributes,
   GET_Attributes,
@@ -175,15 +180,14 @@ import {
   PATCH_AttributesReorder,
 } from "@/api/pim/api";
 
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import OptionTranslationsDrawer from "./OptionTranslationsDrawer.vue";
-import { extractApiMessage } from "@/composables/useFormErrors";
+import { extractApiMessage, useFormErrors } from "@/composables/useFormErrors";
 
 const PAGE_SIZE = 50;
 
 export default {
   name: "OptionsManager",
-  components: { draggable, ConfirmationModal, OptionTranslationsDrawer },
+  components: { draggable, OptionTranslationsDrawer },
   props: {
     featureIdx: {
       type: String,
@@ -198,7 +202,8 @@ export default {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
     const pimChannel = usePimChannelStore();
-    return { loader, notify, pimChannel };
+    const formErrors = useFormErrors();
+    return { loader, notify, pimChannel, formErrors, readonly: useReadonly() };
   },
   data() {
     return {
@@ -318,8 +323,12 @@ export default {
         this.fetchOptions();
       }, 300);
     },
+    closeAddForm() {
+      this.showAddForm = false;
+      this.formErrors.clearErrors();
+    },
     async createOption() {
-      if (!this.newOption.idx) return;
+      if (!this.newOption.idx || !this.formErrors.validateFormats(this.newOption, { idx: { format: "key" } })) return;
       this.loader.loaderStart();
       try {
         const name_t9n = {};
@@ -428,24 +437,24 @@ export default {
 
 <style lang="scss" scoped>
 .options-manager__add-form {
-  padding: 12px;
-  background: var(--c-basic-150);
-  border-radius: 6px;
+  padding: var(--space-3);
+  background: var(--surface-raised);
+  border-radius: var(--radius-base);
 }
 .options-table__header {
-  padding: 8px 12px;
-  border-bottom: 2px solid var(--c-basic-300);
-  font-size: 11px;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid var(--border-subtle);
+  font-size: var(--fs-200);
   font-weight: 600;
-  color: var(--c-basic-500);
+  color: var(--text-muted);
   letter-spacing: 0.03em;
 }
 .options-table__row {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--c-basic-200);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background 0.15s;
   &:hover {
-    background: var(--c-basic-100);
+    background: var(--surface-base);
   }
 }
 .options-table__col--num {
@@ -470,7 +479,7 @@ export default {
 .drag-handle {
   cursor: grab;
   user-select: none;
-  font-size: 14px;
+  font-size: var(--fs-300);
 }
 .cursor-grab {
   cursor: grab;

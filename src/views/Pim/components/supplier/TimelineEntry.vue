@@ -1,34 +1,34 @@
 <template>
   <li class="timeline-entry" :class="{ 'timeline-entry--applied': entry.applied_to_pim }">
     <div class="timeline-entry__marker" :class="`timeline-entry__marker--${entry.applied_to_pim ? 'applied' : 'pending'}`" />
-    <div class="timeline-entry__body">
+    <BasicCard class="timeline-entry__body">
       <div class="timeline-entry__row">
-        <span class="timeline-entry__date t-basic-700 fw-600">{{ formatDate(entry.created_at) }}</span>
-        <StatusBadge :label="sourceLabel" :variant="sourceVariant" />
+        <span class="timeline-entry__date t-body fw-600">{{ formatDate(entry.created_at) }}</span>
+        <StatusBadge :label="sourceLabel" :tone="sourceVariant" />
         <StatusBadge
           :label="entry.applied_to_pim ? $t('pim.supplier.timeline.applied') : $t('pim.supplier.timeline.pending')"
-          :variant="entry.applied_to_pim ? 'positive' : 'warning'"
+          :tone="entry.applied_to_pim ? 'positive' : 'warning'"
         />
-        <span v-if="entry.triggered_by" class="timeline-entry__user fs-100 t-basic-500">
+        <span v-if="entry.triggered_by" class="timeline-entry__user fs-200 t-muted">
           {{ $t("pim.supplier.timeline.triggered_by", { user: entry.triggered_by }) }}
         </span>
       </div>
       <div class="timeline-entry__field-row">
-        <span class="t-basic-500 fs-200">{{ $t("pim.supplier.timeline.field") }}:</span>
+        <span class="t-muted fs-200">{{ $t("pim.supplier.timeline.field") }}:</span>
         <code class="timeline-entry__field">{{ entry.field_path || "—" }}</code>
-        <span v-if="diffComponent === 'NumericDiff'" class="ml-200">
+        <span v-if="diffComponent === 'NumericDiff'" class="ml-5">
           <NumericDiff :before="entry.before" :after="entry.after" />
         </span>
       </div>
       <div v-if="hasComplexDiff" class="timeline-entry__diff-controls">
-        <button class="timeline-entry__toggle" @click="expanded = !expanded">
+        <BasicButton size="sm" variant="ghost" @click="expanded = !expanded">
           {{ expanded ? $t("pim.supplier.timeline.hide_diff") : $t("pim.supplier.timeline.show_diff") }}
-        </button>
+        </BasicButton>
       </div>
       <div v-if="hasComplexDiff && expanded" class="timeline-entry__diff">
         <component :is="diffComponent" :before="entry.before" :after="entry.after" />
       </div>
-    </div>
+    </BasicCard>
   </li>
 </template>
 
@@ -43,18 +43,18 @@ const NUMERIC_SUFFIXES = [".weight", ".width", ".height", ".depth"];
 const ARRAY_FIELDS = new Set(["image_urls", "images", "files"]);
 
 const SOURCE_VARIANTS = {
-  full_sync: "informative",
-  delta_sync: "informative",
+  full_sync: "info",
+  delta_sync: "info",
   init_push: "neutral",
   force_repush: "warning",
   operator_sp_edit: "neutral",
-  auto_link: "informative",
+  auto_link: "info",
   auto_preferred_switch: "warning",
   manual_override: "warning",
   emergency_switch: "negative",
   operator_acknowledge: "positive",
   // etap-10 (Dziura #31) — physical race detection.
-  physical_skipped: "informative",
+  physical_skipped: "info",
   physical_overwrite: "warning",
 };
 
@@ -119,60 +119,45 @@ export default {
 .timeline-entry {
   display: grid;
   grid-template-columns: 24px 1fr;
-  gap: var(--space-200);
-  padding: var(--space-200) 0;
-  border-bottom: 1px solid var(--c-basic-200);
+  gap: var(--space-5);
   list-style: none;
-}
-.timeline-entry:last-child {
-  border-bottom: none;
 }
 .timeline-entry__marker {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
-  margin-top: 6px;
+  border-radius: var(--radius-full);
+  margin-top: var(--space-6);
   justify-self: center;
 }
 .timeline-entry__marker--applied {
-  background: var(--c-positive-300);
+  background: var(--positive-fill);
 }
 .timeline-entry__marker--pending {
-  background: var(--c-warning-300);
+  background: var(--warning-fill);
 }
 .timeline-entry__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 .timeline-entry__field-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-100);
-  margin-top: var(--space-100);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
   font-size: var(--fs-200);
 }
 .timeline-entry__field {
-  background: var(--c-basic-200);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-base);
   font-family: var(--font-mono, monospace);
-  font-size: var(--fs-100);
-}
-.timeline-entry__toggle {
-  margin-top: var(--space-100);
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--c-primary-300);
-  cursor: pointer;
-  font-size: var(--fs-100);
-  text-decoration: underline;
+  font-size: var(--fs-200);
 }
 .timeline-entry__diff {
-  margin-top: var(--space-200);
+  margin-top: var(--space-5);
 }
 .timeline-entry__user {
   margin-left: auto;

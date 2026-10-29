@@ -1,170 +1,149 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h relative">
-    <Teleport to="#authors-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pages/authors')"
-      />
-      <span v-if="!loading && form.name" class="fw-600">{{ form.name }}</span>
-      <span v-if="!loading && !form.name" class="t-basic-500">{{
-        $t("authors.create")
-      }}</span>
-    </Teleport>
-    <Teleport to="#authors-toolbar-right" defer>
-      <span v-if="isDirty" class="chip bg-warning-100 t-warning-300">
-        {{ $t("unsaved.changes") }}
-      </span>
-      <button
-        v-if="isEdit"
-        class="author-photo-remove pointer"
-        @click="showDeleteConfirm = true"
-      >
-        <FontAwesomeIcon icon="trash-can" />
-      </button>
-      <BasicButton
-        :text="$t('common.save')"
-        class="bg-support-400 t-basic-100"
-        @click="save"
-      />
-    </Teleport>
-
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500 relative">
-      <Loader v-if="loading" />
+  <div class="fs-300 t-body h-100 ov-h relative">
+    <PageLayout>
+      <template v-if="!loading" #header>
+        <PageHeader
+          :title="form.name || $t('authors.create')"
+          back="/pages/authors"
+        >
+          <template #actions>
+            <div class="flex ai-ct jc-fe wrap gap-3">
+              <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
+              <BasicSwitch
+                :label="$t('authors.is_active')"
+                v-model="form.is_active"
+              />
+              <ActionBar :actions="headerActions" />
+            </div>
+          </template>
+        </PageHeader>
+      </template>
+      <Loader block v-if="loading" />
 
       <template v-else>
-        <!-- Basic info -->
-        <div class="author-edit__section mb-400">
-          <div class="section-label mb-300">{{ $t("pim.basic_info") }}</div>
-          <div class="flex gap-300 mb-300" style="flex-wrap: wrap">
-            <BasicInput
-              v-model="form.name"
+        <BasicCard :title="$t('pim.basic_info')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
               :label="$t('authors.name')"
-              :validate="formErrors.getFieldError('name')"
-              class="flex-1"
-              style="min-width: 200px"
-            />
-            <BasicInput
-              v-model="form.slug"
-              :label="$t('authors.slug')"
-              class="flex-1"
-              style="min-width: 200px"
-            />
-          </div>
-          <Switcher
-            :label="$t('authors.is_active')"
-            :selected="form.is_active"
-            @onSelect="form.is_active = !form.is_active"
-          />
-
-          <!-- Photo -->
-          <div class="mt-300">
-            <label class="fs-200 fw-600 t-basic-500 tt-upper mb-100 db">
-              {{ $t("authors.photo") }}
-            </label>
-            <div class="flex ai-ct gap-300">
-              <div class="author-photo-preview pointer" @click="$refs.photoController.init()">
-                <img
-                  v-if="form.photo_url"
-                  :src="form.photo_url"
-                  alt="Author photo"
-                  class="author-photo-preview__img"
-                />
-                <div v-else class="author-photo-preview__placeholder">
-                  <FontAwesomeIcon icon="user" class="t-basic-400" style="font-size: 24px" />
+              required
+              :error="formErrors.getFieldError('name')?.msg || ''"
+            >
+              <BasicInput
+                v-model="form.name"
+              />
+            </FormField>
+            <FormField :label="$t('authors.slug')" :error="formErrors.getFieldError('slug')?.msg || ''">
+              <BasicInput
+                v-model="form.slug"
+              />
+            </FormField>
+            <div class="form-grid__wide">
+              <span id="author-photo-label" class="field-label">{{ $t("authors.photo") }}</span>
+              <div class="flex ai-ct gap-8" role="group" aria-labelledby="author-photo-label">
+                <div class="author-photo-preview">
+                  <img
+                    v-if="form.photo_url"
+                    :src="form.photo_url"
+                    :alt="$t('authors.photo')"
+                    class="author-photo-preview__img"
+                  />
+                  <div v-else class="author-photo-preview__placeholder">
+                    <FontAwesomeIcon :icon="$icons.user" class="t-muted fs-600" />
+                  </div>
+                </div>
+                <div class="flex ai-ct gap-2">
+                  <BasicButton
+                    variant="secondary"
+                    @click="$refs.photoController.init()"
+                  >
+                    {{ form.photo_uid ? $t('common.edit') : $t('common.select') }}
+                  </BasicButton>
+                  <IconButton
+                    v-if="form.photo_uid"
+                    icon="close"
+                    :label="$t('gallery.delete_photo')"
+                    variant="danger"
+                    @click="clearPhoto"
+                  />
                 </div>
               </div>
-              <div class="flex ai-ct gap-100">
-                <BasicButton
-                  :text="form.photo_uid ? $t('common.edit') : $t('common.select')"
-                  class="btn-outline"
-                  @click="$refs.photoController.init()"
+            </div>
+          </div>
+        </BasicCard>
+
+        <BasicCard :title="$t('pim.translations')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
+              v-for="field in t9nFields"
+              :key="field.key"
+              :label="`${field.label} (${defaultLang.toUpperCase()})`"
+              class="form-grid__wide"
+              :error="formErrors.getFieldError(field.key)?.msg || ''"
+            >
+              <div class="flex ai-st gap-3">
+                <BasicInput
+                  v-model="form[field.key][defaultLang]"
+                  class="flex-1"
                 />
-                <button
-                  v-if="form.photo_uid"
-                  class="author-photo-remove pointer"
-                  @click="clearPhoto"
-                >
-                  <FontAwesomeIcon icon="xmark" />
-                </button>
+                <IconButton
+                  v-if="availableLanguages.length > 1"
+                  icon="translate"
+                  :label="$t('authors.translations_of', { field: field.label })"
+                  variant="outline"
+                  @click="openTranslations(field.name)"
+                />
               </div>
-            </div>
+            </FormField>
           </div>
-        </div>
+        </BasicCard>
 
-        <!-- Translated fields -->
-        <div class="author-edit__section mb-400">
-          <div class="section-label mb-300">{{ $t("pim.translations") }}</div>
-
-          <div
-            v-for="field in t9nFields"
-            :key="field.key"
-            class="translation-field mb-300"
-          >
-            <div class="translation-field__header">
-              <label class="fs-200 fw-600 t-basic-500 tt-upper">
-                {{ field.label }} ({{ defaultLang.toUpperCase() }})
-              </label>
-              <BasicButton
-                v-if="availableLanguages.length > 1"
-                :text="$t('pim.translations')"
-                class="btn-outline translation-field__btn"
-                @click="openTranslations(field.name)"
-              />
-            </div>
-            <BasicInput
-              v-model="form[field.key][defaultLang]"
-            />
-          </div>
-        </div>
-
-        <!-- Contact info -->
-        <div class="author-edit__section mb-400">
-          <div class="section-label mb-300">{{ $t("dp.contact") }}</div>
-          <div class="flex gap-300 mb-300" style="flex-wrap: wrap">
-            <BasicInput
-              v-model="form.contact_email"
+        <BasicCard :title="$t('dp.contact')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
               :label="$t('authors.contact_email')"
-              :validate="formErrors.getFieldError('contact_email')"
-              class="flex-1"
-              style="min-width: 200px"
-            />
-            <BasicInput
-              v-model="form.contact_phone"
+              :error="formErrors.getFieldError('contact_email')?.msg || ''"
+            >
+              <BasicInput
+                v-model="form.contact_email"
+              />
+            </FormField>
+            <FormField
               :label="$t('authors.contact_phone')"
-              :validate="formErrors.getFieldError('contact_phone')"
-              class="flex-1"
-              style="min-width: 200px"
-            />
+              :error="formErrors.getFieldError('contact_phone')?.msg || ''"
+            >
+              <BasicInput
+                v-model="form.contact_phone"
+              />
+            </FormField>
+            <FormField
+              :label="$t('authors.contact_url')"
+              class="form-grid__wide"
+              :error="formErrors.getFieldError('contact_url')?.msg || ''"
+            >
+              <BasicInput
+                v-model="form.contact_url"
+              />
+            </FormField>
           </div>
-          <BasicInput
-            v-model="form.contact_url"
-            :label="$t('authors.contact_url')"
-            :validate="formErrors.getFieldError('contact_url')"
-          />
-        </div>
+        </BasicCard>
 
-        <!-- Social profiles -->
-        <div class="author-edit__section mb-400">
-          <div class="section-label mb-300">
-            {{ $t("authors.social_profiles") }}
-          </div>
-          <div class="flex gap-300" style="flex-wrap: wrap">
-            <BasicInput
+        <BasicCard :title="$t('authors.social_profiles')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
               v-for="platform in knownPlatforms"
               :key="platform"
-              v-model="form.social_profiles[platform]"
               :label="platform"
-              class="flex-1"
-              style="min-width: 200px"
-            />
+            >
+              <BasicInput
+                v-model="form.social_profiles[platform]"
+              />
+            </FormField>
           </div>
-        </div>
+        </BasicCard>
       </template>
-    </div>
+    </PageLayout>
 
-    <!-- Photo gallery (outside scrollable card so modal overlays correctly) -->
+    <!-- Photo gallery (outside the scrolling PageLayout so modal overlays correctly) -->
     <div class="author-photo-controller-hidden">
       <ImagesController
         ref="photoController"
@@ -186,27 +165,27 @@
     />
 
     <!-- Delete confirmation -->
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deleteAuthor"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :title="$t('authors.confirm_delete_title')"
+      :open="showDeleteConfirm"
+      @confirm="deleteAuthor"
+      @cancel="showDeleteConfirm = false"
     >
-      <template #description>
+      <template #default>
         <p>{{ $t("authors.delete_confirm") }}</p>
-        <p v-if="form.post_count" class="mt-200 t-basic-600 fs-200">
+        <p v-if="form.post_count" class="mt-5 t-secondary fs-200">
           {{ $t("authors.post_count") }}: <strong>{{ form.post_count }}</strong>
         </p>
-        <div v-if="reassignOptions.length" class="mt-300">
-          <p class="fs-200 fw-600 mb-100">{{ $t("authors.reassign_label") }}</p>
-          <Dropdown
-            :values="reassignOptions"
-            :selected="reassignTo ? [reassignTo] : []"
+        <FormField v-if="reassignOptions.length" :label="$t('authors.reassign_label')" class="mt-8">
+          <BasicSelect
+            :options="reassignOptions"
+            v-model="reassignTo"
             :placeholder="$t('authors.reassign_none')"
-            @onSelect="reassignTo = $event"
           />
-        </div>
+        </FormField>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
   </div>
 </template>
 
@@ -215,7 +194,6 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { useContentDBChannelStore } from "@/stores/contentDBChannel";
 import { useFormErrors, extractApiMessage } from "@/composables/useFormErrors";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import ImagesController from "@/configs/builder/components/ImagesController/index.vue";
 import {
   GET_Author,
@@ -236,7 +214,7 @@ const KNOWN_PLATFORMS = [
 
 export default {
   name: "AuthorEdit",
-  components: { ConfirmationModal, ImagesController },
+  components: { ImagesController },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -272,6 +250,15 @@ export default {
     };
   },
   computed: {
+    headerActions() {
+      return [
+        ...(this.isEdit
+          ? [{ key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("common.delete"),
+              onClick: () => (this.showDeleteConfirm = true) }]
+          : []),
+        { key: "save", role: "primary", label: this.$t("common.save"), onClick: this.save },
+      ];
+    },
     isEdit() {
       return Boolean(this.$route.params.uid);
     },
@@ -510,37 +497,11 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.author-edit__section {
-  border: 1px solid var(--c-basic-200);
-  border-radius: 6px;
-  padding: var(--space-300);
-}
-
-.translation-field {
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
-
-  &__btn {
-    line-height: 1;
-    padding: 4px 10px;
-    font-size: var(--fs-200);
-  }
-}
-
-.tt-upper {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .author-photo-preview {
   width: 80px;
   height: 80px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--c-basic-300);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-subtle);
   overflow: hidden;
   flex-shrink: 0;
 
@@ -556,26 +517,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--c-basic-200);
-  }
-}
-
-.author-photo-remove {
-  width: var(--elem-height);
-  height: var(--elem-height);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: var(--c-negative-100);
-  color: var(--c-negative-300);
-  font-size: 14px;
-  transition: background-color 0.15s;
-
-  &:hover {
-    background: var(--c-negative-200);
-    color: var(--c-basic-100);
+    background: var(--surface-raised);
   }
 }
 
@@ -589,16 +531,4 @@ export default {
     padding: 0;
   }
 }
-
-.db {
-  display: block;
-}
-
-@media only screen and (max-width: 768px) {
-  .p-500 {
-    padding: 16px !important;
-  }
-
-}
 </style>
-

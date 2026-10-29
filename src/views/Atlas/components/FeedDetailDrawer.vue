@@ -8,20 +8,20 @@
     <div v-if="feed" class="feed-detail">
       <!-- Identity + status header -->
       <section class="feed-detail__section">
-        <div class="flex ai-ct gap-200 flex-wrap mb-200">
-          <span class="fs-300 fw-600 t-basic-700">{{ feed.idx }}</span>
-          <StatusBadge :label="feed.connector_kind" variant="informative" />
-          <StatusBadge :label="feed.sync_mode" variant="neutral" />
+        <div class="flex ai-ct gap-5 flex-wrap mb-5">
+          <span class="fs-300 fw-600 t-body">{{ feed.idx }}</span>
+          <StatusBadge :label="feed.connector_kind" tone="info" />
+          <StatusBadge :label="feed.sync_mode" tone="neutral" />
           <StatusBadge
             :label="
               feed.is_active ? $t('common.active') : $t('common.inactive')
             "
-            :variant="feed.is_active ? 'positive' : 'negative'"
+            :tone="feed.is_active ? 'positive' : 'negative'"
           />
           <StatusBadge
             v-if="feed.last_sync_status"
             :label="feed.last_sync_status"
-            :variant="syncStatusVariant(feed.last_sync_status)"
+            :tone="syncStatusVariant(feed.last_sync_status)"
           />
         </div>
       </section>
@@ -74,7 +74,7 @@
         <h3 class="feed-detail__heading">
           {{ $t("atlas.feeds.detail.config_section") }}
         </h3>
-        <p class="fs-200 t-basic-500 mb-200">
+        <p class="fs-200 t-muted mb-5">
           {{ $t("atlas.feeds.detail.config_hint") }}
         </p>
         <pre class="feed-detail__json">{{ feedConfigPretty }}</pre>
@@ -82,26 +82,26 @@
 
       <!-- Sample preview (calls /test/?limit=3) -->
       <section class="feed-detail__section">
-        <div class="flex ai-ct jc-sb mb-200">
+        <div class="flex ai-ct jc-sb mb-5">
           <h3 class="feed-detail__heading m-0">
             {{ $t("atlas.feeds.detail.preview_section") }}
           </h3>
-          <button
-            class="feed-detail__refresh-btn"
+          <IconButton :mutates="false"
+            icon="refresh"
+            variant="outline"
+            size="sm"
             :disabled="previewBusy"
-            :title="$t('atlas.feeds.detail.preview_refresh')"
+            :label="$t('atlas.feeds.detail.preview_refresh')"
             @click="loadPreview"
-          >
-            <FontAwesomeIcon icon="rotate" :spin="previewBusy" />
-          </button>
+          />
         </div>
-        <p v-if="previewBusy" class="fs-200 t-basic-500">
+        <p v-if="previewBusy" class="fs-200 t-muted">
           {{ $t("atlas.feeds.detail.preview_loading") }}
         </p>
-        <p v-else-if="previewError" class="fs-200 t-negative-300">
+        <p v-else-if="previewError" class="fs-200 t-negative">
           {{ previewError }}
         </p>
-        <p v-else-if="previewProducts.length === 0" class="fs-200 t-basic-500">
+        <p v-else-if="previewProducts.length === 0" class="fs-200 t-muted">
           {{ $t("atlas.feeds.detail.preview_empty") }}
         </p>
         <div v-else class="feed-detail__preview">
@@ -110,20 +110,20 @@
             :key="p.external_id"
             class="feed-detail__preview-row"
           >
-            <div class="flex ai-ct gap-200 flex-wrap mb-100">
+            <div class="flex ai-ct gap-5 flex-wrap mb-2">
               <strong class="fs-200">{{ p.external_id }}</strong>
-              <span class="fs-300 t-basic-700">{{ p.name }}</span>
+              <span class="fs-300 t-body">{{ p.name }}</span>
             </div>
-            <div class="flex ai-ct gap-300 flex-wrap fs-200 t-basic-500">
+            <div class="flex ai-ct gap-8 flex-wrap fs-200 t-muted">
               <span v-if="p.cost">{{ formatCost(p.cost, p.currency) }}</span>
-              <span>stock: {{ p.stock ?? 0 }}</span>
+              <span>{{ $t("atlas.stock_count", { count: p.stock ?? 0 }) }}</span>
               <span v-if="p.ean">EAN: {{ p.ean }}</span>
               <a
                 v-if="p.url"
-                :href="p.url"
+                :href="safeHref(p.url)"
                 target="_blank"
-                rel="noopener"
-                class="t-support-400"
+                rel="noopener noreferrer"
+                class="t-accent"
               >
                 {{ $t("atlas.feeds.detail.preview_open_source") }}
               </a>
@@ -138,13 +138,14 @@
 <script>
 import { POST_FeedTest } from "@/api/atlas/api";
 import { formatCost } from "@/utils/format";
+import { safeHref } from "@/utils/safeHref";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 const SYNC_STATUS_VARIANTS = {
   success: "positive",
   partial: "warning",
   failed: "negative",
-  running: "informative",
+  running: "info",
 };
 
 export default {
@@ -192,6 +193,7 @@ export default {
   },
   methods: {
     formatCost,
+    safeHref,
     syncStatusVariant(value) {
       return SYNC_STATUS_VARIANTS[value] || "neutral";
     },
@@ -225,10 +227,10 @@ export default {
 
 <style lang="scss" scoped>
 .feed-detail {
-  padding: var(--space-300);
+  padding: var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: var(--space-400);
+  gap: var(--space-10);
 }
 
 .feed-detail__section {
@@ -241,19 +243,19 @@ export default {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-  margin: 0 0 8px;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2);
 }
 
 .feed-detail__grid {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 4px 16px;
+  gap: var(--space-1) var(--space-4);
   margin: 0;
 
   dt {
     font-size: var(--fs-200);
-    color: var(--c-basic-500);
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
@@ -261,23 +263,23 @@ export default {
   dd {
     margin: 0;
     font-size: var(--fs-300);
-    color: var(--c-basic-700);
+    color: var(--text-body);
     word-break: break-all;
   }
 }
 
 .feed-detail__mono {
-  font-family: var(--ff-mono, monospace);
+  font-family: var(--font-mono);
   font-size: var(--fs-200);
 }
 
 .feed-detail__json {
-  background: var(--c-basic-200);
-  color: var(--c-basic-800);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-  font-family: var(--ff-mono, monospace);
+  background: var(--surface-raised);
+  color: var(--text-body);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  padding: var(--space-3);
+  font-family: var(--font-mono);
   font-size: var(--fs-200);
   margin: 0;
   max-height: 240px;
@@ -288,35 +290,12 @@ export default {
 .feed-detail__preview {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .feed-detail__preview-row {
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-}
-
-.feed-detail__refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--c-basic-300);
-  background: transparent;
-  color: var(--c-basic-700);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--c-basic-200);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  padding: var(--space-2) var(--space-3);
 }
 </style>

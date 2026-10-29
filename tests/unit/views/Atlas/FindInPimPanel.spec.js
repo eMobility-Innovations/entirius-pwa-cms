@@ -26,6 +26,12 @@ const globalStubs = {
     props: ["hit"],
     template: "<div class='stub-row'><slot name='actions' /></div>",
   },
+  // The Link action is an IconButton: a plain button that keeps `disabled` and the test id.
+  IconButton: {
+    props: ["disabled"],
+    emits: ["click"],
+    template: "<button :disabled='disabled' @click=\"$emit('click')\" />",
+  },
   FontAwesomeIcon: true,
 };
 

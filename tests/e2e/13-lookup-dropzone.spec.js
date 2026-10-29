@@ -21,7 +21,7 @@ async function makeFileDrag(page) {
 
 test.describe("lookup drop zone", () => {
   test.beforeEach(async ({ page }) => {
-    await login(page, "admin", "admin12345");
+    await login(page);
     await page.goto("/atlas/find");
     await page.waitForSelector(BOX);
   });

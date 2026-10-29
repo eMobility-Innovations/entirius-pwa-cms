@@ -20,7 +20,9 @@
   flex-direction: column;
 }
 
-.wrap {
+// `.flex-wrap` is the name the views use; it was never defined, so their rows did not wrap.
+.wrap,
+.flex-wrap {
   flex-wrap: wrap;
 }
 
@@ -96,6 +98,16 @@
 
 .flex-1 {
   flex: 1;
+}
+
+// A flex child that may shrink below its content (a truncating text, a control in a row).
+.min-w-0 {
+  min-width: 0;
+}
+
+// Pushes a flex child to the end of its row.
+.ml-auto {
+  margin-left: auto;
 }
 
 .fg-0 {

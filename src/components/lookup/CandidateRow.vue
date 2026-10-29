@@ -9,13 +9,13 @@
         :src="thumbUrl"
         :alt="hit.basic?.name"
       />
-      <FontAwesomeIcon v-else icon="image" />
+      <FontAwesomeIcon v-else :icon="$icons.image" />
     </div>
     <div class="candidate-row__main">
       <div class="candidate-row__title-line">
-        <StatusBadge :label="kindLabel" variant="informative" />
+        <StatusBadge :label="kindLabel" tone="info" />
         <span class="candidate-row__name">{{ hit.basic?.name }}</span>
-        <span class="candidate-row__sku fs-200 t-basic-500">{{
+        <span class="candidate-row__sku fs-200 t-muted">{{
           hit.basic?.sku
         }}</span>
       </div>
@@ -29,13 +29,13 @@
         <StatusBadge
           v-if="isExact"
           :label="$t('lookup.match.exact_badge')"
-          variant="positive"
+          tone="positive"
           data-testid="candidate-row-exact"
         />
         <StatusBadge
           v-if="hit.decision"
           :label="decisionLabel"
-          :variant="decisionVariant"
+          :tone="decisionVariant"
           data-testid="candidate-row-decision"
         />
       </div>
@@ -52,15 +52,13 @@
     </div>
     <div class="candidate-row__actions">
       <slot name="actions" :hit="hit" />
-      <button
-        type="button"
-        class="row-action-btn bg-basic-200 t-basic-700"
-        :title="$t('lookup.row.open')"
+      <IconButton
+        icon="external"
+        :label="$t('lookup.row.open')"
+        variant="outline"
         data-testid="candidate-row-open"
         @click="open"
-      >
-        <FontAwesomeIcon icon="up-right-from-square" />
-      </button>
+      />
     </div>
   </div>
 </template>
@@ -147,11 +145,11 @@ export default {
 .candidate-row {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-300);
-  padding: var(--space-300);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-200);
+  gap: var(--space-8);
+  padding: var(--space-8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-5);
 
   &__thumb {
     flex-shrink: 0;
@@ -160,9 +158,9 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--c-basic-200);
-    border-radius: var(--radius-sm);
-    color: var(--c-basic-400);
+    background: var(--surface-raised);
+    border-radius: var(--radius-base);
+    color: var(--text-muted);
     overflow: hidden;
 
     img {
@@ -176,13 +174,13 @@ export default {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-1);
   }
   &__title-line,
   &__meta {
     display: flex;
     align-items: center;
-    gap: var(--space-200);
+    gap: var(--space-5);
   }
   &__title-line {
     flex-wrap: wrap;
@@ -193,30 +191,20 @@ export default {
   &__reasons {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-1);
   }
   &__reason-chip {
     font-size: var(--fs-200);
-    color: var(--c-basic-600);
-    background: var(--c-basic-200);
-    border-radius: 999px;
-    padding: 2px 10px;
+    color: var(--text-secondary);
+    background: var(--surface-raised);
+    border-radius: var(--radius-full);
+    padding: 2px var(--space-2);
   }
   &__actions {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: var(--space-100);
+    gap: var(--space-2);
   }
-}
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
 }
 </style>

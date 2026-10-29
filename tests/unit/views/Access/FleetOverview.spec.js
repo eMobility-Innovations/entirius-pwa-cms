@@ -5,7 +5,7 @@ import { createRouter, createMemoryHistory } from "vue-router";
 import { accessApi } from "@/api/access/client";
 import { useAccessMatrixStore } from "@/stores/accessMatrix";
 import Overview from "@/views/Access/AccessOverview.vue";
-import Shell from "@/views/Access/index.vue";
+import Shell from "@/views/Access/MatrixShell.vue";
 import { setLang, t } from "@/i18n";
 
 afterEach(() => setLang("EN"));
@@ -95,7 +95,7 @@ async function render(write = true) {
   store.me = (await accessApi.get("/api/escaccess/v2/me/")).data;
   if (!write) store.me.permissions = ["page:access"];
   store.catalog = structuredClone(catalog);
-  const wrapper = mount(Overview, { global: { mocks: { $t: t } } });
+  const wrapper = mount(Overview, { global: { mocks: { $t: t }, stubs: { BasicButton: false } } });
   await flushPromises();
   return wrapper;
 }

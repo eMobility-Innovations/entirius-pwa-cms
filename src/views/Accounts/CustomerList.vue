@@ -1,28 +1,10 @@
 <template>
-  <div class="acc-list__wrapper p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500">
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("accounts.customers") }}</h1>
-      </div>
-
-      <!-- Filters -->
-      <div class="flex ai-ct mb-400">
-        <MobileFilterPanel
-          :active-count="activeFilterCount"
-          :trigger-label="$t('builder.filters')"
-        >
-          <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
-          <FilterChip
-            v-for="tab in statusTabs"
-            :key="tab.key"
-            :label="tab.label"
-            :active="statusFilter === tab.key"
-            @click="setStatusFilter(tab.key)"
-          />
-        </MobileFilterPanel>
-      </div>
-
-      <div class="flex ai-ct gap-300 mb-400 flex-wrap">
+  <PageLayout class="acc-list__wrapper fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('accounts.customers')" />
+    </template>
+    <template #toolbar>
+      <div class="acc-list__toolbar">
         <BasicInput
           v-model="search"
           :placeholder="$t('common.start_typing')"
@@ -30,27 +12,38 @@
           class="acc-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
-        <Dropdown
+        <BasicSelect
+          :floating-label="$t('accounts.group')"
           v-if="groupOptions.length"
-          :values="groupOptions"
-          :selected="groupFilter ? [groupFilter] : []"
-          :placeholder="$t('accounts.group')"
+          :options="groupOptions"
+          :model-value="groupFilter"
           class="acc-list__filter-dropdown"
-          @onSelect="setGroupFilter"
+          @update:model-value="setGroupFilter"
         />
-        <Dropdown
+        <BasicSelect
+          :floating-label="$t('accounts.channel')"
           v-if="channelOptions.length"
-          :values="channelOptions"
-          :selected="channelFilter ? [channelFilter] : []"
-          :placeholder="$t('accounts.channel')"
+          :options="channelOptions"
+          :model-value="channelFilter"
           class="acc-list__filter-dropdown"
-          @onSelect="setChannelFilter"
+          @update:model-value="setChannelFilter"
         />
+        <div class="filter-chip-row" role="group" :aria-label="$t('accounts.filters')">
+          <FilterChip
+            v-for="tab in statusTabs"
+            :key="tab.key"
+            :label="tab.label"
+            :active="statusFilter === tab.key"
+            @click="setStatusFilter(tab.key)"
+          />
+        </div>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="customers"
@@ -64,25 +57,25 @@
           {{ row.firstname }} {{ row.lastname }}
         </template>
         <template #cell-group="{ value }">
-          <span v-if="value" class="bg-support-100 t-support-400 fs-200 ph-100 br-50">
+          <span v-if="value" class="bg-accent-subtle t-strong fs-200 ph-2 rounded">
             {{ value }}
           </span>
-          <span v-else class="t-basic-400">---</span>
+          <span v-else class="t-muted">—</span>
         </template>
         <template #cell-source_channel="{ value }">
-          <span v-if="value" class="t-basic-600 fs-200">{{ value }}</span>
-          <span v-else class="t-basic-400">---</span>
+          <span v-if="value" class="t-secondary fs-200">{{ value }}</span>
+          <span v-else class="t-muted">—</span>
         </template>
         <template #cell-status="{ row }">
-          <div class="flex gap-100">
+          <div class="flex flex-wrap gap-2">
             <StatusBadge
               :label="row.is_active ? $t('accounts.active') : $t('accounts.inactive')"
-              :variant="row.is_active ? 'positive' : 'negative'"
+              :tone="row.is_active ? 'positive' : 'negative'"
             />
             <StatusBadge
               v-if="row.is_verified"
               :label="$t('accounts.verified')"
-              variant="informative"
+              tone="info"
             />
           </div>
         </template>
@@ -93,11 +86,11 @@
 
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -144,21 +137,14 @@ export default {
         { key: "not_verified", label: this.$t("accounts.not_verified") },
       ];
     },
-    activeFilterCount() {
-      let count = 0;
-      if (this.statusFilter !== "all") count++;
-      if (this.groupFilter) count++;
-      if (this.channelFilter) count++;
-      return count;
-    },
     columns() {
       return [
         { key: "email", label: "Email", sortable: true, width: "1fr" },
-        { key: "name", label: "Name", sortable: false, width: "180px" },
-        { key: "group", label: this.$t("accounts.group"), sortable: false, width: "120px" },
-        { key: "source_channel", label: this.$t("accounts.channel"), sortable: false, width: "140px" },
-        { key: "status", label: this.$t("accounts.status"), sortable: false, width: "160px" },
-        { key: "created_at", label: "Created", sortable: true, width: "140px" },
+        { key: "name", label: this.$t("accounts.name"), sortable: false, width: "180px", priority: 2 },
+        { key: "group", label: this.$t("accounts.group"), sortable: false, width: "120px", priority: 2 },
+        { key: "source_channel", label: this.$t("accounts.channel"), sortable: false, width: "140px", priority: 2 },
+        { key: "status", label: this.$t("accounts.status"), sortable: false, width: "240px" },
+        { key: "created_at", label: this.$t("accounts.created"), sortable: true, width: "140px", priority: 2 },
       ];
     },
     paginationState() {
@@ -263,7 +249,7 @@ export default {
       this.$router.push(`/accounts/customers/${row.uid}`);
     },
     formatDate(dateStr) {
-      if (!dateStr) return "---";
+      if (!dateStr) return "—";
       return new Date(dateStr).toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
@@ -275,6 +261,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.acc-list__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+}
+
 .acc-list__search {
   flex: 1;
   min-width: 150px;
@@ -284,11 +277,5 @@ export default {
 .acc-list__filter-dropdown {
   min-width: 120px;
   max-width: 200px;
-}
-
-@media only screen and (max-width: 768px) {
-  .acc-list__wrapper {
-    padding: 16px !important;
-  }
 }
 </style>

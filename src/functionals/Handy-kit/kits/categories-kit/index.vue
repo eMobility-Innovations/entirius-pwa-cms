@@ -1,33 +1,33 @@
 <template>
-  <div class="categories-kit fs-200 t-basic-600 flex-column fg-1 jc-sb gap-300">
-    <div class="grid gap-300">
+  <div class="categories-kit fs-200 t-secondary flex-column fg-1 jc-sb gap-8">
+    <div class="grid gap-8">
       <nav
-        class="grid grid-col-2 grid-col-2-m ai-ct bg-basic-200 pl-400 pr-400 pt-200 pb-200 t-basic-600 br-tl-50 br-tr-50"
+        class="grid grid-col-2 grid-col-2-m ai-ct bg-raised pl-10 pr-10 pt-5 pb-5 t-secondary rounded-tl rounded-tr"
       >
         <p class="fw-600 fs-400 uppercase">
           {{ handyType.label ? handyType.label : $t("common.click") }}
         </p>
         <p
-          class="js-fe t-basic-600"
+          class="js-fe t-secondary"
           @click="handy.open_Handykit({ typeId: false })"
         >
-          <i class="icon-close-mini pointer" />
+          <FontAwesomeIcon :icon="$icons.close" class="pointer" />
         </p>
       </nav>
-      <div class="ph-300">
+      <div class="ph-8">
         <div
           :class="
-            editing_category ? 'p-200 br-50 bg-basic-200 b-support-400' : ''
+            editing_category ? 'p-5 rounded bg-raised b-accent' : ''
           "
           :style="
             editing_category
-              ? 'border-left: 3px solid var(--c-support-400)'
+              ? 'border-left: 3px solid var(--accent)'
               : ''
           "
         >
           <p
-            class="mb-100"
-            :class="{ 'fs-100 fw-600 t-support-400': editing_category }"
+            class="mb-2"
+            :class="{ 'fs-200 fw-600 t-accent': editing_category }"
           >
             {{
               editing_category
@@ -35,7 +35,7 @@
                 : $t("images.add_new_category")
             }}
           </p>
-          <div class="flex gap-100">
+          <div class="flex gap-2">
             <BasicInput
               v-model="new_c"
               class="lh-base-elem w-50"
@@ -43,16 +43,18 @@
             />
             <BasicButton
               v-if="editing_category"
-              class="b-basic-400 t-basic-600 br-50 fs-200"
-              :text="$t('common.cancel')"
+              variant="secondary"
+              class="rounded fs-200"
               @click="
                 editing_category = null;
                 new_c = '';
               "
-            />
+            >
+              {{ $t('common.cancel') }}
+            </BasicButton>
             <BasicButton
-              class="bg-basic-700 br-50 bg-support-400 fs-200 b-support-400 t-basic-100"
-              :text="editing_category ? $t('common.save') : $t('common.post')"
+              variant="primary"
+              class="rounded fs-200"
               @click="
                 editing_category
                   ? PUT_CATEGORY({
@@ -62,11 +64,13 @@
                     })
                   : POST_CATEGORY({ cat_name: new_c, language: language })
               "
-            />
+            >
+              {{ editing_category ? $t('common.save') : $t('common.post') }}
+            </BasicButton>
           </div>
         </div>
-        <hr class="bb-basic-200 mv-300" />
-        <p class="mb-100">
+        <hr class="bb-subtle mv-8" />
+        <p class="mb-2">
           {{
             ` ${
               !c || (Array.isArray && !c.length)
@@ -75,26 +79,29 @@
             }`
           }}
         </p>
-        <Dropdown
+        <BasicMenu
           :key="`dropdown-${Object.values(c_to_set ?? {}).at(1)}`"
-          :placeholder="`${
-            !c || (Array.isArray && !c.length)
-              ? $t('categories.select_category')
-              : $t('categories.category')
-          }`"
-          class="br-50 bg-basic-100 b-basic-400 override-dropdown"
-          :class="{ 'bg-basic-200': !c || (Array.isArray && !c.length) }"
-          :isDisabled="!c || (Array.isArray && !c.length)"
-          :custom_droplist="true"
+          class="w-100"
+          :label="$t('categories.category')"
         >
-          <template v-slot:custom>
-            <LazyScroll
-              @onLazy="load_more"
-              style="height: 100; max-height: 10rem"
+          <template #trigger>
+            <BasicButton
+              variant="secondary"
+              class="w-100"
+              :disabled="!c || (Array.isArray && !c.length)"
             >
+              {{
+                !c || (Array.isArray && !c.length)
+                  ? $t('categories.select_category')
+                  : $t('categories.category')
+              }}
+            </BasicButton>
+          </template>
+          <template #panel>
+            <div class="categories-kit__list ovy-auto">
               <div
                 v-for="{ label = null, value = null } in c"
-                class="ph-100 flex jc-sb ai-ct"
+                class="ph-2 flex jc-sb ai-ct"
                 @click="
                   c_to_set = { label, value };
                   if (editing_category) {
@@ -104,9 +111,9 @@
                 "
               >
                 <span>{{ label }} </span>
-                <span class="flex gap-200 ai-ct">
+                <span class="flex gap-5 ai-ct">
                   <span
-                    class="t-support-400 pointer"
+                    class="t-accent pointer"
                     @click.stop="
                       editing_category = { uid: value, name: label };
                       new_c = label;
@@ -114,7 +121,7 @@
                     >{{ $t("common.edit") }}</span
                   >
                   <span
-                    class="t-negative-200 pointer"
+                    class="t-negative pointer"
                     @click.stop="
                       confirmation_modal = true;
                       to_delete = value;
@@ -123,65 +130,64 @@
                   >
                 </span>
               </div>
-            </LazyScroll>
+              <div :ref="observe_sentinel" class="categories-kit__sentinel" />
+            </div>
           </template>
-        </Dropdown>
+        </BasicMenu>
         <template v-if="c_to_set">
           <div
-            class="mv-300 t-basic-600 bg-basic-200 p-100 br-50 b-basic-400 flex"
+            class="mv-8 t-secondary bg-raised p-2 rounded b-default flex"
           >
             <div class="fg-1">
               <p class="fs-300 fw-600">{{ $t("categories.category") }}:</p>
-              <p class="fs-200 mt-100">
+              <p class="fs-200 mt-2">
                 {{ c_to_set.label }} ({{ c_to_set.value }})
               </p>
             </div>
             <BasicButton
-              :text="$t('categories.unset')"
-              class="b-negative-200 t-negative-200 br-50"
+              variant="danger"
+              class="rounded"
               @click="pass_asset({ force_unset: true })"
-            />
+            >
+              {{ $t('categories.unset') }}
+            </BasicButton>
           </div>
         </template>
       </div>
     </div>
 
-    <ConfirmationModal
-      :visible="confirmation_modal"
-      @accept="
+    <ConfirmDialog
+      tone="danger"
+      :open="confirmation_modal"
+      @confirm="
         () => {
           DELETE_CATEGORY(to_delete);
           confirmation_modal = false;
           to_delete = null;
         }
       "
-      @reject="
+      @cancel="
         confirmation_modal = false;
         to_delete = null;
       "
+      :title="$t('builder.confirm_title')"
     >
-      <template #header>
-        <h2>{{ $t("builder.confirm_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>{{ $t("builder.confirm_msg") }}</p>
       </template>
-    </ConfirmationModal>
+    </ConfirmDialog>
 
     <div
-      class="grid grid-col-3 rtl-direction bg-basic-200 pl-400 pr-400 pt-100 pb-100"
+      class="grid grid-col-3 rtl-direction bg-raised pl-10 pr-10 pt-2 pb-2"
     >
       <BasicButton
-        :text="$t('common.save')"
-        class="br-50 w-100 jc-ct"
-        :class="[
-          !c_to_set
-            ? 'bg-basic-300 b-basic-300 t-basic-500'
-            : 'bg-support-400 b-support-400 t-basic-100 ',
-        ]"
-        :isDisabled="!c_to_set"
+        variant="primary"
+        class="rounded w-100 jc-ct"
+        :disabled="!c_to_set"
         @click="pass_asset({})"
-      />
+      >
+        {{ $t('common.save') }}
+      </BasicButton>
     </div>
   </div>
 </template>
@@ -191,10 +197,10 @@ import { useNotifyStore } from "@/stores/notify";
 import { useHandyStore } from "@/stores/handy";
 import { useContentDBChannelStore } from "@/stores/contentDBChannel";
 import { _METHOD_content } from "../../../../api/contentDB/api";
-import LazyScroll from "../../../../boots/LazyScroll/LazyScroll.vue";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 
 const _base_url = `/category/`;
+// Pixels below the end of the list at which the next page loads.
+const LOAD_MORE_THRESHOLD = 24;
 export default {
   setup() {
     const notify = useNotifyStore();
@@ -202,10 +208,7 @@ export default {
     const contentDBChannel = useContentDBChannelStore();
     return { notify, handy, contentDBChannel };
   },
-  components: {
-    LazyScroll,
-    ConfirmationModal,
-  },
+  components: {},
   data() {
     return {
       loading: false,
@@ -252,17 +255,32 @@ export default {
       if (default_category && typeof default_category === "string")
         this.GET_CATEGORY({ uid: default_category });
     },
-    load_more() {
-      const { page = 1, pages = 1 } = this.cp;
-      if (page >= pages) return;
-
-      this.GET_CATEGORIES({
-        page: page + 1,
-        limit: this.cp.limit,
-        language: this.language,
+    // The first page loads with the kit; the next one when the sentinel after the last row comes into the list's
+    // view, which also covers a first page too short to scroll. The list remounts with the menu (its :key).
+    observe_sentinel(el) {
+      if (el === this.sentinel) return;
+      this.observer?.disconnect();
+      this.sentinel = el;
+      if (!el) return;
+      this.observer = new IntersectionObserver(([entry]) => entry.isIntersecting && this.load_more(), {
+        root: el.parentElement,
+        rootMargin: `0px 0px ${LOAD_MORE_THRESHOLD}px 0px`,
       });
-
+      this.observer.observe(el);
+    },
+    async load_more() {
+      const { page = 1, pages = 1 } = this.cp ?? {};
+      if (this.loading || page >= pages) return;
       this.cp.page = page + 1;
+      await this.GET_CATEGORIES({ page: page + 1, limit: this.cp.limit, language: this.language });
+    },
+    // After a page lands (also one that made load_more return early): a sentinel still in view loads the next one.
+    // Observing again makes the observer report the current state.
+    async recheck_sentinel() {
+      await this.$nextTick();
+      if (!this.sentinel || !this.observer) return;
+      this.observer.unobserve(this.sentinel);
+      this.observer.observe(this.sentinel);
     },
     async GET_CATEGORIES({ limit = 6, page = 1, language = null } = {}) {
       try {
@@ -290,13 +308,16 @@ export default {
           };
         });
 
-        this.c = [...this.c, ..._data];
+        // A category created while the pages load comes back in a later page: keep it once.
+        const known = new Set(this.c.map(({ value }) => value));
+        this.c = [...this.c, ..._data.filter(({ value }) => !known.has(value))];
 
         if (!this.cp) this.cp = pagination;
       } catch (error) {
         console.log(error);
       } finally {
         this.loading = false;
+        this.recheck_sentinel();
       }
     },
     async GET_CATEGORY({ uid }) {
@@ -459,14 +480,15 @@ export default {
   created() {
     this.init();
   },
+  beforeUnmount() {
+    this.observer?.disconnect();
+  },
 };
 </script>
 <style lang="scss">
 .categories-kit {
-  .dropdown-wrapper {
-    .dropdown-list {
-      overflow-y: unset;
-    }
+  .categories-kit__list {
+    max-height: 10rem;
   }
 }
 </style>

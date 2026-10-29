@@ -1,190 +1,156 @@
 <template>
-  <div class="gap-def-edit fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#pim-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pim/gap-definitions')"
-      />
-    </Teleport>
-    <Teleport to="#pim-toolbar-right" defer>
-      <BasicButton
-        v-if="!isCreate"
-        text=""
-        icon="trash-can"
-        class="bg-negative-100 t-negative-300"
-        data-test="gap-delete-btn"
-        @click="showDeleteConfirm = true"
-      />
-      <BasicButton
-        :text="$t('common.save')"
-        class="bg-support-400 t-basic-100"
-        data-test="gap-save-btn"
-        @click="save"
-      />
-    </Teleport>
-
-    <div class="flex-1 ovy-auto p-500">
-      <div class="bg-basic-100 b-basic-300 br-50 p-500">
-        <div class="gap-def-identity mb-400">
-          <span class="fs-200 t-support-400 fw-600 tt-upper">
-            {{ isCreate ? $t("pim.create_gap_definition") : $t("pim.gap_definition_detail") }}
-          </span>
-        </div>
-
-        <Loader v-if="loading" />
-
-        <template v-else>
-          <div class="gap-def-grid">
-            <FormField
-              :label="$t('pim.gap_key')"
-              :tooltip="$t('pim.gap_key_hint')"
-              :error="fieldErr('key')"
-            >
-              <BasicInput v-model="form.key" :isDisabled="!isCreate" />
-            </FormField>
-
-            <FormField :label="$t('pim.gap_check')" :error="fieldErr('check_key')">
-              <Dropdown
-                :values="checkOptions"
-                :selected="[form.check_key]"
-                :placeholder="$t('common.select')"
-                @onSelect="onCheckSelect"
-              />
-            </FormField>
-
-            <!-- check-specific params -->
-            <FormField
-              v-if="!rawParamsMode && needsFeature"
-              :label="$t('pim.gap_param_feature')"
-              :error="fieldErr('params')"
-            >
-              <Dropdown
-                :values="featureOptions"
-                :selected="[paramFeatureIdx]"
-                :placeholder="$t('pim.gap_param_feature_ph')"
-                @onSelect="(v) => (paramFeatureIdx = v)"
-              />
-            </FormField>
-
-            <FormField
-              v-if="!rawParamsMode && needsMinLength"
-              :label="$t('pim.gap_param_min_length')"
-            >
-              <NumberInput v-model="paramMinLength" :min="1" :max="100000" />
-            </FormField>
-
-            <FormField
-              v-if="!rawParamsMode && needsRole"
-              :label="$t('pim.gap_param_role')"
-              :tooltip="$t('pim.gap_param_role_hint')"
-            >
-              <Dropdown
-                :values="roleOptions"
-                :selected="[paramRole]"
-                :placeholder="$t('pim.gap_param_role_any')"
-                @onSelect="(v) => (paramRole = v)"
-              />
-            </FormField>
-
-            <FormField :label="$t('pim.gap_severity')" :error="fieldErr('severity')">
-              <Dropdown
-                :values="severityOptions"
-                :selected="[form.severity]"
-                :placeholder="$t('common.select')"
-                @onSelect="(v) => (form.severity = v)"
-              />
-            </FormField>
-
-            <FormField :label="$t('pim.gap_order')">
-              <NumberInput v-model="displayOrderStr" :min="0" :max="100000" />
-            </FormField>
-
-            <div class="flex ai-ct gap-100">
-              <Switcher
-                :label="$t('pim.gap_active')"
-                :selected="form.active"
-                @onSelect="form.active = !form.active"
-              />
-            </div>
-          </div>
-
-          <!-- raw JSON params fallback -->
-          <div class="mt-300">
-            <Switcher
-              :label="$t('pim.gap_raw_params')"
-              :selected="rawParamsMode"
-              @onSelect="toggleRawParams"
-            />
-            <div v-if="rawParamsMode" class="mt-200">
-              <FormField :label="$t('pim.gap_params_json')" :error="rawParamsError">
-                <TextAreaBasic v-model="rawParamsText" :rows="4" />
-              </FormField>
-            </div>
-          </div>
-
-          <!-- label translations -->
-          <div class="mt-400">
-            <span class="fs-200 t-basic-500 fw-600 tt-upper">{{ $t("pim.gap_label") }}</span>
-            <div class="gap-def-t9n mt-200">
-              <div v-for="lang in labelLangs" :key="lang" class="gap-def-t9n__row">
-                <span class="gap-def-t9n__lang">{{ lang }}</span>
-                <BasicInput
-                  :model-value="form.label_t9n[lang] || ''"
-                  class="flex-1"
-                  @update:model-value="(val) => setLabel(lang, val)"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- scope: languages + channels -->
-          <div class="mt-400 flex gap-400" style="flex-wrap: wrap">
-            <div>
-              <span class="fs-200 t-basic-500 fw-600 tt-upper">
-                {{ $t("pim.gap_languages") }}
-                <HelpTooltip :text="$t('pim.gap_scope_all_hint')" />
-              </span>
-              <div class="mb-100"></div>
-              <div class="flex gap-100" style="flex-wrap: wrap">
-                <FilterChip
-                  v-for="lang in availableLangs"
-                  :key="lang"
-                  :label="lang"
-                  :active="form.languages.includes(lang)"
-                  @click="toggleLanguage(lang)"
-                />
-              </div>
-            </div>
-            <div>
-              <span class="fs-200 t-basic-500 fw-600 tt-upper">
-                {{ $t("pim.gap_channels") }}
-                <HelpTooltip :text="$t('pim.gap_scope_all_hint')" />
-              </span>
-              <div class="mb-100"></div>
-              <ChannelMultiSelect
-                v-model="form.channels"
-                :channels="pimChannel.channels"
-                :label="$t('pim.gap_channels')"
-                :all-label="$t('pim.gap_scope_all')"
-              />
-            </div>
-          </div>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="pageTitle" back="/pim/gap-definitions">
+        <template #meta>
+          <PimChannelSelect />
         </template>
+        <template v-if="!loading" #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
 
-        <Confirmation-modal
-          :visible="showDeleteConfirm"
-          @accept="deleteRule"
-          @reject="showDeleteConfirm = false"
-        >
-          <template #description>
-            <p>{{ $t("pim.confirm_delete_gap_definition") }}</p>
-          </template>
-        </Confirmation-modal>
-      </div>
-    </div>
-  </div>
+    <Loader block v-if="loading" />
+
+    <template v-else>
+      <BasicCard :title="$t('pim.gap_definition_detail')" gap class="mb-8">
+        <div class="form-grid">
+          <FormField
+            :label="$t('pim.gap_key')"
+            :required="isCreate"
+            hint-level="important"
+            :hint="$t('pim.gap_key_hint')"
+            :error="fieldErr('key')"
+          >
+            <BasicInput v-model="form.key" format="key" :maxlength="64" :disabled="!isCreate" />
+          </FormField>
+
+          <FormField :label="$t('pim.gap_check')" :error="fieldErr('check_key')">
+            <BasicSelect
+              :options="checkOptions"
+              v-model="form.check_key"
+              :placeholder="$t('common.select')"
+              @update:model-value="onCheckSelect"
+            />
+          </FormField>
+
+          <!-- check-specific params -->
+          <FormField
+            v-if="!rawParamsMode && needsFeature"
+            :label="$t('pim.gap_param_feature')"
+            :error="fieldErr('params')"
+          >
+            <BasicSelect
+              :options="featureOptions"
+              v-model="paramFeatureIdx"
+              :placeholder="$t('pim.gap_param_feature_ph')"
+            />
+          </FormField>
+
+          <FormField
+            v-if="!rawParamsMode && needsMinLength"
+            :label="$t('pim.gap_param_min_length')"
+          >
+            <NumberInput v-model="paramMinLength" :min="1" :max="100000" />
+          </FormField>
+
+          <FormField
+            v-if="!rawParamsMode && needsRole"
+            :label="$t('pim.gap_param_role')"
+            :hint="$t('pim.gap_param_role_hint')"
+          >
+            <BasicSelect
+              :options="roleOptions"
+              v-model="paramRole"
+              :placeholder="$t('pim.gap_param_role_any')"
+            />
+          </FormField>
+
+          <FormField :label="$t('pim.gap_severity')" :error="fieldErr('severity')">
+            <BasicSelect
+              :options="severityOptions"
+              v-model="form.severity"
+              :placeholder="$t('common.select')"
+            />
+          </FormField>
+
+          <FormField :label="$t('pim.gap_order')">
+            <NumberInput v-model="displayOrderStr" :min="0" :max="100000" />
+          </FormField>
+
+          <BasicSwitch
+            :label="$t('pim.gap_active')"
+            v-model="form.active"
+          />
+          <BasicSwitch
+            :label="$t('pim.gap_raw_params')"
+            :model-value="rawParamsMode"
+            @update:model-value="toggleRawParams"
+          />
+          <FormField
+            v-if="rawParamsMode"
+            :label="$t('pim.gap_params_json')"
+            :error="rawParamsError"
+            class="form-grid__wide"
+          >
+            <BasicTextarea v-model="rawParamsText" :rows="4" />
+          </FormField>
+        </div>
+      </BasicCard>
+
+      <BasicCard :title="$t('pim.gap_label')" gap class="mb-8">
+        <div class="form-grid">
+          <FormField
+            v-for="lang in labelLangs"
+            :key="lang"
+            :label="`${$t('pim.gap_label')} (${lang.toUpperCase()})`"
+          >
+            <BasicInput
+              :model-value="form.label_t9n[lang] || ''"
+              @update:model-value="(val) => setLabel(lang, val)"
+            />
+          </FormField>
+        </div>
+      </BasicCard>
+
+      <BasicCard :title="$t('pim.gap_scope')" gap class="mb-8">
+        <div class="form-grid">
+          <FormField :label="$t('pim.gap_languages')" :hint="$t('pim.gap_scope_all_hint')">
+            <div class="filter-chip-row" role="group" :aria-label="$t('pim.gap_languages')">
+              <FilterChip
+                v-for="lang in availableLangs"
+                :key="lang"
+                :label="lang.toUpperCase()"
+                :active="form.languages.includes(lang)"
+                @click="toggleLanguage(lang)"
+              />
+            </div>
+          </FormField>
+          <FormField :label="$t('pim.gap_channels')" :hint="$t('pim.gap_scope_all_hint')">
+            <ChannelMultiSelect
+              v-model="form.channels"
+              :channels="pimChannel.channels"
+              :label="$t('pim.gap_channels')"
+              :all-label="$t('pim.gap_scope_all')"
+            />
+          </FormField>
+        </div>
+      </BasicCard>
+    </template>
+
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      :title="$t('pim.confirm_delete_title')"
+      @confirm="deleteRule"
+      @cancel="showDeleteConfirm = false"
+    >
+      <template #default>
+        <p>{{ $t("pim.confirm_delete_gap_definition") }}</p>
+      </template>
+    </ConfirmDialog>
+  </PageLayout>
 </template>
 
 <script>
@@ -200,7 +166,7 @@ import {
   DELETE_GapDefinition,
   GET_Features,
 } from "@/api/pim/api";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
 
 const FEATURE_CHECKS = ["feature_present", "feature_min_length"];
 const PICTURE_ROLES = ["MAIN", "GENERAL", "VARIANT", "ANGLE"];
@@ -216,7 +182,7 @@ function normalizedParams(obj) {
 
 export default {
   name: "GapDefinitionEdit",
-  components: { ConfirmationModal },
+  components: { PimChannelSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -253,6 +219,19 @@ export default {
   computed: {
     isCreate() {
       return !this.$route.params.key;
+    },
+    pageTitle() {
+      if (this.isCreate) return this.$t("pim.create_gap_definition");
+      return this.form.key || this.$route.params.key;
+    },
+    headerActions() {
+      return [
+        ...(!this.isCreate
+          ? [{ key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("common.delete"),
+              testid: "gap-delete-btn", onClick: () => (this.showDeleteConfirm = true) }]
+          : []),
+        { key: "save", role: "primary", label: this.$t("common.save"), testid: "gap-save-btn", onClick: this.save },
+      ];
     },
     needsFeature() {
       return FEATURE_CHECKS.includes(this.form.check_key);
@@ -432,6 +411,7 @@ export default {
       }
       this.rawParamsError = "";
       if (!this.validateLocal(params)) return;
+      if (this.isCreate && !this.validateFormats(this.form, { key: { format: "key" } })) return;
 
       const payload = {
         check_key: this.form.check_key,
@@ -506,40 +486,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped>
-.gap-def-identity {
-  border-left: 3px solid var(--c-support-400);
-  padding-left: var(--space-300);
-  padding-top: var(--space-200);
-  padding-bottom: var(--space-200);
-}
-.gap-def-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-300);
-  align-items: end;
-}
-.gap-def-t9n {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-200);
-  max-width: 520px;
-}
-.gap-def-t9n__row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-200);
-}
-.gap-def-t9n__lang {
-  width: 40px;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--c-support-400);
-  font-size: var(--fs-200);
-}
-.tt-upper {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-</style>

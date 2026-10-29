@@ -1,31 +1,38 @@
 <template>
+  <VideoPreview v-if="targetKind === 'video'" :proposal-id="proposalId" />
   <ImageDiff
-    v-if="isImage"
+    v-else-if="isImage"
     :before-url="imageBeforeUrl"
     :proposal-id="proposalId"
     :alt="subjectLabel"
   />
+  <TagChanges v-else-if="isOptions" :proposed="proposed" :current="current" :locator="locator" />
+  <TextDiff v-else-if="diffComponent === 'TextDiff'" :before="before" :after="after" :wide="wide" :rules="rules" :snippet="snippet" />
   <component :is="diffComponent" v-else :before="before" :after="after" />
 </template>
 
 <script>
 // Universal before/after renderer. Dispatches to the existing supplier diff
-// components keyed by the proposal's `target_kind`. Reuses the diff widgets from
-// the suppliers feature — zero new diff UI (etap-06).
+// components keyed by the proposal's `target_kind`: a select value is tag chips (TagChanges), text is a word diff (TextDiff), a
+// video plays the staged file, the rest reuses the suppliers diff widgets (etap-06).
 //
 // `proposed` = ContentProposal.proposed_value, `current` = current_snapshot.
 // Both are dicts. The PIM adapter convention wraps the value as {text: "..."},
 // but the renderer stays module-agnostic: it unwraps the scalar for
 // text/number/array kinds and falls back to a JSON diff for anything else.
-import StringDiff from "@/views/Pim/components/supplier/diffs/StringDiff.vue";
 import NumericDiff from "@/views/Pim/components/supplier/diffs/NumericDiff.vue";
 import ArrayDiff from "@/views/Pim/components/supplier/diffs/ArrayDiff.vue";
 import JsonDiff from "@/views/Pim/components/supplier/diffs/JsonDiff.vue";
 import ImageDiff from "./ImageDiff.vue";
+import TagChanges from "./TagChanges.vue";
+import TextDiff from "./TextDiff.vue";
+import { isOptionValue } from "./reviewLogic";
+import VideoPreview from "./VideoPreview.vue";
 
 const KIND_TO_COMPONENT = {
-  text: "StringDiff",
-  string: "StringDiff",
+  text: "TextDiff",
+  string: "TextDiff",
+  attribute_value: "TextDiff",
   number: "NumericDiff",
   numeric: "NumericDiff",
   array: "ArrayDiff",
@@ -41,15 +48,24 @@ const IMAGE_KINDS = new Set(["image", "picture"]);
 
 export default {
   name: "DiffRenderer",
-  components: { StringDiff, NumericDiff, ArrayDiff, JsonDiff, ImageDiff },
+  components: { NumericDiff, ArrayDiff, JsonDiff, ImageDiff, TagChanges, TextDiff, VideoPreview },
   props: {
     targetKind: { type: String, default: "text" },
     proposed: { type: [Object, Array, String, Number], default: null },
     current: { type: [Object, Array, String, Number], default: null },
     proposalId: { type: [Number, String], default: null },
     subjectLabel: { type: String, default: "" },
+    // Text only: room for side by side, the field's length rules, the search-result preview ({ title, url }).
+    wide: { type: Boolean, default: false },
+    rules: { type: Object, default: null },
+    snippet: { type: Object, default: null },
+    // Select values ({ option } / { options }) render as tag chips named through the field of the locator.
+    locator: { type: Object, default: () => ({}) },
   },
   computed: {
+    isOptions() {
+      return isOptionValue(this.proposed);
+    },
     isImage() {
       return IMAGE_KINDS.has(this.targetKind);
     },
@@ -76,7 +92,7 @@ export default {
   },
   methods: {
     // For scalar kinds, pull the single value out of the {key: value} envelope
-    // so StringDiff/NumericDiff/ArrayDiff receive a primitive, not a dict.
+    // so TextDiff/NumericDiff/ArrayDiff receive a primitive, not a dict.
     // JSON kind keeps the whole object.
     unwrap(value) {
       if (this.diffComponent === "JsonDiff") return value;

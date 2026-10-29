@@ -1,13 +1,13 @@
 <template>
-  <div class="feeds-tab p-300 ovy-auto h-100">
-    <div class="flex ai-ct jc-sb mb-300">
+  <div class="flex flex-column">
+    <div class="flex ai-ct jc-sb mb-8">
       <h2 class="fs-400 fw-600">{{ $t("atlas.tabs.feeds") }}</h2>
-      <p class="fs-200 t-basic-500 m-0">
+      <p class="fs-200 t-muted m-0">
         {{ $t("atlas.feeds.readonly_hint") }}
       </p>
     </div>
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
 
     <DataTable
       v-show="!loading"
@@ -18,35 +18,34 @@
       @row-click="openDetail"
     >
       <template #cell-connector_kind="{ value }">
-        <StatusBadge :label="value" variant="informative" />
+        <StatusBadge :label="value" tone="info" />
       </template>
       <template #cell-status_combined="{ row }">
-        <div class="flex ai-ct gap-100 flex-wrap">
+        <div class="flex ai-ct gap-2 flex-wrap">
           <StatusBadge
             :label="row.is_active ? $t('common.active') : $t('common.inactive')"
-            :variant="row.is_active ? 'positive' : 'negative'"
+            :tone="row.is_active ? 'positive' : 'negative'"
           />
           <StatusBadge
             v-if="row.last_sync_status"
             :label="row.last_sync_status"
-            :variant="syncStatusVariant(row.last_sync_status)"
+            :tone="syncStatusVariant(row.last_sync_status)"
           />
         </div>
       </template>
       <template #cell-last_sync_at="{ value }">
         <span v-if="value">{{ formatDate(value) }}</span>
-        <span v-else class="t-basic-400">{{ dash }}</span>
+        <span v-else class="t-muted">{{ dash }}</span>
       </template>
       <template #cell-actions="{ row }">
-        <div class="flex ai-ct gap-100" @click.stop>
-          <button
-            class="row-action-btn bg-positive-100 t-positive-300"
-            :title="$t('atlas.feeds.trigger_button')"
+        <div class="flex ai-ct gap-2" @click.stop>
+          <IconButton
+            icon="play"
+            size="sm"
+            :label="$t('atlas.feeds.trigger_button')"
             :data-testid="`feeds-trigger-${row.idx}`"
             @click="triggerFeed(row)"
-          >
-            <FontAwesomeIcon icon="play" />
-          </button>
+          />
         </div>
       </template>
     </DataTable>
@@ -58,15 +57,13 @@
       @close="closeDetail"
     />
 
-    <Confirmation-modal
-      :visible="triggerVisible"
-      @accept="executeTrigger"
-      @reject="triggerVisible = false"
+    <ConfirmDialog
+      :open="triggerVisible"
+      @confirm="executeTrigger"
+      @cancel="triggerVisible = false"
+      :title="$t('atlas.feeds.trigger_title')"
     >
-      <template #header>
-        <h2>{{ $t("atlas.feeds.trigger_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>
           {{
             $t("atlas.feeds.trigger_body", {
@@ -75,14 +72,13 @@
           }}
         </p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
   </div>
 </template>
 
 <script>
 import FeedDetailDrawer from "../components/FeedDetailDrawer.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import { useNotifyStore } from "@/stores/notify";
 import { GET_Feeds, POST_FeedTrigger } from "@/api/atlas/api";
 
@@ -90,12 +86,12 @@ const SYNC_STATUS_VARIANTS = {
   success: "positive",
   partial: "warning",
   failed: "negative",
-  running: "informative",
+  running: "info",
 };
 
 export default {
   name: "FeedsTab",
-  components: { FeedDetailDrawer, ConfirmationModal },
+  components: { FeedDetailDrawer },
   props: {
     supplier: { type: Object, default: null },
   },
@@ -209,26 +205,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped>
-.feeds-tab {
-  display: flex;
-  flex-direction: column;
-}
-
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.row-action-btn:hover {
-  opacity: 0.85;
-}
-</style>

@@ -5,9 +5,9 @@ import CandidateRow from "@/components/lookup/CandidateRow.vue";
 const globalStubs = {
   StatusBadge: {
     name: "StatusBadge",
-    props: ["label", "variant"],
+    props: ["label", "tone"],
     template:
-      "<span class='stub-badge' :data-variant='variant'>{{ label }}</span>",
+      "<span class='stub-badge' :data-tone='tone'>{{ label }}</span>",
   },
   FontAwesomeIcon: true,
 };
@@ -63,7 +63,7 @@ describe("CandidateRow.vue", () => {
     const exact = mountRow(makeHit({ similarity: 100, match: "exact" }));
     const badge = exact.find("[data-testid='candidate-row-exact']");
     expect(badge.exists()).toBe(true);
-    expect(badge.attributes("data-variant")).toBe("positive");
+    expect(badge.attributes("data-tone")).toBe("positive");
     expect(badge.text()).toBe("lookup.match.exact_badge");
 
     const similar = mountRow(makeHit({ similarity: 95, match: "similar" }));
@@ -98,10 +98,10 @@ describe("CandidateRow.vue", () => {
     ["match", "positive"],
     ["review", "warning"],
     ["no_match", "neutral"],
-  ])("maps decision %s to StatusBadge variant %s", (decision, variant) => {
+  ])("maps decision %s to StatusBadge tone %s", (decision, tone) => {
     const wrapper = mountRow(makeHit({ score: 82, decision }));
     const badge = wrapper.find("[data-testid='candidate-row-decision']");
-    expect(badge.attributes("data-variant")).toBe(variant);
+    expect(badge.attributes("data-tone")).toBe(tone);
   });
 
   it("opens PimProductDetail by sku for a pim_product hit", async () => {
@@ -162,7 +162,7 @@ describe("CandidateRow.vue", () => {
     expect(wrapper.find(".stub-badge").text()).toBe("__proto__");
     const badge = wrapper.find("[data-testid='candidate-row-decision']");
     expect(badge.text()).toBe("constructor");
-    expect(badge.attributes("data-variant")).toBe("neutral");
+    expect(badge.attributes("data-tone")).toBe("neutral");
   });
 
   it("does not push a route when basic.sku is missing on a pim_product hit", async () => {

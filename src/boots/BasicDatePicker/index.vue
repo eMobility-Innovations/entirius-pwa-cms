@@ -1,25 +1,20 @@
 <template>
   <div class="basic-date-picker inline-block">
-    <p v-if="label && label.length" class="mb-100">{{ label }}</p>
-    <div class="relative">
-      <div class="flex ai-ct gap-100">
-        <BasicButton
-          :icon="`${!value ? 'plus' : 'edit'}`"
-          :text="`${value ?? $t('routes.set_new')}`"
-          class="bg-support-400 t-basic-100 fs-100 lh-init pl-100 pr-100 pt-50 pb-50 br-50"
-          @click="
-            () => {
-              visible = true;
-            }
-          "
-        />
-      </div>
-      <div
-        class="picker-wrapper bg-inherit bg-basic-100"
-        v-show="visible"
-        v-out="'visible'"
+    <div v-out="close" class="relative">
+      <button
+        ref="triggerEl"
+        v-bind="attrs"
+        type="button"
+        class="basic-date-picker__trigger flex ai-ct gap-2"
+        :aria-expanded="String(visible)"
+        @click="visible ? close() : open()"
       >
-        <div :data-uid="custom_uid">
+        <FontAwesomeIcon :icon="ICONS.calendar" class="basic-date-picker__icon" aria-hidden="true" />
+        <span :class="{ 't-muted': !current }">{{ current || $t("routes.set_new") }}</span>
+      </button>
+      <div v-show="visible" ref="wrapperEl" class="picker-wrapper bg-inherit bg-base" :style="fixedStyle">
+        <!-- flatpickr's element: its inline calendar lands right after it, inside the wrapper -->
+        <div ref="pickerEl">
           <input type="text" data-input style="display: none" />
         </div>
       </div>
@@ -28,71 +23,127 @@
 </template>
 
 <script>
-import { v4 as uuidv4 } from "uuid";
-import { Polish } from "flatpickr/dist/l10n/pl.js";
-export default {
-  props: {
-    custom_uid: {
-      type: String,
-      default: () => uuidv4(),
-    },
-    config: {
-      type: [Object],
-      required: false,
-      default: () => {
-        return {
-          mode: "range",
-          wrap: true,
-          inline: true,
-          altInputClass: "invisible",
-          enableTime: false,
-          noCalendar: false,
-        };
-      },
-    },
-    value: {
-      type: [String],
-      default: "",
-    },
-    label: {
-      type: [String],
-      required: false,
-    },
-  },
-  data() {
-    return {
-      visible: false,
-      instance: null,
-      options: {
-        emit_event: true,
-        event_name: "out_click",
-      },
-    };
-  },
-  methods: {
-    init() {
-      this.instance = flatpickr(`div[data-uid='${this.custom_uid}']`, {
-        ...this.config,
-        defaultDate: this.value,
-        locale: Polish,
-        onChange: (e, iso_date, g) => {
-          this.$emit("onChange", iso_date);
-        },
-      });
-    },
-  },
-  mounted() {
-    this.init();
-  },
-  beforeDestroy() {
-    this.instance.destroy();
-  },
+const DEFAULT_CONFIG = {
+  mode: "single",
+  wrap: true,
+  inline: true,
+  altInputClass: "invisible",
+  enableTime: false,
+  noCalendar: false,
 };
+</script>
+
+<script setup>
+// Date or date range (docs/ui-components.md § P3 inputs): an input-looking trigger with the calendar icon opens an
+// inline flatpickr below it. `v-model` (the flatpickr date string), `config` (flatpickr options; a single date by default, `mode: "range"` for a range),
+// `disabled`; inside a FormField the trigger takes the contract's id, label and state. The flatpickr instance lives only
+// while the calendar is open (a table of pickers carries one calendar, not one per cell). `fixed`: the calendar is placed
+// against the viewport, so a scrolling parent (a wide table) does not clip it; it opens upward when there is no room
+// below and follows the trigger on scroll.
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import flatpickr from "flatpickr";
+import { Polish } from "flatpickr/dist/l10n/pl.js";
+import { english } from "flatpickr/dist/l10n/default.js";
+import { getLang } from "@/i18n";
+import { ICONS } from "@/boots/Icons/icons";
+import { useControlAttrs } from "@/boots/FormField/useControlAttrs";
+
+const props = defineProps({
+  modelValue: { type: String, default: undefined },
+  config: { type: Object, default: () => DEFAULT_CONFIG },
+  disabled: { type: Boolean, default: false },
+  fixed: { type: Boolean, default: false },
+});
+const emit = defineEmits(["update:modelValue"]);
+
+const { attrs } = useControlAttrs({ disabled: () => props.disabled });
+const visible = ref(false);
+const pickerEl = ref(null);
+const triggerEl = ref(null);
+const wrapperEl = ref(null);
+const fixedStyle = ref(null);
+const current = computed(() => props.modelValue ?? "");
+let instance = null;
+
+function onChange(dates, dateString) {
+  emit("update:modelValue", dateString);
+}
+
+async function open() {
+  visible.value = true;
+  const locale = getLang() === "PL" ? Polish : english;
+  instance = flatpickr(pickerEl.value, { ...props.config, defaultDate: current.value, locale, onChange });
+  if (!props.fixed) return;
+  await nextTick();
+  place();
+  window.addEventListener("scroll", place, { capture: true, passive: true });
+  window.addEventListener("resize", place);
+}
+
+function close() {
+  if (!visible.value) return;
+  visible.value = false;
+  instance?.destroy();
+  instance = null;
+  window.removeEventListener("scroll", place, { capture: true });
+  window.removeEventListener("resize", place);
+}
+
+// Below the trigger, or above it when the viewport has no room below and does above; never past the right edge (a
+// fixed box cannot be scrolled to).
+function place() {
+  const trigger = triggerEl.value.getBoundingClientRect();
+  const { offsetHeight: height, offsetWidth: width } = wrapperEl.value;
+  const up = window.innerHeight - trigger.bottom < height && trigger.top >= height;
+  const top = up ? trigger.top - height : trigger.bottom;
+  const left = Math.max(0, Math.min(trigger.left, window.innerWidth - width));
+  fixedStyle.value = { position: "fixed", top: `${top}px`, left: `${left}px`, bottom: "auto", transform: "none" };
+}
+
+// An outside change only: the picker's own pick is already in its input.
+watch(current, (date) => {
+  if (instance && date !== instance.input.value) instance.setDate(date, false);
+});
+onBeforeUnmount(close);
 </script>
 
 <style lang="scss">
 .basic-date-picker {
   background-color: inherit;
+
+  // The trigger looks like a BasicInput: same height, border, surface and disabled look.
+  .basic-date-picker__trigger {
+    min-width: 12rem;
+    height: var(--elem-height);
+    padding: var(--space-1) var(--space-2);
+    font: inherit;
+    color: var(--text-body);
+    text-align: left;
+    background-color: var(--surface-sunken);
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-base);
+    cursor: pointer;
+    transition: border-color 0.2s;
+
+    &:hover:not(:disabled) {
+      border-color: var(--border-strong);
+    }
+
+    &[aria-invalid="true"] {
+      border-color: var(--negative);
+    }
+
+    &:disabled {
+      background-color: var(--surface-disabled);
+      border-color: var(--border-subtle);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+  }
+
+  .basic-date-picker__icon {
+    color: var(--text-muted);
+  }
 
   .picker-wrapper {
     position: absolute;
@@ -106,15 +157,15 @@ export default {
     background-color: inherit;
     color: inherit;
     font-size: inherit;
-    border: 1px solid var(--c-basic-400);
-    border-radius: var(--space-50);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-base);
     box-shadow: unset;
   }
   .flatpickr-day.selected,
   .flatpickr-day.startRange,
   .flatpickr-day.endRange {
-    background-color: var(--c-support-400);
-    border-radius: var(--space-50);
+    background-color: var(--accent-fill);
+    border-radius: var(--radius-base);
     box-shadow: unset;
   }
 
@@ -123,23 +174,23 @@ export default {
   }
 
   .flatpickr-day.today {
-    background: var(--c-support-300);
-    color: var(--c-basic-900);
+    background: var(--accent-fill);
+    color: var(--text-strong);
     font-weight: 600;
-    border-radius: var(--space-50);
+    border-radius: var(--radius-base);
     border: none;
 
     &.inRange {
-      color: var(--c-support-400);
+      color: var(--text-accent);
     }
   }
   .flatpickr-day.inRange {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
     box-shadow: unset;
     border: none;
   }
   .flatpickr-day:hover {
-    border-radius: var(--space-50);
+    border-radius: var(--radius-base);
   }
   .flatpickr-calendar.hasTime .flatpickr-time {
     border: 0;
@@ -153,36 +204,36 @@ export default {
 
 [data-theme="dark"] .basic-date-picker {
   .flatpickr-calendar {
-    background-color: var(--c-basic-200);
-    color: var(--c-basic-700);
+    background-color: var(--surface-raised);
+    color: var(--text-body);
   }
   .flatpickr-months .flatpickr-month,
   .flatpickr-current-month .flatpickr-monthDropdown-months {
-    background-color: var(--c-basic-200);
-    color: var(--c-basic-700);
+    background-color: var(--surface-raised);
+    color: var(--text-body);
   }
   .flatpickr-weekdays {
-    background-color: var(--c-basic-200);
+    background-color: var(--surface-raised);
   }
   span.flatpickr-weekday {
-    background-color: var(--c-basic-200);
-    color: var(--c-basic-500);
+    background-color: var(--surface-raised);
+    color: var(--text-muted);
   }
   .flatpickr-day {
-    color: var(--c-basic-700);
+    color: var(--text-body);
     &:hover {
-      background-color: var(--c-basic-300);
-      border-color: var(--c-basic-300);
+      background-color: var(--surface-hover);
+      border-color: var(--border-subtle);
     }
     &.flatpickr-disabled {
-      color: var(--c-basic-500);
+      color: var(--text-muted);
     }
   }
   .flatpickr-months .flatpickr-prev-month,
   .flatpickr-months .flatpickr-next-month {
-    fill: var(--c-basic-600);
+    fill: var(--text-secondary);
     &:hover svg {
-      fill: var(--c-basic-800);
+      fill: var(--text-body);
     }
   }
 }

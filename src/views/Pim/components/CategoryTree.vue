@@ -278,7 +278,7 @@ defineExpose({ expandAll, collapseAll });
 
 <template>
   <div class="category-tree">
-    <div v-if="!treeRoots.length" class="t-basic-500 fs-200 p-300">
+    <div v-if="!treeRoots.length" class="t-muted fs-200 p-8">
       {{ $t("pim.no_categories") }}
     </div>
     <CategoryTreeNode

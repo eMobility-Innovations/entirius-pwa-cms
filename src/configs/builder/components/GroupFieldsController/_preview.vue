@@ -1,9 +1,9 @@
 <template>
   <div class="group-fields-preview">
-    <Dropdown
-      class="bg-basic-100 b-basic-300 br-50 fs-100 t-basic-600"
+    <BasicSelect
+      :model-value="null"
       :placeholder="`groups (${value.length})`"
-      :values="
+      :options="
         value.map((obj, index) => {
           const entries = Object.entries(obj);
           return {

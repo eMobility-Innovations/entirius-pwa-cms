@@ -13,6 +13,12 @@ const {
   waitForRequest,
   fillField,
 } = require('../helpers/suppliers-mock');
+const en = require('../../src/i18n/locales/en.json');
+const pl = require('../../src/i18n/locales/pl.json');
+const { either: escapedEither } = require('./helpers/text');
+
+// The UI language comes from the admin profile; accept either locale's text.
+const either = (pick) => escapedEither(pick(en), pick(pl));
 
 let mockState;
 
@@ -122,9 +128,13 @@ test.describe('SupplierReview panel', () => {
       // The button only renders below 769px — desktop shows a permanent side panel.
       await page.setViewportSize({ width: 600, height: 900 });
       await page.getByTestId('product-card-raw-data-btn').click();
-      await expect(page.getByTestId('raw-data-modal')).toBeVisible();
-      await page.getByTestId('raw-data-modal-close').click();
-      await expect(page.getByTestId('raw-data-modal')).not.toBeVisible();
+      const dialog = page.getByRole('dialog', {
+        name: either((t) => t.atlas.review.raw_data_title),
+      });
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toContainText('Acme Widget');
+      await dialog.getByRole('button', { name: either((t) => t.common.close) }).click();
+      await expect(dialog).not.toBeVisible();
     });
   });
 
@@ -156,7 +166,7 @@ test.describe('SupplierReview panel', () => {
       await page.getByTestId('list-row-checkbox-501').click();
       await page.getByTestId('list-bulk-approve').click();
       // accept the confirmation
-      await page.locator('.modal-btn--delete').last().click();
+      await page.getByTestId('confirm-dialog-confirm').last().click();
       const req = await waitForRequest(
         mockState,
         (r) =>
@@ -168,7 +178,7 @@ test.describe('SupplierReview panel', () => {
     test('Bulk Reject POSTs bulk-reject', async ({ page }) => {
       await page.getByTestId('list-row-checkbox-501').click();
       await page.getByTestId('list-bulk-reject').click();
-      await page.locator('.modal-btn--delete').last().click();
+      await page.getByTestId('confirm-dialog-confirm').last().click();
       const req = await waitForRequest(
         mockState,
         (r) => r.method === 'POST' && r.url.endsWith('/products/bulk-reject/')
@@ -193,7 +203,7 @@ test.describe('SupplierReview panel', () => {
       await page.getByTestId('list-row-checkbox-501').click();
       await page.getByTestId('list-row-checkbox-503').click();
       await page.getByTestId('list-bulk-requeue').click();
-      await page.locator('.modal-btn--delete').last().click();
+      await page.getByTestId('confirm-dialog-confirm').last().click();
       const req = await waitForRequest(
         mockState,
         (r) =>

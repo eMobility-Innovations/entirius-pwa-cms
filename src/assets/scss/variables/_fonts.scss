@@ -1,26 +1,14 @@
+// Type size scale (Figma): --fs-<step> and the .fs-<step> classes. New text uses a type-* role instead.
 $fontsize: (
-  m: (
-    100: 10px,
-    200: 12px,
-    300: 14px,
-    400: 16px,
-    500: 18px,
-    600: 24px,
-    700: 28px,
-    800: 32px,
-    900: 46px,
-    1000: 56px,
-  ),
-  d: (
-    100: 10px,
-    200: 12px,
-    300: 14px,
-    400: 16px,
-    500: 18px,
-    600: 24px,
-    700: 28px,
-    800: 32px,
-    900: 46px,
-    1000: 56px,
-  ),
+  100: 10px,
+  150: 11px,
+  200: 12px,
+  250: 13px,
+  300: 14px,
+  400: 16px,
+  500: 20px,
+  600: 24px,
+  700: 30px,
+  // The sign-in editorial line only (type-display).
+  display: 48px,
 );

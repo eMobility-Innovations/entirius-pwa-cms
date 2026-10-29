@@ -16,6 +16,9 @@
  *   npm run test:suppliers:live
  *
  * Single worker (--workers=1) — these tests share DB state and must run sequentially.
+ *
+ * WRITES: tests 6–7 approve and push real supplier products. Never run it on a shared stack (zeno dev, a
+ * teammate's seed) — only on a throwaway seed. Panel routes live under /atlas/… (the /suppliers/… redirect is legacy).
  */
 
 const { test, expect } = require('@playwright/test');
@@ -43,8 +46,8 @@ test.describe('Suppliers panel — live backend', () => {
 
   // --- Path 1: navigation + fixture supplier visible ---
 
-  test('1. /suppliers/list renders demo-supplier from fixture', async ({ page }) => {
-    await page.goto('/suppliers/list');
+  test('1. /atlas/list renders demo-supplier from fixture', async ({ page }) => {
+    await page.goto('/atlas/list');
     await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.locator('text=demo-supplier').first()).toBeVisible({ timeout: 10000 });
   });
@@ -52,7 +55,7 @@ test.describe('Suppliers panel — live backend', () => {
   // --- Path 2: detail tab Overview shows fixture metadata ---
 
   test('2. demo-supplier detail Overview tab shows fixture metadata', async ({ page }) => {
-    await page.goto('/suppliers/demo-supplier');
+    await page.goto('/atlas/demo-supplier');
     await page.waitForLoadState('networkidle', { timeout: 15000 });
     // PL/PLN (default_language=pl, default_currency=PLN per fixture)
     await expect(page.locator('text=Demo Supplier').first()).toBeVisible({ timeout: 10000 });
@@ -61,10 +64,10 @@ test.describe('Suppliers panel — live backend', () => {
   // --- Path 3: Feeds tab + Test feed button reads sample XML ---
 
   test('3. Feeds tab — Test feed reads sample XML (5 products)', async ({ page }) => {
-    await page.goto('/suppliers/demo-supplier');
+    await page.goto('/atlas/demo-supplier');
     await page.waitForLoadState('networkidle', { timeout: 15000 });
     // Activate Feeds tab
-    const feedsTab = page.getByRole('button', { name: /feeds/i }).first();
+    const feedsTab = page.getByRole('tab', { name: /feeds/i }).first();
     if (await feedsTab.count()) {
       await feedsTab.click();
       await page.waitForLoadState('networkidle');
@@ -76,9 +79,9 @@ test.describe('Suppliers panel — live backend', () => {
   // --- Path 4: Mappings tab — attribute mappings load from real DB ---
 
   test('4. Mappings tab — attribute mappings render', async ({ page }) => {
-    await page.goto('/suppliers/demo-supplier');
+    await page.goto('/atlas/demo-supplier');
     await page.waitForLoadState('networkidle', { timeout: 15000 });
-    const mappingsTab = page.getByRole('button', { name: /mappings/i }).first();
+    const mappingsTab = page.getByRole('tab', { name: /mappings/i }).first();
     if (await mappingsTab.count()) {
       await mappingsTab.click();
       await page.waitForLoadState('networkidle');
@@ -90,9 +93,9 @@ test.describe('Suppliers panel — live backend', () => {
   // --- Path 5: Products tab — 5 SupplierProducts visible ---
 
   test('5. Products tab — 5 SupplierProducts from fixture', async ({ page }) => {
-    await page.goto('/suppliers/demo-supplier');
+    await page.goto('/atlas/demo-supplier');
     await page.waitForLoadState('networkidle', { timeout: 15000 });
-    const productsTab = page.getByRole('button', { name: /products/i }).first();
+    const productsTab = page.getByRole('tab', { name: /products/i }).first();
     if (await productsTab.count()) {
       await productsTab.click();
       await page.waitForLoadState('networkidle');
@@ -117,7 +120,7 @@ test.describe('Suppliers panel — live backend', () => {
     // it, the assertion is skipped and we exercise the UI path nonetheless.
     expect(['queued', 'approved']).toContain(before.status);
 
-    await page.goto('/suppliers/review');
+    await page.goto('/atlas/review');
     await page.waitForLoadState('networkidle', { timeout: 15000 });
     // Approve via API direct (UI button selectors vary; this guarantees DB transition)
     const approveResp = await fetch(

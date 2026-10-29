@@ -1,43 +1,38 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <!-- Title shown by router titleKey in header bar -->
-    <Teleport to="#pricing-toolbar-right" defer>
-      <BasicButton
-        :text="$t('pm.sync_channels')"
-        icon="rotate"
-        class="btn-outline"
-        @click="syncChannels"
-      />
-    </Teleport>
-
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-show="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pm.channels')">
+        <template #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-show="loading" />
 
       <div v-show="!loading">
-        <p v-if="!channels.length" class="t-basic-500 fs-300">{{ $t('pm.channels') }}: —</p>
-
-        <DataTable v-else :columns="columns" :rows="channels" @row-click="onRowClick">
+        <DataTable
+          :columns="columns"
+          :rows="channels"
+          :empty-text="$t('pm.no_channels')"
+          empty-size="md"
+          @row-click="onRowClick"
+        >
           <template #cell-idx="{ row }">
-            <span class="fw-600 t-support-400 pointer" @click.stop="$router.push(`/pricing/channels/${row.idx}`)">
+            <router-link :to="`/pricing/channels/${encodeURIComponent(row.idx)}`" class="fw-600 t-accent" @click.stop>
               {{ row.idx }}
-            </span>
+            </router-link>
           </template>
           <template #cell-calculate_direction="{ row }">
-            <span class="chip bg-basic-200 t-basic-600">
-              {{ row.calculate_direction === 'from_net_to_gross' ? $t('pm.from_net_to_gross') : $t('pm.from_gross_to_net') }}
-            </span>
+            <StatusBadge tone="neutral" :dot="false" :label="directionLabel(row)" />
           </template>
           <template #cell-country_count="{ row }">
-            <span class="chip bg-support-100 t-support-400">
-              {{ row.country_count ?? 0 }} {{ $t('pm.country_count') }}
-            </span>
+            <StatusBadge tone="accent" :dot="false" :label="`${row.country_count ?? 0} ${$t('pm.country_count')}`" />
           </template>
         </DataTable>
       </div>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -60,6 +55,9 @@ export default {
     }
   },
   computed: {
+    headerActions() {
+      return [{ key: 'sync', role: 'secondary', label: this.$t('pm.sync_channels'), onClick: this.syncChannels }]
+    },
     columns() {
       return [
         { key: 'idx', label: 'IDX', width: '200px' },
@@ -71,7 +69,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: 'plus',
+          icon: 'add',
           label: this.$t('pm.create_channel'),
           handler: () => this.$router.push('/pricing/channels/create'),
         },
@@ -82,6 +80,9 @@ export default {
     this.fetch()
   },
   methods: {
+    directionLabel(row) {
+      return row.calculate_direction === 'from_net_to_gross' ? this.$t('pm.from_net_to_gross') : this.$t('pm.from_gross_to_net')
+    },
     async fetch() {
       this.loading = true
       try {

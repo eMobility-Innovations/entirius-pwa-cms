@@ -1,66 +1,52 @@
 <template>
-  <ConfirmationModal :visible="true" @reject="onCancel">
-    <template #header>
-      <h2>{{ $t('pricefighter.apply_preview_title', { count: items.length }) }}</h2>
-    </template>
-    <template #description>
-      <div class="apply-preview__body">
-        <table class="apply-preview__table">
-          <thead>
-            <tr>
-              <th>{{ $t('pricefighter.sku') }}</th>
-              <th>{{ $t('pricefighter.market') }}</th>
-              <th>{{ $t('pricefighter.current_price') }}</th>
-              <th>{{ $t('pricefighter.suggested_price') }}</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in items" :key="item._rowKey">
-              <td>{{ item.sku }}</td>
-              <td>{{ item.channel_idx }} · {{ item.country }} / {{ item.currency }}</td>
-              <td>{{ item.current_price }}</td>
-              <td class="fw-600">{{ item.suggested_price }}</td>
-              <td>
-                <StatusBadge v-if="item.clamped_floor" :label="$t('pricefighter.clamped_floor')" variant="warning" />
-                <StatusBadge v-if="item.clamped_step" :label="$t('pricefighter.clamped_step')" variant="warning" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+  <BasicModal :open="true" size="lg" :title="$t('pricefighter.apply_preview_title', { count: items.length })" @close="onCancel">
+    <div class="apply-preview__body">
+      <DataTable :columns="columns" :rows="items" row-key="_rowKey">
+        <template #cell-market="{ row }">
+          <MarketCell :channel="row.channel_idx" :country="row.country" :currency="row.currency" />
+        </template>
+        <template #cell-suggested_price="{ row }">
+          <span class="fw-600">{{ row.suggested_price }}</span>
+        </template>
+        <template #cell-clamps="{ row }">
+          <StatusBadge v-if="row.clamped_floor" :label="$t('pricefighter.clamped_floor')" tone="warning" />
+          <StatusBadge v-if="row.clamped_step" :label="$t('pricefighter.clamped_step')" tone="warning" />
+        </template>
+      </DataTable>
 
-        <div v-if="errorText" class="apply-preview__error t-negative-300 fs-200">
-          <FontAwesomeIcon icon="triangle-exclamation" class="mr-100" />
-          {{ errorText }}
-        </div>
-
-        <div class="apply-preview__actions">
-          <BasicButton
-            :text="$t('common.cancel')"
-            class="bg-basic-200 t-basic-600"
-            :disabled="loading"
-            @click="onCancel"
-          />
-          <BasicButton
-            :text="loading ? $t('pricefighter.applying') : $t('pricefighter.confirm_apply')"
-            class="bg-support-400 t-basic-100"
-            :disabled="loading || !items.length"
-            @click="onConfirm"
-          />
-        </div>
+      <div v-if="errorText" class="apply-preview__error t-negative fs-200">
+        <FontAwesomeIcon :icon="$icons.warning" class="mr-2" />
+        {{ errorText }}
       </div>
+
+    </div>
+    <template #footer>
+      <BasicButton
+        variant="secondary"
+        :disabled="loading"
+        @click="onCancel"
+      >
+        {{ $t('common.cancel') }}
+      </BasicButton>
+      <BasicButton
+        variant="primary"
+        :disabled="loading || !items.length"
+        @click="onConfirm"
+      >
+        {{ loading ? $t('pricefighter.applying') : $t('pricefighter.confirm_apply') }}
+      </BasicButton>
     </template>
-  </ConfirmationModal>
+  </BasicModal>
 </template>
 
 <script>
-import ConfirmationModal from '@/functionals/Confirmation-modal/index.vue'
+import MarketCell from './MarketCell.vue'
 import { POST_PfApply } from '@/api/pricefighter/api'
 import { extractApiMessage } from '@/composables/useFormErrors'
 
 export default {
   name: 'ApplyPreviewModal',
-  components: { ConfirmationModal },
+  components: { MarketCell },
   props: {
     items: {
       type: Array,
@@ -73,6 +59,17 @@ export default {
       loading: false,
       errorText: '',
     }
+  },
+  computed: {
+    columns() {
+      return [
+        { key: 'sku', label: this.$t('pricefighter.sku'), width: '1fr' },
+        { key: 'market', label: this.$t('pricefighter.market'), width: '1fr' },
+        { key: 'current_price', label: this.$t('pricefighter.current_price'), numeric: true },
+        { key: 'suggested_price', label: this.$t('pricefighter.suggested_price'), numeric: true },
+        { key: 'clamps', label: this.$t('pricefighter.status'), width: 'max-content' },
+      ]
+    },
   },
   methods: {
     onCancel() {
@@ -107,41 +104,13 @@ export default {
 .apply-preview__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-200);
-}
-
-.apply-preview__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-200);
-  max-height: 320px;
-
-  th {
-    text-align: left;
-    padding: 4px 8px;
-    color: var(--c-basic-500);
-    text-transform: uppercase;
-    font-size: var(--fs-100);
-    border-bottom: 1px solid var(--c-basic-300);
-  }
-
-  td {
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--c-basic-200);
-  }
+  gap: var(--space-5);
 }
 
 .apply-preview__error {
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-  background: var(--c-negative-100);
-  border-left: 3px solid var(--c-negative-300);
-}
-
-.apply-preview__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-200);
-  margin-top: var(--space-200);
+  padding: var(--space-5);
+  border-radius: var(--radius-base);
+  background: var(--negative-subtle);
+  border-left: 3px solid var(--negative);
 }
 </style>

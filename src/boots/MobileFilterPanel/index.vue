@@ -1,16 +1,16 @@
 <template>
   <div class="mobile-filter-panel" ref="rootRef">
-    <button
-      class="mobile-filter-panel__trigger"
-      @click="isOpen = !isOpen"
-      :aria-label="triggerLabel"
-      :aria-expanded="isOpen"
-    >
-      <FontAwesomeIcon icon="filter" />
-      <span v-if="activeCount > 0" class="mobile-filter-panel__badge">{{
-        activeCount
-      }}</span>
-    </button>
+    <span class="mobile-filter-panel__trigger">
+      <IconButton
+        icon="filter"
+        variant="outline"
+        :label="triggerLabel"
+        :aria-expanded="String(isOpen)"
+        :stop="false"
+        @click="isOpen = !isOpen"
+      />
+      <CountBadge v-if="activeCount > 0" :count="activeCount" class="mobile-filter-panel__badge" />
+    </span>
     <div class="mobile-filter-panel__desktop">
       <slot />
     </div>
@@ -24,6 +24,8 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import IconButton from "@/boots/IconButton/index.vue";
+import CountBadge from "@/boots/CountBadge/index.vue";
 
 defineProps({
   activeCount: {
@@ -59,43 +61,20 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
 }
 
 .mobile-filter-panel__trigger {
   display: none;
   position: relative;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
   flex-shrink: 0;
-  border-radius: 5px;
-  border: 1px solid var(--c-basic-400);
-  background-color: var(--c-basic-100);
-  color: var(--c-basic-600);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  &:hover {
-    background-color: var(--c-basic-200);
-    color: var(--c-basic-800);
-  }
 }
 
+// The count sits on the trigger's top-right corner.
 .mobile-filter-panel__badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 16px;
-  text-align: center;
-  border-radius: 50px;
-  background-color: var(--c-support-400);
-  color: var(--c-basic-100);
+  top: calc(-1 * var(--space-2));
+  right: calc(-1 * var(--space-2));
   pointer-events: none;
 }
 
@@ -103,7 +82,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-2);
 }
 
 .mobile-filter-panel__dropdown {
@@ -112,7 +91,7 @@ onBeforeUnmount(() => {
 
 @media only screen and (max-width: 768px) {
   .mobile-filter-panel {
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .mobile-filter-panel__trigger {
@@ -127,15 +106,15 @@ onBeforeUnmount(() => {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-1);
     width: 100%;
     max-height: 40vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 8px;
-    background-color: var(--c-basic-200);
-    border: 1px solid var(--c-basic-300);
-    border-radius: 5px;
+    padding: var(--space-2);
+    background-color: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-base);
   }
 }
 

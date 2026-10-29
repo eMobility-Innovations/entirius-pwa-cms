@@ -1,6 +1,6 @@
 <template>
   <div class="floating-actions" ref="rootRef">
-    <div v-show="isOpen" class="floating-actions__menu" role="menu">
+    <div v-if="!readonly" v-show="isOpen" class="floating-actions__menu" role="menu">
       <div
         v-for="(action, index) in actions"
         :key="index"
@@ -18,11 +18,7 @@
           @click="handleActionClick(action)"
           @keydown.enter="handleActionClick(action)"
         >
-          <FontAwesomeIcon
-            v-if="!isCustomIcon(action.icon)"
-            :icon="action.icon"
-          />
-          <i v-else :class="action.icon" />
+          <FontAwesomeIcon :icon="ICONS[action.icon]" />
         </button>
       </div>
     </div>
@@ -33,38 +29,58 @@
       aria-label="Back"
       @click="backHandler"
     >
-      <FontAwesomeIcon icon="backward" />
+      <FontAwesomeIcon :icon="$icons.back" />
     </button>
 
-    <button
-      class="floating-actions__trigger"
-      aria-label="Toggle menu"
-      :aria-expanded="isOpen"
-      aria-haspopup="menu"
-      @click="handleToggle"
-    >
-      <FontAwesomeIcon
-        icon="plus"
-        class="floating-actions__trigger-icon"
-        :class="{ 'floating-actions__trigger-icon--open': isOpen }"
-      />
-    </button>
+    <div v-if="!readonly" class="floating-actions__row">
+      <button
+        v-if="pill"
+        type="button"
+        class="floating-actions__pill"
+        :data-testid="pill.testid"
+        :disabled="pill.disabled"
+        @click="pill.handler"
+      >
+        <FontAwesomeIcon :icon="ICONS[pill.icon]" aria-hidden="true" />
+        <span>{{ pill.label }}</span>
+      </button>
+      <button
+        class="floating-actions__trigger"
+        data-fid="fab"
+        aria-label="Toggle menu"
+        :aria-expanded="isOpen"
+        aria-haspopup="menu"
+        @click="handleToggle"
+      >
+        <FontAwesomeIcon
+          :icon="$icons.add"
+          class="floating-actions__trigger-icon"
+          :class="{ 'floating-actions__trigger-icon--open': isOpen }"
+        />
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ICONS } from "@/boots/Icons/icons";
+import { useReadonly } from "@/composables/useReadonly";
 
 /**
  * @typedef {Object} FloatingAction
- * @property {string} icon - FA short name or custom class starting with 'icon-'
+ * @property {string} icon - a meaning of icons.js (a raw FontAwesome name is never looked up)
  * @property {string} label - Tooltip text
  * @property {Function} handler - Click callback
  * @property {'primary'|'secondary'|'danger'} [variant='primary']
  * @property {boolean} [disabled]
  */
 
-defineProps({
+// `pill` = { icon, label, handler, testid?, disabled? }: an important action with a visible label next to the FAB
+// (R7, Figma S6–S8 "Zarządzaj kolejnością"). `open` starts with the speed-dial open (catalogue state). A read-only
+// page (useReadonly, plan 19) shows no FAB and no pill — every action of them creates or changes something; only the
+// back button (navigation) stays.
+const props = defineProps({
   actions: {
     type: Array,
     required: true,
@@ -73,16 +89,19 @@ defineProps({
     type: Function,
     default: null,
   },
+  pill: {
+    type: Object,
+    default: null,
+  },
+  open: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const isOpen = ref(false);
+const readonly = useReadonly();
+const isOpen = ref(props.open);
 const rootRef = ref(null);
-
-const CUSTOM_ICON_PREFIX = "icon-";
-
-function isCustomIcon(icon) {
-  return icon.startsWith(CUSTOM_ICON_PREFIX);
-}
 
 function handleToggle() {
   isOpen.value = !isOpen.value;
@@ -117,58 +136,97 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
+// Figma S4/S9: 24 px from the corner beside the sidebar; 16 px from the edge and above the tab bar wherever the tab
+// bar shows (up to 1023 px).
 .floating-actions {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+  bottom: var(--space-6);
+  right: var(--space-6);
   z-index: 90;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
-@media only screen and (max-width: 768px) {
+@include max-shell {
   .floating-actions {
-    bottom: calc(var(--bottom-bar-height) + 1rem);
-    right: 1rem;
+    right: var(--space-4);
+    bottom: calc(var(--bottom-bar-height) + var(--space-4));
   }
 }
 
 .floating-actions__back {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--c-basic-400);
-  background-color: var(--c-basic-100);
-  color: var(--c-basic-600);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background-color: var(--surface-base);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: var(--fs-300);
   box-shadow: var(--shadow-md);
   transition: all 0.2s ease;
 }
 
 .floating-actions__back:hover {
-  background-color: var(--c-basic-200);
-  color: var(--c-basic-800);
+  background-color: var(--surface-raised);
+  color: var(--text-body);
+}
+
+.floating-actions__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.floating-actions__pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--surface-base);
+  color: var(--text-body);
+  font-size: var(--fs-200);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.floating-actions__pill:hover:not([disabled]) {
+  border-color: var(--border-strong);
+}
+.floating-actions__pill:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+.floating-actions__pill[disabled] {
+  color: var(--text-muted);
+  cursor: not-allowed;
 }
 
 .floating-actions__trigger {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: none;
-  background-color: var(--c-support-400);
-  color: var(--c-basic-100);
+  background-color: var(--accent-fill);
+  color: var(--text-on-accent-fill);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: var(--fs-400);
   box-shadow: var(--shadow-md);
   transition: background-color 0.2s ease;
 }
@@ -189,13 +247,13 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.625rem;
+  gap: var(--space-2);
 }
 
 .floating-actions__item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   animation: fab-fly-in 0.2s ease forwards;
   opacity: 0;
   transform: translateY(8px);
@@ -209,11 +267,11 @@ onBeforeUnmount(() => {
 }
 
 .floating-actions__label {
-  background-color: var(--c-basic-800);
-  color: var(--c-basic-100);
-  font-size: var(--fs-100);
-  padding: 0.25rem 0.625rem;
-  border-radius: 50px;
+  background-color: var(--surface-inverse);
+  color: var(--text-inverse);
+  font-size: var(--fs-200);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -221,14 +279,14 @@ onBeforeUnmount(() => {
 .floating-actions__action {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: none;
-  color: var(--c-basic-100);
+  color: var(--text-on-accent-fill);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: var(--fs-200);
   box-shadow: var(--shadow-arrow);
   transition: filter 0.2s ease;
   flex-shrink: 0;
@@ -244,14 +302,16 @@ onBeforeUnmount(() => {
 }
 
 .floating-actions__action--primary {
-  background-color: var(--c-support-400);
+  background-color: var(--accent-fill);
 }
 
 .floating-actions__action--secondary {
-  background-color: var(--c-basic-600);
+  background-color: var(--surface-inverse);
+  color: var(--text-inverse);
 }
 
 .floating-actions__action--danger {
-  background-color: var(--c-negative-200);
+  background-color: var(--negative-fill);
+  color: var(--text-on-status-fill);
 }
 </style>

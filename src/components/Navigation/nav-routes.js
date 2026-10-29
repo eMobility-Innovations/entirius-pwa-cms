@@ -1,3 +1,4 @@
+import { isAccessPanelEnabled } from "@/configs/accessMatrix";
 // Single source of truth for the panel sub-navigation.
 //
 // Consumed by:
@@ -8,6 +9,42 @@
 //
 // Keeping the list here (not inline in Navigation) lets both consumers agree on the count without
 // duplicating the route table.
+
+// The sections of Leads → Settings (the hub behind the one "/leads/settings" entry): nav glyphs like the entries
+// below, not icons.js meanings; `module` hides a section whose backend is off.
+export const LEADS_SETTINGS_SECTIONS = [
+  { key: "stages", route: "LeadsStages", labelKey: "nav.leads_stages", icon: "list-ol", module: "leads" },
+  { key: "lead-types", route: "LeadsLeadTypes", labelKey: "leads.lead_types.title", icon: "tags", module: "leads" },
+  { key: "templates", route: "CommunicatorTemplates", labelKey: "nav.communicator_templates", icon: "file-lines", module: "communicator" },
+  { key: "sequences", route: "CommunicatorSequences", labelKey: "nav.communicator_sequences", icon: "repeat", module: "communicator" },
+  { key: "sending", route: "CommunicatorSettings", labelKey: "nav.communicator_settings", icon: "paper-plane", module: "communicator" },
+];
+
+// The tabs of Enricher → Review and Enricher → Settings (RouteTabs): each tab its own route, by name; `badge` as on a
+// nav entry. `idPrefix` names the tabs and the panel each one controls (routeTabPanel).
+export const ENRICHMENT_REVIEW_TABS = {
+  idPrefix: "enrichment-review",
+  sections: [
+    { route: "EnrichmentReview", labelKey: "enrichment.review.tabs.proposals", testid: "enrichment-tab-proposals" },
+    { route: "EnrichmentRuns", labelKey: "enrichment.review.tabs.runs", testid: "enrichment-tab-runs" },
+  ],
+};
+export const ENRICHMENT_SETTINGS_TABS = {
+  idPrefix: "enrichment-settings",
+  sections: [
+    { route: "EnrichmentProfile", labelKey: "nav.enrichment_profile", testid: "enrichment-tab-profile" },
+    { route: "EnrichmentMemory", labelKey: "nav.enrichment_memory", badge: "memorySuggestions", testid: "enrichment-tab-memory" },
+    { route: "EnrichmentTemplates", labelKey: "nav.enrichment_templates", testid: "enrichment-tab-templates" },
+    { route: "EnrichmentSpawnRules", labelKey: "nav.enrichment_spawn_rules", testid: "enrichment-tab-spawn-rules" },
+  ],
+};
+
+/** The attributes of the page body a RouteTabs tab controls (route = the page's route name). */
+export const routeTabPanel = ({ idPrefix }, route) => ({
+  role: "tabpanel",
+  id: `${idPrefix}-panel-${route}`,
+  "aria-labelledby": `${idPrefix}-tab-${route}`,
+});
 
 export function buildNavRoutes() {
   const defaultLang = (process.env.VUE_APP_LANG || "EN").toLowerCase();
@@ -171,7 +208,7 @@ export function buildNavRoutes() {
     {
       route: "/agreements/consents",
       labelKey: "nav.agm_people",
-      icon: "clock-rotate-left",
+      icon: "users",
       query: {},
       app: ["agreements"],
     },
@@ -193,6 +230,13 @@ export function buildNavRoutes() {
       route: "/faq/items",
       labelKey: "nav.faq_items",
       icon: "list-ol",
+      query: {},
+      app: ["faq"],
+    },
+    {
+      route: "/faq/duplicates",
+      labelKey: "nav.faq_duplicates",
+      icon: "copy",
       query: {},
       app: ["faq"],
     },
@@ -272,6 +316,55 @@ export function buildNavRoutes() {
       requiresModule: "lookup",
     },
     {
+      route: "/leads/inbox",
+      labelKey: "nav.leads_inbox",
+      icon: "inbox",
+      query: {},
+      app: ["leads"],
+      requiresModule: "communicator",
+      // One entry for both lists (UX-010): its Conversations | Companies toggle, Review, a thread without a company and
+      // a company card are all Inbox work, so the Inbox stays lit — the menu never jumps when a row opens a card
+      activeOn: ["/leads/inbox/", "/leads/conversations", "/leads/companies"],
+    },
+    {
+      // Leads without communicator: no Inbox, no toggle — the company list is the entry (the panel fallback)
+      route: "/leads/companies",
+      labelKey: "nav.leads_companies",
+      icon: "building",
+      query: {},
+      app: ["leads"],
+      requiresModule: "leads",
+      hiddenWithModule: "communicator",
+      activeOn: ["/leads/companies/"], // a company card
+    },
+    {
+      route: "/leads/board",
+      labelKey: "nav.leads_board",
+      icon: "table-columns",
+      query: {},
+      app: ["leads"],
+      requiresModule: "leads",
+      desktopOnly: true,
+    },
+    {
+      route: "/leads/import",
+      labelKey: "nav.leads_import",
+      icon: "file-import",
+      query: {},
+      app: ["leads"],
+      requiresModule: "leads",
+      desktopOnly: true,
+    },
+    {
+      // Stages, templates, sequences and send settings live here as sections (UX-002d) — one entry fits a phone
+      route: "/leads/settings",
+      labelKey: "nav.leads_settings",
+      icon: "gear",
+      query: {},
+      app: ["leads"],
+      activeOn: ["/leads/settings/"], // every section
+    },
+    {
       route: "/enrichment",
       labelKey: "nav.enrichment_review",
       icon: "wand-magic-sparkles",
@@ -279,34 +372,89 @@ export function buildNavRoutes() {
       app: ["enricher"],
     },
     {
-      route: "/enrichment/spawn-rules",
-      labelKey: "nav.enrichment_spawn_rules",
-      icon: "gears",
+      route: "/enrichment/studio",
+      labelKey: "nav.enrichment_studio",
+      icon: "pen-to-square",
       query: {},
       app: ["enricher"],
     },
     {
-      route: "/enrichment/tasks",
-      labelKey: "nav.enrichment_tasks",
-      icon: "list-check",
+      // Profile, Memory, AI templates and Spawn rules as tabs (ENRICHMENT_SETTINGS_TABS); `badge`: the pending
+      // suggestions count (useNav `counts`) — on the phone tab bar too
+      route: "/enrichment/settings",
+      labelKey: "nav.enrichment_settings",
+      icon: "gear",
       query: {},
       app: ["enricher"],
+      badge: "memorySuggestions",
     },
-  ];
+    {
+      route: "/access/roles",
+      labelKey: "nav.access.roles",
+      icon: "user-shield",
+      query: {},
+      app: ["access"],
+    },
+    {
+      route: "/access/staff",
+      labelKey: "nav.access.staff",
+      icon: "user",
+      query: {},
+      app: ["access"],
+    },
+    {
+      route: "/access/groups",
+      labelKey: "nav.access.groups",
+      icon: "users",
+      query: {},
+      app: ["access"],
+    },
+    {
+      route: "/access/applications",
+      labelKey: "nav.access.applications",
+      icon: "key",
+      query: {},
+      app: ["access"],
+    },
+    {
+      route: "/access/audit",
+      labelKey: "nav.access.audit",
+      icon: "clock-rotate-left",
+      query: {},
+      app: ["access"],
+    },
+  ].filter((entry) => !isAccessPanelEnabled() || !entry.app.includes("access"))
+    .concat(isAccessPanelEnabled() ? [
+      { route: "/access/grants", labelKey: "access.matrix_labels.grants", icon: "user-shield", query: {}, app: ["access"] },
+      { route: "/access/audit", labelKey: "access.matrix_labels.audit", icon: "clock-rotate-left", query: {}, app: ["access"] },
+      { route: "/access/service-accounts", labelKey: "access.service_accounts", icon: "key", query: {}, app: ["access"] },
+    ] : []);
 }
 
-// Routes visible for the active panel. `requiresQuality` items are hidden until the backend's gaps
+// The entries of one panel (`panel` = its idx). `requiresQuality` items are hidden until the backend's gaps
 // capability probe resolves true (old backends never see the quality-rules nav item).
 // `requiresModule` items are hidden until that optional django-munin module reports enabled
-// (mirrors the router guard's `meta.module` gate — see router/index.js).
+// (mirrors the router guard's `meta.module` gate — see router/index.js); `hiddenWithModule` items give way
+// once that module is enabled (another entry covers their pages then).
+// `desktopOnly` items are hidden below the desktop breakpoint (useIsDesktop) — on a phone the
+// leads panel keeps its plan-13 shape: no bottom bar over the Inbox/Review sticky actions.
+// An entry is also lit on the pages it owns without a nav item of their own (`activeOn` path prefixes).
+// An entry with an `area` (its route's `meta.area`) is hidden when `canRead(area)` is false (django-access).
+export function isNavActive(route, path = "") {
+  return (route.activeOn || []).some((prefix) => path.startsWith(prefix));
+}
+
 export function filterNavRoutes(
   routes,
-  { activeApp, qualityAvailable, isModuleEnabled }
+  { panel, qualityAvailable, isModuleEnabled, isDesktop, canRead }
 ) {
   return routes.filter((r) => {
-    if (r.app.indexOf(activeApp) === -1) return false;
+    if (r.app.indexOf(panel) === -1) return false;
     if (r.requiresQuality && qualityAvailable !== true) return false;
     if (r.requiresModule && !isModuleEnabled?.(r.requiresModule)) return false;
+    if (r.hiddenWithModule && isModuleEnabled?.(r.hiddenWithModule)) return false;
+    if (r.desktopOnly && !isDesktop) return false;
+    if (r.area && canRead && !canRead(r.area)) return false;
     return true;
   });
 }

@@ -1,19 +1,18 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct jc-sb mb-400 gap-300">
-        <h1 class="fs-700 fw-600">
-          {{ $t("atlas.auto_matched.title") }}
-        </h1>
-        <span class="fs-200 t-basic-600">
-          {{ $t("atlas.auto_matched.subtitle") }}
-        </span>
-      </div>
-
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('atlas.auto_matched.title')">
+        <!-- the subtitle sits right of the title on desktop, on its own row on a phone (meta never wraps) -->
+        <template #actions>
+          <span class="fs-200 t-secondary">
+            {{ $t("atlas.auto_matched.subtitle") }}
+          </span>
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
       <!-- Filter chip bar -->
-      <div class="flex ai-ct flex-wrap gap-100 mb-400">
+      <div class="flex ai-ct flex-wrap gap-2">
         <FilterChip
           :label="$t('atlas.auto_matched.filter.all')"
           :active="!hasViolationsOnly && !manualOverrideOnly && !supplierFilter"
@@ -33,8 +32,9 @@
           @click="toggleManualOverride"
         />
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <EmptyState
         v-if="!loading && rows.length === 0"
@@ -44,6 +44,7 @@
       />
 
       <DataTable
+        empty-size="md"
         v-show="!loading && rows.length > 0"
         :columns="columns"
         :rows="rows"
@@ -52,45 +53,46 @@
         @row-click="onRowClick"
       >
         <template #cell-suppliers="{ row }">
-          <div class="flex ai-ct flex-wrap gap-100">
+          <div class="flex ai-ct flex-wrap gap-2">
             <StatusBadge
               v-for="s in row.sources"
               :key="s.idx"
               :label="s.is_primary ? `★ ${s.name || s.idx}` : (s.name || s.idx)"
-              :variant="s.is_primary ? 'positive' : 'neutral'"
+              :tone="s.is_primary ? 'positive' : 'neutral'"
               :data-testid="`auto-matched-supplier-${row.sku}-${s.idx}`"
             />
           </div>
         </template>
         <template #cell-flags="{ row }">
-          <div class="flex ai-ct gap-100">
+          <div class="flex ai-ct gap-2">
             <StatusBadge
               v-if="row.has_tolerance_violation"
               :label="$t('atlas.auto_matched.flag.violation')"
-              variant="warning"
+              tone="warning"
               :data-testid="`auto-matched-violation-${row.sku}`"
             />
             <StatusBadge
               v-if="row.has_manual_override"
               :label="$t('atlas.auto_matched.flag.manual_override')"
-              variant="informative"
+              tone="info"
               :data-testid="`auto-matched-manual-override-${row.sku}`"
             />
           </div>
         </template>
         <template #cell-last_auto_link_at="{ value }">
-          <span class="fs-200 t-basic-600">{{ formatDate(value) }}</span>
+          <span class="fs-200 t-secondary">{{ formatDate(value) }}</span>
         </template>
       </DataTable>
 
+    <template #footer>
       <Pagination
         v-if="!loading && totalCount > pageSize"
-        :pagination="paginationState"
-        class="mt-300"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-    </div>
-  </div>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -114,16 +116,17 @@ export default {
   computed: {
     columns() {
       return [
-        { key: "sku", label: this.$t("atlas.auto_matched.col.sku") },
-        { key: "ean", label: this.$t("atlas.auto_matched.col.ean") },
+        { key: "sku", label: this.$t("atlas.auto_matched.col.sku"), width: "1fr" },
+        { key: "ean", label: this.$t("atlas.auto_matched.col.ean"), numeric: true, priority: 2 },
         {
           key: "suppliers",
           label: this.$t("atlas.auto_matched.col.suppliers"),
         },
-        { key: "flags", label: this.$t("atlas.auto_matched.col.flags") },
+        { key: "flags", label: this.$t("atlas.auto_matched.col.flags"), priority: 2 },
         {
           key: "last_auto_link_at",
           label: this.$t("atlas.auto_matched.col.last_auto_link"),
+          priority: 2,
         },
       ];
     },

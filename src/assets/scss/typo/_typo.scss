@@ -1,15 +1,19 @@
 @import "./wysiwyg-icons/wysiwyg-icons";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:slnt,wght@-10..0,100..900&display=swap');
+@import "./webfonts";
 
-@import "./font-icons/font-icons";
+
+// The page title (R2): the one page H1 carries it; content H1s (rich text, previews, docs) keep the browser look.
+.page-title {
+  font-family: var(--font-brand);
+  font-size: var(--fs-700);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: var(--brand-font-tracking-brand);
+}
 
 .line-through {
   text-decoration: line-through;
-}
-
-.fw-100 {
-  font-weight: 100;
 }
 
 .fw-300 {
@@ -26,10 +30,6 @@
 
 .fw-600 {
   font-weight: 600;
-}
-
-.fw-700 {
-  font-weight: 700;
 }
 
 .txt-center {

@@ -1,12 +1,13 @@
 <template>
-  <div class="pim-list-layout p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 flex-1 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("pim.features") }}</h1>
-      </div>
-
+  <PageLayout class="pim-list-layout fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pim.features')">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
       <div class="feature-list__toolbar">
         <BasicInput
           v-model="search"
@@ -19,22 +20,26 @@
           :active-count="activeFilterCount"
           :trigger-label="$t('builder.filters')"
         >
-          <Dropdown
-            :values="typeFilterOptions"
-            :placeholder="$t('pim.feature_type')"
-            @onSelect="onFilterType"
+          <BasicSelect
+            :floating-label="$t('pim.feature_type')"
+            :options="typeFilterOptions"
+            :model-value="typeFilter ?? ''"
+            @update:model-value="onFilterType"
           />
-          <Dropdown
-            :values="scopeFilterOptions"
-            :placeholder="$t('pim.scope')"
-            @onSelect="onFilterScope"
+          <BasicSelect
+            :floating-label="$t('pim.scope')"
+            :options="scopeFilterOptions"
+            :model-value="scopeFilter ?? ''"
+            @update:model-value="onFilterScope"
           />
         </MobileFilterPanel>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="features"
@@ -44,19 +49,9 @@
         @sort="onSort"
         @row-click="onRowClick"
       >
-        <template #cell-name="{ row }">
-          <span class="feature-list__name-cell">
-            {{
-              row.name ||
-              (row.name_t9n && (row.name_t9n.en || row.name_t9n.pl)) ||
-              row.idx
-            }}
-          </span>
-        </template>
+        <template #cell-name="{ row }">{{ featureName(row) }}</template>
         <template #cell-feature_type="{ value }">
-          <span class="chip bg-basic-200 t-basic-600">
-            {{ $t(featureTypeLabel(value)) }}
-          </span>
+          <StatusBadge tone="neutral" :dot="false" :label="$t(featureTypeLabel(value))" />
         </template>
         <template #cell-scope="{ value }">
           {{ $t(scopeLabel(value)) }}
@@ -64,14 +59,14 @@
       </DataTable>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-    <Pagination
-      v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      class="mt-200"
-      @onChangePage="onPageChange"
-    />
-  </div>
+    <template v-if="totalCount > pageSize" #footer>
+      <Pagination
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -87,10 +82,12 @@ import {
   featureTypeLabel,
   scopeLabel,
 } from "./helpers/pimEnums";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 export default {
   name: "FeatureList",
+  components: { PimChannelSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -123,7 +120,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("pim.create_feature"),
           handler: () => this.onCreate(),
         },
@@ -137,30 +134,36 @@ export default {
     },
     columns() {
       return [
-        { key: "idx", label: "IDX", sortable: true, width: "160px" },
+        { key: "idx", label: "IDX", sortable: true, width: "160px", priority: 2 },
         {
           key: "name",
           label: this.$t("pim.name"),
           sortable: false,
           width: "1fr",
+          truncate: true,
+          title: (row) => this.featureName(row),
         },
         {
           key: "feature_type",
           label: this.$t("pim.feature_type"),
           sortable: true,
-          width: "120px",
+          width: "180px",
+          truncate: true,
         },
         {
           key: "scope",
           label: this.$t("pim.scope"),
           sortable: true,
           width: "120px",
+          priority: 2,
         },
         {
           key: "attribute_count",
           label: this.$t("pim.options"),
           sortable: false,
           width: "80px",
+          priority: 2,
+          numeric: true,
         },
       ];
     },
@@ -202,6 +205,9 @@ export default {
   methods: {
     featureTypeLabel,
     scopeLabel,
+    featureName(row) {
+      return row.name || row.name_t9n?.en || row.name_t9n?.pl || row.idx;
+    },
     async fetchFeatures() {
       this.loading = true;
       try {
@@ -265,15 +271,10 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.pim-list-layout {
-  display: flex;
-  flex-direction: column;
-}
 .feature-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 .feature-list__search {
@@ -281,16 +282,9 @@ export default {
   min-width: 150px;
   max-width: 400px;
 }
-.feature-list__name-cell {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 @media only screen and (max-width: 768px) {
   .pim-list-layout {
-    padding: 16px !important;
     overflow-x: visible !important;
 
     > div {

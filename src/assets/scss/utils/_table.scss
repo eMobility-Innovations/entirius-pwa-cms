@@ -1,0 +1,40 @@
+// The DataTable cell model for a raw <table> (one not built on DataTable): 12 px cell padding, uppercase
+// 12/600 headers that never wrap, numeric cells right-aligned with tabular figures. `.table-scroll` is the box a
+// wide table scrolls in on a phone, so the card around it never does.
+.table-basic {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-250);
+  color: var(--text-body);
+
+  th,
+  td {
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  th {
+    font-size: var(--fs-200);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .table-basic__numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
