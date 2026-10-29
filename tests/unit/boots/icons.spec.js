@@ -4,11 +4,22 @@ import { describe, it, expect } from "vitest";
 import { findIconDefinition } from "@fortawesome/fontawesome-svg-core";
 import registerFontAwesome from "@/boots/Icons/fa-icons";
 import { ICONS } from "@/boots/Icons/icons";
+import { mount } from "@vue/test-utils";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { panels } from "@/configs/access";
 
 const app = { component: () => {}, config: { globalProperties: {} } };
 registerFontAwesome(app);
 
 describe("icon meaning registry", () => {
+  it("renders the Access Manager navigation icon as a real shield SVG", () => {
+    const panel = panels.find(({ idx }) => idx === "access");
+    const rendered = mount(FontAwesomeIcon, {
+      props: { icon: panel.icon }, global: { stubs: { FontAwesomeIcon: false } },
+    });
+    expect(rendered.find('svg[data-icon="user-shield"] path').exists()).toBe(true);
+    rendered.unmount();
+  });
   it("points every meaning at a glyph registered in fa-icons.js", () => {
     const unregistered = Object.entries(ICONS).filter(
       ([, iconName]) => !findIconDefinition({ prefix: "fas", iconName })

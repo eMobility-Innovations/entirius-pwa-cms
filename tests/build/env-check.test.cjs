@@ -44,7 +44,7 @@ test('production permits optional panels and development retains warning fallbac
 test('build emits only public deployment metadata with source identity', async () => {
   const stats = await compile('production', { VUE_APP_API_URL: 'https://api.example.test', VUE_APP_CHANNEL: 'main' });
   const info = stats.buildInfo;
-  assert.deepEqual(Object.keys(info).sort(), ['apiUrl', 'channel', 'sourceSha', 'ssoEnabled', 'ssoOnly', 'version']);
+  assert.deepEqual(Object.keys(info).sort(), ['accessPanelEnabled', 'apiUrl', 'channel', 'sourceSha', 'ssoEnabled', 'ssoOnly', 'version']);
   assert.match(info.sourceSha, /^[a-f0-9]{40}$/);
   assert.equal(info.version, require('../../package.json').version);
   assert.equal(typeof info.ssoEnabled, 'boolean');
@@ -73,5 +73,11 @@ test('metadata follows upstream SSO base fallback and explicit fork enablement',
     const info = buildInfo(env);
     assert.equal(info.ssoEnabled, enabled, JSON.stringify(env));
     assert.equal(info.ssoOnly, only, JSON.stringify(env));
+  }
+});
+
+test('metadata records the effective optional organization access panel flag', () => {
+  for (const [flag, expected] of [[undefined, false], ['', false], ['false', false], ['TRUE', true]]) {
+    assert.equal(buildInfo({ VUE_APP_ACCESS_PANEL_ENABLED: flag }).accessPanelEnabled, expected);
   }
 });

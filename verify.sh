@@ -13,6 +13,7 @@ export VUE_APP_API_URL="${VUE_APP_API_URL:-https://api.cms-build.example.test}"
 export VUE_APP_CHANNEL="${VUE_APP_CHANNEL:-build-fixture}"
 export VUE_APP_SSO_ENABLED="${VUE_APP_SSO_ENABLED:-true}"
 export VUE_APP_SSO_ONLY="${VUE_APP_SSO_ONLY:-true}"
+export VUE_APP_ACCESS_PANEL_ENABLED="${VUE_APP_ACCESS_PANEL_ENABLED:-true}"
 build_directory="$(mktemp -d "${TMPDIR:-/tmp}/cms-verify.XXXXXX")"
 trap 'rm -rf -- "$build_directory"' EXIT
 npm run build -- --dest "$build_directory"
@@ -29,6 +30,7 @@ const expected = {
   channel: process.env.VUE_APP_CHANNEL,
   ssoEnabled: process.env.VUE_APP_SSO_ENABLED.toLowerCase() === 'true',
   ssoOnly: process.env.VUE_APP_SSO_ONLY.toLowerCase() === 'true',
+  accessPanelEnabled: process.env.VUE_APP_ACCESS_PANEL_ENABLED.toLowerCase() === 'true',
 };
 assert.deepEqual(info, expected);
 console.log('Production build metadata matches the source and fixture configuration.');

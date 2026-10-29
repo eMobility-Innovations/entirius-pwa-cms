@@ -28,6 +28,7 @@ function buildInfo(env = process.env) {
     channel: env.VUE_APP_CHANNEL || '',
     ssoEnabled,
     ssoOnly: ssoEnabled && String(env.VUE_APP_SSO_ONLY || 'false').toLowerCase() === 'true',
+    accessPanelEnabled: String(env.VUE_APP_ACCESS_PANEL_ENABLED || 'false').toLowerCase() === 'true',
   };
 }
 
