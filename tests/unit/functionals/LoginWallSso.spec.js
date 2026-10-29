@@ -66,6 +66,7 @@ let assign;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.dispatchEvent(new Event("pagehide"));
   window.sessionStorage.clear();
   assign = vi.fn();
   // happy-dom's location is read-only; replace only the method under test.
@@ -260,5 +261,50 @@ describe("login wall with SSO on but not SSO-only", () => {
     expect(wrapper.findAll("basic-input-stub").length).toBe(2);
     expect(postSsoLoginUrl).not.toHaveBeenCalled();
     expect(assign).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("SSO start is single-flight until the browser leaves", () => {
+  beforeEach(() => {
+    vi.stubEnv("VUE_APP_SSO_ENABLED", "true");
+    vi.stubEnv("VUE_APP_SSO_ONLY", "true");
+  });
+
+  it("coalesces automatic starts, clicks and remounts without overwriting state", async () => {
+    let answer;
+    postSsoLoginUrl.mockReturnValueOnce(new Promise((resolve) => { answer = resolve; }));
+    const first = mount(LoginWall);
+    const second = mount(LoginWall);
+    await first.vm.ssoLogin();
+    await second.vm.ssoLogin();
+    expect(postSsoLoginUrl).toHaveBeenCalledTimes(1);
+    expect(first.vm.ssoStarting).toBe(true);
+    expect(second.vm.ssoStarting).toBe(true);
+    expect(sessionStorage.getItem("sso_autologin_blocked")).toBeNull();
+    answer({ data: { authorization_url: "https://idp.test/auth", state: "one-state" } });
+    await flushPromises();
+    await second.vm.ssoLogin();
+    expect(postSsoLoginUrl).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem("sso_state")).toBe("one-state");
+    expect(second.vm.ssoStarting).toBe(true);
+    window.dispatchEvent(new Event("pagehide"));
+    expect(second.vm.ssoStarting).toBe(false);
+    first.unmount(); second.unmount();
+  });
+
+  it("releases failed starts for a deliberate retry without automatic remount retry", async () => {
+    postSsoLoginUrl.mockRejectedValueOnce(new Error("Network Error"));
+    const first = mount(LoginWall);
+    await flushPromises();
+    expect(first.vm.ssoStarting).toBe(false);
+    const second = mount(LoginWall);
+    expect(postSsoLoginUrl).toHaveBeenCalledTimes(1);
+    postSsoLoginUrl.mockResolvedValueOnce({ data: { authorization_url: "https://idp.test/auth", state: "retry-state" } });
+    await second.vm.ssoLogin();
+    expect(postSsoLoginUrl).toHaveBeenCalledTimes(2);
+    expect(assign).toHaveBeenCalledTimes(1);
+    first.unmount(); second.unmount();
   });
 });
