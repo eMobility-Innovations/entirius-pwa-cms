@@ -2,37 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-
-### Fixed
-
-- Login wall: the username and password fields render on the first paint. BasicInput, FormField (the wrapper every
-  field sits in) and IconButton (the show-password toggle) were async chunks, so the auth card showed its headings and
-  the fields popped in a round trip later, or never when the chunk 404ed after a redeploy; they are now registered
-  synchronously.
-- Enrichment Review list: a long product name stays in its column. The name (a ghost button, which sizes to its text)
-  ran over the Field column; it now wraps to two lines and ends in an ellipsis, with the full name in its title. The
-  Product column takes a bigger share of the free width (2fr, was 1fr; Change 2fr, was 3fr) so a clamped name still reads.
-- Enrichment focus mode (and the product preview drawer) shows the product's main picture. The card read `og_image`,
-  the SEO sharing URL, which is empty unless someone set it, so it fell back to the placeholder; it now takes the picture
-  of the "main" role from the product's pictures (else the first one) and falls back to `og_image` only without pictures.
-- Page builder: "Add tile" under a section's tiles works again. BasicButton and IconButton emitted `click` without the
-  event, so a handler that reads it (the builder's `clickIn`) failed with "event is undefined"; both now pass the
-  native click event.
-- Translate Store (the whole-store translation) is offered only on the Translation page, as its primary action beside
-  a channel selector; it no longer sits in the header of the Pim views (a product page included). The product list
-  keeps Translate for the picked rows.
-- Sidebar: a locked panel's hidden screen-reader text (and a collapsed rail's hidden labels) no longer stretches
-  the page and adds an empty scroll — the nav item is their containing block.
-- AI studio search phrases: the search intent reads as a property, not an action. A row says "Intent: learning" (it was
-  the verb phrase "Learn something", which looked clickable beside the "What ranks today" toggle) and the four intent
-  labels are now "Learning", "Comparing before buying", "Buying", "Finding a site" (PL: "Szukanie informacji",
-  "Porównywanie przed zakupem", "Zakup", "Szukanie strony") in the top tile and the memory entry too.
-- AI studio search phrases: the SERP notes (the step's callout and each row's "What ranks today") keep their line
-  breaks, so notes written as several short lines no longer run together.
-- AI studio cover scenes: the step says where the picture is picked. A caption beside the title (also once the step
-  is approved) gives the scene count and the next step's label ("3 scenes · you pick the picture in the Cover step"),
-  and the help mark adds that the picture is picked in the next step from the variants made from these scenes.
+## [3.3.0] (2026-10-29)
 
 ### Added
 
@@ -52,56 +22,9 @@ All notable changes to this project will be documented in this file.
   limit, a rule, a number outside the facts).
 - AI studio questions: the step's `min_answers` shows above the form and blocks Approve until met (optional
   questions count); purposes for the new article steps (insights, voice, edit) and the search phrases step first.
-
-## [3.3.0-rc.5] (2026-10-17)
-
-### Fixed
-
-- The channel of leads, communicator, site intel and the notification bar falls back to the CMS channel
-  (`VUE_APP_CHANNEL`) when `VUE_APP_LEADS_CHANNEL` is unset: a one-channel install no longer asks the notifications
-  of `default-europe` (a 404 on every page).
-
-## [3.3.0-rc.4] (2026-10-17)
-
-### Fixed
-
-- A 404 from the API is recognised again in the views that handle it (the Prices tab of a product, consent text,
-  authors, enrichment preview, supplier tab, delivery points, vouchers, product channel switch): they read the status
-  through `isNotFound`, since the client rejects with the v2 body. The Prices tab of a product without prices shows
-  the empty state instead of an error toast.
-- The Prices tab of a configurable product says that prices are set per variant.
-
-## [3.3.0-rc.3] (2026-10-17)
-
-### Changed
-
-- AI run dialog: a template that sets the image operation (packshot, scene, enhance, custom instruction) no longer
-  asks for the operation again; "Custom…" still does.
-
-### Fixed
-
-- A tooltip hides on a click of its trigger until the pointer leaves: it no longer covers the menu an icon button
-  opens (the AI menu of a gallery picture, row menus).
-- Image and video runs refused by the AI provider name the cause (`IMAGE_BLOCKED`, `VIDEO_BLOCKED`: the provider's
-  safety filter; `PROVIDER_ERROR`) instead of a generic error.
-
-## [3.3.0-rc.2] (2026-10-17)
-
-### Added
-
 - AI on one picture: a product picture tile in the media gallery has an AI menu with the image templates (packshot,
   scene, enhance, custom instruction). The run dialog opens named after the action, on that picture, with the
   template and its operation fixed; only the instruction and the number of variants are left to fill.
-
-### Fixed
-
-- A run that failed with `PRESET_NOT_FOUND` names the cause (the image preset does not fit the operation or is off in
-  the AI toolbox) instead of a generic AI error.
-
-## [3.3.0-rc.1] (2026-10-16)
-
-### Added
-
 - Image processing in Run AI (an `image` worker or its templates): the picture to process (one product), what to do
   (packshot, product in a scene, improve the photo, custom instruction — the instruction is then required) and the
   number of variants (1–4). The toolbox preset rides on the template and is kept when a template is edited.
@@ -153,12 +76,68 @@ All notable changes to this project will be documented in this file.
   checklist item) with "Check against the standard" and "Fix warnings", and say what the AI likely used from the
   profile versions its task recorded ("Likely used from profile: Facts (4), Brand, Tone of voice").
 
+### Changed
+
+- AI run dialog: a template that sets the image operation (packshot, scene, enhance, custom instruction) no longer
+  asks for the operation again; "Custom…" still does.
+
+### Security
+
+- Lock bumps for the open advisories: DOMPurify 3.4.17 (a `SAFE_FOR_TEMPLATES` bypass, two critical alerts), Vue
+  3.5.44 (`@vue/server-renderer` attribute XSS), follow-redirects 1.16.2 (credential headers kept across origins), and
+  for the dev tooling vite 8.3.5, launch-editor 2.14.2 and vitest 4.1.12. `npm audit --omit=dev` reports nothing.
+
 ### Removed
 
 - Review's free-text Batch filter: a run's name in the "Correct a whole AI run" strip narrows the list instead.
 
 ### Fixed
 
+- `npm ci` no longer needs node-canvas. `canvas` sat in `dependencies` since 1.0.0 although nothing imports it (the
+  app draws on the browser's `<canvas>`, the unit suite runs on happy-dom); its install script downloads a prebuilt
+  binary from GitHub releases and, when that times out, compiles with node-gyp, which a slim Node image cannot. It is
+  now only jsdom's optional peer, so a failed install no longer stops `npm ci`.
+- Login wall: the username and password fields render on the first paint. BasicInput, FormField (the wrapper every
+  field sits in) and IconButton (the show-password toggle) were async chunks, so the auth card showed its headings and
+  the fields popped in a round trip later, or never when the chunk 404ed after a redeploy; they are now registered
+  synchronously.
+- Enrichment Review list: a long product name stays in its column. The name (a ghost button, which sizes to its text)
+  ran over the Field column; it now wraps to two lines and ends in an ellipsis, with the full name in its title. The
+  Product column takes a bigger share of the free width (2fr, was 1fr; Change 2fr, was 3fr) so a clamped name still reads.
+- Enrichment focus mode (and the product preview drawer) shows the product's main picture. The card read `og_image`,
+  the SEO sharing URL, which is empty unless someone set it, so it fell back to the placeholder; it now takes the picture
+  of the "main" role from the product's pictures (else the first one) and falls back to `og_image` only without pictures.
+- Page builder: "Add tile" under a section's tiles works again. BasicButton and IconButton emitted `click` without the
+  event, so a handler that reads it (the builder's `clickIn`) failed with "event is undefined"; both now pass the
+  native click event.
+- Translate Store (the whole-store translation) is offered only on the Translation page, as its primary action beside
+  a channel selector; it no longer sits in the header of the Pim views (a product page included). The product list
+  keeps Translate for the picked rows.
+- Sidebar: a locked panel's hidden screen-reader text (and a collapsed rail's hidden labels) no longer stretches
+  the page and adds an empty scroll — the nav item is their containing block.
+- AI studio search phrases: the search intent reads as a property, not an action. A row says "Intent: learning" (it was
+  the verb phrase "Learn something", which looked clickable beside the "What ranks today" toggle) and the four intent
+  labels are now "Learning", "Comparing before buying", "Buying", "Finding a site" (PL: "Szukanie informacji",
+  "Porównywanie przed zakupem", "Zakup", "Szukanie strony") in the top tile and the memory entry too.
+- AI studio search phrases: the SERP notes (the step's callout and each row's "What ranks today") keep their line
+  breaks, so notes written as several short lines no longer run together.
+- AI studio cover scenes: the step says where the picture is picked. A caption beside the title (also once the step
+  is approved) gives the scene count and the next step's label ("3 scenes · you pick the picture in the Cover step"),
+  and the help mark adds that the picture is picked in the next step from the variants made from these scenes.
+- The channel of leads, communicator, site intel and the notification bar falls back to the CMS channel
+  (`VUE_APP_CHANNEL`) when `VUE_APP_LEADS_CHANNEL` is unset: a one-channel install no longer asks the notifications
+  of `default-europe` (a 404 on every page).
+- A 404 from the API is recognised again in the views that handle it (the Prices tab of a product, consent text,
+  authors, enrichment preview, supplier tab, delivery points, vouchers, product channel switch): they read the status
+  through `isNotFound`, since the client rejects with the v2 body. The Prices tab of a product without prices shows
+  the empty state instead of an error toast.
+- The Prices tab of a configurable product says that prices are set per variant.
+- A tooltip hides on a click of its trigger until the pointer leaves: it no longer covers the menu an icon button
+  opens (the AI menu of a gallery picture, row menus).
+- Image and video runs refused by the AI provider name the cause (`IMAGE_BLOCKED`, `VIDEO_BLOCKED`: the provider's
+  safety filter; `PROVIDER_ERROR`) instead of a generic error.
+- A run that failed with `PRESET_NOT_FOUND` names the cause (the image preset does not fit the operation or is off in
+  the AI toolbox) instead of a generic AI error.
 - Product page: an Attributes tab that cannot load (the backend restarting) says so in a toast instead of an
   uncaught "Network Error".
 - Product page: opening another product from a product page (same address, new SKU) shows that product instead of
