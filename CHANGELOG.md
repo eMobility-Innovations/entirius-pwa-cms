@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- Lock bumps for the open advisories: DOMPurify 3.4.17 (a `SAFE_FOR_TEMPLATES` bypass, two critical alerts), Vue
+  3.5.44 (`@vue/server-renderer` attribute XSS), follow-redirects 1.16.2 (credential headers kept across origins), and
+  for the dev tooling vite 8.3.5, launch-editor 2.14.2 and vitest 4.1.12. `npm audit --omit=dev` reports nothing.
+
 ### Fixed
 
 - `npm ci` no longer needs node-canvas. `canvas` sat in `dependencies` since 1.0.0 although nothing imports it (the
