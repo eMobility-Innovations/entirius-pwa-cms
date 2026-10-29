@@ -1,8 +1,10 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { GET_Me } from "@/api/access/api";
+import { GET_Me, GET_MatrixMe } from "@/api/access/api";
 import { isNotFound } from "@/api/createClient";
 import { useMuninStore } from "@/stores/munin";
+import { isAccessPanelEnabled } from "@/configs/accessMatrix";
+import { organizationCan } from "@/configs/organizationAccess";
 
 // The munin key of django-access.
 export const ACCESS_MODULE = "access";
@@ -29,10 +31,15 @@ export const useAccessStore = defineStore("access", () => {
   const loaded = computed(() => status.value === "ready" || status.value === "absent");
   const available = computed(() => status.value === "ready" || status.value === "error");
   const isStaff = computed(() => me.value?.user?.is_staff !== false);
-  const managesAccess = computed(() => me.value?.manages_access === true);
-  const gateMode = computed(() => me.value?.gate_mode ?? null);
+  const managesAccess = computed(() => isAccessPanelEnabled()
+    ? organizationCan(me.value, "access.manage", "write")
+    : me.value?.manages_access === true);
+  const gateMode = computed(() => isAccessPanelEnabled()
+    ? (me.value ? (me.value.enforcing ? "enforce" : "observe") : null)
+    : me.value?.gate_mode ?? null);
 
   function can(area, level = "read") {
+    if (isAccessPanelEnabled()) return organizationCan(me.value, area, level);
     if (me.value) return grants(me.value.permissions?.[area], level);
     return status.value !== "error";
   }
@@ -47,6 +54,16 @@ export const useAccessStore = defineStore("access", () => {
 
   async function load() {
     const started = generation;
+    if (isAccessPanelEnabled()) {
+      try {
+        const { data } = await GET_MatrixMe();
+        if (!Array.isArray(data?.permissions)) throw new Error("Invalid organization permissions");
+        settle(started, data, "ready");
+      } catch {
+        if (!me.value) settle(started, null, "error");
+      }
+      return;
+    }
     const munin = useMuninStore();
     await munin.ensureLoaded();
     if (munin.loaded && !munin.isModuleInstalled(ACCESS_MODULE)) return settle(started, null, "absent");

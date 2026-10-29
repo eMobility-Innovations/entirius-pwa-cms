@@ -11,7 +11,7 @@ below follow the maintainers' comments and the operator's withdrawal, not PR tit
 | [#42: web-storage test shim](https://github.com/entirius/entirius-pwa-cms/pull/42) | Closed: upstream's Node 24 suite passed without the shim; a standalone shim was invited if a newer runtime reproduces the issue. | Keep the guarded test-only fallback for runtimes without usable storage. |
 | [#43: scrolling documentation](https://github.com/entirius/entirius-pwa-cms/pull/43) | Closed after its generic lesson was incorporated and updated through #78. | Adopt the current `PageLayout` contract, rather than obsolete 2.1 shell classes. |
 | [#44: scrolling regression](https://github.com/entirius/entirius-pwa-cms/pull/44) | Withdrawn by the operator because its panel fixture belongs to the fork. | Retain and adapt the browser regression in the fork; withdrawal does not authorize deleting it. |
-| [#59: upstream Access](https://github.com/entirius/entirius-pwa-cms/pull/59) | Merged: upstream authorization, read-only behavior, and administration UI. | Adopt upstream authorization infrastructure; preserve the distinct organization matrix contract. |
+| [#59: upstream Access](https://github.com/entirius/entirius-pwa-cms/pull/59) | Merged: upstream authorization, read-only behavior, and administration UI. | Adopt upstream authorization interfaces, selecting the organization matrix as the sole authority when its flag is enabled. |
 | [#77: synchronous login components](https://github.com/entirius/entirius-pwa-cms/pull/77) | Merged, including `FormField` and `IconButton`. | Use upstream registration and its real login-wall regression. |
 | [#78: page scrolling documentation](https://github.com/entirius/entirius-pwa-cms/pull/78) | Merged with the generic lesson from #43 rewritten for the current shell. | Use `PageLayout`; pages bypassing it own their scrolling. |
 
@@ -30,14 +30,22 @@ roles, staff, groups, applications, and audit. This preserves compatibility when
 variable is absent in code; the fork example explicitly enables the overlay. Only one of the two `/access`
 route trees is registered in a host's build.
 
-The contracts remain separate:
+The contracts remain separate, but a build selects exactly one authorization authority.
+With the organization flag true, the shared access store loads `GET_MatrixMe` for
+all panel visibility, route checks and read/write controls; it never consults upstream
+grants. `src/configs/organizationAccess.js` translates known UI areas to the same
+permissions as the backend route map. Unmapped areas, unavailable permissions and
+failed initial loads deny access. Organization read and write grants remain independent, including when backend enforcement is in observe mode.
+With the flag false, upstream loading and permission semantics are unchanged.
+
+The backend contracts are:
 
 - Organization matrix: configurable `VUE_APP_ACCESS_API_BASE`, default
   `/api/escaccess/v2`, with `catalog/`, `grants/`, `overrides/`, `users/`,
   `service-accounts/`, and `unassigned/`. `GET_MatrixMe` reads this authority.
 - Upstream authorization: `/api/access/v2/me/` and administration under
-  `/api/access/v2/admin/`. `GET_Me` continues to serve upstream access loading,
-  route guards, and read-only decisions.
+  `/api/access/v2/admin/`. `GET_Me` serves access loading, route guards and read-only decisions only when
+  the organization flag is false.
 
 An upstream Access feature is not evidence that the organization matrix's backend
 or per-user override semantics have been replaced. Navigation and route selection
@@ -47,7 +55,7 @@ composables.
 ## SSO-only behavior on the upstream flow
 
 The shared `useLoginSession().completeLogin()` initializes tokens, profile,
-modules, upstream access, route checks, and final authentication for SSO as well as
+modules, the selected access authority, route checks, and final authentication for SSO as well as
 password login. The fork no longer maintains a second manual session setup.
 
 The fork retains `VUE_APP_SSO_ONLY`: password entry and password-change prompts
