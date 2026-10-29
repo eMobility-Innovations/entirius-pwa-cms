@@ -1,12 +1,13 @@
 <template>
-  <div class="spawn-rules-list p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 flex-1 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("enrichment.spawn_rules.title") }}</h1>
-      </div>
-
+  <PageLayout class="spawn-rules-list fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('nav.enrichment_settings')" :crumbs="[]">
+        <template #tabs>
+          <RouteTabs :tabs="ENRICHMENT_SETTINGS_TABS" />
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
       <div class="spawn-rules-list__toolbar">
         <BasicInput
           v-model="search"
@@ -22,10 +23,13 @@
           @click="toggleOnlyActive"
         />
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+    <div v-bind="tabPanel">
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="rules"
@@ -34,48 +38,49 @@
         @row-click="onRowClick"
       >
         <template #cell-auto="{ value }">
-          <span
-            class="chip"
-            :class="value ? 'bg-support-100 t-support-400' : 'bg-basic-200 t-basic-500'"
-          >
-            {{ value ? $t("common.yes") : $t("common.no") }}
-          </span>
+          <StatusBadge
+            :tone="value ? 'accent' : 'neutral'"
+            :dot="false"
+            :label="value ? $t('common.yes') : $t('common.no')"
+          />
         </template>
         <template #cell-active="{ value }">
-          <span
-            class="chip"
-            :class="value ? 'bg-positive-100 t-positive-300' : 'bg-basic-200 t-basic-500'"
-          >
-            {{ value ? $t("common.yes") : $t("common.no") }}
-          </span>
+          <StatusBadge
+            :tone="value ? 'positive' : 'neutral'"
+            :dot="false"
+            :label="value ? $t('common.yes') : $t('common.no')"
+          />
         </template>
         <template #cell-running="{ row }">
           <StatusBadge
             v-if="runningKeys.has(row.key)"
             :label="$t('enrichment.spawn_rules.running')"
-            variant="informative"
+            tone="info"
           />
-          <span v-else class="t-basic-400">—</span>
+          <span v-else class="t-muted">—</span>
         </template>
         <template #cell-actions="{ row }">
-          <BasicButton
-            :text="$t('enrichment.spawn_rules.run_now')"
-            class="bg-support-400 t-basic-100 fs-200"
+          <BasicButton mutates
+            size="sm"
+            variant="secondary"
             :data-test="`spawn-rule-run-${row.key}`"
             @click="runRule(row)"
-          />
+          >
+            {{ $t('enrichment.spawn_rules.run_now') }}
+          </BasicButton>
         </template>
       </DataTable>
+    </div>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-    <Pagination
-      v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      class="mt-200"
-      @onChangePage="onPageChange"
-    />
-  </div>
+    <template v-if="totalCount > pageSize" #footer>
+      <Pagination
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -83,6 +88,8 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import RouteTabs from "@/components/Navigation/RouteTabs.vue";
+import { ENRICHMENT_SETTINGS_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import { GET_SpawnRules, GET_Tasks, POST_SpawnRuleRun } from "@/api/enrichment/api";
 
 // Batch key prefix owned by the backend (spawn_rule_service.GAP_RULE_BATCH_PREFIX).
@@ -90,11 +97,13 @@ const GAP_RULE_PREFIX = "gaprule:";
 
 export default {
   name: "SpawnRuleList",
+  components: { RouteTabs },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
     const { search, debouncedFetch } = useSearchDebounce();
-    return { loader, notify, search, debouncedFetch };
+    const tabPanel = routeTabPanel(ENRICHMENT_SETTINGS_TABS, "EnrichmentSpawnRules");
+    return { loader, notify, search, debouncedFetch, ENRICHMENT_SETTINGS_TABS, tabPanel };
   },
   data() {
     return {
@@ -112,22 +121,22 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("enrichment.spawn_rules.create"),
-          handler: () => this.$router.push("/enrichment/spawn-rules/new"),
+          handler: () => this.$router.push({ name: "EnrichmentSpawnRuleCreate" }),
         },
       ];
     },
     columns() {
       return [
         { key: "key", label: this.$t("enrichment.spawn_rules.col_key"), width: "1.5fr" },
-        { key: "module", label: this.$t("enrichment.spawn_rules.col_module"), width: "90px" },
-        { key: "check_key", label: this.$t("enrichment.spawn_rules.col_check"), width: "1.5fr" },
-        { key: "task_type", label: this.$t("enrichment.spawn_rules.col_task_type"), width: "1fr" },
-        { key: "auto", label: this.$t("enrichment.spawn_rules.col_auto"), width: "80px" },
-        { key: "active", label: this.$t("enrichment.spawn_rules.col_active"), width: "80px" },
-        { key: "running", label: this.$t("enrichment.spawn_rules.col_running"), width: "110px" },
-        { key: "actions", label: "", width: "140px" },
+        { key: "module", label: this.$t("enrichment.spawn_rules.col_module"), width: "90px", priority: 2 },
+        { key: "check_key", label: this.$t("enrichment.spawn_rules.col_check"), width: "1.5fr", priority: 2 },
+        { key: "task_type", label: this.$t("enrichment.spawn_rules.col_task_type"), width: "1fr", priority: 2 },
+        { key: "auto", label: this.$t("enrichment.spawn_rules.col_auto"), width: "80px", priority: 2 },
+        { key: "active", label: this.$t("enrichment.spawn_rules.col_active"), width: "80px", priority: 2 },
+        { key: "running", label: this.$t("enrichment.spawn_rules.col_running"), width: "110px", priority: 2 },
+        { key: "actions", label: "", actions: true },
       ];
     },
     paginationState() {
@@ -227,7 +236,7 @@ export default {
       });
     },
     onRowClick(row) {
-      this.$router.push(`/enrichment/spawn-rules/${row.key}`);
+      this.$router.push({ name: "EnrichmentSpawnRuleEdit", params: { key: row.key } });
     },
   },
 };
@@ -241,8 +250,7 @@ export default {
 .spawn-rules-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 .spawn-rules-list__search {

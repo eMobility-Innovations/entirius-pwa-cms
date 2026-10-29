@@ -1,6 +1,9 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500">
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('faq.groups')" />
+    </template>
+    <template #toolbar>
       <div class="group-list__toolbar">
         <BasicInput
           v-model="search"
@@ -9,11 +12,7 @@
           class="group-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
-        <MobileFilterPanel
-          :active-count="activeFilter !== 'all' ? 1 : 0"
-          :trigger-label="$t('builder.filters')"
-        >
-          <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
+        <div class="filter-chip-row" role="group" :aria-label="$t('faq.filters')">
           <FilterChip
             v-for="tab in filterTabs"
             :key="tab.key"
@@ -21,77 +20,84 @@
             :active="activeFilter === tab.key"
             @click="setFilter(tab.key)"
           />
-        </MobileFilterPanel>
+        </div>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <div v-show="!loading">
-        <p v-if="!groups.length" class="t-basic-500 fs-300">
-          {{ $t("faq.no_groups") }}
-        </p>
+        <EmptyState v-if="!groups.length" :title="$t('faq.no_groups')" />
 
         <draggable
           v-else
           v-model="groups"
+          :disabled="readonly"
           item-key="id"
           handle=".drag-handle"
-          ghost-class="bg-support-100"
+          ghost-class="bg-accent-subtle"
           :force-fallback="true"
           fallback-class="drag-ghost"
           @end="onReorder"
         >
           <template #item="{ element }">
             <div
-              class="group-row flex ai-ct gap-200 pointer"
-              @click="$router.push(`/faq/groups/${element.idx}`)"
+              class="group-row flex ai-ct flex-wrap gap-5 rg-2 pointer"
+              role="link"
+              tabindex="0"
+              @click="openGroup(element)"
+              @keydown.enter="openGroup(element)"
             >
               <font-awesome-icon
-                icon="grip-vertical"
-                class="drag-handle t-basic-400"
+                :icon="$icons.drag"
+                class="drag-handle t-muted"
               />
-              <span class="group-row__name fw-600 flex-1">
+              <span
+                class="group-row__name fw-600"
+                :title="element.name || element.idx"
+              >
                 {{ element.name || element.idx }}
               </span>
-              <div class="flex ai-ct gap-100">
-                <span
+              <div class="flex ai-ct gap-2">
+                <StatusBadge
                   v-if="(element.channel_ids || []).length"
-                  class="chip bg-support-100 t-support-400"
-                >
-                  {{ element.channel_ids.length }} {{ element.channel_ids.length === 1 ? 'channel' : 'channels' }}
-                </span>
-                <span
+                  tone="accent"
+                  :dot="false"
+                  :label="$t(`faq.channels_${pluralKey(element.channel_ids.length)}`, { count: element.channel_ids.length })"
+                />
+                <StatusBadge
                   v-else
-                  class="chip bg-basic-200 t-basic-500"
-                >
-                  {{ $t("faq.global") }}
-                </span>
+                  tone="neutral"
+                  :dot="false"
+                  :label="$t('faq.global')"
+                />
               </div>
-              <span class="chip bg-support-100 t-support-400">
-                {{ element.item_count || 0 }} {{ $t("faq.items") }}
-              </span>
+              <StatusBadge tone="accent" :dot="false" :label="$t(`faq.items_${pluralKey(element.item_count || 0)}`, { count: element.item_count || 0 })" />
               <StatusBadge
                 :label="element.is_active ? $t('faq.active') : $t('faq.inactive')"
-                :variant="element.is_active ? 'positive' : 'negative'"
+                :tone="element.is_active ? 'positive' : 'negative'"
               />
             </div>
           </template>
         </draggable>
       </div>
 
+    <template #footer>
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
+    </template>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
 import draggable from "vuedraggable";
+import { usePageReadonly } from "@/composables/useReadonly";
 import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
@@ -100,6 +106,7 @@ import {
   PATCH_FaqGroupsReorder,
 } from "@/api/faq/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { pluralKey } from "@/utils/plural";
 
 export default {
   name: "FaqGroupList",
@@ -108,7 +115,7 @@ export default {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
     const { search, debouncedFetch } = useSearchDebounce();
-    return { loader, notify, search, debouncedFetch };
+    return { loader, notify, search, debouncedFetch, readonly: usePageReadonly() };
   },
   data() {
     return {
@@ -124,7 +131,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("faq.create_group"),
           handler: () => this.$router.push("/faq/groups/create"),
         },
@@ -155,6 +162,7 @@ export default {
     this.fetchGroups();
   },
   methods: {
+    pluralKey,
     async fetchGroups() {
       this.loading = true;
       try {
@@ -175,6 +183,9 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    openGroup(group) {
+      this.$router.push(`/faq/groups/${group.idx}`);
     },
     setFilter(key) {
       this.activeFilter = key;
@@ -215,8 +226,7 @@ export default {
 .group-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 
@@ -227,16 +237,19 @@ export default {
 }
 
 .group-row {
-  padding: 12px var(--space-200);
-  border-bottom: 1px solid var(--c-basic-300);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background 0.1s;
 
   &:hover {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
   }
 }
 
+// The name takes the row; on a phone the chips wrap under it instead of squeezing it to 0 px.
 .group-row__name {
+  flex: 1 1 12rem;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -251,16 +264,4 @@ export default {
   }
 }
 
-</style>
-
-<style lang="scss">
-.drag-ghost {
-  max-width: 600px;
-  opacity: 0.9;
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-support-400);
-  border-radius: 6px;
-  box-shadow: var(--shadow-md);
-  padding: 12px var(--space-200);
-}
 </style>

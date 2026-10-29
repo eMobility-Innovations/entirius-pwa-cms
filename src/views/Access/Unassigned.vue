@@ -25,7 +25,7 @@
           >
             <span>{{ name }}</span>
             <div v-if="canWrite" class="access-inline">
-              <button
+              <BasicButton mutates size="sm" variant="ghost"
                 v-for="role in roles"
                 :key="role"
                 :disabled="busy || (type === 'group' && !!directoryError)"
@@ -33,7 +33,7 @@
                 @click="assign(type, name, role)"
               >
                 {{ role }}
-              </button>
+              </BasicButton>
             </div>
           </div>
           <p v-if="type === 'group' && directoryError" class="access-error">
@@ -48,6 +48,7 @@
   </section>
 </template>
 <script setup>
+import BasicButton from "@/boots/BasicButton/index.vue";
 import { ref, computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useAccessMatrixStore } from "@/stores/accessMatrix";

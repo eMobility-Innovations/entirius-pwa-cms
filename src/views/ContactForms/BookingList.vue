@@ -1,13 +1,10 @@
 <template>
-  <div class="cf-booking-list__wrapper p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("cf.bookings") }}</h1>
-      </div>
-
-      <div class="flex ai-ct gap-300 mb-400">
+  <PageLayout class="cf-booking-list__wrapper fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('cf.bookings')" />
+    </template>
+    <template #toolbar>
+      <div class="flex ai-ct flex-wrap gap-8 rg-3">
         <BasicInput
           v-model="search"
           :placeholder="$t('cf.search_placeholder')"
@@ -15,55 +12,51 @@
           class="cf-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
-        <Dropdown
-          :values="channelOptions"
-          :selected="[channelFilter]"
-          :placeholder="$t('cf.channel')"
-          class="cf-list__filter"
-          @onSelect="onChannelFilter"
-        />
-      </div>
-
-      <div class="flex ai-ct mb-400">
         <MobileFilterPanel
           :active-count="activeFilterCount"
-          :trigger-label="$t('cf.filters')"
+          :trigger-label="$t('builder.filters')"
         >
-          <p class="fs-200 t-basic-600">{{ $t("cf.filters") }}</p>
-
-          <label class="cf-list__date-field">
-            <span class="cf-list__date-label">{{ $t("cf.date_from") }}</span>
-            <input
-              v-model="dateFrom"
-              type="date"
-              class="cf-list__date-input"
-              @change="searchAndFetch"
+          <p class="cf-list__caption fs-200 t-secondary">{{ $t("cf.lead_status") }}</p>
+          <div class="filter-chip-row" role="group" :aria-label="$t('cf.lead_status')">
+            <FilterChip
+              v-for="opt in leadStatusOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :active="leadStatusFilter === opt.value"
+              @click="onLeadStatusFilter(opt.value)"
             />
-          </label>
-
-          <label class="cf-list__date-field">
-            <span class="cf-list__date-label">{{ $t("cf.date_to") }}</span>
-            <input
-              v-model="dateTo"
-              type="date"
-              class="cf-list__date-input"
-              @change="searchAndFetch"
-            />
-          </label>
-
-          <Dropdown
-            :values="leadStatusOptions"
-            :selected="[leadStatusFilter]"
-            :placeholder="$t('cf.lead_status')"
+          </div>
+          <p class="cf-list__caption fs-200 t-secondary">{{ $t("cf.channel") }}</p>
+          <BasicSelect
+            :floating-label="$t('cf.channel')"
+            :options="channelOptions"
+            :model-value="channelFilter"
             class="cf-list__filter"
-            @onSelect="onLeadStatusFilter"
+            @update:model-value="onChannelFilter"
           />
+          <div class="flex ai-ct gap-3">
+            <FormField :label="$t('cf.date_from')" layout="inline">
+              <BasicDatePicker :model-value="dateFrom" @update:model-value="onDateFrom" />
+            </FormField>
+            <FormField :label="$t('cf.date_to')" layout="inline">
+              <BasicDatePicker :model-value="dateTo" @update:model-value="onDateTo" />
+            </FormField>
+            <IconButton
+              v-if="dateFrom || dateTo"
+              icon="clear"
+              variant="ghost"
+              :label="$t('cf.clear_dates')"
+              @click="clearDates"
+            />
+          </div>
         </MobileFilterPanel>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="bookings"
@@ -79,39 +72,40 @@
         </template>
         <template #cell-name="{ row }">
           <span v-if="row.name">{{ row.name }}</span>
-          <span v-else class="t-basic-400">---</span>
+          <span v-else class="t-muted">—</span>
         </template>
         <template #cell-linked_lead="{ value }">
           <StatusBadge
             v-if="value"
             :label="leadStatusLabel($t, value.status)"
-            :variant="leadStatusVariant(value.status)"
+            :tone="leadStatusVariant(value.status)"
           />
-          <span v-else class="t-basic-400">{{ $t("cf.no_linked_lead") }}</span>
+          <span v-else class="t-muted">{{ $t("cf.no_linked_lead") }}</span>
         </template>
         <template #cell-meet_link="{ value }">
           <a
             v-if="value"
-            :href="value"
+            :href="safeHref(value)"
             target="_blank"
             rel="noopener noreferrer"
             class="cf-list__meet-link"
             :title="$t('cf.open_meet')"
             @click.stop
           >
-            <font-awesome-icon icon="video" />
+            <font-awesome-icon :icon="$icons.video" />
           </a>
-          <span v-else class="t-basic-400">---</span>
+          <span v-else class="t-muted">—</span>
         </template>
       </DataTable>
 
+    <template v-if="totalCount > pageSize" #footer>
       <Pagination
-        v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-    </div>
-  </div>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -120,6 +114,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { GET_Bookings } from "@/api/contactForms/api";
+import { safeHref } from "@/utils/safeHref";
 import {
   LEAD_STATUSES,
   leadStatusLabel,
@@ -150,13 +145,6 @@ export default {
     };
   },
   computed: {
-    activeFilterCount() {
-      let count = 0;
-      if (this.leadStatusFilter !== "__all") count += 1;
-      if (this.dateFrom) count += 1;
-      if (this.dateTo) count += 1;
-      return count;
-    },
     channelOptions() {
       const opts = [{ label: this.$t("cf.all_channels"), value: "__all" }];
       for (const ch of this.pimChannel.channels) {
@@ -173,26 +161,35 @@ export default {
       }
       return opts;
     },
+    activeFilterCount() {
+      let count = 0;
+      if (this.leadStatusFilter !== "__all") count++;
+      if (this.channelFilter !== "__all") count++;
+      if (this.dateFrom || this.dateTo) count++;
+      return count;
+    },
     columns() {
       return [
         {
           key: "meeting_start",
           label: this.$t("cf.meeting_start"),
           width: "180px",
+          priority: 2,
         },
         {
           key: "meeting_end",
           label: this.$t("cf.meeting_end"),
           width: "180px",
+          priority: 2,
         },
         { key: "name", label: this.$t("cf.name"), width: "1fr" },
-        { key: "email", label: this.$t("cf.email"), width: "1fr" },
+        { key: "email", label: this.$t("cf.email"), width: "1fr", priority: 2 },
         {
           key: "linked_lead",
           label: this.$t("cf.lead_status"),
           width: "140px",
         },
-        { key: "meet_link", label: this.$t("cf.meet_link"), width: "80px" },
+        { key: "meet_link", label: this.$t("cf.meet_link"), width: "80px", priority: 2 },
       ];
     },
     paginationState() {
@@ -216,10 +213,11 @@ export default {
     this.fetchBookings();
   },
   methods: {
+    safeHref,
     leadStatusLabel,
     leadStatusVariant,
     formatDateTime(iso) {
-      if (!iso) return "---";
+      if (!iso) return "—";
       const d = new Date(iso);
       return d.toLocaleString("en-GB", {
         day: "2-digit",
@@ -233,6 +231,19 @@ export default {
       this.channelFilter = value;
       this.currentPage = 1;
       this.fetchBookings();
+    },
+    onDateFrom(value) {
+      this.dateFrom = value;
+      this.searchAndFetch();
+    },
+    onDateTo(value) {
+      this.dateTo = value;
+      this.searchAndFetch();
+    },
+    clearDates() {
+      this.dateFrom = "";
+      this.dateTo = "";
+      this.searchAndFetch();
     },
     onLeadStatusFilter(value) {
       this.leadStatusFilter = value;
@@ -281,10 +292,18 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .cf-list__search {
   flex: 1;
   max-width: 400px;
   min-width: 150px;
+
+  // A phone gives the search its own row above the filters.
+  @include max-tablet {
+    flex-basis: 100%;
+    max-width: none;
+  }
 }
 
 .cf-list__filter {
@@ -293,33 +312,9 @@ export default {
   flex-shrink: 0;
 }
 
-.cf-list__date-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: var(--fs-200);
-}
-
-.cf-list__date-label {
-  color: var(--c-basic-500);
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.cf-list__date-input {
-  height: var(--elem-height);
-  padding: 0 var(--space-100);
-  border: 1px solid var(--c-basic-400);
-  border-radius: var(--space-50);
-  background: var(--c-basic-100);
-  color: var(--c-basic-800);
-  font-size: var(--fs-300);
-  min-width: 150px;
-}
-
-.cf-list__date-input:focus {
-  outline: none;
-  border-color: var(--c-support-400);
+// The captions name the groups in the phone panel; the desktop row has the chip group's name and the placeholder.
+.mobile-filter-panel__desktop .cf-list__caption {
+  display: none;
 }
 
 .cf-list__meet-link {
@@ -328,18 +323,12 @@ export default {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-sm);
-  color: var(--c-support-400);
+  border-radius: var(--radius-base);
+  color: var(--text-accent);
   text-decoration: none;
 }
 
 .cf-list__meet-link:hover {
-  background: var(--c-basic-200);
-}
-
-@media only screen and (max-width: 768px) {
-  .cf-booking-list__wrapper {
-    padding: 16px !important;
-  }
+  background: var(--surface-raised);
 }
 </style>

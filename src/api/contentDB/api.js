@@ -1,3 +1,4 @@
+import axios from "axios";
 import { api } from "./client";
 
 import { PWATrimmerNormalizer } from "../../utils/normalizers/content-normalizers";
@@ -22,22 +23,8 @@ const accounts = `/api/accounts/v1/${_CHANNEL ?? ''}`;
 export const POST_Login = async ({ username = null, password = null }) => {
   const url = `${accounts}/customer/tokens/`;
 
-  return api.post(url, { email: username, password });
-};
-//
-//
-//
-//
-// -------------------------------------------------------------------------------------------------
-//
-//
-//
-//
-// --- AUTH -------------- LOGIN
-export const POST_refreshToken = async ({ refresh = null }) => {
-  const url = `${accounts}/customer/tokens/refresh/`;
-
-  return api.post(url, { refresh });
+  // `sensitive`: the password and the answered token pair stay out of the debug log (createClient).
+  return api.post(url, { email: username, password }, { sensitive: true });
 };
 //
 //
@@ -49,10 +36,11 @@ export const POST_refreshToken = async ({ refresh = null }) => {
 //
 //
 // --- AUTH -------------- LOGOUT
-export const POST_Logout = async ({ refresh = null }) => {
-  const url = `${accounts}/customer/tokens/blacklist/`;
+// Plain axios, never `api`: its refresh interceptors would refresh the very session this request ends.
+export const POST_Logout = async ({ access, refresh }) => {
+  const url = `${process.env.VUE_APP_API_URL}${accounts}/customer/tokens/blacklist/`;
 
-  return api.post(url, { refresh });
+  return axios.post(url, { refresh }, { headers: { Authorization: `Bearer ${access}` }, timeout: 5000 });
 };
 //
 //
@@ -293,9 +281,9 @@ export const DELETE_Published = async ({
 //
 //
 // -- get DOCUMENT TYPE
-export const GET_ContentTypes = async ({ CDB_TYPE = "content" }) => {
+export const GET_ContentTypes = async ({ CDB_TYPE = "content", page, limit }) => {
   const url = `${contentDb}/${CDB_TYPE}-types/`;
-  return api.get(url);
+  return api.get(url, { params: { page, limit } });
 };
 //
 //

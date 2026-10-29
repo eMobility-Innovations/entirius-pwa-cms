@@ -4,11 +4,11 @@
       <h3 class="fs-300 fw-600 m-0">
         {{ $t("atlas.products.drawer.timeline_title") }}
       </h3>
-      <span v-if="!loading && entries.length" class="fs-200 t-basic-500">
+      <span v-if="!loading && entries.length" class="fs-200 t-muted">
         {{ $t("atlas.products.drawer.timeline_count", { count: entries.length }) }}
       </span>
     </header>
-    <Loader v-if="loading" />
+    <Loader block v-if="loading" />
     <SupplierTimeline v-else :entries="entries" />
   </section>
 </template>
@@ -56,15 +56,15 @@ export default {
 
 <style lang="scss" scoped>
 .sp-timeline-section {
-  margin-top: var(--space-300);
-  padding-top: var(--space-300);
-  border-top: 1px solid var(--c-basic-200);
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-subtle);
 }
 .sp-timeline-section__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-200);
-  margin-bottom: var(--space-100);
+  gap: var(--space-5);
+  margin-bottom: var(--space-2);
 }
 </style>

@@ -23,6 +23,8 @@ vi.mock("@/api/enrichment/api", () => ({
 const { spawnNotification } = vi.hoisted(() => ({
   spawnNotification: vi.fn(),
 }));
+// The run labels (useRunLabels) are not under test here.
+vi.mock("@/views/EnrichmentReview/useRunLabels", () => ({ useRunLabels: () => ({ labels: {}, load: () => Promise.resolve() }) }));
 vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification }),
 }));
@@ -68,7 +70,7 @@ const appliedRow = {
 describe("EnrichmentReview bulk undo (etap-09)", () => {
   it("ListMode shows the undo button for applied rows and emits bulk-undo", async () => {
     const w = mount(ListMode, {
-      props: { rows: [appliedRow], totalCount: 1 },
+      props: { rows: [appliedRow], totalCount: 1, statusFilter: "applied" },
       global: { stubs },
     });
     const undo = w.find('[data-testid="enrichment-undo"]');

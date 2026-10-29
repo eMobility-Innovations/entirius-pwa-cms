@@ -1,15 +1,15 @@
 <template>
-  <div class="pim-list-layout p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 flex-1 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("pim.products") }}</h1>
-      </div>
+  <PageLayout class="pim-list-layout fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pim.products')">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
+      </PageHeader>
+    </template>
 
-      <GapStatusAlert v-if="hasQualityData" compact />
-
-      <div class="product-list__toolbar">
+    <template #toolbar>
+      <div class="flex ai-ct flex-wrap gap-5">
         <BasicInput
           v-model="search"
           :placeholder="$t('common.start_typing')"
@@ -17,100 +17,90 @@
           class="product-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
-        <button
-          class="product-list__filter-toggle"
-          @click="filtersExpanded = !filtersExpanded"
-        >
-          <FontAwesomeIcon icon="filter" />
-          <span v-if="dropdownFilterCount" class="product-list__filter-badge">{{
-            dropdownFilterCount
-          }}</span>
-        </button>
-        <button
+        <MobileFilterPanel :active-count="dropdownFilterCount" :trigger-label="$t('pim.filters')">
+          <div class="product-list__filter-group product-list__filter-group--chips">
+            <FilterChip
+              v-for="tab in filterTabs"
+              :key="tab.key"
+              :label="tab.label"
+              :active="activeFilter === tab.key"
+              @click="setFilter(tab.key)"
+            />
+          </div>
+          <div class="product-list__filter-group">
+            <BasicSelect
+              :floating-label="$t('pim.visibility')"
+              :options="visibilityOptions"
+              :model-value="visibilityFilter"
+              class="product-list__filter-dropdown"
+              @update:model-value="onVisibilitySelect"
+            />
+            <BasicSelect
+              :floating-label="$t('pim.product_class')"
+              :options="productClassOptions"
+              :model-value="productClassFilter"
+              class="product-list__filter-dropdown"
+              @update:model-value="onProductClassSelect"
+            />
+            <BasicSelect
+              :floating-label="$t('pim.categories')"
+              :options="categoryOptions"
+              :model-value="categoryFilter"
+              class="product-list__filter-dropdown"
+              @update:model-value="onCategorySelect"
+            />
+            <BasicSelect
+              v-for="feat in filterableFeatures"
+              :key="feat.idx"
+              :floating-label="feat.name"
+              :options="featureFilterOptions(feat)"
+              :model-value="attributeFilters[feat.idx] ?? ''"
+              class="product-list__filter-dropdown"
+              @update:model-value="(val) => onAttributeFilter(feat.idx, val)"
+            />
+          </div>
+          <div v-if="hasQualityData" class="product-list__filter-group">
+            <span class="t-muted fs-200">{{ $t("pim.quality_filter_label") }}</span>
+            <FilterChip
+              :label="$t('pim.quality_only_critical')"
+              :title="$t('pim.quality_only_critical_hint')"
+              :active="gapSeverityFilter === 'critical'"
+              data-test="quality-only-critical"
+              @click="toggleOnlyCritical"
+            />
+            <FilterChip
+              :label="$t('pim.quality_only_source')"
+              :title="$t('pim.quality_only_source_hint')"
+              :active="onlySourceGaps"
+              data-test="quality-only-source"
+              @click="toggleOnlySource"
+            />
+          </div>
+          <BasicButton
+            v-if="dropdownFilterCount"
+            variant="ghost"
+            size="sm"
+            @click="clearAllDropdownFilters"
+          >
+            {{ $t("pim.clear_filters") }}
+          </BasicButton>
+        </MobileFilterPanel>
+        <IconButton
           v-if="hasQualityData"
-          class="product-list__filter-toggle"
-          :class="{ 'is-off': hideQualitySensor }"
-          :title="$t('pim.quality_hide_sensor')"
+          :icon="hideQualitySensor ? 'hide' : 'preview'"
+          variant="outline"
+          :pressed="!hideQualitySensor"
+          :label="$t('pim.quality_show_sensor')"
           data-test="quality-toggle"
           @click="toggleQualitySensor"
-        >
-          <FontAwesomeIcon :icon="hideQualitySensor ? 'eye-slash' : 'eye'" />
-        </button>
-        <div class="flex-1" />
-        <span v-if="totalCount > 0" class="fs-200 t-basic-500"
+        />
+        <span v-if="totalCount > 0" class="fs-200 t-muted ml-auto"
           >{{ totalCount }} {{ $t("pim.products").toLowerCase() }}</span
         >
       </div>
+    </template>
 
-      <div v-show="filtersExpanded" class="product-list__filters">
-        <div class="product-list__filter-chips">
-          <FilterChip
-            v-for="tab in filterTabs"
-            :key="tab.key"
-            :label="tab.label"
-            :active="activeFilter === tab.key"
-            @click="setFilter(tab.key)"
-          />
-        </div>
-        <Dropdown
-          :values="visibilityOptions"
-          :selected="visibilityFilter ? [visibilityFilter] : []"
-          :placeholder="$t('pim.all_visibilities')"
-          class="product-list__filter-dropdown"
-          @onSelect="onVisibilitySelect"
-        />
-        <Dropdown
-          :values="productClassOptions"
-          :selected="productClassFilter ? [productClassFilter] : []"
-          :placeholder="$t('pim.all_classes')"
-          class="product-list__filter-dropdown"
-          @onSelect="onProductClassSelect"
-        />
-        <Dropdown
-          :values="categoryOptions"
-          :selected="categoryFilter ? [categoryFilter] : []"
-          :placeholder="$t('pim.all_categories')"
-          class="product-list__filter-dropdown"
-          @onSelect="onCategorySelect"
-        />
-        <Dropdown
-          v-for="feat in filterableFeatures"
-          :key="feat.idx"
-          :values="featureFilterOptions(feat)"
-          :selected="
-            attributeFilters[feat.idx] ? [attributeFilters[feat.idx]] : []
-          "
-          :placeholder="feat.name"
-          class="product-list__filter-dropdown"
-          @onSelect="(val) => onAttributeFilter(feat.idx, val)"
-        />
-        <template v-if="hasQualityData">
-          <span class="product-list__quality-filter-label t-basic-500 fs-200">
-            {{ $t("pim.quality_filter_label") }}
-          </span>
-          <FilterChip
-            :label="$t('pim.quality_only_critical')"
-            :title="$t('pim.quality_only_critical_hint')"
-            :active="gapSeverityFilter === 'critical'"
-            data-test="quality-only-critical"
-            @click="toggleOnlyCritical"
-          />
-          <FilterChip
-            :label="$t('pim.quality_only_source')"
-            :title="$t('pim.quality_only_source_hint')"
-            :active="onlySourceGaps"
-            data-test="quality-only-source"
-            @click="toggleOnlySource"
-          />
-        </template>
-        <button
-          v-if="dropdownFilterCount"
-          class="product-list__clear-filters"
-          @click="clearAllDropdownFilters"
-        >
-          {{ $t("pim.clear_filters") }}
-        </button>
-      </div>
+      <GapStatusAlert v-if="hasQualityData" compact />
 
       <BulkActionBar
         v-if="selectedProducts.length"
@@ -121,10 +111,12 @@
         @action="handleBulkAction"
         @clear="clearSelection"
       />
+      <AiToolboxHint v-if="selectedProducts.length && aiWritable && !aiUsable" />
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="products"
@@ -147,8 +139,8 @@
             />
             <FontAwesomeIcon
               v-else
-              icon="image"
-              class="product-thumb__placeholder t-basic-400"
+              :icon="$icons.image"
+              class="product-thumb__placeholder t-muted"
             />
           </div>
         </template>
@@ -156,119 +148,111 @@
           {{ row.name || row.sku }}
         </template>
         <template #cell-product_class_name="{ row }">
-          <span
+          <StatusBadge
             v-if="row.product_class_name"
-            class="chip"
-            :class="productClassBadge(row.product_class_name)"
-          >
-            {{ productClassLabel(row.product_class_name) }}
-          </span>
-          <span v-else class="t-basic-400">---</span>
+            :tone="productClassTone(row.product_class_name)"
+            :dot="false"
+            :label="productClassLabel(row.product_class_name)"
+          />
+          <span v-else class="t-muted">—</span>
         </template>
         <template #cell-is_enabled="{ value }">
           <StatusBadge
             :label="value ? $t('pim.enabled') : $t('pim.disabled')"
-            :variant="value ? 'positive' : 'negative'"
+            :tone="value ? 'positive' : 'negative'"
           />
         </template>
         <template #cell-supplier_status="{ row }">
-          <span
+          <BasicButton
             v-if="supplierStatusMap[row.sku]?.unseen_count > 0"
-            class="product-list__supplier-badge"
-            role="button"
-            tabindex="0"
+            variant="ghost"
+            size="sm"
             :title="$t('pim.badge_updated_title')"
-            @click.stop="onSupplierBadgeClick(row.sku)"
-            @keydown.enter.stop.prevent="onSupplierBadgeClick(row.sku)"
+            @click="onSupplierBadgeClick(row.sku)"
           >
-            <StatusBadge :label="$t('pim.badge_updated')" variant="warning" />
-          </span>
+            <StatusBadge :label="$t('pim.badge_updated')" tone="warning" />
+          </BasicButton>
         </template>
         <template #cell-quality="{ row }">
-          <div class="product-list__quality" data-test="quality-cell">
-            <button
+          <!-- The findings panel lives inside the row: its clicks must not select or open the row. -->
+          <div data-test="quality-cell" @click.stop>
+            <BasicMenu
               v-if="qualityState(row) === 'gaps' && (!qualityFilterActive || qualityFindings(row).length)"
-              type="button"
-              class="product-list__quality-toggle"
-              :aria-expanded="qualityPopover.pk === String(row.pk)"
-              :title="$t('pim.quality_show_details')"
-              data-test="quality-toggle-row"
-              @click.stop="toggleQualityPopover(row, $event)"
+              :label="$t('pim.quality_show_details')"
+              data-test="quality-menu"
             >
-              <StatusBadge
-                :label="String(qualityFilterActive ? qualityFindings(row).length : row.gap_count)"
-                :variant="qualityVariant(row)"
-              />
-              <FontAwesomeIcon
-                :icon="qualityPopover.pk === String(row.pk) ? 'chevron-up' : 'chevron-down'"
-                class="product-list__quality-caret fs-100 t-basic-500"
-              />
-            </button>
+              <template #trigger="{ open }">
+                <BasicButton
+                  variant="ghost"
+                  size="sm"
+                  :title="$t('pim.quality_show_details')"
+                  data-test="quality-toggle-row"
+                >
+                  <StatusBadge
+                    :label="String(qualityFilterActive ? qualityFindings(row).length : row.gap_count)"
+                    :tone="qualityVariant(row)"
+                  />
+                  <FontAwesomeIcon
+                    :icon="open ? $icons.collapse : $icons.expand"
+                    class="fs-200 t-muted"
+                  />
+                </BasicButton>
+              </template>
+              <template #panel>
+                <ul class="product-list__gaps p-2" data-test="quality-popover">
+                  <li
+                    v-for="(f, i) in (qualityMap[String(row.pk)] || [])"
+                    :key="i"
+                    class="product-list__gap"
+                  >
+                    <span class="t-body">{{ gapLabel(f) }}</span>
+                    <Tag v-if="f.language" :label="f.language.toUpperCase()" />
+                    <span v-if="f.inherited" class="product-list__gap-inherited t-muted">
+                      {{ $t("pim.quality_fix_on", { channel: f.source_channel }) }}
+                    </span>
+                  </li>
+                </ul>
+              </template>
+            </BasicMenu>
             <StatusBadge
               v-else-if="qualityState(row) === 'unevaluated'"
               :label="$t('pim.quality_unevaluated')"
-              variant="neutral"
+              tone="neutral"
             />
-            <span v-else class="t-basic-400 fs-200">{{ $t("pim.quality_ok") }}</span>
+            <span v-else class="t-muted fs-200">{{ $t("pim.quality_ok") }}</span>
           </div>
         </template>
       </DataTable>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-    <Pagination
-      v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      class="mt-200"
-      @onChangePage="onPageChange"
+    <template v-if="totalCount > pageSize" #footer>
+      <Pagination
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
+
+    <PimTranslateDialog
+      v-model:open="showTranslateDialog"
+      scope="product"
+      :channel-idx="channelIdx"
+      :entity-ids="translateEntityIds"
     />
 
-    <TranslateDialog
-      :visible="showTranslateDialog"
-      :channelIdx="channelIdx"
-      entityType="product"
-      :entityIds="translateEntityIds"
-      :title="translateDialogTitle"
-      @close="showTranslateDialog = false"
-      @translated="showTranslateDialog = false"
+    <RunAiTaskDialog
+      v-if="aiWritable"
+      :open="aiDialogOpen"
+      :workers="aiWorkers"
+      :templates="aiTemplates"
+      :initial-template="aiTemplate"
+      :skus="aiSkus"
+      @close="aiDialogOpen = false"
+      @created="onSpawned"
+      @template-saved="reloadAiTemplates"
     />
 
-    <SpawnDialog
-      :visible="showSpawnDialog"
-      :skus="spawnSkus"
-      :filter-params="spawnFilterParams"
-      @close="showSpawnDialog = false"
-      @spawned="onSpawned"
-    />
-
-    <!-- Quality findings bubble — floats over the table (teleported to body) so revealing
-         details never reflows the row. Closed by clicking elsewhere or scrolling. -->
-    <Teleport to="body">
-      <div
-        v-if="qualityPopover.pk"
-        class="quality-popover bg-basic-100 b-basic-300 ba-100"
-        :style="{ top: qualityPopover.top + 'px', left: qualityPopover.left + 'px' }"
-        data-test="quality-popover"
-        @click.stop
-      >
-        <ul class="product-list__gaps">
-          <li
-            v-for="(f, i) in (qualityMap[qualityPopover.pk] || [])"
-            :key="i"
-            class="product-list__gap"
-          >
-            <span class="product-list__gap-label">{{ gapLabel(f) }}</span>
-            <span v-if="f.language" class="product-list__gap-lang">{{
-              f.language
-            }}</span>
-            <span v-if="f.inherited" class="product-list__gap-inherited t-basic-500">
-              {{ $t("pim.quality_fix_on", { channel: f.source_channel }) }}
-            </span>
-          </li>
-        </ul>
-      </div>
-    </Teleport>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -294,9 +278,13 @@ import {
   resolveGapLabel,
   findingsParams,
 } from "./quality";
-import SpawnDialog from "./components/enrichment/SpawnDialog.vue";
+import RunAiTaskDialog from "./components/enrichment/RunAiTaskDialog.vue";
+import { useAiWorkers } from "./components/enrichment/useAiWorkers";
+
+import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import GapStatusAlert from "./components/GapStatusAlert.vue";
-import TranslateDialog from "./components/TranslateDialog.vue";
+import PimTranslateDialog from "./components/PimTranslateDialog.vue";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 const HIDE_QUALITY_KEY = "pim_hide_quality_sensor";
@@ -309,16 +297,29 @@ function readHideQualitySensor() {
   }
 }
 
+// The AI bulk action's "Custom…" entry (a worker picked in the dialog) beside the templates.
+const CUSTOM_RUN = "__custom";
+
 export default {
   name: "ProductList",
-  components: { SpawnDialog, GapStatusAlert, TranslateDialog },
+  components: { RunAiTaskDialog, AiToolboxHint, GapStatusAlert, PimTranslateDialog, PimChannelSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
     const pimChannel = usePimChannelStore();
     const munin = useMuninStore();
     const { search, debouncedFetch } = useSearchDebounce();
-    return { loader, notify, pimChannel, munin, search, debouncedFetch };
+    const {
+      workers: aiWorkers,
+      templates: aiTemplates,
+      writable: aiWritable,
+      usable: aiUsable,
+      reloadTemplates: reloadAiTemplates,
+    } = useAiWorkers();
+    return {
+      loader, notify, pimChannel, munin, search, debouncedFetch,
+      aiWorkers, aiTemplates, aiWritable, aiUsable, reloadAiTemplates,
+    };
   },
   data() {
     return {
@@ -336,20 +337,17 @@ export default {
       categories: [],
       filterableFeatures: [],
       attributeFilters: {},
-      filtersExpanded: false,
       showTranslateDialog: false,
-      translateEntityIds: null,
-      translateDialogTitle: "",
+      translateEntityIds: [],
       supplierStatusMap: {},
       qualityMap: {},
-      qualityPopover: { pk: null, top: 0, left: 0 },
       hasQualityData: false,
       hideQualitySensor: readHideQualitySensor(),
       gapSeverityFilter: null,
       onlySourceGaps: false,
-      showSpawnDialog: false,
-      spawnSkus: [],
-      spawnFilterParams: {},
+      aiDialogOpen: false,
+      aiTemplate: "",
+      aiSkus: [],
     };
   },
   computed: {
@@ -362,9 +360,6 @@ export default {
     hasSuppliersPanel() {
       return this.munin.isPanelEnabled("atlas");
     },
-    hasEnricherPanel() {
-      return this.munin.isPanelEnabled("enricher");
-    },
     showQualityColumn() {
       return this.hasQualityData && !this.hideQualitySensor;
     },
@@ -376,7 +371,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("pim.create_product"),
           handler: () => this.$router.push("/pim/products/create"),
         },
@@ -395,12 +390,11 @@ export default {
         {
           key: "enable",
           labelKey: "pim.enable_all",
-          buttonClass: "bg-positive-200 t-basic-100",
         },
         {
           key: "disable",
           labelKey: "pim.disable_all",
-          buttonClass: "bg-negative-200 t-basic-100",
+          variant: "danger",
         },
         {
           key: "visibility",
@@ -413,43 +407,49 @@ export default {
           ],
         },
       ];
-      if (this.hasEnricherPanel) {
+      if (this.aiWritable && this.aiUsable && this.aiWorkers.length) {
         actions.push({
-          key: "send_to_enrichment",
-          labelKey: "enrichment.spawn.send_selected",
-          buttonClass: "bg-support-100 t-support-400",
+          key: "ai_task",
+          labelKey: "enrichment.ai.menu",
+          options: [
+            ...this.aiTemplates.map((template) => ({ label: template.label, value: template.key })),
+            { label: this.$t("enrichment.run.custom"), value: CUSTOM_RUN },
+          ],
         });
       }
       if (this.translatorAvailable) {
         actions.push({
           key: "translate",
           labelKey: "pim.translate",
-          buttonClass: "bg-support-400 t-basic-100",
         });
       }
       return actions;
     },
     columns() {
       const cols = [
-        { key: "thumbnail", label: "", sortable: false, width: "60px" },
-        { key: "sku", label: "SKU", sortable: true, width: "1fr" },
+        { key: "thumbnail", label: "", sortable: false, width: "60px", priority: 2 },
+        { key: "sku", label: "SKU", sortable: true, width: "180px", priority: 2 },
         {
           key: "name",
           label: this.$t("pim.name"),
           sortable: false,
           width: "2fr",
+          truncate: true,
+          title: (row) => row.name || row.sku,
         },
         {
           key: "product_class_name",
           label: this.$t("pim.product_class"),
           sortable: false,
           width: "120px",
+          priority: 2,
         },
         {
           key: "visibility",
           label: this.$t("pim.visibility"),
           sortable: true,
           width: "1fr",
+          priority: 2,
         },
         {
           key: "is_enabled",
@@ -463,7 +463,8 @@ export default {
           key: "quality",
           label: this.$t("pim.quality_column"),
           sortable: true,
-          width: "220px",
+          width: "130px",
+          priority: 2,
         });
       }
       if (this.hasSuppliersPanel) {
@@ -472,6 +473,7 @@ export default {
           label: this.$t("pim.tab_supplier"),
           sortable: false,
           width: "110px",
+          priority: 2,
         });
       }
       return cols;
@@ -533,9 +535,6 @@ export default {
     this.fetchCategories();
     this.fetchFilterableFeatures();
     this.fetchProducts();
-  },
-  beforeUnmount() {
-    this.closeQualityPopover();
   },
   methods: {
     async fetchProducts() {
@@ -772,26 +771,6 @@ export default {
     qualityFindings(row) {
       return this.qualityMap[String(row.pk)] || [];
     },
-    // The cell shows only the gap-count badge; clicking it pops a bubble with the findings,
-    // positioned from the badge's viewport rect (fixed, teleported) so the row never reflows.
-    toggleQualityPopover(row, event) {
-      const key = String(row.pk);
-      if (this.qualityPopover.pk === key) {
-        this.closeQualityPopover();
-        return;
-      }
-      const rect = event.currentTarget.getBoundingClientRect();
-      const left = Math.min(rect.left, window.innerWidth - 248);
-      this.qualityPopover = { pk: key, top: rect.bottom + 4, left: Math.max(8, left) };
-      window.addEventListener("click", this.closeQualityPopover);
-      window.addEventListener("scroll", this.closeQualityPopover, true);
-    },
-    closeQualityPopover() {
-      if (!this.qualityPopover.pk) return;
-      this.qualityPopover = { pk: null, top: 0, left: 0 };
-      window.removeEventListener("click", this.closeQualityPopover);
-      window.removeEventListener("scroll", this.closeQualityPopover, true);
-    },
     gapLabel(finding) {
       return resolveGapLabel(finding, getLang());
     },
@@ -800,9 +779,6 @@ export default {
     },
     openTranslateSelected() {
       this.translateEntityIds = this.selectedProducts.map((p) => p.id);
-      this.translateDialogTitle = this.$t("pim.translate_selected", {
-        count: this.selectedProducts.length,
-      });
       this.showTranslateDialog = true;
     },
     handleBulkAction(actionKey, value) {
@@ -810,28 +786,12 @@ export default {
       if (actionKey === "enable") return this.doBulkUpdate({ is_enabled: true });
       if (actionKey === "disable") return this.doBulkUpdate({ is_enabled: false });
       if (actionKey === "visibility") return this.doBulkUpdate({ visibility: value });
-      if (actionKey === "send_to_enrichment") return this.openSpawnDialog();
+      if (actionKey === "ai_task") return this.openAiTask(value);
     },
-    // Filter snapshot mirrors fetchProducts() so the spawn dialog can offer a
-    // "send all matching current filter" scope (scope_spec mode:filter).
-    currentFilterParams() {
-      const params = {};
-      if (this.search) params.search = this.search;
-      if (this.activeFilter === "enabled") params.is_enabled = true;
-      else if (this.activeFilter === "disabled") params.is_enabled = false;
-      else if (this.activeFilter === "no_media") params.has_media = false;
-      if (this.visibilityFilter) params.visibility = this.visibilityFilter;
-      if (this.productClassFilter) params.product_class = this.productClassFilter;
-      if (this.categoryFilter) params.category = this.categoryFilter;
-      for (const [featureIdx, attrIdx] of Object.entries(this.attributeFilters)) {
-        params[`attr_${featureIdx}`] = attrIdx;
-      }
-      return params;
-    },
-    openSpawnDialog() {
-      this.spawnSkus = this.selectedProducts.map((p) => p.sku);
-      this.spawnFilterParams = this.currentFilterParams();
-      this.showSpawnDialog = true;
+    openAiTask(templateKey) {
+      this.aiTemplate = templateKey === CUSTOM_RUN ? "" : templateKey;
+      this.aiSkus = this.selectedProducts.map((p) => p.sku);
+      this.aiDialogOpen = true;
     },
     onSpawned() {
       this.selectedProducts = [];
@@ -871,172 +831,52 @@ export default {
       };
       return map[name?.toLowerCase()] || this.$t("pim.type_custom");
     },
-    productClassBadge(name) {
+    productClassTone(name) {
       const map = {
-        productbase: "bg-basic-200 t-basic-600",
-        productsimple: "bg-support-100 t-support-400",
-        productconfigurable: "bg-primary-100 t-primary-300",
-        productbundle: "bg-warning-100 t-warning-300",
+        productbase: "neutral",
+        productsimple: "accent",
+        productconfigurable: "accent",
+        productbundle: "warning",
       };
-      return map[name?.toLowerCase()] || "bg-basic-200 t-basic-600";
+      return map[name?.toLowerCase()] || "neutral";
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .pim-list-layout {
   display: flex;
   flex-direction: column;
-}
-.product-list__toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
-  flex-wrap: wrap;
 }
 .product-list__search {
   flex: 0 1 300px;
   min-width: 150px;
 }
-.product-list__filter-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  position: relative;
-  padding: 0 12px;
-  height: var(--elem-height);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
-  background: var(--c-basic-100);
-  color: var(--c-basic-700);
-  cursor: pointer;
-  font-size: var(--fs-300);
 
-  &:hover {
-    background: var(--c-basic-200);
-  }
-}
-
-.product-list__filter-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  background: var(--c-primary-200);
-  color: var(--c-basic-100);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.product-list__filters {
+// Filter groups sit apart (B-59): chips, selects and the quality filters read as three groups.
+.product-list__filter-group {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
-  padding: var(--space-300);
-  background: var(--c-basic-200);
-  border-radius: var(--radius-md);
+  gap: var(--space-2);
+  margin-right: var(--space-4);
 }
 
-.product-list__filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-100);
-  flex-basis: 100%;
+// The selects below carry floating labels: the chip row keeps clear of them when the toolbar wraps.
+.product-list__filter-group--chips {
+  margin-bottom: var(--space-6);
 }
 
 .product-list__filter-dropdown {
-  flex: 0 0 auto;
   min-width: 140px;
   max-width: 200px;
-}
 
-.product-list__clear-filters {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  height: var(--elem-height);
-  border: none;
-  border-radius: var(--radius-md);
-  background: none;
-  color: var(--c-negative-300);
-  cursor: pointer;
-  font-size: var(--fs-200);
-  font-weight: 600;
-
-  &:hover {
-    background: var(--c-negative-100);
-  }
-}
-
-@media only screen and (max-width: 768px) {
-  .product-list__filters {
-    flex-direction: column;
-    max-height: 50vh;
-    overflow-y: auto;
-  }
-
-  .product-list__filter-dropdown {
+  @include max-tablet {
     max-width: none;
   }
-}
-
-.product-list__supplier-badge {
-  display: inline-flex;
-  cursor: pointer;
-  outline: none;
-
-  &:focus-visible {
-    box-shadow: 0 0 0 2px var(--c-primary-200);
-    border-radius: var(--radius-sm);
-  }
-}
-
-.product-list__filter-toggle.is-off {
-  color: var(--c-basic-400);
-}
-
-.product-list__quality {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-50);
-}
-
-.product-list__quality-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-50);
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  align-self: flex-start;
-}
-
-.product-list__quality-caret {
-  transition: transform 0.15s ease;
-}
-
-.product-list__quality-filter-label {
-  align-self: center;
-  margin-left: var(--space-100);
-  white-space: nowrap;
-}
-
-.quality-popover {
-  position: fixed;
-  z-index: 1000;
-  min-width: 180px;
-  max-width: 240px;
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
 }
 
 .product-list__gaps {
@@ -1045,28 +885,15 @@ export default {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-50);
+  gap: var(--space-1);
 }
 
 .product-list__gap {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-50);
+  gap: var(--space-1);
   font-size: var(--fs-200);
-}
-
-.product-list__gap-label {
-  color: var(--c-basic-700);
-}
-
-.product-list__gap-lang {
-  padding: 0 6px;
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-200);
-  color: var(--c-basic-600);
-  font-size: 11px;
-  text-transform: uppercase;
 }
 
 .product-list__gap-inherited {
@@ -1076,12 +903,12 @@ export default {
 .product-thumb {
   width: 40px;
   height: 40px;
-  border-radius: 4px;
+  border-radius: var(--radius-base);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--c-basic-200);
+  background: var(--surface-raised);
 
   &__img {
     width: 100%;
@@ -1090,7 +917,7 @@ export default {
   }
 
   &__placeholder {
-    font-size: 14px;
+    font-size: var(--fs-300);
   }
 }
 </style>

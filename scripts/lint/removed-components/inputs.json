@@ -1,0 +1,5 @@
+{
+  "Switcher": "BasicSwitch",
+  "TextAreaBasic": "BasicTextarea",
+  "LockedField": "BasicInput readonly"
+}

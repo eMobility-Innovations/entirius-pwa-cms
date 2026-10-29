@@ -1,6 +1,6 @@
 <template>
   <section aria-labelledby="assignments-title">
-    <h2 id="assignments-title">{{ $t("access.grants") }}</h2>
+    <h2 id="assignments-title">{{ $t("access.matrix_labels.grants") }}</h2>
     <p v-if="loading" role="status">{{ $t("access.loading_grants") }}</p>
     <p v-if="error" class="access-error" role="alert" data-test="error">
       {{ error }}
@@ -31,7 +31,7 @@
             <em v-if="g.grantee_type === 'group' && !g.name_resolved">{{
               $t("access.unresolved_group")
             }}</em>
-            <button
+            <BasicButton mutates size="sm" variant="ghost"
               v-if="canWrite"
               :disabled="busy"
               :data-test="`revoke-${g.id}`"
@@ -44,7 +44,7 @@
               @click="revoke(g.id)"
             >
               ×
-            </button>
+            </BasicButton>
           </span>
           <span
             v-if="!loading && !error && !grants.some((g) => g.role === role)"
@@ -121,6 +121,7 @@
   </section>
 </template>
 <script setup>
+import BasicButton from "@/boots/BasicButton/index.vue";
 import { ref, onMounted, inject, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useAccessMatrixStore } from "@/stores/accessMatrix";

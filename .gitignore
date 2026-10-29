@@ -34,3 +34,8 @@ __client
 /test-results/
 /playwright-report/
 /playwright/.cache/
+tests/visual/.report/
+tests/visual/test-results/
+
+# Docs captures
+tests/docs/test-results/

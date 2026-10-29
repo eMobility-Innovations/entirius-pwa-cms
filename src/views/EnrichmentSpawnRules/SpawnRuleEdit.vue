@@ -1,118 +1,121 @@
 <template>
-  <div class="spawn-rule-edit p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div class="bg-basic-100 b-basic-300 br-50 flex-1 ovy-auto p-500">
-      <div class="flex ai-ct gap-200 mb-400">
-        <BasicButton
-          text=""
-          icon="arrow-left"
-          class="bg-basic-200 t-basic-600"
-          @click="$router.push('/enrichment/spawn-rules')"
-        />
-        <h1 class="fs-700 fw-600 m-0">
-          {{ isCreate ? $t("enrichment.spawn_rules.create") : form.key }}
-        </h1>
-        <div class="flex ai-ct gap-200 ml-auto">
-          <BasicButton
-            v-if="!isCreate"
-            :text="$t('enrichment.spawn_rules.run_now')"
-            class="bg-basic-200 t-basic-600"
-            data-test="spawn-rule-run-btn"
-            @click="runRule"
-          />
-          <BasicButton
-            v-if="!isCreate"
-            text=""
-            icon="trash-can"
-            class="bg-negative-100 t-negative-300"
-            data-test="spawn-rule-delete-btn"
-            @click="showDeleteConfirm = true"
-          />
-          <BasicButton
-            :text="$t('common.save')"
-            class="bg-support-400 t-basic-100"
-            data-test="spawn-rule-save-btn"
-            @click="save"
-          />
-        </div>
-      </div>
+  <PageLayout class="spawn-rule-edit fs-300 t-body">
+    <template #header>
+      <PageHeader
+        :title="isCreate ? $t('enrichment.spawn_rules.create') : String(form.key || '')"
+        :back="{ name: 'EnrichmentSpawnRules' }"
+      >
+        <template v-if="!loading" #actions>
+          <ActionBar>
+            <IconButton
+              v-if="!isCreate"
+              icon="delete"
+              :label="$t('common.delete')"
+              variant="danger"
+              data-test="spawn-rule-delete-btn"
+              @click="showDeleteConfirm = true"
+            />
+            <BasicButton mutates
+              v-if="!isCreate"
+              variant="secondary"
+              data-test="spawn-rule-run-btn"
+              @click="runRule"
+            >
+              {{ $t('enrichment.spawn_rules.run_now') }}
+            </BasicButton>
+            <BasicButton mutates
+              variant="primary"
+              data-test="spawn-rule-save-btn"
+              @click="save"
+            >
+              {{ $t('common.save') }}
+            </BasicButton>
+          </ActionBar>
+        </template>
+      </PageHeader>
+    </template>
 
-      <Loader v-if="loading" />
+      <Loader block v-if="loading" />
 
       <template v-else>
         <div class="spawn-rule-grid">
           <FormField
             :label="$t('enrichment.spawn_rules.col_key')"
-            :tooltip="$t('enrichment.spawn_rules.key_hint')"
+            :required="isCreate"
+            hint-level="important"
+            :hint="$t('enrichment.spawn_rules.key_hint')"
             :error="fieldErr('key')"
           >
-            <BasicInput v-model="form.key" :isDisabled="!isCreate" data-test="spawn-rule-key" />
+            <BasicInput v-model="form.key" :maxlength="64" :disabled="!isCreate" data-test="spawn-rule-key" />
           </FormField>
 
           <FormField
             :label="$t('enrichment.spawn_rules.col_module')"
-            :tooltip="$t('enrichment.spawn_rules.module_hint')"
+            :hint="$t('enrichment.spawn_rules.module_hint')"
           >
-            <BasicInput v-model="form.module" :isDisabled="true" />
+            <BasicInput v-model="form.module" :disabled="true" />
           </FormField>
 
           <FormField
             :label="$t('enrichment.spawn_rules.col_check')"
-            :tooltip="$t('enrichment.spawn_rules.check_hint')"
+            :hint="$t('enrichment.spawn_rules.check_hint')"
             :error="fieldErr('check_key')"
           >
-            <Dropdown
+            <BasicSelect
               v-if="checkOptions.length"
-              :values="checkOptions"
-              :selected="[form.check_key]"
+              :options="checkChoices"
+              v-model="form.check_key"
               :placeholder="$t('common.select')"
-              @onSelect="(v) => (form.check_key = v)"
             />
             <!-- Soft-compat: no PIM gaps API (old backend / other module) → free text. -->
-            <BasicInput v-else v-model="form.check_key" data-test="spawn-rule-check-input" />
+            <BasicInput v-else v-model="form.check_key" :maxlength="64" data-test="spawn-rule-check-input" />
           </FormField>
 
           <FormField :label="$t('enrichment.spawn_rules.col_task_type')">
-            <Dropdown
-              :values="taskTypeOptions"
-              :selected="[form.task_type]"
+            <BasicSelect
+              :options="taskTypeOptions"
+              v-model="form.task_type"
               :placeholder="$t('common.select')"
-              @onSelect="(v) => (form.task_type = v)"
             />
           </FormField>
 
           <FormField :label="$t('enrichment.spawn_rules.scope_channel')">
-            <Dropdown
+            <BasicSelect
               v-if="channelOptions.length"
-              :values="channelOptions"
-              :selected="[scopeChannel]"
+              :options="channelOptions"
+              :model-value="scopeChannel"
               :placeholder="$t('common.select')"
-              @onSelect="(v) => (scopeChannel = v)"
+              @update:model-value="selectChannel"
             />
-            <BasicInput v-else v-model="scopeChannel" />
+            <BasicInput
+              v-else
+              :modelValue="scopeChannel"
+              data-test="spawn-rule-channel-input"
+              @update:modelValue="selectChannel"
+            />
           </FormField>
 
           <FormField
             :label="$t('enrichment.spawn_rules.scope_language')"
-            :tooltip="$t('enrichment.spawn_rules.scope_language_hint')"
+            :hint="$t('enrichment.spawn_rules.scope_language_hint')"
           >
-            <Dropdown
-              :values="languageOptions"
-              :selected="[scopeLanguage]"
+            <BasicSelect
+              :options="languageOptions"
+              v-model="scopeLanguage"
               :placeholder="$t('enrichment.spawn_rules.all_languages')"
-              @onSelect="(v) => (scopeLanguage = v)"
             />
           </FormField>
 
           <FormField
             :label="$t('enrichment.spawn_rules.limit')"
-            :tooltip="$t('enrichment.spawn_rules.limit_hint')"
+            :hint="$t('enrichment.spawn_rules.limit_hint')"
           >
             <BasicInput v-model="limitStr" :placeholder="$t('enrichment.spawn_rules.backend_default')" />
           </FormField>
 
           <FormField
             :label="$t('enrichment.spawn_rules.cooldown_days')"
-            :tooltip="$t('enrichment.spawn_rules.cooldown_hint')"
+            :hint="$t('enrichment.spawn_rules.cooldown_hint')"
           >
             <BasicInput
               v-model="cooldownStr"
@@ -120,32 +123,31 @@
             />
           </FormField>
 
-          <div class="flex ai-ct gap-300">
-            <Switcher
+          <div class="flex ai-ct gap-8">
+            <BasicSwitch
               :label="$t('enrichment.spawn_rules.col_auto')"
-              :selected="form.auto"
-              @onSelect="form.auto = !form.auto"
+              v-model="form.auto"
             />
-            <Switcher
+            <BasicSwitch
               :label="$t('enrichment.spawn_rules.col_active')"
-              :selected="form.active"
-              @onSelect="form.active = !form.active"
+              v-model="form.active"
             />
           </div>
         </div>
       </template>
 
-      <Confirmation-modal
-        :visible="showDeleteConfirm"
-        @accept="deleteRule"
-        @reject="showDeleteConfirm = false"
+      <ConfirmDialog
+        tone="danger"
+        :title="$t('enrichment.spawn_rules.confirm_delete_title')"
+        :open="showDeleteConfirm"
+        @confirm="deleteRule"
+        @cancel="showDeleteConfirm = false"
       >
-        <template #description>
+        <template #default>
           <p>{{ $t("enrichment.spawn_rules.confirm_delete") }}</p>
         </template>
-      </Confirmation-modal>
-    </div>
-  </div>
+      </ConfirmDialog>
+  </PageLayout>
 </template>
 
 <script>
@@ -161,14 +163,14 @@ import {
   POST_SpawnRuleRun,
 } from "@/api/enrichment/api";
 import { GET_GapDefinitions } from "@/api/pim/api";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
+import { withStoredOption } from "@/utils/options";
 
 const TASK_TYPES = ["fix-attribute", "fill-attribute", "translate"];
 const KEY_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
 export default {
   name: "SpawnRuleEdit",
-  components: { ConfirmationModal },
+  components: {},
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -201,30 +203,35 @@ export default {
     isCreate() {
       return !this.$route.params.key;
     },
-    taskTypeOptions() {
-      return TASK_TYPES.map((t) => ({ label: t, value: t }));
+    checkChoices() {
+      return withStoredOption(this.checkOptions, this.form.check_key);
     },
+    taskTypeOptions() {
+      const options = TASK_TYPES.map((t) => ({ label: this.taskTypeLabel(t), value: t }));
+      return withStoredOption(options, this.form.task_type, this.taskTypeLabel(this.form.task_type));
+    },
+    // "" = no channel scope: the rule runs for every channel.
     channelOptions() {
-      return (this.pimChannel.channels || []).map((ch) => ({
+      const channels = (this.pimChannel.channels || []).map((ch) => ({
         label: ch.name || ch.idx,
         value: ch.idx,
       }));
+      if (!channels.length) return [];
+      const all = { label: this.$t("enrichment.spawn_rules.all_channels"), value: "" };
+      return withStoredOption([all, ...channels], this.scopeChannel);
     },
     // Languages of the selected channel (that's exactly what find_gaps filters on);
     // before a channel is picked, the union across channels. "" = all languages.
-    languageOptions() {
+    channelLanguages() {
       const channel = (this.pimChannel.channels || []).find((ch) => ch.idx === this.scopeChannel);
-      const langs = channel ? channel.languages || [] : this.pimChannel.allLanguages || [];
-      return [
-        { label: this.$t("enrichment.spawn_rules.all_languages"), value: "" },
-        ...langs.map((l) => ({ label: l, value: l })),
-      ];
+      return channel ? channel.languages || [] : this.pimChannel.allLanguages || [];
     },
-  },
-  watch: {
-    scopeChannel() {
-      const valid = this.languageOptions.some((o) => o.value === this.scopeLanguage);
-      if (!valid) this.scopeLanguage = "";
+    languageOptions() {
+      const options = [
+        { label: this.$t("enrichment.spawn_rules.all_languages"), value: "" },
+        ...this.channelLanguages.map((l) => ({ label: l, value: l })),
+      ];
+      return withStoredOption(options, this.scopeLanguage);
     },
   },
   async mounted() {
@@ -233,6 +240,17 @@ export default {
     if (!this.isCreate) await this.fetchRule();
   },
   methods: {
+    // Task types are free strings on the backend; a type without a label shows its code.
+    taskTypeLabel(type) {
+      const key = `enrichment.spawn_rules.task_types.${type}`;
+      const label = this.$t(key);
+      return label === key ? type : label;
+    },
+    // Only a channel the user picks drops a language it does not serve; a late channel load never does.
+    selectChannel(channel) {
+      this.scopeChannel = channel;
+      if (!this.channelLanguages.includes(this.scopeLanguage)) this.scopeLanguage = "";
+    },
     fieldErr(name) {
       return this.getFieldError(name)?.msg || "";
     },
@@ -321,7 +339,7 @@ export default {
           type: "positive",
           msg: this.$t("enrichment.spawn_rules.saved"),
         });
-        this.$router.push("/enrichment/spawn-rules");
+        this.$router.push({ name: "EnrichmentSpawnRules" });
       } catch (err) {
         this.handleApiError(err);
         this.notify.spawnNotification({
@@ -361,7 +379,7 @@ export default {
           type: "positive",
           msg: this.$t("enrichment.spawn_rules.deleted"),
         });
-        this.$router.push("/enrichment/spawn-rules");
+        this.$router.push({ name: "EnrichmentSpawnRules" });
       } catch (err) {
         this.notify.spawnNotification({
           type: "negative",
@@ -383,7 +401,7 @@ export default {
 .spawn-rule-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-300);
+  gap: var(--space-8);
   align-items: end;
 }
 </style>

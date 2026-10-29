@@ -13,7 +13,7 @@
  * run with VUE_APP_HIDE_DISABLED_PANELS unset, which renders a disabled panel as a
  * greyed <div> that is still plainly visible.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { beforeAll, describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
 const ensureLoaded = vi.fn();
@@ -33,6 +33,16 @@ vi.mock("@/stores/user", () => ({
     setTheme: vi.fn(),
     setLanguage: vi.fn(),
   }),
+}));
+// Home now consumes the upstream navigation model; keep its other authorization
+// authority permissive so these cases isolate the organization matrix grant.
+vi.mock("@/stores/access", () => ({
+  useAccessStore: () => ({ can: () => true, canAny: () => true, available: false,
+    isStaff: true, status: "loaded", deniedPanel: null, gateMode: "enforce" }),
+}));
+vi.mock("@/stores/quality", () => ({ useQualityStore: () => ({ available: false }) }));
+vi.mock("@/stores/enrichmentProfile", () => ({
+  useEnrichmentProfileStore: () => ({ pendingSuggestions: 0 }),
 }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 // A real host's answer: Munin reports every panel enabled, including `access`, which PR #5
@@ -75,6 +85,11 @@ afterEach(() => {
 });
 
 const idxOf = (wrapper) => wrapper.vm.panels.map((p) => p.idx);
+
+// Warm component transforms during suite setup, outside individual assertion deadlines.
+beforeAll(async () => {
+  await loadPanelRenderers();
+});
 
 describe("the Access panel entry is gated on page:access, not on the host flag", () => {
   it("is absent from the header for somebody who does not hold page:access", async () => {

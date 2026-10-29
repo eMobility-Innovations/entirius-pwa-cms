@@ -1,6 +1,9 @@
 const { test, expect } = require('@playwright/test');
 const { login } = require('../helpers/auth');
 const { createErrorCollector } = require('../helpers/error-collector');
+const { either } = require('./helpers/text');
+const en = require('../../src/i18n/locales/en.json');
+const pl = require('../../src/i18n/locales/pl.json');
 
 /**
  * PIM Quality Gaps Highlighter Smoke Tests (etap-05)
@@ -33,9 +36,9 @@ test.describe('PIM Quality Gaps', () => {
 
     // Either the Quality column is present (gaps backend) or it isn't (old backend).
     // Both are acceptable; what matters is the page rendered without errors.
-    const qualityHeader = page.locator(
-      '.data-table__header-cell:has-text("Quality"), .data-table__header-cell:has-text("Jakość")'
-    );
+    const qualityHeader = page.getByRole('columnheader', {
+      name: either(en.pim.quality_column, pl.pim.quality_column),
+    });
     if (await qualityHeader.first().isVisible({ timeout: 5000 }).catch(() => false)) {
       console.log('PIM Quality: column present — gaps backend active');
     } else {
@@ -56,7 +59,8 @@ test.describe('PIM Quality Gaps', () => {
     await page.goto('/pim/products');
     await page.waitForLoadState('networkidle');
 
-    const firstRow = page.locator('.data-table__row, .data-table tbody tr').first();
+    // The first data row of the list grid (the header row holds column headers, no grid cells).
+    const firstRow = page.getByRole('row').filter({ has: page.getByRole('gridcell') }).first();
     if (await firstRow.isVisible({ timeout: 5000 }).catch(() => false)) {
       await firstRow.click();
       await page.waitForLoadState('networkidle');

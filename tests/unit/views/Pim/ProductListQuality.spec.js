@@ -27,6 +27,10 @@ vi.mock("@/stores/notify", () => ({
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ activeChannelIdx: "default-europe" }),
 }));
+// The AI menu stays dormant here (enrichment module off).
+vi.mock("@/views/Pim/components/enrichment/useAiWorkers", () => ({
+  useAiWorkers: () => ({ workers: [], enabled: false, usable: false }),
+}));
 vi.mock("@/stores/munin", () => ({
   useMuninStore: () => ({ isPanelEnabled: () => false }),
 }));
@@ -35,6 +39,15 @@ vi.mock("@/composables/useSearchDebounce", () => ({
 }));
 
 import ProductList from "@/views/Pim/ProductList.vue";
+import BasicMenu from "@/boots/BasicMenu/index.vue";
+
+// Renders each row's quality cell, so the cell's menu is exercised without the real table.
+const QualityCellTable = {
+  props: ["rows"],
+  emits: ["row-click"],
+  template:
+    '<div><div v-for="r in rows" :key="r.sku" @click="$emit(\'row-click\', r)"><slot name="cell-quality" :row="r" /></div></div>',
+};
 
 const mountList = () =>
   mount(ProductList, {
@@ -45,7 +58,7 @@ const mountList = () =>
         Pagination: true,
         FloatingActions: true,
         BulkActionBar: true,
-        SpawnDialog: true,
+        PimTranslateDialog: true,
       },
     },
   });
@@ -83,21 +96,38 @@ describe("ProductList — quality column", () => {
     expect(wrapper.vm.qualityMap["1"]).toHaveLength(1);
   });
 
-  it("reveals findings in a click popover (never reflows the row)", async () => {
+  it("reveals findings in a BasicMenu panel on the count badge (never reflows the row)", async () => {
     mockGetProducts.mockResolvedValue({ data: { results: [withGaps()], count: 1 } });
     mockGetGaps.mockResolvedValue(gapsResponse);
 
-    const wrapper = mountList();
+    const push = vi.fn();
+    const wrapper = mount(ProductList, {
+      attachTo: document.body,
+      global: {
+        mocks: { $route: { query: {}, path: "/pim/products" }, $router: { push, replace() {} } },
+        components: { BasicMenu },
+        stubs: {
+          DataTable: QualityCellTable,
+          BasicButton: { template: "<button type=\"button\"><slot /></button>" },
+          Tag: true,
+          Pagination: true,
+          FloatingActions: true,
+          BulkActionBar: true,
+          PimTranslateDialog: true,
+        },
+      },
+    });
     await flushPromises();
 
-    const r = withGaps();
-    const ev = { currentTarget: { getBoundingClientRect: () => ({ left: 10, right: 40, bottom: 20 }) } };
-
-    expect(wrapper.vm.qualityPopover.pk).toBe(null); // only the count badge shows
-    wrapper.vm.toggleQualityPopover(r, ev);
-    expect(wrapper.vm.qualityPopover.pk).toBe("1"); // click pops the bubble for this row
-    wrapper.vm.toggleQualityPopover(r, ev);
-    expect(wrapper.vm.qualityPopover.pk).toBe(null); // click again dismisses it
+    const toggle = wrapper.find('[data-test="quality-toggle-row"]');
+    expect(wrapper.find('[data-test="quality-popover"]').exists()).toBe(false); // only the count badge shows
+    await toggle.trigger("click");
+    expect(wrapper.find('[data-test="quality-popover"]').text()).toContain("Missing description");
+    await wrapper.find('[data-test="quality-popover"]').trigger("click");
+    expect(push).not.toHaveBeenCalled(); // a click in the panel never opens the row
+    await toggle.trigger("click");
+    expect(wrapper.find('[data-test="quality-popover"]').exists()).toBe(false); // click again dismisses it
+    wrapper.unmount();
   });
 
   it("soft-compat: old backend without gap_* → no column, no findings call", async () => {

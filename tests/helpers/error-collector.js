@@ -11,17 +11,26 @@ const DEFAULT_WHITELIST = [
   'hot-update',
   'sockjs-node',
   '__webpack_hmr',
+  // The dev server's hot-reload socket (`/ws`): zeno maps the CMS to host ports 8180/8181, the client dials the
+  // container's 8080. The CMS itself opens no WebSocket, so any other socket error still counts.
+  /^WebSocket connection to 'ws:\/\/[^/']+\/ws' failed/,
 ];
+
+// A pattern is a substring of the text, or a RegExp tested against it.
+const matches = (text) => (pattern) => (pattern instanceof RegExp ? pattern.test(text) : text.includes(pattern));
 
 /**
  * Create an error collector attached to a Playwright page.
  *
  * @param {import('@playwright/test').Page} page
  * @param {Object} options
- * @param {string[]} options.whitelist - URL patterns to ignore
+ * @param {(string|RegExp)[]} options.whitelist - URL / console text patterns to ignore
+ * @param {(entry: {status: number, url: string}) => boolean} [options.ignoreNetwork] -
+ *   predicate to drop a specific network error at collection time (e.g. a known,
+ *   named backend refusal), instead of editing the collector's arrays after the fact
  * @returns {Object} collector API
  */
-function createErrorCollector(page, { whitelist = [] } = {}) {
+function createErrorCollector(page, { whitelist = [], ignoreNetwork = () => false } = {}) {
   const ignorePatterns = [...DEFAULT_WHITELIST, ...whitelist];
 
   const errors = {
@@ -32,14 +41,17 @@ function createErrorCollector(page, { whitelist = [] } = {}) {
   };
 
   function isWhitelisted(url) {
-    return ignorePatterns.some((pattern) => url.includes(pattern));
+    return ignorePatterns.some(matches(url));
   }
 
   // Console errors
   page.on('console', (msg) => {
     if (msg.type() === 'error') {
       const text = msg.text();
-      if (!ignorePatterns.some((p) => text.includes(p))) {
+      // The browser logs a failed request once more as "Failed to load resource: … status of N"
+      const status = Number(text.match(/status of (\d+)/)?.[1]);
+      if (status && ignoreNetwork({ status, url: msg.location()?.url || '' })) return;
+      if (!ignorePatterns.some(matches(text))) {
         errors.console.push(text);
       }
     }
@@ -54,7 +66,7 @@ function createErrorCollector(page, { whitelist = [] } = {}) {
   page.on('response', (response) => {
     const status = response.status();
     const url = response.url();
-    if (status >= 400 && !isWhitelisted(url)) {
+    if (status >= 400 && !isWhitelisted(url) && !ignoreNetwork({ status, url })) {
       errors.network.push({ status, url });
     }
   });

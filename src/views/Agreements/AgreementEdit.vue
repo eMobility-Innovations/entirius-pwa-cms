@@ -1,478 +1,277 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#agreements-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/agreements/list')"
-      />
-    </Teleport>
-    <Teleport to="#agreements-toolbar-right" defer>
-      <BasicButton
-        v-if="isEdit && !definition.is_system"
-        text=""
-        icon="trash-can"
-        class="bg-negative-100 t-negative-300"
-        @click="showDeleteConfirm = true"
-      />
-      <BasicButton
-        :text="$t('agm.save')"
-        class="bg-support-400 t-basic-100"
-        @click="saveDefinition"
-      />
-    </Teleport>
+  <PageLayout class="fs-300 t-body">
+    <template v-if="!loading" #header>
+      <PageHeader
+        :title="isEdit ? (definition.name || definition.slug || '') : $t('agm.create_definition')"
+        back="/agreements/list"
+      >
+        <template #meta>
+          <StatusBadge
+            v-if="definition.is_system"
+            :label="$t('agm.system_badge')"
+            tone="info"
+          />
+        </template>
+        <template v-if="!loadFailed" #actions>
+          <div class="flex ai-ct jc-fe wrap gap-3">
+            <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
+            <BasicSwitch
+              :label="$t('agm.is_active')"
+              v-model="form.is_active"
+            />
+            <ActionBar :actions="headerActions" />
+          </div>
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-if="loading" />
+      <EmptyState v-else-if="loadFailed" icon="empty" :title="$t('notifications.error')" />
 
       <template v-else>
-        <div class="flex ai-ct jc-sb mb-500">
-          <div class="flex ai-ct gap-200">
-            <h1 class="fs-700 fw-600">
-              {{
-                isEdit
-                  ? definition.name || definition.slug
-                  : $t("agm.create_definition")
-              }}
-            </h1>
-            <StatusBadge
-              v-if="definition.is_system"
-              :label="$t('agm.system_badge')"
-              variant="informative"
-            />
-          </div>
-          <Switcher
-            :label="$t('agm.is_active')"
-            :selected="form.is_active"
-            @onSelect="form.is_active = !form.is_active"
-          />
-        </div>
-
-        <p v-if="definition.is_system" class="agm-system-info mb-400">
+        <p v-if="definition.is_system" class="system-notice mb-8">
           {{ $t("agm.system_info") }}
         </p>
 
-        <!-- Definition fields -->
-        <div class="agm-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("agm.definitions") }}</h2>
-          <div class="agm-grid">
-            <FormField :label="$t('agm.slug')">
+        <BasicCard :title="$t('agm.definition')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField :label="$t('agm.slug')" required :error="fieldError('slug')">
               <BasicInput
                 v-model="form.slug"
-                :isDisabled="isEdit || definition.is_system"
+                :disabled="isEdit || definition.is_system"
               />
             </FormField>
-            <FormField :label="$t('agm.name')">
+            <FormField :label="$t('agm.name')" required :error="fieldError('name')">
               <BasicInput v-model="form.name" />
             </FormField>
-            <FormField :label="$t('agm.category')">
-              <Dropdown
-                :values="categoryOptions"
-                :selected="form.category ? [form.category] : []"
+            <FormField :label="$t('agm.category')" :error="fieldError('category')">
+              <BasicSelect
+                :options="categoryOptions"
+                v-model="form.category"
                 :placeholder="$t('common.select')"
                 :disabled="definition.is_system"
-                @onSelect="(val) => (form.category = val)"
               />
             </FormField>
-            <FormField :label="$t('agm.consent_channel')">
-              <Dropdown
-                :values="consentChannelOptions"
-                :selected="form.consent_channel ? [form.consent_channel] : []"
+            <FormField :label="$t('agm.consent_channel')" :error="fieldError('consent_channel')">
+              <BasicSelect
+                :options="consentChannelOptions"
+                v-model="form.consent_channel"
                 :placeholder="$t('common.select')"
                 :disabled="definition.is_system"
-                @onSelect="(val) => (form.consent_channel = val)"
               />
             </FormField>
-            <FormField :label="$t('agm.content_route')">
+            <FormField :label="$t('agm.content_route')" :error="fieldError('content_route')">
               <BasicInput v-model="form.content_route" />
             </FormField>
-            <FormField :label="$t('agm.sort_order')">
+            <FormField :label="$t('agm.sort_order')" :error="fieldError('sort_order')">
               <BasicInput v-model="form.sort_order" type="number" />
             </FormField>
-            <FormField :label="$t('agm.channels')">
-              <Dropdown
-                :custom_droplist="true"
-                :placeholder="`${$t('agm.channels')} (${
-                  form.channel_ids.length
-                    ? form.channel_ids.length
-                    : $t('agm.all_channels')
-                })`"
-              >
-                <template #custom>
-                  <div
-                    v-for="ch in channelOptions"
-                    :key="ch.value"
-                    class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                    :class="{
-                      '-primary-100': form.channel_ids.includes(ch.value),
-                    }"
-                    @click.stop="toggleChannel(ch.value)"
-                  >
-                    <span class="ml-100">{{ ch.label }}</span>
-                    <FontAwesomeIcon
-                      v-if="form.channel_ids.includes(ch.value)"
-                      icon="check"
-                      class="t-positive-200"
-                    />
-                  </div>
-                </template>
-              </Dropdown>
+            <FormField :label="$t('agm.channels')" :error="fieldError('channel_ids')">
+              <BasicSelect
+                v-model="form.channel_ids"
+                :options="channelOptions"
+                :placeholder="$t('agm.all_channels')"
+                multiple
+                searchable
+              />
             </FormField>
 
-            <!-- display_contexts: readonly tags for system, multi-select for custom -->
-            <FormField :label="$t('agm.display_contexts')">
-              <template v-if="definition.is_system">
-                <div class="flex gap-100 flex-wrap">
-                  <span
-                    v-for="ctx in definition.display_contexts"
-                    :key="ctx"
-                    class="agm-context-tag"
-                  >
-                    {{ contextLabel(ctx) }}
-                  </span>
-                  <span
-                    v-if="
-                      !definition.display_contexts ||
-                      !definition.display_contexts.length
-                    "
-                    class="t-basic-500 fs-200"
-                  >
-                    ---
-                  </span>
-                </div>
-              </template>
-              <template v-else>
-                <Dropdown
-                  :custom_droplist="true"
-                  :placeholder="`${$t('agm.display_contexts')} (${
-                    form.display_contexts.length
-                      ? form.display_contexts.length
-                      : $t('agm.all_channels')
-                  })`"
+            <!-- display_contexts: read-only tags for system, multi-select for custom -->
+            <FormField :label="$t('agm.display_contexts')" :error="fieldError('display_contexts')">
+              <div v-if="definition.is_system" class="flex gap-2 flex-wrap">
+                <Tag
+                  v-for="ctx in definition.display_contexts"
+                  :key="ctx"
+                  :label="contextLabel(ctx)"
+                />
+                <span
+                  v-if="!definition.display_contexts || !definition.display_contexts.length"
+                  class="t-muted fs-200"
                 >
-                  <template #custom>
-                    <div
-                      v-for="ctx in displayContextOptions"
-                      :key="ctx.value"
-                      class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                      :class="{
-                        '-primary-100': form.display_contexts.includes(
-                          ctx.value
-                        ),
-                      }"
-                      @click.stop="toggleContext(ctx.value)"
-                    >
-                      <span class="ml-100">{{ ctx.label }}</span>
-                      <FontAwesomeIcon
-                        v-if="form.display_contexts.includes(ctx.value)"
-                        icon="check"
-                        class="t-positive-200"
-                      />
-                    </div>
-                  </template>
-                </Dropdown>
-              </template>
+                  ---
+                </span>
+              </div>
+              <BasicSelect
+                v-else
+                v-model="form.display_contexts"
+                :options="displayContextOptions"
+                :placeholder="$t('agm.all_channels')"
+                multiple
+              />
             </FormField>
           </div>
-        </div>
+        </BasicCard>
 
-        <!-- Versions section (edit mode only) -->
-        <div v-if="isEdit" class="agm-section mb-400">
-          <div class="flex ai-ct jc-sb mb-300">
-            <h2 class="fs-500 fw-600">{{ $t("agm.versions") }}</h2>
-            <BasicButton
-              :text="$t('agm.create_version')"
-              class="bg-support-400 t-basic-100"
-              @click="showVersionForm = !showVersionForm"
-            />
-          </div>
+        <BasicCard v-if="isEdit" :title="$t('agm.versions')" gap class="mb-8">
+          <template #actions>
+            <ActionBar :actions="versionActions" />
+          </template>
 
-          <!-- New version form -->
-          <div v-if="showVersionForm" class="agm-version-form mb-300">
-            <div class="mb-200">
-              <FormField :label="$t('agm.summary_en')" class="mb-200">
-                <BasicWysiwyg
-                  v-model="newVersion.summary_en"
-                  :toolbar="wysiwygToolbar"
-                />
-              </FormField>
-              <FormField :label="$t('agm.summary_pl')">
-                <BasicWysiwyg
-                  v-model="newVersion.summary_pl"
-                  :toolbar="wysiwygToolbar"
-                />
-              </FormField>
-            </div>
-            <div class="flex jc-fe gap-200">
-              <BasicButton
-                :text="$t('common.cancel')"
-                class="bg-basic-200 t-basic-600"
-                @click="cancelVersionForm"
-              />
-              <BasicButton
-                :text="$t('agm.create_version')"
-                class="bg-support-400 t-basic-100"
-                @click="createVersion"
-              />
+          <div v-if="showVersionForm" class="form-grid" data-testid="agm-new-version-form">
+            <FormField :label="$t('agm.summary_en')" class="form-grid__wide">
+              <BasicWysiwyg v-model="newVersion.summary_en" :toolbar="wysiwygToolbar" />
+            </FormField>
+            <FormField :label="$t('agm.summary_pl')" class="form-grid__wide">
+              <BasicWysiwyg v-model="newVersion.summary_pl" :toolbar="wysiwygToolbar" />
+            </FormField>
+            <div class="form-grid__wide flex jc-fe gap-3">
+              <BasicButton variant="secondary" @click="cancelVersionForm">
+                {{ $t('common.cancel') }}
+              </BasicButton>
+              <BasicButton mutates variant="secondary" @click="createVersion">
+                {{ $t('agm.create_version') }}
+              </BasicButton>
             </div>
           </div>
 
-          <!-- Versions table -->
-          <p v-if="!versions.length" class="fs-200 t-basic-500">
-            {{ $t("agm.no_definitions") }}
-          </p>
-          <table v-else class="agm-versions-table w-100">
-            <thead>
-              <tr>
-                <th class="agm-th">{{ $t("agm.version_number") }}</th>
-                <th class="agm-th">{{ $t("agm.summary_en") }}</th>
-                <th class="agm-th">{{ $t("agm.published_at") }}</th>
-                <th class="agm-th">{{ $t("agm.created_at") }}</th>
-                <th class="agm-th"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-for="ver in versions" :key="ver.id">
-                <tr class="agm-tr">
-                  <td class="agm-td">{{ ver.version_number }}</td>
-                  <td
-                    class="agm-td agm-td--summary"
-                    v-html="ver.summary_en || '---'"
-                  />
-                  <td class="agm-td">
-                    <StatusBadge
-                      v-if="ver.published_at"
-                      :label="formatDate(ver.published_at)"
-                      variant="positive"
-                    />
-                    <StatusBadge
-                      v-else
-                      :label="$t('agm.draft')"
-                      variant="neutral"
-                    />
-                  </td>
-                  <td class="agm-td">{{ formatDate(ver.created_at) }}</td>
-                  <td class="agm-td">
-                    <div class="flex gap-100 jc-fe">
-                      <BasicButton
-                        v-if="!ver.published_at"
-                        text=""
-                        icon="pencil"
-                        class="bg-basic-200 t-basic-600"
-                        :title="$t('agm.edit_draft')"
-                        @click="startEditDraft(ver)"
-                      />
-                      <BasicButton
-                        v-else
-                        text=""
-                        icon="pencil"
-                        class="bg-basic-200 t-basic-600"
-                        :title="$t('agm.create_draft_from_published')"
-                        @click="startEditPublished(ver)"
-                      />
-                      <BasicButton
-                        v-if="!ver.published_at"
-                        :text="$t('agm.publish')"
-                        class="bg-support-400 t-basic-100"
-                        @click="publishVersion(ver.id)"
-                      />
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Inline draft edit form -->
-                <tr
-                  v-if="editingVersionId === ver.id && !ver.published_at"
-                  :key="`edit-${ver.id}`"
-                >
-                  <td colspan="5" class="agm-td">
-                    <div class="agm-version-form">
-                      <div class="mb-200">
-                        <FormField :label="$t('agm.summary_en')" class="mb-200">
-                          <BasicWysiwyg
-                            v-model="editVersion.summary_en"
-                            :toolbar="wysiwygToolbar"
-                          />
-                        </FormField>
-                        <FormField :label="$t('agm.summary_pl')">
-                          <BasicWysiwyg
-                            v-model="editVersion.summary_pl"
-                            :toolbar="wysiwygToolbar"
-                          />
-                        </FormField>
-                      </div>
-                      <div class="flex jc-fe gap-200">
-                        <BasicButton
-                          :text="$t('common.cancel')"
-                          class="bg-basic-200 t-basic-600"
-                          @click="cancelEditVersion"
-                        />
-                        <BasicButton
-                          :text="$t('common.save')"
-                          class="bg-support-400 t-basic-100"
-                          @click="saveDraftVersion(ver.id)"
-                        />
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Legal Page History (only when definition has content_route) -->
-        <div
-          v-if="isEdit && definition.content_route"
-          class="agm-section mb-400"
-        >
-          <div
-            class="flex ai-ct gap-200 pointer"
-            @click="contentHistoryOpen = !contentHistoryOpen"
+          <DataTable
+            :columns="versionColumns"
+            :rows="versions"
+            row-key="id"
+            :empty-text="$t('agm.no_versions')"
           >
-            <font-awesome-icon icon="clock-rotate-left" class="t-basic-500" />
-            <h2 class="fs-500 fw-600">{{ $t("agm.content_history") }}</h2>
-            <font-awesome-icon
-              :icon="contentHistoryOpen ? 'chevron-up' : 'chevron-down'"
-              class="t-basic-500 fs-200"
-            />
+            <template #cell-version_number="{ value }">v{{ value }}</template>
+            <template #cell-summary_en="{ value }">
+              <span v-html="sanitizeHtml(value) || '—'" />
+            </template>
+            <template #cell-published_at="{ value }">
+              <StatusBadge
+                :label="value ? formatDate(value) : $t('agm.draft')"
+                :tone="value ? 'positive' : 'neutral'"
+              />
+            </template>
+            <template #cell-created_at="{ value }">{{ formatDate(value) }}</template>
+            <template #cell-actions="{ row }">
+              <IconButton
+                v-if="!row.published_at"
+                icon="edit"
+                :label="$t('agm.edit_draft')"
+                size="sm"
+                @click="startEditDraft(row)"
+              />
+              <IconButton
+                v-else
+                icon="edit"
+                :label="$t('agm.create_draft_from_published')"
+                size="sm"
+                @click="startEditPublished(row)"
+              />
+              <BasicButton mutates
+                v-if="!row.published_at"
+                variant="secondary"
+                size="sm"
+                @click="publishVersion(row.id)"
+              >
+                {{ $t('agm.publish') }}
+              </BasicButton>
+            </template>
+          </DataTable>
+
+          <!-- Draft edit form -->
+          <div v-if="editingVersion" class="form-grid" data-testid="agm-edit-version-form">
+            <h3 class="form-grid__wide fs-300 fw-600">
+              {{ $t("agm.edit_draft") }} v{{ editingVersion.version_number }}
+            </h3>
+            <FormField :label="$t('agm.summary_en')" class="form-grid__wide">
+              <BasicWysiwyg v-model="editVersion.summary_en" :toolbar="wysiwygToolbar" />
+            </FormField>
+            <FormField :label="$t('agm.summary_pl')" class="form-grid__wide">
+              <BasicWysiwyg v-model="editVersion.summary_pl" :toolbar="wysiwygToolbar" />
+            </FormField>
+            <div class="form-grid__wide flex jc-fe gap-3">
+              <BasicButton variant="secondary" @click="cancelEditVersion">
+                {{ $t('common.cancel') }}
+              </BasicButton>
+              <BasicButton mutates variant="secondary" @click="saveDraftVersion(editingVersion.id)">
+                {{ $t('common.save') }}
+              </BasicButton>
+            </div>
           </div>
+        </BasicCard>
+
+        <!-- Legal page history (only when the definition has a content_route) -->
+        <BasicCard
+          v-if="isEdit && definition.content_route"
+          :title="$t('agm.content_history')"
+          gap
+          class="mb-8"
+        >
+          <template #actions>
+            <IconButton
+              :icon="contentHistoryOpen ? 'collapse' : 'expand'"
+              :label="$t('agm.toggle_content_history')"
+              :aria-expanded="String(contentHistoryOpen)"
+              data-testid="agm-history-toggle"
+              @click="contentHistoryOpen = !contentHistoryOpen"
+            />
+          </template>
 
           <template v-if="contentHistoryOpen">
-            <div class="flex gap-100 mt-300 mb-300">
+            <div class="filter-chip-row" role="group" :aria-label="$t('builder.language')">
               <FilterChip
-                :label="$t('agm.filter_all')"
-                :active="contentHistoryLang === ''"
-                @click="
-                  contentHistoryLang = '';
-                  fetchContentHistory();
-                "
-              />
-              <FilterChip
-                label="EN"
-                :active="contentHistoryLang === 'en'"
-                @click="
-                  contentHistoryLang = 'en';
-                  fetchContentHistory();
-                "
-              />
-              <FilterChip
-                label="PL"
-                :active="contentHistoryLang === 'pl'"
-                @click="
-                  contentHistoryLang = 'pl';
-                  fetchContentHistory();
-                "
-              />
-              <FilterChip
-                label="DE"
-                :active="contentHistoryLang === 'de'"
-                @click="
-                  contentHistoryLang = 'de';
-                  fetchContentHistory();
-                "
+                v-for="lang in historyLanguages"
+                :key="lang.value"
+                :label="lang.label"
+                :active="contentHistoryLang === lang.value"
+                @click="setHistoryLang(lang.value)"
               />
             </div>
 
-            <p v-if="!contentSnapshots.length" class="t-basic-500 fs-200">
-              {{ $t("agm.content_history_empty") }}
-            </p>
-
-            <table v-else class="agm-versions-table w-100">
-              <thead>
-                <tr>
-                  <th class="agm-th">{{ $t("agm.published_at") }}</th>
-                  <th class="agm-th">{{ $t("builder.language") }}</th>
-                  <th class="agm-th">{{ $t("common.preview") }}</th>
-                  <th class="agm-th"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <template
-                  v-for="(snap, idx) in contentSnapshots"
-                  :key="snap.published_id"
-                >
-                  <tr
-                    class="agm-tr pointer"
-                    @click="toggleSnapshot(snap.published_id)"
-                  >
-                    <td class="agm-td">
-                      <span>{{ formatDate(snap.created_at) }}</span>
-                      <StatusBadge
-                        v-if="idx === 0"
-                        :label="$t('agm.snapshot_current')"
-                        variant="positive"
-                        class="ml-100"
-                      />
-                    </td>
-                    <td class="agm-td">{{ snap.language }}</td>
-                    <td class="agm-td agm-td--summary">
-                      {{ snap.text_preview }}
-                    </td>
-                    <td class="agm-td">
-                      <div class="flex gap-100 ai-ct jc-fe">
-                        <StatusBadge
-                          v-if="snap.warnings && snap.warnings.length"
-                          :label="$t('agm.snapshot_warnings')"
-                          variant="warning"
-                        />
-                        <font-awesome-icon
-                          :icon="
-                            expandedSnapshot === snap.published_id
-                              ? 'chevron-up'
-                              : 'chevron-down'
-                          "
-                          class="t-basic-500"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                  <tr
-                    v-if="expandedSnapshot === snap.published_id"
-                    :key="`exp-${snap.published_id}`"
-                  >
-                    <td colspan="4" class="agm-td">
-                      <div
-                        class="agm-legal-text-preview"
-                        v-html="snap.text_html"
-                      />
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
+            <DataTable
+              :columns="snapshotColumns"
+              :rows="contentSnapshots"
+              row-key="published_id"
+              expandable
+              :empty-text="$t('agm.content_history_empty')"
+            >
+              <template #cell-created_at="{ row, index }">
+                <span class="flex ai-ct wrap gap-2">
+                  <span>{{ formatDate(row.created_at) }}</span>
+                  <StatusBadge
+                    v-if="index === 0"
+                    :label="$t('agm.snapshot_current')"
+                    tone="positive"
+                  />
+                </span>
+              </template>
+              <template #cell-warnings="{ value }">
+                <StatusBadge
+                  v-if="value && value.length"
+                  :label="$t('agm.snapshot_warnings')"
+                  tone="warning"
+                />
+              </template>
+              <template #expand="{ row }">
+                <div class="legal-text-preview" v-html="sanitizeHtml(row.text_html)" />
+              </template>
+            </DataTable>
           </template>
-        </div>
+        </BasicCard>
       </template>
-    </div>
 
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deleteDefinition"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      @confirm="deleteDefinition"
+      @cancel="showDeleteConfirm = false"
+      :title="$t('pim.confirm_delete_title')"
     >
-      <template #header
-        ><h2>{{ $t("pim.confirm_delete_title") }}</h2></template
-      >
-      <template #description
+      <template #default
         ><p>{{ $t("agm.confirm_delete") }}</p></template
       >
-    </Confirmation-modal>
+    </ConfirmDialog>
 
-    <Confirmation-modal
-      :visible="showPublishedEditConfirm"
-      @accept="confirmEditPublished"
-      @reject="showPublishedEditConfirm = false"
+    <ConfirmDialog
+      :open="showPublishedEditConfirm"
+      @confirm="confirmEditPublished"
+      @cancel="showPublishedEditConfirm = false"
+      :title="$t('agm.create_draft_from_published')"
     >
-      <template #header
-        ><h2>{{ $t("agm.create_draft_from_published") }}</h2></template
-      >
-      <template #description
+      <template #default
         ><p>{{ $t("agm.edit_published_confirm") }}</p></template
       >
-    </Confirmation-modal>
-  </div>
+    </ConfirmDialog>
+  </PageLayout>
 </template>
 
 <script>
@@ -490,23 +289,27 @@ import {
   GET_AgmChannels,
   GET_ContentHistory,
 } from "@/api/agreements/api";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
-import { extractApiMessage } from "@/composables/useFormErrors";
+import { useFormErrors, extractApiMessage } from "@/composables/useFormErrors";
+import { useUnsavedChanges } from "@/composables/useUnsavedChanges";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 export default {
   name: "AgreementEdit",
-  components: { ConfirmationModal },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
-    return { loader, notify };
+    const formErrors = useFormErrors();
+    const unsaved = useUnsavedChanges();
+    return { loader, notify, formErrors, ...unsaved };
   },
   data() {
     return {
       definition: {},
       versions: [],
       channels: [],
-      loading: false,
+      // An edit screen starts loading: the header (Save, Delete) renders after the definition arrives.
+      loading: Boolean(this.$route.params.slug),
+      loadFailed: false,
       showDeleteConfirm: false,
       showVersionForm: false,
       showPublishedEditConfirm: false,
@@ -535,12 +338,59 @@ export default {
       contentHistoryOpen: false,
       contentHistoryLang: "",
       contentSnapshots: [],
-      expandedSnapshot: null,
     };
   },
   computed: {
     isEdit() {
       return !!this.$route.params.slug;
+    },
+    versionActions() {
+      return [
+        {
+          key: "create-version",
+          role: "secondary",
+          label: this.$t("agm.create_version"),
+          expanded: this.showVersionForm,
+          onClick: () => { this.showVersionForm = !this.showVersionForm; },
+        },
+      ];
+    },
+    headerActions() {
+      return [
+        ...(this.isEdit && !this.definition.is_system
+          ? [{ key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("common.delete"),
+              onClick: () => (this.showDeleteConfirm = true) }]
+          : []),
+        { key: "save", role: "primary", label: this.$t("agm.save"), onClick: this.saveDefinition },
+      ];
+    },
+    editingVersion() {
+      return this.versions.find((v) => v.id === this.editingVersionId && !v.published_at) || null;
+    },
+    versionColumns() {
+      return [
+        { key: "version_number", label: this.$t("agm.version_number"), width: "64px" },
+        { key: "summary_en", label: this.$t("agm.summary_en"), width: "1fr", truncate: true, priority: 2 },
+        { key: "published_at", label: this.$t("agm.published_at"), width: "max-content" },
+        { key: "created_at", label: this.$t("agm.created_at"), width: "120px", numeric: true, priority: 2 },
+        { key: "actions", label: "", actions: true },
+      ];
+    },
+    snapshotColumns() {
+      return [
+        { key: "created_at", label: this.$t("agm.published_at"), width: "max-content" },
+        { key: "language", label: this.$t("builder.language"), width: "64px" },
+        { key: "text_preview", label: this.$t("common.preview"), width: "1fr", priority: 2 },
+        { key: "warnings", label: "", width: "max-content", priority: 2 },
+      ];
+    },
+    historyLanguages() {
+      return [
+        { value: "", label: this.$t("agm.filter_all") },
+        { value: "en", label: "EN" },
+        { value: "pl", label: "PL" },
+        { value: "de", label: "DE" },
+      ];
     },
     categoryOptions() {
       return [
@@ -580,9 +430,24 @@ export default {
       if (this.definition.content_route) {
         await this.fetchContentHistory();
       }
+    } else {
+      this.snapshot(this.form);
+      this.track(this.form);
     }
   },
+  watch: {
+    form: {
+      deep: true,
+      handler() {
+        if (this.formErrors.hasErrors) this.formErrors.clearErrors();
+      },
+    },
+  },
   methods: {
+    sanitizeHtml,
+    fieldError(field) {
+      return this.formErrors.getFieldError(field)?.msg || "";
+    },
     contextLabel(ctx) {
       const map = {
         checkout: this.$t("agm.context_checkout"),
@@ -590,22 +455,6 @@ export default {
         newsletter: this.$t("agm.context_newsletter"),
       };
       return map[ctx] || ctx;
-    },
-    toggleChannel(id) {
-      const idx = this.form.channel_ids.indexOf(id);
-      if (idx >= 0) {
-        this.form.channel_ids.splice(idx, 1);
-      } else {
-        this.form.channel_ids.push(id);
-      }
-    },
-    toggleContext(value) {
-      const idx = this.form.display_contexts.indexOf(value);
-      if (idx >= 0) {
-        this.form.display_contexts.splice(idx, 1);
-      } else {
-        this.form.display_contexts.push(value);
-      }
     },
     formatDate(dateStr) {
       if (!dateStr) return "---";
@@ -643,7 +492,11 @@ export default {
         const { data } = await GET_Definition(this.$route.params.slug);
         this.definition = data;
         this.resetForm(data);
+        this.snapshot(this.form);
+        this.track(this.form);
       } catch (err) {
+        // Only the first load fails the page; a failed refresh after a save keeps the loaded form.
+        if (!this.definition.slug) this.loadFailed = true;
         this.notify.spawnNotification({
           type: "negative",
           msg: extractApiMessage(err, this.$t("notifications.error")),
@@ -706,6 +559,7 @@ export default {
           this.$router.push(`/agreements/${data.slug}`);
         }
       } catch (err) {
+        this.formErrors.handleApiError(err);
         this.notify.spawnNotification({
           type: "negative",
           msg: extractApiMessage(err, this.$t("notifications.save_error")),
@@ -812,8 +666,9 @@ export default {
         this.loader.loaderFinish();
       }
     },
-    toggleSnapshot(id) {
-      this.expandedSnapshot = this.expandedSnapshot === id ? null : id;
+    setHistoryLang(lang) {
+      this.contentHistoryLang = lang;
+      this.fetchContentHistory();
     },
     async fetchContentHistory() {
       try {
@@ -851,85 +706,22 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.agm-section {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 20px;
+// Locked system definition: the notice bar above the form (docs/ui-rules.md § Locked / system entity).
+.system-notice {
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  border-radius: var(--radius-base);
+  padding: var(--space-2) var(--space-4);
 }
 
-.agm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-200);
-}
-
-.agm-version-form {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  background: var(--c-basic-200);
-}
-
-.agm-versions-table {
-  border-collapse: collapse;
-}
-
-.agm-th {
-  text-align: left;
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-  padding: 8px 12px;
-  border-bottom: 2px solid var(--c-basic-200);
-}
-
-.agm-tr:hover {
-  background: var(--c-basic-200);
-}
-
-.agm-td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--c-basic-200);
-  font-size: var(--fs-300);
-  color: var(--c-basic-700);
-}
-
-.agm-td--summary {
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.agm-system-info {
-  font-size: var(--fs-300);
-  color: var(--c-basic-500);
-  background: var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 10px 16px;
-}
-
-.agm-context-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-200);
-  color: var(--c-basic-700);
-  font-size: var(--fs-200);
-  font-weight: 600;
-}
-
-.agm-legal-text-preview {
+.legal-text-preview {
   max-height: 400px;
   overflow-y: auto;
-  padding: 16px;
-  background: var(--c-basic-200);
-  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--surface-raised);
+  border-radius: var(--radius-base);
   font-size: var(--fs-300);
   line-height: 1.6;
-  color: var(--c-basic-700);
+  color: var(--text-body);
 }
 </style>

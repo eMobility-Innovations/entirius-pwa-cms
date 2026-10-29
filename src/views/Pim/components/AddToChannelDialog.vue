@@ -49,6 +49,17 @@ export default {
         (ch) => !this.presentInChannels.includes(ch.idx)
       );
     },
+    channelOptions() {
+      return this.availableChannels.map((ch) => ({ label: `${ch.name} · ${ch.idx}`, value: ch.idx }));
+    },
+    // Cancel · Add to channel (R5); without a channel left to add there is nothing to confirm.
+    actions() {
+      const cancel = { key: "cancel", role: "secondary", label: this.$t("common.cancel"),
+        onClick: () => this.$emit("close") };
+      if (!this.availableChannels.length) return [cancel];
+      return [cancel, { key: "add", role: "primary", label: this.$t("pim.add_to_channel"),
+        disabled: !this.targetChannelIdx, testid: "pim-add-to-channel-submit", onClick: this.confirmAdd }];
+    },
   },
   watch: {
     visible(val) {
@@ -90,262 +101,34 @@ export default {
 </script>
 
 <template>
-  <div v-if="visible" class="add-dialog-overlay" @click.self="$emit('close')">
-    <div class="add-dialog">
-      <h3 class="add-dialog__title">{{ $t("pim.channel_presence") }}</h3>
-      <p class="add-dialog__desc t-basic-500 fs-200">
+  <BasicModal
+    :open="visible"
+    :title="$t('pim.channel_presence')"
+    size="sm"
+    :actions="actions"
+    @close="$emit('close')"
+  >
+    <div class="flex-column gap-4" data-testid="pim-add-to-channel-dialog">
+      <p class="t-muted fs-200">
         {{ $t("pim.channel_presence_desc", { sku }) }}
       </p>
 
-      <!-- Present channels -->
-      <div v-if="presentChannels.length" class="add-dialog__section">
-        <label class="add-dialog__label">{{ $t("pim.present_in") }}</label>
-        <div class="channel-list">
-          <div
-            v-for="ch in presentChannels"
-            :key="ch.idx"
-            class="channel-item channel-item--present"
-          >
-            <span class="channel-item__check">&#10003;</span>
-            <span class="channel-item__name">{{ ch.name }}</span>
-            <span class="channel-item__idx t-basic-400 fs-200">{{
-              ch.idx
-            }}</span>
-          </div>
+      <FormField v-if="presentChannels.length" :label="$t('pim.present_in')">
+        <div class="flex flex-wrap gap-1">
+          <Tag v-for="ch in presentChannels" :key="ch.idx" :label="`${ch.name} · ${ch.idx}`" />
         </div>
-      </div>
+      </FormField>
 
-      <!-- Available channels -->
-      <div v-if="availableChannels.length" class="add-dialog__section">
-        <label class="add-dialog__label">{{ $t("pim.add_to") }}</label>
-        <div class="channel-list">
-          <div
-            v-for="ch in availableChannels"
-            :key="ch.idx"
-            class="channel-item channel-item--available"
-            :class="{ 'channel-item--selected': targetChannelIdx === ch.idx }"
-            @click="targetChannelIdx = ch.idx"
-          >
-            <span class="channel-item__radio">
-              <span
-                v-if="targetChannelIdx === ch.idx"
-                class="channel-item__radio-dot"
-              ></span>
-            </span>
-            <span class="channel-item__name">{{ ch.name }}</span>
-            <span class="channel-item__idx t-basic-400 fs-200">{{
-              ch.idx
-            }}</span>
-          </div>
-        </div>
+      <template v-if="availableChannels.length">
+        <FormField :label="$t('pim.add_to')">
+          <BasicRadioGroup v-model="targetChannelIdx" :options="channelOptions" />
+        </FormField>
+        <BasicCheckbox v-model="copyContent">{{ $t("pim.copy_from_current") }}</BasicCheckbox>
+      </template>
 
-        <label class="add-dialog__checkbox">
-          <input type="checkbox" v-model="copyContent" />
-          {{ $t("pim.copy_from_current") }}
-        </label>
-      </div>
-
-      <div v-else class="add-dialog__section">
-        <p class="t-basic-500 fs-200">
-          {{ $t("pim.present_in_all_channels") }}
-        </p>
-      </div>
-
-      <div class="add-dialog__actions">
-        <button
-          class="pim-btn pim-btn--secondary"
-          type="button"
-          @click="$emit('close')"
-        >
-          {{ $t("common.cancel") }}
-        </button>
-        <button
-          v-if="availableChannels.length"
-          class="pim-btn pim-btn--primary"
-          type="button"
-          :disabled="!targetChannelIdx"
-          @click="confirmAdd"
-        >
-          {{ $t("pim.add_to_channel") }}
-        </button>
-      </div>
+      <p v-else class="t-muted fs-200">
+        {{ $t("pim.present_in_all_channels") }}
+      </p>
     </div>
-  </div>
+  </BasicModal>
 </template>
-
-<style lang="scss" scoped>
-.add-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--overlay-heavy);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.add-dialog {
-  background: var(--c-basic-100);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  min-width: 360px;
-  max-width: 480px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--c-basic-200);
-}
-
-.add-dialog__title {
-  margin: 0 0 8px;
-  font-size: var(--fs-500);
-  font-weight: 600;
-  color: var(--c-basic-800);
-}
-
-.add-dialog__desc {
-  margin: 0 0 16px;
-}
-
-.add-dialog__section {
-  margin-bottom: 16px;
-}
-
-.add-dialog__label {
-  display: block;
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-  margin-bottom: 8px;
-}
-
-.channel-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.channel-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-300);
-}
-
-.channel-item--present {
-  background: var(--c-basic-200);
-  color: var(--c-basic-500);
-}
-
-.channel-item--available {
-  border: 1px solid var(--c-basic-200);
-  cursor: pointer;
-  color: var(--c-basic-700);
-  transition: border-color 0.15s, background 0.15s;
-
-  &:hover {
-    border-color: var(--c-support-300);
-    background: var(--c-support-100);
-  }
-}
-
-.channel-item--selected {
-  border-color: var(--c-support-400);
-  background: var(--c-support-100);
-}
-
-.channel-item__check {
-  color: var(--c-positive-300);
-  font-size: 14px;
-  font-weight: 600;
-  flex-shrink: 0;
-  width: 18px;
-  text-align: center;
-}
-
-.channel-item__radio {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 2px solid var(--c-basic-300);
-  flex-shrink: 0;
-
-  .channel-item--selected & {
-    border-color: var(--c-support-400);
-  }
-}
-
-.channel-item__radio-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--c-support-400);
-}
-
-.channel-item__name {
-  font-weight: 500;
-}
-
-.channel-item__idx {
-  margin-left: auto;
-}
-
-.add-dialog__checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-300);
-  color: var(--c-basic-700);
-  cursor: pointer;
-}
-
-.add-dialog__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.pim-btn {
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--c-basic-200);
-  cursor: pointer;
-  font-size: var(--fs-300);
-  font-weight: 500;
-  transition: background 0.15s, border-color 0.15s;
-
-  &--primary {
-    background: var(--c-support-400);
-    color: var(--c-basic-100);
-    border-color: var(--c-support-400);
-
-    &:hover:not(:disabled) {
-      background: var(--c-support-300);
-      border-color: var(--c-support-300);
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-
-  &--secondary {
-    background: var(--c-basic-100);
-    color: var(--c-basic-700);
-
-    &:hover {
-      background: var(--c-basic-200);
-    }
-  }
-}
-</style>

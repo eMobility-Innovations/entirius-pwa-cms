@@ -1,65 +1,67 @@
 <template>
-  <div class="flex-column gap-300 jc-sb relative h-100">
+  <div class="flex-column gap-8 jc-sb relative h-100">
     <nav
-      class="grid grid-col-2 grid-col-2-m ai-ct bg-basic-200 pl-400 pr-400 pt-200 pb-200 t-basic-600 br-tl-50 br-tr-50"
+      class="grid grid-col-2 grid-col-2-m ai-ct bg-raised pl-10 pr-10 pt-5 pb-5 t-secondary rounded-tl rounded-tr"
     >
       <p class="fw-600 fs-400 uppercase">
         {{ handyType.label ? handyType.label : $t("common.click") }}
       </p>
       <p
-        class="js-fe t-basic-600"
+        class="js-fe t-secondary"
         @click="handy.open_Handykit({ typeId: false })"
       >
-        <i class="icon-close-mini pointer" />
+        <FontAwesomeIcon :icon="$icons.close" class="pointer" />
       </p>
     </nav>
-    <div class="fg-1 pl-400 pr-400 ovy-auto pb-400">
-      <p class="fs-200 mv-300 t-basic-600 fw-600">
+    <div class="fg-1 pl-10 pr-10 ovy-auto pb-10">
+      <p class="fs-200 mv-8 t-secondary fw-600">
         {{ $t("order.drag_to_reorder") }}
       </p>
       <draggable
         v-model="order"
         v-if="order && order.length"
-        ghost-class="bg-support-400"
+        ghost-class="bg-accent-fill"
         handle=".handle-button"
         :item-key="(el) => el"
-        class="grid grid-col-1 gap-100"
+        class="grid grid-col-1 gap-2"
       >
         <template #item="{ element: uid }">
           <div
-            class="handle-button br-50 b-basic-400 bg-basic-100 fs-200 t-basic-600 p-100 pointer"
+            class="handle-button rounded b-default bg-base fs-200 t-secondary p-2 pointer"
           >
-            <p class="fs-200 fw-600 t-basic-700">
+            <p class="fs-200 fw-600 t-body">
               {{
                 inserts[uid]?.core_type
                   ? formatCoreType(inserts[uid].core_type)
                   : ""
               }}
             </p>
-            <p v-if="inserts[uid]?.title" class="fs-100 t-basic-600 mt-50 lc-1">
+            <p v-if="inserts[uid]?.title" class="fs-200 t-secondary mt-1 lc-1">
               {{ inserts[uid].title }}
             </p>
             <p
               v-else-if="inserts[uid]?.sku || inserts[uid]?.product_sku"
-              class="fs-100 t-support-400 mt-50"
+              class="fs-200 t-accent mt-1"
             >
               SKU: {{ inserts[uid]?.sku || inserts[uid]?.product_sku }}
             </p>
-            <p class="fs-100 t-basic-400 mt-50">{{ uid.substring(0, 8) }}</p>
+            <p class="fs-200 t-muted mt-1">{{ uid.substring(0, 8) }}</p>
           </div>
         </template>
       </draggable>
     </div>
 
     <div
-      class="grid grid-col-3 rtl-direction bg-basic-200 pl-400 pr-400 pt-100 pb-100 w-100"
+      class="grid grid-col-3 rtl-direction bg-raised pl-10 pr-10 pt-2 pb-2 w-100"
       style="bottom: 0"
     >
       <BasicButton
-        class="bg-basic-700 br-50 bg-support-400 b-support-400 fs-200 b-basic-800 t-basic-100 w-100 jc-ct"
-        :text="$t('common.save')"
+        variant="primary"
+        class="rounded fs-200 w-100 jc-ct"
         @click="pass_asset"
-      />
+      >
+        {{ $t('common.save') }}
+      </BasicButton>
     </div>
   </div>
 </template>

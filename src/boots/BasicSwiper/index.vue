@@ -86,8 +86,8 @@ export default {
   --swiper-scrollbar-left: auto;
   --swiper-scrollbar-right: 4px;
   --swiper-scrollbar-sides-offset: 0%;
-  --swiper-scrollbar-bg-color: var(--c-basic-300);
-  --swiper-scrollbar-drag-bg-color: var(--c-basic-200);
+  --swiper-scrollbar-bg-color: var(--border-subtle);
+  --swiper-scrollbar-drag-bg-color: var(--border-strong);
   --swiper-scrollbar-size: 3px;
 }
 </style>

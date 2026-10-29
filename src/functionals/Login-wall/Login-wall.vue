@@ -1,341 +1,191 @@
 <template>
-  <div
-    class="auth-card fs-300 p-400 t-basic-700 br-50 bg-basic-100 b-basic-300 shadow-down"
-  >
+  <AuthLayout :title="title" :subtitle="subtitle" :status-tone="statusTone">
+    <template v-if="statusText" #status>{{ statusText }}</template>
+
     <!-- Forgot password mode -->
     <template v-if="showForgotPassword && !ssoOnly">
-      <p class="fs-700 fw-600 txt-center mb-50">
-        {{ $t("login.forgot_title") }}
-      </p>
-      <p class="fs-300 t-basic-600 txt-center mb-500">
-        {{ $t("login.forgot_subtitle") }}
-      </p>
-
-      <template v-if="resetEmailSent">
-        <div class="auth-card__banner auth-card__banner--success mb-400">
-          <p class="fs-300 fw-500">{{ $t("login.reset_email_sent") }}</p>
-        </div>
-      </template>
-      <template v-else>
-        <BasicInput
-          v-model="resetEmail"
-          class="bg-basic-200 mb-300 lh-base-elem"
-          :label="$t('login.email')"
-        />
-        <BasicButton
-          :text="$t('login.send_reset_link')"
-          @click="sendResetLink"
-          class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
-        />
-      </template>
-
-      <button
-        class="auth-card__link mt-300"
-        @click="
-          showForgotPassword = false;
-          resetEmailSent = false;
-        "
-      >
+      <form v-if="!resetEmailSent" class="flex-column gap-6" @submit.prevent="sendResetLink">
+        <FormField :label="$t('login.email')" :error="errors.email">
+          <BasicInput v-model="resetEmail" size="lg" autocomplete="email" inputmode="email" />
+        </FormField>
+        <BasicButton type="submit" variant="primary" size="lg" class="jc-ct w-100">
+          {{ $t("login.send_reset_link") }}
+        </BasicButton>
+      </form>
+      <BasicButton variant="ghost" size="lg" class="jc-ct w-100 mt-4" @click="closeForgotPassword">
         {{ $t("login.back_to_login") }}
-      </button>
+      </BasicButton>
     </template>
 
     <!-- Login mode -->
     <template v-else>
-      <div
-        v-if="sessionExpired"
-        class="auth-card__banner auth-card__banner--warning mb-400"
-      >
-        <p class="fs-300 fw-500">{{ $t("login.session_expired") }}</p>
-      </div>
-      <p class="fs-700 fw-600 txt-center mb-50">{{ $t("login.welcome") }}</p>
-      <p class="fs-300 t-basic-600 txt-center mb-500">
-        {{ ssoOnly ? $t("login.sso_only_subtitle") : $t("login.subtitle") }}
-      </p>
+      <form v-if="!ssoOnly" class="flex-column gap-6" @submit.prevent="login">
+        <div class="flex-column gap-4">
+          <FormField :label="$t('login.username')" :error="errors.username">
+            <BasicInput v-model="username" size="lg" autocomplete="username" />
+          </FormField>
+          <PasswordField v-model="password" :label="$t('login.password')" :error="errors.password" />
+        </div>
+        <BasicButton :text="$t('login.submit')" type="submit" variant="primary" size="lg" :loading="signingIn" class="jc-ct w-100">
+          {{ $t("login.submit") }}
+        </BasicButton>
+      </form>
 
-      <!-- SSO-only: the account has no password, so no password form is rendered. -->
-      <template v-if="ssoOnly">
-        <p
-          v-if="autoStarting"
-          class="fs-300 t-basic-600 txt-center mb-300"
-          data-test="sso-redirecting"
-        >
-          {{ $t("login.sso_signing_in") }}
-        </p>
-        <BasicButton
-          data-test="sso-login"
-          :text="$t('login.sso_submit')"
-          @click="ssoLogin"
-          class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
-        />
+      <template v-if="ssoEnabled">
+        <p v-if="autoStarting" data-test="sso-redirecting">{{ $t("login.sso_signing_in") }}</p>
+        <p v-if="!ssoOnly" class="login-wall__divider fs-200 t-muted mv-5">{{ $t("login.sso_or") }}</p>
+        <BasicButton data-testid="sso-login" data-test="sso-login" :text="$t('login.sso_submit')" variant="secondary" size="lg" class="jc-ct w-100" @click="ssoLogin">
+          {{ $t("login.sso_submit") }}
+        </BasicButton>
       </template>
 
-      <template v-else>
-      <BasicInput
-        v-model="username"
-        class="bg-basic-200 mb-400 lh-base-elem"
-        :label="$t('login.username')"
-      />
-      <div class="auth-card__pw-field mb-300">
-        <BasicInput
-          v-model="password"
-          class="bg-basic-200 lh-base-elem"
-          :label="$t('login.password')"
-          :type="pwVisible ? 'text' : 'password'"
-        />
-        <button
-          class="auth-card__pw-toggle"
-          type="button"
-          @click="pwVisible = !pwVisible"
-        >
-          <FontAwesomeIcon :icon="pwVisible ? 'eye-slash' : 'eye'" />
-        </button>
-      </div>
-
-      <BasicButton
-        :text="$t('login.submit')"
-        @click="login"
-        class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
-      />
-
-      <BasicButton
-        v-if="ssoEnabled"
-        data-test="sso-login"
-        :text="$t('login.sso_submit')"
-        @click="ssoLogin"
-        class="bg-basic-200 b-basic-300 jc-ct t-basic-700 w-100 br-50 mt-300"
-      />
-
-      <button class="auth-card__link mt-300" @click="showForgotPassword = true">
+      <BasicButton v-if="!ssoOnly" variant="ghost" size="lg" class="jc-ct w-100 mt-4" @click="openForgotPassword">
         {{ $t("login.forgot_password") }}
-      </button>
-      </template>
+      </BasicButton>
     </template>
-  </div>
+  </AuthLayout>
 </template>
 
 <script>
-const debugMode = process.env.VUE_APP_DEBUG == "true" ? true : false;
+// The dev auto-login pair is read in development only; a production build refuses to start with either set.
 const environment = process.env.NODE_ENV === "development";
-const username = process.env.VUE_APP_USERNAME;
-const password = process.env.VUE_APP_PASSWORD;
+const username = environment ? process.env.VUE_APP_USERNAME : "";
+const password = environment ? process.env.VUE_APP_PASSWORD : "";
 
+import { POST_Login, POST_PasswordReset } from "../../api/contentDB/api";
 import {
-  POST_Login,
-  GET_User,
-  GET_UserDetails,
-  POST_PasswordReset,
-} from "../../api/contentDB/api";
-import { useNotifyStore } from "@/stores/notify";
-import { useUserStore } from "@/stores/user";
-import { useMuninStore } from "@/stores/munin";
+  POST_SsoLoginUrl,
+} from "@/api/sso/api";
+import { SSO_STATE_KEY, isSsoEnabled, ssoRedirectUri, isSsoOnly, isAutoLoginBlocked, allowAutoLogin, blockAutoLogin } from "@/configs/sso";
+import { useLoginSession, consumeReturnRoute } from "@/composables/useLoginSession";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { POST_SsoLoginUrl } from "@/api/sso/api";
-import {
-  SSO_STATE_KEY,
-  allowAutoLogin,
-  blockAutoLogin,
-  isAutoLoginBlocked,
-  isSsoEnabled,
-  isSsoOnly,
-  ssoRedirectUri,
-} from "@/configs/sso";
+import { useNotifyStore } from "@/stores/notify";
+import AuthLayout from "@/boots/AuthLayout/index.vue";
+import PasswordField from "@/boots/AuthLayout/PasswordField.vue";
+
+const noErrors = () => ({ username: "", password: "", email: "" });
+
+// Errors show under their field and once in the AuthLayout live summary (plan 59), never as a toast.
 export default {
+  components: { AuthLayout, PasswordField },
   setup() {
-    const notify = useNotifyStore();
-    const userStore = useUserStore();
-    const munin = useMuninStore();
-    return { notify, userStore, munin };
+    const { completeLogin } = useLoginSession();
+    return { completeLogin, notify: useNotifyStore() };
   },
   data() {
     return {
-      username: environment || debugMode ? username : "",
-      password: environment || debugMode ? password : "",
-      pwVisible: false,
+      username,
+      password,
+      signingIn: false,
+      autoStarting: false,
       sessionExpired: false,
       showForgotPassword: false,
       resetEmail: "",
       resetEmailSent: false,
-      autoStarting: false,
+      errors: noErrors(),
+      formError: "",
     };
   },
   computed: {
     ssoEnabled() {
       return isSsoEnabled();
     },
-    ssoOnly() {
-      return isSsoOnly();
+    ssoOnly() { return isSsoOnly(); },
+    title() {
+      return this.$t(this.showForgotPassword ? "login.forgot_title" : "login.welcome");
+    },
+    subtitle() {
+      return this.$t(this.showForgotPassword ? "login.forgot_subtitle" : this.ssoOnly ? "login.sso_only_subtitle" : "login.subtitle");
+    },
+    statusText() {
+      if (this.formError) return this.formError;
+      if (this.showForgotPassword) return this.resetEmailSent ? this.$t("login.reset_email_sent") : "";
+      return this.sessionExpired ? this.$t("login.session_expired") : "";
+    },
+    statusTone() {
+      if (this.formError) return "negative";
+      return this.showForgotPassword ? "positive" : "warning";
     },
   },
+  watch: {
+    username: "clearErrors",
+    password: "clearErrors",
+    resetEmail: "clearErrors",
+  },
   mounted() {
-    if (localStorage.getItem("session_expired") === "1") {
-      this.sessionExpired = true;
-      localStorage.removeItem("session_expired");
-    }
-    // SSO-only: there is no form to fill in, so do not make the user click through an
-    // empty page. Skipped after a failed attempt, or this becomes a redirect loop that
-    // never shows the error long enough to read.
     if (this.ssoOnly && !isAutoLoginBlocked()) {
       this.autoStarting = true;
       this.ssoLogin();
     }
+    if (localStorage.getItem("session_expired") === "1") {
+      this.sessionExpired = true;
+      localStorage.removeItem("session_expired");
+    }
   },
   methods: {
-    /**
-     * Hand off to the identity provider. The response is FLAT —
-     * { authorization_url, state } — not the { data, meta } envelope the password path
-     * returns, so it is read one level up. `state` is parked in session storage and
-     * compared when the provider redirects back: that comparison is what makes a code
-     * this browser never asked for unusable.
-     */
-    async ssoLogin() {
-      // A click is a deliberate retry; clear any block from the previous attempt.
-      allowAutoLogin();
-      try {
-        const { data } = await POST_SsoLoginUrl({
-          redirect_uri: ssoRedirectUri(),
-        });
-        const { authorization_url, state } = data || {};
-
-        if (!authorization_url || !state) {
-          throw new Error("sso-login-url-incomplete");
-        }
-
-        try {
-          sessionStorage.setItem(SSO_STATE_KEY, state);
-        } catch {
-          // Private-mode browsers refuse session storage; without the stash the
-          // callback cannot verify state, so stop here rather than start a login
-          // that is guaranteed to be rejected on return.
-          throw new Error("sso-state-unstorable");
-        }
-
-        window.location.assign(authorization_url);
-      } catch (error) {
-        // In SSO-only mode this page is the only thing between the user and a loop:
-        // without the block, mounted() would start the same failing login again.
-        blockAutoLogin();
-        this.autoStarting = false;
-        this.notify.spawnNotification({
-          title: extractApiMessage(error, this.$t("login.sso_error_generic")),
-          type: "negative",
-          timeout: "2500",
-        });
-      }
+    clearErrors() {
+      this.errors = noErrors();
+      this.formError = "";
+    },
+    validateCredentials() {
+      this.errors.username = this.username ? "" : this.$t("login.username_required");
+      this.errors.password = this.password ? "" : this.$t("login.password_required");
+      const missing = this.errors.username || this.errors.password;
+      this.formError = missing ? this.$t("login.empty_credentials") : "";
+      return !missing;
     },
     async login() {
       this.sessionExpired = false;
+      if (!this.validateCredentials()) return;
+      this.signingIn = true;
       try {
-        // err handler
-        if (![this.username, this.password].every(Boolean)) {
-          const err = new Error();
-          err.status = 403;
-          err.response = this.$t("login.empty_credentials");
-          throw err;
-        }
-
         const { data } = await POST_Login({
           username: this.username,
           password: this.password,
         });
-        const { data: loginData = {}, meta: loginMeta = {} } = data;
-        const { access, refresh, customer_id = null } = loginData;
+        await this.completeLogin(data.data || {});
 
-        // SET EXPIRATION TIME
-        // ------------
-        // 15 mins
-        const remainingMilliseconds = 15 * 60 * 1000;
-
-        const expiryDate = new Date(
-          new Date().getTime() + remainingMilliseconds
-        );
-        // ------------
-
-        this.userStore.setAuth({
-          token: access,
-          refresh,
-          customer_id,
-          expiryDate: expiryDate,
-        });
-
-        // ------------------------
-        // Content permissions live in ContentDB (Pages panel). On lean stacks
-        // without contentdb this 404s — it must NOT abort login, otherwise
-        // setUser() never runs and the left menu renders empty. Default to [].
-        let permissions = [];
-        try {
-          const { data: userData } = await GET_User({});
-          permissions = userData?.data || [];
-        } catch (e) {
-          console.warn("content-permissions unavailable (contentdb not installed)", e);
-        }
-
-        let username = "";
-        let first_name = "";
-        let last_name = "";
-        let email = "";
-        let extra = null;
-        try {
-          const { data: userDetailsResponse } = await GET_UserDetails({
-            uid: customer_id,
-          });
-          const { data: userDetails } = userDetailsResponse;
-          ({
-            username = "",
-            first_name = "",
-            last_name = "",
-            email = "",
-            extra = null,
-          } = userDetails);
-        } catch (e) {
-          console.warn("Profile endpoint unavailable — using defaults", e);
-        }
-        this.userStore.loadPreferences(extra);
-        // TODO fix later
-        // permissions per content types
-        const layout_ext = ["header", "footer"];
-        const perms = permissions.map((p) => {
-          return {
-            ...p,
-            _for: layout_ext.includes(p.slug) ? "layout-extender" : "content",
-            _limit: layout_ext.includes(p.slug) ? 1 : null,
-          };
-        });
-
-        this.userStore.setUser({
-          username,
-          first_name,
-          last_name,
-          email,
-          permissions: perms,
-        });
-
-        await this.munin.fetchModules();
-
-        const returnRoute = localStorage.getItem("cms_return_route");
-        if (returnRoute && returnRoute !== "/") {
-          localStorage.removeItem("cms_return_route");
+        const returnRoute = consumeReturnRoute();
+        if (returnRoute) {
           this.$router.push(returnRoute);
         }
       } catch (error) {
-        const title = extractApiMessage(
-          error,
-          "Unknown error. Contact administrator."
-        );
-        this.notify.spawnNotification({
-          title,
-          type: "negative",
-          timeout: "2500",
-        });
+        this.formError = extractApiMessage(error, this.$t("login.unknown_error"));
+      } finally {
+        this.signingIn = false;
       }
+    },
+    async ssoLogin() {
+      this.clearErrors();
+      allowAutoLogin();
+      try {
+        const { data } = await POST_SsoLoginUrl({ redirect_uri: ssoRedirectUri() });
+        if (!data?.authorization_url || !data?.state) throw new Error('sso-login-url-incomplete');
+        sessionStorage.setItem(SSO_STATE_KEY, data.state);
+        // Existing upstream clients use this key; the callback consumes both aliases once.
+        sessionStorage.setItem("cms_sso_state", data.state);
+        window.location.assign(data.authorization_url);
+      } catch (error) {
+        blockAutoLogin();
+        this.autoStarting = false;
+        this.formError = extractApiMessage(error, this.$t("login.sso_error_generic"));
+        this.notify.spawnNotification({ title: this.formError, type: "negative", timeout: "2500" });
+      }
+    },
+    async startSsoLogin() { return this.ssoLogin(); },
+    openForgotPassword() {
+      this.clearErrors();
+      this.showForgotPassword = true;
+    },
+    closeForgotPassword() {
+      this.clearErrors();
+      this.showForgotPassword = false;
+      this.resetEmailSent = false;
     },
     async sendResetLink() {
       if (!this.resetEmail) {
-        this.notify.spawnNotification({
-          title: this.$t("login.enter_email"),
-          type: "negative",
-          timeout: "2500",
-        });
+        this.errors.email = this.$t("common.required");
+        this.formError = this.$t("login.enter_email");
         return;
       }
       try {
@@ -348,3 +198,18 @@ export default {
   },
 };
 </script>
+
+<style lang="scss" scoped>
+.login-wall__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--border-subtle);
+  }
+}
+</style>

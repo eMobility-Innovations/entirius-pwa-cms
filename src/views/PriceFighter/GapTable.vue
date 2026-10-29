@@ -1,28 +1,33 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <!-- Toolbar -->
-      <div class="gap-table__toolbar">
-        <Dropdown
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pricefighter.gap_table')" />
+    </template>
+    <template #toolbar>
+      <MobileFilterPanel :active-count="activeFilterCount" :trigger-label="$t('pricefighter.filters')">
+        <BasicSelect
+          :floating-label="$t('pricefighter.market')"
           v-if="channelOptions.length"
-          :values="channelFilterOptions"
-          :selected="[channelFilter || ALL_OPTION]"
+          :model-value="channelFilter || ALL_OPTION"
+          :options="channelFilterOptions"
           class="gap-table__channel"
-          @onSelect="onChannelSelect"
+          @update:model-value="onChannelSelect"
         />
-        <Dropdown
-          :values="recommendationFilterOptions"
-          :selected="[recommendationFilter || ALL_OPTION]"
+        <BasicSelect
+          :floating-label="$t('pricefighter.recommendation')"
+          :model-value="recommendationFilter || ALL_OPTION"
+          :options="recommendationFilterOptions"
           class="gap-table__recommendation"
-          @onSelect="onRecommendationSelect"
+          @update:model-value="onRecommendationSelect"
         />
-        <Switcher
+        <BasicSwitch
           :label="$t('pricefighter.competitor_only')"
-          :selected="competitorOnly"
+          :model-value="competitorOnly"
           class="gap-table__competitor"
-          @onSelect="toggleCompetitorOnly"
+          @update:model-value="toggleCompetitorOnly"
         />
-      </div>
+      </MobileFilterPanel>
+    </template>
 
       <BulkActionBar
         v-if="selectedRows.length"
@@ -30,23 +35,24 @@
         selected-label-key="pricefighter.rows_selected"
         clear-label-key="pricefighter.clear_selection"
         :actions="bulkActions"
-        class="mb-400"
+        class="mb-10"
         @action="onBulkAction"
         @clear="onClearSelection"
       />
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <div v-show="!loading">
         <EmptyState
           v-if="!rows.length"
           :title="$t('pricefighter.no_decisions')"
           :message="$t('pricefighter.no_decisions_desc')"
-          icon="scale-balanced"
+          icon="pricing"
         />
 
         <template v-else>
           <DataTable
+            empty-size="md"
             ref="table"
             :columns="columns"
             :rows="rows"
@@ -61,12 +67,12 @@
           >
             <template #cell-sku="{ row }">
               <div class="flex flex-column">
-                <span class="fw-600 t-support-400">{{ row.sku }}</span>
-                <span class="t-basic-500 fs-200">{{ row.name }}</span>
+                <span class="fw-600 t-accent">{{ row.sku }}</span>
+                <span class="t-muted fs-200">{{ row.name }}</span>
               </div>
             </template>
             <template #cell-market="{ row }">
-              {{ row.channel_idx }} · {{ row.country }} / {{ row.currency }}
+              <MarketCell :channel="row.channel_idx" :country="row.country" :currency="row.currency" />
             </template>
             <template #cell-current_price="{ row }">
               {{ fmt(row.current_price) }} <span class="gap-table__ccy">{{ row.currency }}</span>
@@ -86,30 +92,31 @@
               <div class="suggested-cell">
                 <span>{{ fmt(row.suggested_price) }} <span class="gap-table__ccy">{{ row.currency }}</span></span>
                 <div v-if="row.clamped_floor || row.clamped_step" class="suggested-cell__badges">
-                  <StatusBadge v-if="row.clamped_floor" :label="$t('pricefighter.clamped_floor')" variant="warning" />
-                  <StatusBadge v-if="row.clamped_step" :label="$t('pricefighter.clamped_step')" variant="warning" />
+                  <StatusBadge v-if="row.clamped_floor" :label="$t('pricefighter.clamped_floor')" tone="warning" />
+                  <StatusBadge v-if="row.clamped_step" :label="$t('pricefighter.clamped_step')" tone="warning" />
                 </div>
               </div>
             </template>
             <template #cell-recommendation="{ row }">
               <StatusBadge
                 :label="$t(`pricefighter.recommendation_${row.recommendation}`)"
-                :variant="recommendationVariant(row.recommendation)"
+                :tone="recommendationVariant(row.recommendation)"
               />
             </template>
             <template #expand="{ row }">
               <GapRowDetail :row="row" />
             </template>
           </DataTable>
-
-          <Pagination
-            v-if="totalCount > pageSize"
-            :pagination="paginationState"
-            @onChangePage="onPageChange"
-          />
         </template>
       </div>
-    </div>
+
+    <template v-if="!loading && rows.length && totalCount > pageSize" #footer>
+      <Pagination
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
 
     <ApplyPreviewModal
       v-if="showPreview"
@@ -122,7 +129,7 @@
       :report="applyReport"
       @closed="onReportClosed"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -135,6 +142,7 @@ import { PF_PAGE_SIZE, RECOMMENDATIONS, RECOMMENDATION_VARIANTS, pfFormat } from
 import GapRowDetail from './components/GapRowDetail.vue'
 import ApplyPreviewModal from './components/ApplyPreviewModal.vue'
 import ApplyReport from './components/ApplyReport.vue'
+import MarketCell from './components/MarketCell.vue'
 
 const SORT_API_TOKEN = {
   sku: 'sku',
@@ -146,7 +154,7 @@ const SORT_API_TOKEN = {
 
 export default {
   name: 'PfGapTable',
-  components: { GapRowDetail, ApplyPreviewModal, ApplyReport },
+  components: { GapRowDetail, ApplyPreviewModal, ApplyReport, MarketCell },
   setup() {
     const loader = useLoaderStore()
     const notify = useNotifyStore()
@@ -172,8 +180,12 @@ export default {
     }
   },
   computed: {
+    // Only filters moved off their default count: competitor-only is on by default, so turning it off is the filter.
+    activeFilterCount() {
+      return [this.channelFilter, this.recommendationFilter, !this.competitorOnly].filter(Boolean).length
+    },
     bulkActions() {
-      return [{ key: 'apply', labelKey: 'pricefighter.apply_selected', buttonClass: 'bg-support-400 t-basic-100' }]
+      return [{ key: 'apply', labelKey: 'pricefighter.apply_selected', variant: 'primary' }]
     },
     recommendationFilterOptions() {
       return [
@@ -186,14 +198,14 @@ export default {
     },
     columns() {
       return [
-        { key: 'sku', label: this.$t('pricefighter.sku'), sortable: true, width: '1.4fr' },
-        { key: 'market', label: this.$t('pricefighter.market'), sortable: false, width: '1.1fr' },
-        { key: 'current_price', label: this.$t('pricefighter.current_price'), sortable: true, width: '0.8fr' },
-        { key: 'cost', label: this.$t('pricefighter.cost'), sortable: false, width: '0.7fr' },
-        { key: 'reference_price', label: this.$t('pricefighter.competitor_price'), sortable: true, width: '0.8fr' },
-        { key: 'gap_baseline', label: this.$t('pricefighter.gap'), sortable: true, width: '0.8fr' },
-        { key: 'suggested_price', label: this.$t('pricefighter.suggested_price'), sortable: false, width: '1.3fr' },
-        { key: 'recommendation', label: this.$t('pricefighter.recommendation'), sortable: false, width: '1fr' },
+        { key: 'sku', label: this.$t('pricefighter.sku'), sortable: true, width: '1.5fr' },
+        { key: 'market', label: this.$t('pricefighter.market'), sortable: false, width: '1fr' },
+        { key: 'current_price', label: this.$t('pricefighter.current_price'), sortable: true, width: '0.8fr', numeric: true, priority: 2 },
+        { key: 'cost', label: this.$t('pricefighter.cost'), sortable: false, width: '0.7fr', numeric: true, priority: 2 },
+        { key: 'reference_price', label: this.$t('pricefighter.competitor_price'), sortable: true, width: '0.8fr', numeric: true, priority: 2 },
+        { key: 'gap_baseline', label: this.$t('pricefighter.gap'), sortable: true, width: '0.8fr', numeric: true, priority: 2 },
+        { key: 'suggested_price', label: this.$t('pricefighter.suggested_price'), sortable: false, width: '1.3fr', priority: 2 },
+        { key: 'recommendation', label: this.$t('pricefighter.recommendation'), sortable: false, width: 'max-content' },
       ]
     },
     paginationState() {
@@ -247,8 +259,8 @@ export default {
       this.currentPage = 1
       this.fetchRows()
     },
-    toggleCompetitorOnly() {
-      this.competitorOnly = !this.competitorOnly
+    toggleCompetitorOnly(on) {
+      this.competitorOnly = on
       this.currentPage = 1
       this.fetchRows()
     },
@@ -288,14 +300,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.gap-table__toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
-  flex-wrap: wrap;
-}
-
 .gap-table__channel,
 .gap-table__recommendation {
   min-width: 160px;
@@ -306,21 +310,21 @@ export default {
    badges ("Clamped by max step" / "Clamped to floor") wrap under the price
    instead of overflowing into the Gap column. */
 .gap-table__ccy {
-  color: var(--c-basic-500);
-  font-size: var(--fs-100);
+  color: var(--text-muted);
+  font-size: var(--fs-200);
 }
 
 .suggested-cell {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-50);
+  gap: var(--space-1);
 }
 
 .suggested-cell__badges {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
-  gap: var(--space-50);
+  gap: var(--space-1);
 }
 </style>

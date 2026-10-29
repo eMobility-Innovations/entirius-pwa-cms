@@ -1,3 +1,72 @@
+@import "./touch-target";
+@import "./media-query";
+
+// The one page / section card: faint border, card radius, 24 px padding (16 px below tablet).
+.page-card {
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-6);
+
+  @include max-tablet {
+    padding: var(--space-4);
+  }
+}
+
+// The detail-form grid (docs/ui-components.md § Detail form): FormFields in two columns above a phone, one on it;
+// `.form-grid__wide` spans both (a long text, a rich-text answer).
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4) var(--space-6);
+
+  @include min-tablet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.form-grid__wide {
+  grid-column: 1 / -1;
+}
+
+// The Emails dashboard tile grid (EmailCard): a responsive grid of cards, auto-filling the row.
+.email-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+// The SortableJS fallback clone of every sortable list (`fallback-class="drag-ghost"`): appended to <body>, so no
+// scoped style reaches it.
+.drag-ghost {
+  max-width: 600px;
+  opacity: 0.9;
+  background: var(--surface-base);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-3) var(--space-5);
+}
+
+// The page wrapper around a panel's content card: 48 px, 16 px below tablet (a phone keeps 361 of its 393 px).
+// `.page-pad-x` pads the sides only, for a wrapper whose rows bring their own vertical rhythm.
+.page-pad,
+.page-pad-x {
+  --page-pad: var(--space-12);
+
+  @include max-tablet {
+    --page-pad: var(--space-4);
+  }
+}
+
+.page-pad {
+  padding: var(--page-pad);
+}
+
+.page-pad-x {
+  padding: 0 var(--page-pad);
+}
+
 .dot-indicator {
   position: relative;
   display: inline-block;
@@ -8,10 +77,10 @@
     top: -20%;
     height: 1.1rem;
     width: 1.1rem;
-    border-radius: 50%;
-    background: var(--c-support-100);
+    border-radius: var(--radius-full);
+    background: var(--accent-subtle);
     z-index: 2;
-    border: 2px solid var(--c-basic-100);
+    border: 2px solid var(--surface-base);
   }
 
   &.dot-right {
@@ -29,7 +98,7 @@
 
 .ripple-effect-class {
   position: absolute;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   transform: scale(0);
   animation: btn-ripple 600ms linear;
   background-color: var(--overlay-ripple);
@@ -63,7 +132,7 @@
     left: 50%;
     height: 1px;
     width: 45%;
-    background-color: var(--c-basic-800);
+    background-color: var(--surface-inverse);
   }
 
   &::after {
@@ -86,22 +155,21 @@
 .shadow-arrow {
   box-shadow: var(--shadow-arrow);
 }
-.basic-badge {
-  display: inline-block;
-  padding: 0.35em;
-  font-size: 0.75rem;
-}
 
-::-webkit-scrollbar {
-  width: 5px;
-}
+// Thin scrollbars for mouse screens only: on a touch screen a styled scrollbar stops overlaying, takes its width from
+// the page and widens the layout viewport past the screen, so every fixed element (FAB) sits off its corner.
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: var(--c-basic-500);
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-disabled);
+  }
 }
 
 .underline-animation {
@@ -112,7 +180,7 @@
     position: absolute;
     left: 0;
     bottom: -0.15rem;
-    background-color: var(--c-basic-900);
+    background-color: var(--surface-inverse);
     height: 1px;
     width: 100%;
     margin: 0 auto;
@@ -120,10 +188,10 @@
     transition: all 0.3s ease-in-out;
   }
   &:hover {
-    color: var(--c-basic-800);
+    color: var(--text-body);
   }
   &:hover::after {
-    background-color: var(--c-basic-800);
+    background-color: var(--surface-inverse);
     transform: scaleX(0);
   }
 }
@@ -192,16 +260,6 @@
   box-shadow: var(--shadow-around);
 }
 
-.main-bg-theme {
-  background-image: var(--gradient-main-bg);
-}
-
-.router-link-active {
-  font-size: var(--fs-400) !important;
-  color: var(--c-basic-800) !important;
-  font-weight: 600;
-}
-
 .pulse-animation {
   position: absolute;
   animation: pulse_animation 0.85s ease-in-out infinite;
@@ -216,47 +274,43 @@
   }
 }
 
-// Light hollow chip shared by every panel (product class, delivery-point Type, PriceManager tax
-// classes, ...). Colour still comes from the call site's `t-*` utility; the soft border derives
-// from it via currentColor. The background is forced transparent so the legacy `bg-*-100` fills go
-// hollow everywhere without touching ~20 call sites (utilities carry no !important, so this wins).
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: var(--fs-200);
-  font-weight: 500;
-  line-height: 1.5;
-  white-space: nowrap;
-  flex-shrink: 0;
-  background: transparent !important;
-  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
-}
-
-.chip--pill {
-  border-radius: 10px;
-}
-
-.chip--sm {
-  font-size: var(--fs-100);
-  padding: 1px 6px;
-}
-
-.radius-sm { border-radius: var(--radius-sm); }
-.radius-md { border-radius: var(--radius-md); }
-.radius-lg { border-radius: var(--radius-lg); }
-
 .section-label {
-  font-size: 12px;
+  font-size: var(--fs-200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-600);
+  color: var(--text-secondary);
+}
+
+// The one form-label style (FormField, BasicInput labels, raw <label>s): 12 px / 600, uppercase, muted.
+.field-label {
+  font-size: var(--fs-200);
+  font-weight: 600;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: var(--brand-font-tracking-caps);
+  color: var(--text-muted);
+}
+
+// A label floating above its control (BasicInput / LockedField): one line, never wider than the control.
+.field-label--fit {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .required::after {
   content: " *";
-  color: var(--c-negative-200);
+  color: var(--negative);
+}
+
+// Read by screen readers, never drawn (a locked panel's "(niedostępny)", the skip link until focused).
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

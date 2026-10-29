@@ -1,21 +1,17 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600 flex-1">{{ $t("agm.people_list") }}</h1>
-        <BasicButton
-          v-if="mode === 'marketing_lists'"
-          :text="$t('agm.download_csv')"
-          class="btn-outline"
-          @click="downloadCSV"
-        />
-      </div>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('agm.people_list')">
+        <template v-if="mode === 'marketing_lists'" #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
 
-      <div class="mb-400">
+      <div class="mb-10">
         <BasicTabs
           v-model="mode"
+          id-prefix="consent-people"
           :options="[
             { value: 'people', label: $t('agm.tab_people') },
             { value: 'marketing_lists', label: $t('agm.tab_marketing_lists') },
@@ -24,20 +20,28 @@
       </div>
 
       <!-- People tab -->
-      <template v-if="mode === 'people'">
-        <div class="flex ai-ct gap-300 mb-400">
-          <BasicInput
-            v-model="search"
-            :placeholder="$t('agm.search_by_email')"
-            icon="search"
-            class="consent-people__search"
-            @input="debouncedFetch(searchAndFetch)"
-          />
+      <div
+        v-if="mode === 'people'"
+        id="consent-people-panel-people"
+        role="tabpanel"
+        aria-labelledby="consent-people-tab-people"
+      >
+        <div class="flex ai-ct gap-8 mb-10">
+          <ReadonlyOff>
+            <BasicInput
+              v-model="search"
+              :placeholder="$t('agm.search_by_email')"
+              icon="search"
+              class="consent-people__search"
+              @input="debouncedFetch(searchAndFetch)"
+            />
+          </ReadonlyOff>
         </div>
 
-        <Loader v-show="loading" />
+        <Loader block v-show="loading" />
 
         <DataTable
+          empty-size="md"
           v-show="!loading"
           :columns="columns"
           :rows="people"
@@ -50,30 +54,30 @@
           </template>
         </DataTable>
 
-        <Pagination
-          v-if="totalCount > pageSize"
-          :pagination="paginationState"
-          @onChangePage="onPageChange"
-        />
-      </template>
+      </div>
 
       <!-- Marketing Lists tab -->
-      <template v-if="mode === 'marketing_lists'">
-        <Loader v-show="subscribersLoading" />
+      <div
+        v-if="mode === 'marketing_lists'"
+        id="consent-people-panel-marketing_lists"
+        role="tabpanel"
+        aria-labelledby="consent-people-tab-marketing_lists"
+      >
+        <Loader block v-show="subscribersLoading" />
 
         <template v-if="!subscribersLoading">
-          <p v-if="!subscriberGroups.length" class="t-basic-500">
+          <p v-if="!subscriberGroups.length" class="t-muted">
             {{ $t("agm.no_subscribers") }}
           </p>
 
           <div
             v-for="group in subscriberGroups"
             :key="group.slug"
-            class="mb-500"
+            class="mb-12"
           >
-            <div class="flex ai-ct gap-200 mb-300">
+            <div class="flex ai-ct gap-5 mb-8">
               <h2 class="fs-400 fw-600">{{ group.name }}</h2>
-              <span class="consent-people__count-badge fs-200 t-basic-500">
+              <span class="fs-200 t-muted">
                 {{ group.items.length }} {{ $t("agm.subscribers_count") }}
               </span>
             </div>
@@ -89,9 +93,17 @@
             </DataTable>
           </div>
         </template>
-      </template>
-    </div>
-  </div>
+      </div>
+
+    <template #footer>
+      <Pagination
+        v-if="mode === 'people' && totalCount > pageSize"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -104,9 +116,11 @@ import {
   GET_MarketingSubscribersExport,
 } from "@/api/agreements/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { ReadonlyOff } from "@/composables/useReadonly";
 
 export default {
   name: "ConsentPeople",
+  components: { ReadonlyOff },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -126,6 +140,9 @@ export default {
     };
   },
   computed: {
+    headerActions() {
+      return [{ key: "csv", role: "secondary", label: this.$t("agm.download_csv"), onClick: this.downloadCSV }];
+    },
     columns() {
       return [
         {
@@ -139,12 +156,14 @@ export default {
           label: this.$t("agm.consent_count"),
           sortable: false,
           width: "120px",
+          numeric: true,
         },
         {
           key: "last_activity",
           label: this.$t("agm.last_activity"),
           sortable: false,
           width: "180px",
+          priority: 2,
         },
       ];
     },
@@ -161,6 +180,7 @@ export default {
           label: this.$t("agm.date"),
           sortable: false,
           width: "180px",
+          priority: 2,
         },
         {
           key: "channel_idx",
@@ -285,12 +305,5 @@ export default {
 .consent-people__search {
   flex: 1;
   max-width: 400px;
-}
-
-.consent-people__count-badge {
-  background: var(--c-basic-200);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  padding: 2px 8px;
 }
 </style>

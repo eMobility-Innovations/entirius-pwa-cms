@@ -1,70 +1,57 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("emails.dashboard") }}</h1>
-      </div>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('emails.dashboard')" />
+    </template>
 
-      <Loader v-show="loading" />
+    <Loader block v-if="loading" />
 
-      <div v-show="!loading">
-        <!-- Channels -->
-        <div class="mb-500">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("emails.channels") }}</h2>
-          <div v-if="channels.length === 0" class="fs-300 t-basic-500">
-            {{ $t("emails.no_channels") }}
-          </div>
-          <div class="emails-grid">
-            <div
-              v-for="channel in channels"
-              :key="channel.pk"
-              class="emails-card bg-basic-100 b-basic-300 br-50 p-400 pointer"
-              @click="editChannel(channel.pk)"
-            >
-              <div class="flex ai-ct gap-200 mb-200">
-                <div
-                  class="emails-card__color-dot"
-                  :style="{
-                    backgroundColor:
-                      channel.main_background_color || 'var(--c-basic-300)',
-                  }"
-                ></div>
-                <span class="fs-400 fw-600 t-basic-800">{{
-                  channel.label
-                }}</span>
-              </div>
-              <div class="fs-200 t-basic-500">{{ channel.idx }}</div>
-              <div v-if="channel.from_email" class="fs-200 t-basic-500 mt-100">
-                {{ channel.from_email }}
-              </div>
-            </div>
-          </div>
+    <template v-else>
+      <section class="mb-12">
+        <h2 class="fs-500 fw-600 mb-8">{{ $t("emails.channels") }}</h2>
+        <p v-if="channels.length === 0" class="fs-300 t-muted">
+          {{ $t("emails.no_channels") }}
+        </p>
+        <div class="email-cards">
+          <EmailCard
+            v-for="channel in channels"
+            :key="channel.pk"
+            :to="`/emails/channels/${channel.pk}`"
+            :title="channel.label || channel.idx"
+            testid="emails-channel-card"
+          >
+            <template #icon>
+              <span
+                class="color-dot"
+                data-census="data"
+                :style="{ backgroundColor: channel.main_background_color || 'var(--surface-hover)' }"
+                aria-hidden="true"
+              ></span>
+            </template>
+            <p class="fs-200 t-muted mt-2">{{ channel.idx }}</p>
+            <p v-if="channel.from_email" class="fs-200 t-muted mt-2">
+              {{ channel.from_email }}
+            </p>
+          </EmailCard>
         </div>
+      </section>
 
-        <!-- Email Types -->
-        <div>
-          <h2 class="fs-500 fw-600 mb-300">
-            {{ $t("emails.template_types") }}
-          </h2>
-          <div class="emails-grid">
-            <div
-              v-for="emailType in emailTypes"
-              :key="emailType.slug"
-              class="emails-card bg-basic-100 b-basic-300 br-50 p-400 pointer"
-              @click="editTemplates(emailType.slug)"
-            >
-              <div class="fs-400 fw-600 t-basic-800 mb-100">
-                {{ emailType.label }}
-              </div>
-              <div class="fs-200 t-basic-500">{{ emailType.description }}</div>
-            </div>
-          </div>
+      <section>
+        <h2 class="fs-500 fw-600 mb-8">{{ $t("emails.template_types") }}</h2>
+        <div class="email-cards">
+          <EmailCard
+            v-for="emailType in emailTypes"
+            :key="emailType.slug"
+            :to="`/emails/templates/${emailType.slug}`"
+            :title="$t(`emails.types.${emailType.slug}`)"
+            testid="emails-type-card"
+          >
+            <p class="fs-200 t-muted mt-2">{{ $t(`emails.type_desc.${emailType.slug}`) }}</p>
+          </EmailCard>
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -72,9 +59,11 @@ import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { GET_EmailChannels, GET_EmailTemplates } from "@/api/emails/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import EmailCard from "./EmailCard.vue";
 
 export default {
   name: "EmailsDashboard",
+  components: { EmailCard },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -83,57 +72,37 @@ export default {
   data() {
     return {
       channels: [],
-      loading: false,
+      loading: true,
       allEmailTypes: [
         {
-          slug: "accounts-new-account",
-          label: "New Account",
-          description: "Signup confirmation email",
+          slug: "accounts-new-account"
         },
         {
-          slug: "accounts-reset-password",
-          label: "Reset Password",
-          description: "Password reset email",
+          slug: "accounts-reset-password"
         },
         {
-          slug: "checkout-virtual-product",
-          label: "Virtual Product",
-          description: "Digital product delivery email",
+          slug: "checkout-virtual-product"
         },
         {
-          slug: "loyalty-coupon-confirmation",
-          label: "Coupon Confirmation",
-          description: "Loyalty coupon email",
+          slug: "loyalty-coupon-confirmation"
         },
         {
-          slug: "returns-return-confirmation",
-          label: "Return Confirmation",
-          description: "Return accepted email",
+          slug: "returns-return-confirmation"
         },
         {
-          slug: "allegro-virtual-product",
-          label: "Allegro Virtual Product",
-          description: "Allegro digital delivery email",
+          slug: "allegro-virtual-product"
         },
         {
-          slug: "agreements-newsletter-signup",
-          label: "Newsletter Signup",
-          description: "Newsletter confirmation email",
+          slug: "agreements-newsletter-signup"
         },
         {
-          slug: "contact-forms-booking-confirmation",
-          label: "Booking Confirmation",
-          description: "Booker confirmation email",
+          slug: "contact-forms-booking-confirmation"
         },
         {
-          slug: "contact-forms-booking-admin-notification",
-          label: "Booking Admin Notification",
-          description: "Admin notification of new booking",
+          slug: "contact-forms-booking-admin-notification"
         },
         {
-          slug: "contact-forms-submission",
-          label: "Contact Form Submission",
-          description: "Generic contact form admin notification",
+          slug: "contact-forms-submission"
         },
       ],
       emailTypes: [],
@@ -167,36 +136,16 @@ export default {
         this.loading = false;
       }
     },
-    editChannel(pk) {
-      this.$router.push(`/emails/channels/${pk}`);
-    },
-    editTemplates(slug) {
-      this.$router.push(`/emails/templates/${slug}`);
-    },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-.emails-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.emails-card {
-  transition: border-color 0.15s;
-
-  &:hover {
-    border-color: var(--c-support-300);
-  }
-}
-
-.emails-card__color-dot {
+.color-dot {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
-  border: 1px solid var(--c-basic-300);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 </style>

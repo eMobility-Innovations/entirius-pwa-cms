@@ -1,122 +1,84 @@
 <template>
-  <div
-    class="auth-card fs-300 p-400 t-basic-700 br-50 bg-basic-100 b-basic-300 shadow-down"
+  <AuthLayout
+    :title="$t(success ? 'user.change_password' : 'user.change_password_title')"
+    :subtitle="success ? '' : $t('user.change_password_subtitle')"
+    :status-tone="success ? 'positive' : 'negative'"
   >
-    <!-- Success state -->
-    <template v-if="success">
-      <p class="fs-700 fw-600 txt-center mb-50">
-        {{ $t("user.change_password") }}
-      </p>
-      <div class="auth-card__banner auth-card__banner--success mb-400">
-        <p class="fs-300 fw-500">{{ $t("user.password_changed_message") }}</p>
-      </div>
-      <BasicButton
-        :text="$t('user.back_to_home')"
-        @click="goHome"
-        class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
-      />
-    </template>
+    <template v-if="statusText" #status>{{ statusText }}</template>
 
-    <!-- Form -->
-    <template v-else>
-      <p class="fs-700 fw-600 txt-center mb-50">
-        {{ $t("user.change_password_title") }}
-      </p>
-      <p class="fs-300 t-basic-600 txt-center mb-500">
-        {{ $t("user.change_password_subtitle") }}
-      </p>
-      <div class="auth-card__pw-field mb-400">
-        <BasicInput
-          v-model="oldPassword"
-          class="bg-basic-200 lh-base-elem"
-          :label="$t('user.old_password')"
-          :type="oldPwVisible ? 'text' : 'password'"
-        />
-        <button
-          class="auth-card__pw-toggle"
-          type="button"
-          @click="oldPwVisible = !oldPwVisible"
-        >
-          <FontAwesomeIcon :icon="oldPwVisible ? 'eye-slash' : 'eye'" />
-        </button>
-      </div>
-      <div class="auth-card__pw-field mb-400">
-        <BasicInput
+    <BasicButton v-if="success" variant="primary" size="lg" class="jc-ct w-100" @click="goHome">
+      {{ $t("user.back_to_home") }}
+    </BasicButton>
+
+    <form v-else class="flex-column gap-6" @submit.prevent="handleSubmit">
+      <div class="flex-column gap-4">
+        <PasswordField v-model="oldPassword" :label="$t('user.old_password')" :error="errors.oldPassword" />
+        <PasswordField
           v-model="newPassword"
-          class="bg-basic-200 lh-base-elem"
           :label="$t('user.new_password')"
-          :type="newPwVisible ? 'text' : 'password'"
+          :error="errors.newPassword"
+          autocomplete="new-password"
         />
-        <button
-          class="auth-card__pw-toggle"
-          type="button"
-          @click="newPwVisible = !newPwVisible"
-        >
-          <FontAwesomeIcon :icon="newPwVisible ? 'eye-slash' : 'eye'" />
-        </button>
-      </div>
-      <div class="auth-card__pw-field mb-300">
-        <BasicInput
+        <PasswordField
           v-model="confirmPassword"
-          class="bg-basic-200 lh-base-elem"
           :label="$t('user.confirm_password')"
-          :type="newPwVisible ? 'text' : 'password'"
+          :error="errors.confirmPassword"
+          autocomplete="new-password"
         />
-        <button
-          class="auth-card__pw-toggle"
-          type="button"
-          @click="newPwVisible = !newPwVisible"
-        >
-          <FontAwesomeIcon :icon="newPwVisible ? 'eye-slash' : 'eye'" />
-        </button>
       </div>
-      <BasicButton
-        :text="$t('user.change_password_submit')"
-        @click="handleSubmit"
-        class="bg-support-400 b-support-400 jc-ct t-basic-100 w-100 br-50"
-      />
-    </template>
-  </div>
+      <BasicButton type="submit" variant="primary" size="lg" :loading="saving" class="jc-ct w-100">
+        {{ $t("user.change_password_submit") }}
+      </BasicButton>
+    </form>
+  </AuthLayout>
 </template>
 
 <script>
 import { POST_PasswordChange } from "@/api/contentDB/api";
-import { useNotifyStore } from "@/stores/notify";
 import { parsePasswordError } from "@/utils/password-errors";
+import { passwordErrors } from "@/utils/passwordForm";
+import AuthLayout from "@/boots/AuthLayout/index.vue";
+import PasswordField from "@/boots/AuthLayout/PasswordField.vue";
 
+// Errors show under their field and once in the AuthLayout live summary (plan 59), never as a toast.
 export default {
-  setup() {
-    const notify = useNotifyStore();
-    return { notify };
-  },
+  components: { AuthLayout, PasswordField },
   data() {
     return {
       oldPassword: "",
       newPassword: "",
       confirmPassword: "",
-      oldPwVisible: false,
-      newPwVisible: false,
+      saving: false,
       success: false,
+      errors: {},
+      formError: "",
     };
   },
+  computed: {
+    statusText() {
+      return this.success ? this.$t("user.password_changed_message") : this.formError;
+    },
+  },
+  watch: {
+    oldPassword: "clearErrors",
+    newPassword: "clearErrors",
+    confirmPassword: "clearErrors",
+  },
   methods: {
+    clearErrors() {
+      this.errors = {};
+      this.formError = "";
+    },
+    validate() {
+      const { oldPassword, newPassword, confirmPassword } = this;
+      const { errors, summary } = passwordErrors(this.$t, { oldPassword, newPassword, confirmPassword });
+      this.errors = errors;
+      this.formError = summary;
+      return !summary;
+    },
     async handleSubmit() {
-      if (!this.oldPassword || !this.newPassword || !this.confirmPassword) {
-        this.notify.spawnNotification({
-          title: this.$t("user.fill_all_fields"),
-          type: "negative",
-          timeout: "2500",
-        });
-        return;
-      }
-      if (this.newPassword !== this.confirmPassword) {
-        this.notify.spawnNotification({
-          title: this.$t("user.passwords_dont_match"),
-          type: "negative",
-          timeout: "2500",
-        });
-        return;
-      }
+      if (!this.validate()) return;
+      this.saving = true;
       try {
         await POST_PasswordChange({
           old_password: this.oldPassword,
@@ -126,11 +88,9 @@ export default {
         this.success = true;
       } catch (error) {
         const { message } = parsePasswordError(error);
-        this.notify.spawnNotification({
-          title: message || this.$t("notifications.error"),
-          type: "negative",
-          timeout: "3000",
-        });
+        this.formError = message || this.$t("notifications.error");
+      } finally {
+        this.saving = false;
       }
     },
     goHome() {

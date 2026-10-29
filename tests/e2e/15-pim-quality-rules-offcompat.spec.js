@@ -1,6 +1,9 @@
 const { test, expect } = require('@playwright/test');
 const { login } = require('../helpers/auth');
 const { createErrorCollector } = require('../helpers/error-collector');
+const { either } = require('./helpers/text');
+const en = require('../../src/i18n/locales/en.json');
+const pl = require('../../src/i18n/locales/pl.json');
 
 /**
  * PIM Quality Rules — soft-compat OFF (etap-06).
@@ -43,11 +46,11 @@ test.describe('PIM Quality Rules — soft-compat OFF', () => {
     await page.goto('/pim/products');
     await page.waitForLoadState('networkidle');
 
-    // The quality-rules nav entry must not be offered.
-    const navItem = page.locator(
-      '.nav-link:has-text("Quality Rules"), .nav-link:has-text("Reguły jakości"), ' +
-        '.mobile-nav__item:has-text("Quality Rules"), .mobile-nav__item:has-text("Reguły jakości")'
-    );
+    // The quality-rules nav entry must not be offered, in the sidebar nor in the tab bar.
+    const navItem = page.getByRole('navigation').getByRole('link', {
+      name: either(en.nav.pim_gap_definitions, pl.nav.pim_gap_definitions),
+    });
+    await expect(page.getByRole('navigation', { name: either(en.shell.panels, pl.shell.panels) })).toBeVisible();
     expect(await navItem.count()).toBe(0);
 
     collector.assertNoErrors(expect, 'soft-compat OFF — product list');

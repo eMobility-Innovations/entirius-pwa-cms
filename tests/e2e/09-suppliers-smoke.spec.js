@@ -206,19 +206,24 @@ test.describe('Suppliers panel', () => {
     });
 
     test('Back button returns to list', async ({ page }) => {
-      await page.getByTestId('suppliers-detail-back').click();
+      // The PageHeader back arrow in the main landmark, named by common.back in either UI language.
+      await page
+        .getByRole('main')
+        .getByRole('button', { name: /^(Back|Wstecz)$/ })
+        .click();
       await page.waitForLoadState('networkidle');
       await expect(page).toHaveURL(/\/atlas\/list/);
     });
 
-    test('Tabs switch active segment for all 6 tabs', async ({ page }) => {
+    test('Tabs select each of the 6 tabs', async ({ page }) => {
       // Skip "overview" — it's already the default active tab so clicking
       // it does not flip activeTab and the URL watcher does not re-emit.
       const tabs = ['feeds', 'mappings', 'products', 'linked', 'logs', 'overview'];
       for (const key of tabs) {
         const btn = page.getByTestId(`suppliers-tab-${key}`);
         await btn.click();
-        await expect(btn).toHaveClass(/segmented-control__option--active/);
+        await expect(btn).toHaveAttribute('role', 'tab');
+        await expect(btn).toHaveAttribute('aria-selected', 'true');
       }
     });
   });
@@ -275,7 +280,7 @@ test.describe('Suppliers panel', () => {
 
     test('Trigger feed → confirm → POSTs trigger', async ({ page }) => {
       await page.getByTestId('feeds-trigger-xml-1').click();
-      await page.locator('.modal-btn--delete').last().click();
+      await page.getByTestId('confirm-dialog-confirm').last().click();
       const req = await waitForRequest(
         mockState,
         (r) => r.method === 'POST' && r.url.endsWith('/feeds/xml-1/trigger/')
@@ -328,7 +333,7 @@ test.describe('Suppliers panel', () => {
 
     test('Delete profile sends DELETE', async ({ page }) => {
       await page.getByTestId('mapping-delete-profile-default').click();
-      await page.locator('.modal-btn--delete').last().click();
+      await page.getByTestId('confirm-dialog-confirm').last().click();
       const req = await waitForRequest(
         mockState,
         (r) =>
@@ -389,7 +394,7 @@ test.describe('Suppliers panel', () => {
       await page.getByTestId('products-force-repush-504').click();
       // Affected channel listed
       await expect(page.getByText('default-europe')).toBeVisible();
-      await page.locator('.modal-btn--delete').last().click();
+      await page.getByTestId('confirm-dialog-confirm').last().click();
       const req = await waitForRequest(
         mockState,
         (r) =>
@@ -452,10 +457,10 @@ test.describe('Suppliers panel', () => {
         .locator('[data-testid="linked-form-sku"] .entity-picker__trigger')
         .click();
       await page
-        .locator('[data-testid="linked-form-sku"] .entity-picker__inline-input input')
+        .locator('[data-testid="linked-form-sku"] .entity-picker__search')
         .fill('PIM-SKU-3');
       await page
-        .locator('[data-testid="linked-form-sku"] .entity-picker__result')
+        .locator('[data-testid="linked-form-sku"] [role="option"]')
         .first()
         .click();
       await page.getByTestId('linked-form-submit').click();
@@ -471,7 +476,7 @@ test.describe('Suppliers panel', () => {
 
     test('Delete link sends DELETE', async ({ page }) => {
       await page.getByTestId('linked-delete-901').click();
-      await page.locator('.modal-btn--delete').last().click();
+      await page.getByTestId('confirm-dialog-confirm').last().click();
       const req = await waitForRequest(
         mockState,
         (r) => r.method === 'DELETE' && r.url.endsWith('/product-links/901/')

@@ -4,25 +4,26 @@
       v-model="search"
       :placeholder="$t('common.start_typing')"
       icon="search"
-      class="mb-300"
+      class="mb-8"
       @input="debouncedFetch"
     />
 
-    <div class="flex ai-ct jc-sb mb-200">
-      <span class="fs-200 t-basic-500">{{
+    <div class="flex ai-ct jc-sb mb-5">
+      <span class="fs-200 t-muted">{{
         $t("pim.available_count", { count: totalCount })
       }}</span>
-      <span class="fs-200 t-basic-500">{{ $t("pim.drag_to_assign") }}</span>
+      <span class="fs-200 t-muted">{{ $t("pim.drag_to_assign") }}</span>
     </div>
 
-    <Loader v-if="loading" />
+    <Loader block v-if="loading" />
 
     <draggable
       v-if="!loading"
       v-model="normalizedFeatures"
+      :disabled="readonly"
       :group="{ name: 'features', pull: 'clone', put: true }"
       :sort="false"
-      ghost-class="bg-support-100"
+      ghost-class="bg-accent-subtle"
       :force-fallback="true"
       fallback-class="drag-ghost"
       :item-key="(el) => el.feature_idx"
@@ -30,27 +31,34 @@
       @change="onChange"
     >
       <template #item="{ element }">
-        <div class="attribute-library__item flex ai-ct">
-          <span class="drag-handle t-basic-400">&#x2630;</span>
-          <span class="fw-500 fs-200 attribute-library__name">{{
-            element.feature_name || element.feature_idx
-          }}</span>
-          <TypeBadge :feature-type="element.feature_type" />
+        <div class="attribute-library__item flex ai-ct flex-wrap rg-1">
+          <span class="drag-handle t-muted">&#x2630;</span>
+          <span
+            class="fw-500 fs-200 attribute-library__name"
+            :title="element.feature_name || element.feature_idx"
+            >{{ element.feature_name || element.feature_idx }}</span
+          >
+          <StatusBadge
+            :tone="featureTypeTone(element.feature_type)"
+            :dot="false"
+            :label="$t(featureTypeLabel(element.feature_type))"
+          />
         </div>
       </template>
     </draggable>
     <div
       v-if="!loading && !normalizedFeatures.length"
-      class="t-basic-500 fs-200 p-300"
+      class="t-muted fs-200 p-8"
     >
       {{ $t("pim.no_unassigned") }}
     </div>
 
     <Pagination
       v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      class="pt-200"
-      @onChangePage="onPageChange"
+      :page="paginationState.page"
+      :pages="paginationState.pages"
+      class="pt-5"
+      @update:page="onPageChange"
     />
   </div>
 </template>
@@ -59,14 +67,14 @@
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { GET_Features } from "@/api/pim/api";
-import { featureTypeLabel } from "../helpers/pimEnums";
-import TypeBadge from "./TypeBadge.vue";
+import { featureTypeLabel, featureTypeTone } from "../helpers/pimEnums";
 import draggable from "vuedraggable";
+import { useReadonly } from "@/composables/useReadonly";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 export default {
   name: "AttributeLibrary",
-  components: { TypeBadge, draggable },
+  components: { draggable },
   props: {
     featureSetIdx: {
       type: String,
@@ -81,7 +89,7 @@ export default {
   setup() {
     const notify = useNotifyStore();
     const pimChannel = usePimChannelStore();
-    return { notify, pimChannel };
+    return { notify, pimChannel, readonly: useReadonly() };
   },
   data() {
     return {
@@ -116,6 +124,7 @@ export default {
   },
   methods: {
     featureTypeLabel,
+    featureTypeTone,
     async fetchFeatures() {
       this.loading = true;
       try {
@@ -184,21 +193,22 @@ export default {
 }
 
 .attribute-library__item {
-  padding: 12px var(--space-200);
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-5);
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
   cursor: grab;
   user-select: none;
-  gap: var(--space-100);
+  gap: var(--space-2);
   transition: background 0.15s;
   &:hover {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
   }
 }
 
+// The name identifies the row: it keeps ~8 rem and the type badge wraps under it when the drawer is narrow.
 .attribute-library__name {
-  flex: 1;
+  flex: 1 1 8rem;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

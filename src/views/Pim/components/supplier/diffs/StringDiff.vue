@@ -1,11 +1,11 @@
 <template>
   <div class="string-diff">
     <div class="string-diff__col">
-      <div class="string-diff__label t-basic-500">{{ $t("pim.supplier.diff.before") }}</div>
+      <div class="string-diff__label t-muted">{{ $t("pim.supplier.diff.before") }}</div>
       <div class="string-diff__value string-diff__value--before">{{ formatVal(before) }}</div>
     </div>
     <div class="string-diff__col">
-      <div class="string-diff__label t-basic-500">{{ $t("pim.supplier.diff.after") }}</div>
+      <div class="string-diff__label t-muted">{{ $t("pim.supplier.diff.after") }}</div>
       <div class="string-diff__value string-diff__value--after">{{ formatVal(after) }}</div>
     </div>
   </div>
@@ -31,18 +31,18 @@ export default {
 .string-diff {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 .string-diff__label {
-  font-size: var(--fs-100);
+  font-size: var(--fs-200);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: var(--space-100);
+  margin-bottom: var(--space-2);
 }
 .string-diff__value {
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-200);
+  padding: var(--space-5);
+  border-radius: var(--radius-base);
+  background: var(--surface-raised);
   font-size: var(--fs-200);
   white-space: pre-wrap;
   word-break: break-word;
@@ -50,10 +50,10 @@ export default {
   overflow-y: auto;
 }
 .string-diff__value--before {
-  border-left: 2px solid var(--c-negative-300);
+  border-left: 2px solid var(--negative);
 }
 .string-diff__value--after {
-  border-left: 2px solid var(--c-positive-300);
+  border-left: 2px solid var(--positive);
 }
 
 @media (max-width: 640px) {

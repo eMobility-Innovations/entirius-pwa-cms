@@ -10,11 +10,12 @@ Repo-specific traps. Read before touching configs, i18n, or panels.
 - Global components register in TWO files: `src/boots/register-elems.js` (UI
   components) AND `src/configs/builder/components/register-elems.js`
   (builder config controllers). Adding one without the other fails silently.
-- Sidebar/mobile-bar routes come from `src/components/Navigation/nav-routes.js`
-  (`buildNavRoutes()` / `filterNavRoutes()`), consumed by both
-  `Navigation.vue` and `App.vue` — not hardcoded per-component. `App.vue`
-  hides the sidebar entirely for single-tab panels (enrichment, emails,
-  accounts, checkout, stock).
+- Sidebar / tab-bar routes come from `src/components/Navigation/nav-routes.js`
+  (`buildNavRoutes()` / `filterNavRoutes()`) through the nav model
+  (`src/composables/useNav.js`) — not hardcoded per component. The sidebar
+  shows on every authenticated route (Home and single-entry panels included);
+  the phone tab bar hides for a panel with one entry. The active panel is
+  `route.meta.panel`: there is no active-panel state in a store.
 - Points panel import view is commented out (nav + router). Imports are
   CLI-only via `manage.py import_deliverypoints`. Files kept but unreachable.
 - Carrier types are read-only in `Points/TypeList.vue` — clicking shows an
@@ -30,12 +31,12 @@ Repo-specific traps. Read before touching configs, i18n, or panels.
   `src/boots/Icons/fa-icons.js` (both the `import {}` statement AND the
   `library.add()` call). Missing imports fail silently — no console error,
   the icon just doesn't render.
-- A page that fills the viewport has to set its own `overflow-y: auto`.
-  `App.vue` renders the route inside `.app-content-col.ov-h.router-container`,
-  within a `.layout` that is `overflow: hidden; height: 100%`, and hands the
-  route `class="h-100"`. The shell clips on purpose and every page scrolls
-  itself, so a full-height root with no overflow of its own lays out past the
-  fold and anything below it cannot be reached.
+- A full-height page owns its own scrolling. `#app` and `.app-main` are
+  `overflow: hidden` and the route's `router-view` gets `h-100`, so the shell
+  clips. Build pages on `PageLayout`, which scrolls itself (`ovy-auto`). A page
+  that bypasses it must set its own `overflow-y: auto`, or content below the
+  fold is unreachable. Nothing warns, and jsdom/happy-dom applies no scoped
+  SCSS, so a unit test cannot catch it.
 - `PimField.vue` (`views/Pim/components/`) is a legacy alias for the
   `FormField` boot component — use `<FormField>` directly in new code.
 - Project i18n is a hand-rolled reactive `state.lang` (no vue-i18n). Only
@@ -61,24 +62,4 @@ idx2]`.
 
 ## Standard Patterns for New Panels
 
-- `useSearchDebounce` — list search. Never duplicate debounce logic inline.
-- `useFormErrors` — edit/create field-level validation. All edit views MUST
-  use it.
-- `FormField` — wraps label + slot + description. Use for ALL form fields.
-  `:tooltip` renders a `?` `HelpTooltip` next to the label (the field-level
-  equivalent of `Switcher :hint`); `:description` renders a muted line below
-  the field.
-- `EmptyState` — standardized no-data display (`title`, `message`, `icon`
-  props).
-- `ChannelMultiSelect` — channel multi-select with a globe icon, responsive
-  (icon-only on mobile).
-- `HelpTooltip` — inline `?` icon with a hover/focus bubble (`:text`). Use to
-  explain non-obvious fields/toggles. The `Switcher` boot has a built-in
-  `:hint` prop for the same purpose (click on `?` is `@click.stop`, won't
-  toggle the switch).
-- `Dropdown` options support an optional `el.description` field in
-  `:values` — renders a muted secondary line under the option label (use for
-  terse labels that need a fuller explanation, e.g. discount modifiers).
-  Don't put a `?` tooltip inside dropdown options — the bubble clips against
-  the list's `overflow`.
-- `MobileFilterPanel` + `FilterChip` — filter UI on list views.
+See `docs/ui-rules.md` — the only CMS UI rule file (boots by job, page patterns, forms).

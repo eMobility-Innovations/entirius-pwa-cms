@@ -1,64 +1,69 @@
 <template>
-  <ConfirmationModal :visible="true" @reject="onCancel">
-    <template #header>
-      <h2 class="t-warning-300">
-        <FontAwesomeIcon icon="triangle-exclamation" class="mr-100" />
+  <BasicModal
+    :open="true"
+    size="sm"
+    @update:open="(open) => open || onCancel()"
+  >
+    <template #title>
+      <h2 class="t-warning">
+        <FontAwesomeIcon :icon="$icons.warning" class="mr-2" />
         {{ $t("atlas.duplicates.merge_modal.title") }}
       </h2>
     </template>
-    <template #description>
-      <div class="merge-confirm__body">
-        <p class="t-basic-700">
-          {{ descriptionText }}
-        </p>
-        <FormField :label="$t('atlas.duplicates.merge_modal.reason_label')">
-          <TextAreaBasic
-            v-model="reason"
-            :placeholder="$t('atlas.duplicates.merge_modal.reason_placeholder')"
-            rows="3"
-            :disabled="loading"
-            data-test="merge-confirm-reason"
-          />
-        </FormField>
-        <p
-          v-if="reasonTooShort"
-          class="merge-confirm__hint t-basic-500 fs-200"
+    <div class="merge-confirm__body">
+      <p class="t-body">
+        {{ descriptionText }}
+      </p>
+      <FormField :label="$t('atlas.duplicates.merge_modal.reason_label')">
+        <BasicTextarea
+          v-model="reason"
+          :maxlength="512"
+          :placeholder="$t('atlas.duplicates.merge_modal.reason_placeholder')"
+          rows="3"
+          :disabled="loading"
+          data-test="merge-confirm-reason"
+        />
+      </FormField>
+      <p
+        v-if="reasonTooShort"
+        class="merge-confirm__hint t-muted fs-200"
+      >
+        {{ $t("atlas.duplicates.merge_modal.reason_label") }}
+      </p>
+      <div v-if="errorText" class="merge-confirm__error t-negative fs-200">
+        <FontAwesomeIcon :icon="$icons.warning" class="mr-2" />
+        {{ errorText }}
+      </div>
+    </div>
+    <template #footer>
+      <div class="merge-confirm__actions">
+        <BasicButton
+          variant="secondary"
+          :disabled="loading"
+          data-test="merge-confirm-cancel"
+          @click="onCancel"
         >
-          {{ $t("atlas.duplicates.merge_modal.reason_label") }}
-        </p>
-        <div v-if="errorText" class="merge-confirm__error t-negative-300 fs-200">
-          <FontAwesomeIcon icon="triangle-exclamation" class="mr-100" />
-          {{ errorText }}
-        </div>
-        <div class="merge-confirm__actions">
-          <BasicButton
-            :text="$t('atlas.duplicates.merge_modal.cancel')"
-            class="btn-outline"
-            :disabled="loading"
-            data-test="merge-confirm-cancel"
-            @click="onCancel"
-          />
-          <BasicButton
-            :text="$t('atlas.duplicates.merge_modal.confirm')"
-            class="btn-primary"
-            :disabled="!canConfirm"
-            data-test="merge-confirm-submit"
-            @click="onConfirm"
-          />
-        </div>
+          {{ $t('atlas.duplicates.merge_modal.cancel') }}
+        </BasicButton>
+        <BasicButton mutates
+          variant="primary"
+          :disabled="!canConfirm"
+          data-test="merge-confirm-submit"
+          @click="onConfirm"
+        >
+          {{ $t('atlas.duplicates.merge_modal.confirm') }}
+        </BasicButton>
       </div>
     </template>
-  </ConfirmationModal>
+  </BasicModal>
 </template>
 
 <script>
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import { POST_MergeByEan } from "@/api/atlas/api";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 export default {
   name: "MergeConfirmationModal",
-  components: { ConfirmationModal },
   props: {
     winnerSku: { type: String, required: true },
     loserSku: { type: String, required: true },
@@ -121,21 +126,21 @@ export default {
 .merge-confirm__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 .merge-confirm__error {
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-  background: var(--c-negative-100);
-  border-left: 3px solid var(--c-negative-300);
+  padding: var(--space-5);
+  border-radius: var(--radius-base);
+  background: var(--negative-subtle);
+  border-left: 3px solid var(--negative);
 }
 .merge-confirm__hint {
-  margin-top: calc(-1 * var(--space-100));
+  margin-top: calc(-1 * var(--space-2));
 }
 .merge-confirm__actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-200);
-  margin-top: var(--space-200);
+  gap: var(--space-5);
+  margin-top: var(--space-5);
 }
 </style>

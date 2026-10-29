@@ -1,13 +1,12 @@
 <template>
   <div class="category-products">
-    <!-- Pinned products panel -->
-    <div class="panel mb-400">
-      <h3 class="panel-title fs-400 fw-600 mb-200 t-basic-700">
-        {{ $t("pim.pinned_products") }}
-        <span class="t-basic-500 fw-400">({{ positioned.length }})</span>
-      </h3>
+    <BasicCard :title="$t('pim.pinned_products')" gap class="mb-8">
+      <template #actions>
+        <CountBadge :count="positioned.length" />
+      </template>
       <draggable
         v-model="positioned"
+        :disabled="readonly"
         :group="{ name: 'category-products' }"
         item-key="sku"
         :class="[
@@ -15,118 +14,74 @@
           { 'product-grid--empty': !positioned.length },
         ]"
         :data-empty-hint="$t('pim.drag_to_pin')"
-        ghost-class="product-card--ghost"
+        ghost-class="sortable-product--ghost"
         @end="onDragEnd"
       >
         <template #item="{ element, index }">
-          <div class="product-card product-card--pinned">
-            <div class="product-card__handle">
-              <font-awesome-icon icon="grip-vertical" class="t-basic-400" />
+          <div class="sortable-product sortable-product--pinned">
+              <font-awesome-icon :icon="$icons.drag" class="t-muted" aria-hidden="true" />
+              <span class="sortable-product__position bg-accent-subtle t-strong">#{{ index + 1 }}</span>
+              <div
+                v-if="element.thumbnail_url"
+                class="sortable-product__thumb"
+                :style="{ backgroundImage: `url(${element.thumbnail_url})` }"
+              />
+              <div v-else class="sortable-product__thumb sortable-product__thumb--empty">
+                <font-awesome-icon :icon="$icons.image" class="t-muted" aria-hidden="true" />
+              </div>
+              <div class="sortable-product__info">
+                <span class="sortable-product__sku fs-200 t-muted">{{ element.sku }}</span>
+                <span class="sortable-product__name fs-300 t-body">{{ element.name || "---" }}</span>
+              </div>
             </div>
-            <span class="product-card__position bg-support-200 t-support-400">
-              #{{ index + 1 }}
-            </span>
-            <div
-              v-if="element.thumbnail_url"
-              class="product-card__thumb"
-              :style="{ backgroundImage: `url(${element.thumbnail_url})` }"
-            />
-            <div v-else class="product-card__thumb product-card__thumb--empty">
-              <font-awesome-icon icon="image" class="t-basic-300" />
-            </div>
-            <div class="product-card__info">
-              <span class="product-card__sku fs-200 t-basic-500">{{
-                element.sku
-              }}</span>
-              <span class="product-card__name fs-300 t-basic-800">{{
-                element.name || "---"
-              }}</span>
-            </div>
-          </div>
         </template>
       </draggable>
-    </div>
+    </BasicCard>
 
-    <!-- Unpositioned products panel -->
-    <div class="panel">
-      <h3 class="panel-title fs-400 fw-600 t-basic-700 mb-200">
-        {{ $t("pim.all_products") }}
-        <span class="t-basic-500 fw-400">({{ unpositionedCount }})</span>
-      </h3>
-      <BasicInput
-        v-model="searchQuery"
-        :placeholder="$t('common.start_typing')"
-        class="search-input mb-200"
-      />
+    <BasicCard :title="$t('pim.all_products')" gap>
+      <template #actions>
+        <CountBadge :count="unpositionedCount" />
+      </template>
+      <ReadonlyOff>
+        <BasicInput
+          v-model="searchQuery"
+          :placeholder="$t('common.start_typing')"
+          :aria-label="$t('pim.search_products')"
+          icon="search"
+          class="search-input"
+        />
+      </ReadonlyOff>
       <draggable
         v-model="unpositioned"
+        :disabled="readonly"
         :group="{ name: 'category-products' }"
         item-key="sku"
         class="product-grid"
-        ghost-class="product-card--ghost"
+        ghost-class="sortable-product--ghost"
         @end="onDragEnd"
       >
         <template #item="{ element }">
-          <div class="product-card">
-            <div class="product-card__handle">
-              <font-awesome-icon icon="grip-vertical" class="t-basic-400" />
+          <div class="sortable-product">
+              <font-awesome-icon :icon="$icons.drag" class="t-muted" aria-hidden="true" />
+              <div
+                v-if="element.thumbnail_url"
+                class="sortable-product__thumb"
+                :style="{ backgroundImage: `url(${element.thumbnail_url})` }"
+              />
+              <div v-else class="sortable-product__thumb sortable-product__thumb--empty">
+                <font-awesome-icon :icon="$icons.image" class="t-muted" aria-hidden="true" />
+              </div>
+              <div class="sortable-product__info">
+                <span class="sortable-product__sku fs-200 t-muted">{{ element.sku }}</span>
+                <span class="sortable-product__name fs-300 t-body">{{ element.name || "---" }}</span>
+              </div>
             </div>
-            <div
-              v-if="element.thumbnail_url"
-              class="product-card__thumb"
-              :style="{ backgroundImage: `url(${element.thumbnail_url})` }"
-            />
-            <div v-else class="product-card__thumb product-card__thumb--empty">
-              <font-awesome-icon icon="image" class="t-basic-300" />
-            </div>
-            <div class="product-card__info">
-              <span class="product-card__sku fs-200 t-basic-500">{{
-                element.sku
-              }}</span>
-              <span class="product-card__name fs-300 t-basic-800">{{
-                element.name || "---"
-              }}</span>
-            </div>
-          </div>
         </template>
       </draggable>
-      <div
-        v-if="!unpositioned.length && !loading"
-        class="empty-state t-basic-400 fs-300"
-      >
-        {{ $t("common.no_data") }}
-      </div>
+      <EmptyState v-if="!unpositioned.length && !loading" size="sm" :title="$t('common.no_data')" />
 
-      <!-- Pagination -->
-      <div
-        v-if="totalPages > 1"
-        class="pagination flex ai-center jc-center gap-100 mt-300"
-      >
-        <button
-          class="page-btn"
-          :disabled="currentPage <= 1"
-          @click="goToPage(currentPage - 1)"
-        >
-          <font-awesome-icon icon="chevron-left" />
-        </button>
-        <button
-          v-for="p in visiblePages"
-          :key="p"
-          class="page-btn"
-          :class="{ 'page-btn--active': p === currentPage }"
-          @click="goToPage(p)"
-        >
-          {{ p }}
-        </button>
-        <button
-          class="page-btn"
-          :disabled="currentPage >= totalPages"
-          @click="goToPage(currentPage + 1)"
-        >
-          <font-awesome-icon icon="chevron-right" />
-        </button>
-      </div>
-    </div>
+      <Pagination :page="currentPage" :pages="totalPages" @update:page="goToPage" />
+    </BasicCard>
   </div>
 </template>
 
@@ -134,6 +89,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { t } from "@/i18n";
 import draggable from "vuedraggable";
+import { ReadonlyOff, useReadonly } from "@/composables/useReadonly";
 import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import {
@@ -149,6 +105,7 @@ const props = defineProps({
 
 const loader = useLoaderStore();
 const notify = useNotifyStore();
+const readonly = useReadonly();
 
 const positioned = ref([]);
 const unpositioned = ref([]);
@@ -163,16 +120,6 @@ let searchTimeout = null;
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(unpositionedCount.value / pageSize))
 );
-
-const visiblePages = computed(() => {
-  const pages = [];
-  const start = Math.max(1, currentPage.value - 2);
-  const end = Math.min(totalPages.value, currentPage.value + 2);
-  for (let i = start; i <= end; i++) {
-    pages.push(i);
-  }
-  return pages;
-});
 
 async function fetchProducts() {
   loading.value = true;
@@ -263,21 +210,6 @@ onMounted(() => fetchProducts());
 </script>
 
 <style lang="scss" scoped>
-.category-products {
-  padding: 4px 0;
-}
-
-.panel {
-  border: 1px solid var(--c-basic-200);
-  border-radius: 6px;
-  padding: 20px;
-}
-
-.panel-header {
-  flex-wrap: wrap;
-  gap: var(--space-100);
-}
-
 .search-input {
   width: 250px;
   max-width: 100%;
@@ -286,7 +218,7 @@ onMounted(() => fetchProducts());
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-200);
+  gap: var(--space-5);
   min-height: 48px;
 
   &--pinned {
@@ -298,59 +230,50 @@ onMounted(() => fetchProducts());
     align-items: center;
     justify-content: center;
     min-height: 80px;
-    border: 2px dashed var(--c-basic-300);
-    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-subtle);
+    border-radius: var(--radius-base);
     transition: border-color 0.2s, background 0.2s;
 
     &::after {
       content: attr(data-empty-hint);
-      color: var(--c-basic-400);
+      color: var(--text-muted);
       font-size: var(--fs-300);
     }
   }
 }
 
-.product-card {
+// One product in the sortable grids: a drag handle, not a card (the grid sits in a BasicCard).
+.sortable-product {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  background: var(--c-basic-100);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  background: var(--surface-base);
   cursor: grab;
   user-select: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-
-  &:hover {
-    border-color: var(--c-basic-300);
-  }
 
   &--pinned {
-    border-left: 3px solid var(--c-support-400);
-  }
-
-  &__handle {
-    flex-shrink: 0;
-    cursor: grab;
+    border-left: 3px solid var(--accent);
   }
 
   &__position {
     flex-shrink: 0;
     font-size: var(--fs-200);
     font-weight: 600;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
+    padding: 2px var(--space-1);
+    border-radius: var(--radius-base);
   }
 
   &__thumb {
     flex-shrink: 0;
     width: 40px;
     height: 40px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-base);
     background-size: cover;
     background-position: center;
-    background-color: var(--c-basic-200);
+    background-color: var(--surface-raised);
 
     &--empty {
       display: flex;
@@ -368,7 +291,7 @@ onMounted(() => fetchProducts());
   }
 
   &__sku {
-    font-family: monospace;
+    font-family: var(--font-mono);
   }
 
   &__name {
@@ -377,61 +300,13 @@ onMounted(() => fetchProducts());
     white-space: nowrap;
   }
 }
-
-.empty-state {
-  padding: 24px;
-  text-align: center;
-  border: 2px dashed var(--c-basic-200);
-  border-radius: var(--radius-md);
-}
-
-.pagination {
-  padding-top: var(--space-200);
-}
-
-.page-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-100);
-  color: var(--c-basic-600);
-  cursor: pointer;
-  font-size: var(--fs-200);
-  transition: all 0.15s;
-
-  &:hover:not(:disabled) {
-    border-color: var(--c-basic-300);
-    background: var(--c-basic-200);
-  }
-
-  &--active {
-    background: var(--c-support-400);
-    color: var(--c-basic-100);
-    border-color: var(--c-support-400);
-
-    &:hover {
-      background: var(--c-support-400);
-      border-color: var(--c-support-400);
-    }
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-}
 </style>
 
 <!-- Unscoped: SortableJS ghost is appended to <body> -->
 <style>
-.product-card--ghost {
+.sortable-product--ghost {
   opacity: 0.4;
-  border: 2px dashed var(--c-support-400) !important;
-  background: var(--c-support-100) !important;
+  border: 2px dashed var(--accent) !important;
+  background: var(--accent-subtle) !important;
 }
 </style>

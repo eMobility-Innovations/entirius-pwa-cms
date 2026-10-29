@@ -1,34 +1,38 @@
 <template>
-  <div class="supplier-review h-100 ovy-auto">
-    <div class="supplier-review__toolbar p-300 b-basic-300 bb-100 bg-basic-100">
-      <div class="flex ai-ct gap-300 flex-wrap">
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('atlas.review.title')" />
+    </template>
+    <template #toolbar>
+      <div class="flex ai-ct gap-5 flex-wrap">
         <SegmentedControl
           v-model="activeMode"
           :options="modeOptions"
+          :aria-label="$t('atlas.review.mode_label')"
           data-testid="review-mode-switch"
         />
-        <div class="flex ai-ct gap-200 ml-auto flex-wrap">
-          <BasicInput
-            v-model="filters.search"
-            :placeholder="$t('common.start_typing')"
-            icon="search"
-            class="review-search"
-            data-testid="review-search-input"
-            @input="onSearchChange"
-          />
-          <Dropdown
-            :values="supplierFilterOptions"
-            :selected="[filters.supplier]"
-            :placeholder="$t('atlas.col.name')"
-            class="review-supplier-filter"
-            data-testid="review-supplier-filter"
-            @onSelect="onSupplierChange"
-          />
-        </div>
+        <BasicInput
+          v-model="filters.search"
+          :placeholder="$t('common.start_typing')"
+          icon="search"
+          class="review-search"
+          data-testid="review-search-input"
+          @input="onSearchChange"
+        />
+        <BasicSelect
+          :floating-label="$t('atlas.review.list.col.supplier')"
+          :options="supplierFilterOptions"
+          :model-value="filters.supplier"
+          class="review-supplier-filter"
+          data-testid="review-supplier-filter"
+          @update:model-value="onSupplierChange"
+        />
       </div>
       <div
         v-if="activeMode !== 'events' && activeMode !== 'updated'"
-        class="flex ai-ct flex-wrap gap-100 mt-200"
+        class="filter-chip-row mt-5"
+        role="group"
+        :aria-label="$t('atlas.filter.status')"
       >
         <FilterChip
           v-for="opt in statusOptions"
@@ -39,25 +43,18 @@
           @click="onStatusChange(opt.value)"
         />
       </div>
-    </div>
+    </template>
 
-    <div class="supplier-review__body">
-      <SwipeMode
-        v-if="activeMode === 'swipe'"
-        :filters="filters"
-        :kind="kind"
-        @reviewed="onReviewed"
-      />
-      <ListMode
-        v-else-if="activeMode === 'list'"
-        class="p-300"
-        :filters="filters"
-        :kind="kind"
-      />
-      <EventsMode v-else-if="activeMode === 'events'" class="p-300" :filters="filters" />
-      <UpdatedMode v-else class="p-300" :filters="filters" :kind="kind" />
-    </div>
-  </div>
+    <SwipeMode
+      v-if="activeMode === 'swipe'"
+      :filters="filters"
+      :kind="kind"
+      @reviewed="onReviewed"
+    />
+    <ListMode v-else-if="activeMode === 'list'" :filters="filters" :kind="kind" />
+    <EventsMode v-else-if="activeMode === 'events'" :filters="filters" />
+    <UpdatedMode v-else :filters="filters" :kind="kind" />
+  </PageLayout>
 </template>
 
 <script>
@@ -154,17 +151,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.supplier-review {
-  display: flex;
-  flex-direction: column;
-}
-.supplier-review__toolbar {
-  flex-shrink: 0;
-}
-.supplier-review__body {
-  flex: 1;
-  overflow: auto;
-}
 .review-search {
   min-width: 180px;
   max-width: 280px;

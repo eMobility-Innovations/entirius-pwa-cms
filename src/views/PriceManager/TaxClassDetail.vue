@@ -1,64 +1,33 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#pricing-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pricing/tax-classes')"
-      />
-      <span class="fw-600 fs-400">
-        {{ isEdit ? (taxClass.name || taxClass.idx) : $t('pm.create_tax_class') }}
-      </span>
-    </Teleport>
-    <Teleport to="#pricing-toolbar-right" defer>
-      <BasicButton
-        v-if="isEdit"
-        text=""
-        icon="trash-can"
-        class="bg-negative-100 t-negative-300"
-        @click="showDeleteConfirm = true"
-      />
-      <BasicButton
-        :text="$t('pm.save')"
-        class="bg-support-400 t-basic-100"
-        @click="save"
-      />
-    </Teleport>
-
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-if="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="pageTitle" back="/pricing/tax-classes">
+        <template v-if="!loading" #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
       <template v-else>
-        <!-- Basic fields -->
-        <div class="pm-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t('pm.tax_class_detail') }}</h2>
-          <div class="pm-grid">
-            <div class="pm-field">
-              <label class="pm-label required">IDX</label>
+        <BasicCard :title="$t('pm.tax_class_detail')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField label="IDX" required :error="formErrors.getFieldError('idx')?.msg || ''">
               <BasicInput
                 v-model="form.idx"
-                :isDisabled="isEdit"
-                :validate="formErrors.getFieldError('idx')"
+                :disabled="isEdit"
               />
-            </div>
-            <div class="pm-field">
-              <label class="pm-label required">{{ $t('pm.name') }}</label>
+            </FormField>
+            <FormField :label="$t('pm.name')" required :error="formErrors.getFieldError('name')?.msg || ''">
               <BasicInput
                 v-model="form.name"
-                :validate="formErrors.getFieldError('name')"
               />
-            </div>
+            </FormField>
           </div>
-        </div>
+        </BasicCard>
 
-        <!-- Rates table -->
-        <div v-if="isEdit" class="pm-section">
-          <div class="flex ai-ct jc-sb mb-300">
-            <h2 class="fs-500 fw-600">{{ $t('pm.rate_count') }}</h2>
-          </div>
-
-          <div v-if="rates.length" class="pm-rates-table mb-300">
+        <BasicCard v-if="isEdit" :title="$t('pm.rate_count')" gap class="mb-8">
+          <div v-if="rates.length" class="pm-rates-table">
             <div class="pm-rates-table__head">
               <span>{{ $t('pm.country') }}</span>
               <span>{{ $t('pm.percent') }}</span>
@@ -70,40 +39,45 @@
               class="pm-rates-table__row"
             >
               <span class="fw-600">{{ rate.country }}</span>
-              <span>{{ rate.rate }}%</span>
-              <BasicButton
-                text=""
-                icon="trash-can"
-                class="bg-negative-100 t-negative-300"
+              <span>{{ formatTaxRate(rate.rate) }}</span>
+              <IconButton
+                icon="delete"
+                :label="$t('common.delete')"
+                variant="danger"
+                size="sm"
                 @click="deleteRate(rate.country)"
               />
             </div>
           </div>
 
           <!-- Add rate row -->
-          <div class="flex ai-ct gap-200 flex-wrap">
-            <BasicInput v-model="newRate.country_iso2" placeholder="ISO2 (e.g. PL)" class="pm-rate-input" />
-            <NumberInput v-model="newRate.rate" :min="0" :max="100" :step="0.01" suffix="%" class="pm-rate-input" />
+          <div class="flex ai-fe gap-5 flex-wrap">
+            <FormField :label="$t('pm.country')" class="pm-rate-input">
+              <BasicInput v-model="newRate.country_iso2" :placeholder="$t('pm.iso2_placeholder')" />
+            </FormField>
+            <FormField :label="$t('pm.percent')" :error="rateError" class="pm-rate-input">
+              <NumberInput v-model="newRate.rate" :min="0" :max="100" :step="0.01" suffix="%" />
+            </FormField>
             <BasicButton
-              :text="$t('pm.add_rate')"
-              icon="plus"
-              class="bg-support-400 t-basic-100"
+              variant="secondary"
               @click="addRate"
-            />
+            >
+              {{ $t('pm.add_rate') }}
+            </BasicButton>
           </div>
-        </div>
+        </BasicCard>
       </template>
-    </div>
 
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deleteClass"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      @confirm="deleteClass"
+      @cancel="showDeleteConfirm = false"
+      :title="$t('pm.confirm_delete_title')"
     >
-      <template #header><h2>{{ $t('pm.confirm_delete_title') }}</h2></template>
-      <template #description><p>{{ $t('pm.confirm_delete_msg') }}</p></template>
-    </Confirmation-modal>
-  </div>
+      <template #default><p>{{ $t('pm.confirm_delete_msg') }}</p></template>
+    </ConfirmDialog>
+  </PageLayout>
 </template>
 
 <script>
@@ -118,6 +92,7 @@ import {
   POST_PmTaxRate,
   DELETE_PmTaxRate,
 } from '@/api/pricemanager/api'
+import { formatTaxRate, percentToRate } from '@/utils/taxRate'
 
 export default {
   name: 'PmTaxClassDetail',
@@ -135,11 +110,25 @@ export default {
       showDeleteConfirm: false,
       form: { idx: '', name: '' },
       newRate: { country_iso2: '', rate: 0 },
+      rateError: '',
     }
   },
   computed: {
     isEdit() {
       return !!this.$route.params.idx
+    },
+    pageTitle() {
+      if (!this.isEdit) return this.$t('pm.create_tax_class')
+      return this.taxClass.name || this.taxClass.idx || this.$t('pm.tax_class_detail')
+    },
+    headerActions() {
+      return [
+        ...(this.isEdit
+          ? [{ key: 'delete', role: 'utility', icon: 'delete', variant: 'danger', label: this.$t('common.delete'),
+              onClick: () => (this.showDeleteConfirm = true) }]
+          : []),
+        { key: 'save', role: 'primary', label: this.$t('pm.save'), onClick: this.save },
+      ]
     },
   },
   watch: {
@@ -149,11 +138,15 @@ export default {
         if (this.formErrors.hasErrors) this.formErrors.clearErrors()
       },
     },
+    'newRate.rate'() {
+      this.rateError = ''
+    },
   },
   mounted() {
     if (this.isEdit) this.fetch()
   },
   methods: {
+    formatTaxRate,
     async fetch() {
       this.loading = true
       try {
@@ -200,13 +193,16 @@ export default {
     },
     async addRate() {
       if (!this.newRate.country_iso2.trim()) return
+      const rate = percentToRate(this.newRate.rate)
+      if (rate === null || Number(rate) < 0 || Number(rate) > 1) {
+        this.rateError = this.$t('pm.rate_range_error')
+        return
+      }
       this.loader.loaderStart()
       try {
-        // Backend expects decimal (0.2300), UI shows percentage (23)
-        const rateDecimal = (Number(this.newRate.rate) / 100).toFixed(4)
         await POST_PmTaxRate(this.$route.params.idx, {
           country_code: this.newRate.country_iso2.trim().toUpperCase(),
-          rate: rateDecimal,
+          rate,
         })
         this.newRate = { country_iso2: '', rate: 0 }
         await this.fetch()
@@ -256,61 +252,35 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.pm-section {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 20px;
-}
-
-.pm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-200);
-}
-
-.pm-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pm-label {
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-}
-
 .pm-rates-table {
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
   overflow: hidden;
 }
 
 .pm-rates-table__head {
   display: grid;
   grid-template-columns: 1fr 1fr 40px;
-  gap: var(--space-100);
-  padding: 8px var(--space-200);
-  background: var(--c-basic-200);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: var(--surface-raised);
   font-size: var(--fs-200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-500);
+  color: var(--text-muted);
 }
 
 .pm-rates-table__row {
   display: grid;
   grid-template-columns: 1fr 1fr 40px;
-  gap: var(--space-100);
-  padding: 8px var(--space-200);
-  border-top: 1px solid var(--c-basic-300);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
   align-items: center;
 
   &:hover {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
   }
 }
 

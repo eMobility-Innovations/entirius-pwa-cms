@@ -5,7 +5,7 @@
     width="520px"
     @close="$emit('close')"
   >
-    <ProductPreviewCard :sku="sku" :channel-idx="channelIdx" />
+    <ProductPreviewCard :sku="sku" :channel-idx="channelIdx" flat />
   </SideDrawer>
 </template>
 

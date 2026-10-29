@@ -29,6 +29,7 @@ vi.mock("@/views/Atlas/components/MergeConfirmationModal.vue", () => ({
 }));
 
 import Duplicates from "@/views/Atlas/Duplicates.vue";
+import DataTable from "@/boots/DataTable/index.vue";
 
 function makeGroup(overrides = {}) {
   return {
@@ -79,6 +80,8 @@ describe("Duplicates.vue", () => {
   function mountView() {
     return mount(Duplicates, {
       global: {
+        // The real DataTable: the merge buttons live in its row cells.
+        components: { DataTable },
         stubs: globalStubs,
         mocks: { $router: { push: vi.fn() } },
       },

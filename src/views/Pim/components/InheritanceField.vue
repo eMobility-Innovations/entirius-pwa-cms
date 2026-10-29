@@ -30,6 +30,9 @@ export default {
     const pimChannel = usePimChannelStore();
     return { pimChannel };
   },
+  data() {
+    return { confirmInherit: false };
+  },
   computed: {
     isOnDefaultChannel() {
       return this.pimChannel.isDefaultChannel;
@@ -45,11 +48,17 @@ export default {
     },
   },
   methods: {
+    // Override takes effect at once; going back to the inherited value drops the override, so it asks first.
     toggleOverride() {
-      this.$emit("toggle-override", {
-        language: this.language,
-        override: this.isInherited,
-      });
+      if (this.isInherited) this.emitToggle(true);
+      else this.confirmInherit = true;
+    },
+    onConfirmInherit() {
+      this.confirmInherit = false;
+      this.emitToggle(false);
+    },
+    emitToggle(override) {
+      this.$emit("toggle-override", { language: this.language, override });
     },
   },
 };
@@ -57,91 +66,47 @@ export default {
 
 <template>
   <div class="inheritance-field">
-    <div v-if="showToggle" class="inheritance-field__header">
-      <span
-        class="inheritance-badge"
-        :class="{ 'inheritance-badge--inherited': isInherited }"
+    <div v-if="showToggle" class="flex ai-ct gap-2 mb-1">
+      <Tag
+        :label="isInherited ? $t('pim.inherited') : $t('pim.overridden')"
+      />
+      <BasicButton
+        size="sm"
+        variant="ghost"
         :title="
           isInherited
             ? $t('pim.inherited_tooltip')
             : $t('pim.overridden_tooltip')
         "
+        @click="toggleOverride"
       >
-        <span
-          v-if="isInherited"
-          class="inheritance-badge__icon inheritance-badge__icon--linked"
-        />
-        <span
-          v-else
-          class="inheritance-badge__icon inheritance-badge__icon--cut"
-        />
-        <span class="inheritance-badge__label">{{
-          isInherited ? $t("pim.inherited") : $t("pim.override")
-        }}</span>
-      </span>
+        {{ isInherited ? $t("pim.override") : $t("pim.inherit") }}
+      </BasicButton>
     </div>
     <div :class="{ 'inheritance-field__readonly': isReadOnly }">
       <slot :readonly="isReadOnly" />
     </div>
     <div
       v-if="showToggle && isInherited && inheritedValue"
-      class="inheritance-field__preview t-basic-400 fs-200"
+      class="inheritance-field__preview t-muted fs-200"
     >
       {{ $t("pim.default_value", { value: inheritedValue }) }}
     </div>
+    <ConfirmDialog
+      :open="confirmInherit"
+      tone="danger"
+      :title="$t('pim.inherit_confirm_title')"
+      :message="$t('pim.inherit_confirm_message', { language: language.toUpperCase() })"
+      :confirm-label="$t('pim.inherit')"
+      @confirm="onConfirmInherit"
+      @cancel="confirmInherit = false"
+    />
   </div>
 </template>
 
 <style lang="scss" scoped>
 .inheritance-field {
   position: relative;
-}
-
-.inheritance-field__header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-
-.inheritance-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-sm);
-  padding: 2px 8px;
-  font-size: 11px;
-  color: var(--c-basic-500);
-
-  &--inherited {
-    border-color: var(--c-support-300);
-    background: var(--c-support-100);
-    color: var(--c-support-400);
-  }
-}
-
-.inheritance-badge__icon {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-
-  &--linked {
-    background: var(--c-support-400);
-  }
-
-  &--cut {
-    background: var(--c-basic-400);
-  }
-}
-
-.inheritance-badge__label {
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 .inheritance-field__readonly {
@@ -153,6 +118,6 @@ export default {
 .inheritance-field__preview {
   margin-top: 2px;
   font-style: italic;
-  font-size: 11px;
+  font-size: var(--fs-200);
 }
 </style>

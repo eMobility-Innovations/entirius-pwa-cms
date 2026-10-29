@@ -1,62 +1,61 @@
 <template>
-  <div class="acc-detail__wrapper p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#accounts-toolbar-left" defer>
-      <BasicButton text="" icon="arrow-left" class="bg-basic-200 t-basic-600" @click="goBack" />
-      <span class="fw-600">{{ toolbarTitle }}</span>
-    </Teleport>
+  <PageLayout class="acc-detail__wrapper fs-300 t-body">
+    <template #header>
+      <PageHeader :title="pageTitle" :back="goBack" />
+    </template>
 
-    <Loader v-if="loading" />
+    <Loader block v-if="loading" />
 
-    <div v-else-if="customer" class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500">
+    <template v-else-if="customer">
       <!-- Profile Card -->
-      <div class="mb-400">
-        <div class="section-label mb-200">{{ $t("accounts.customer_detail") }}</div>
+      <div class="mb-10">
+        <div class="field-label mb-5">{{ $t("accounts.customer_detail") }}</div>
         <div class="acc-detail__grid">
           <FormField label="Email">
-            <p class="t-basic-700">{{ customer.email }}</p>
+            <p class="t-body">{{ customer.email }}</p>
           </FormField>
           <FormField label="Name">
-            <p class="t-basic-700">{{ customer.firstname }} {{ customer.lastname }}</p>
+            <p class="t-body">{{ customer.firstname }} {{ customer.lastname }}</p>
           </FormField>
           <FormField :label="$t('accounts.phone')">
-            <p class="t-basic-700">{{ customer.dialling_code }} {{ customer.phone || '---' }}</p>
+            <p class="t-body">{{ customer.dialling_code }} {{ customer.phone || '---' }}</p>
           </FormField>
           <FormField :label="$t('accounts.sex')">
-            <p class="t-basic-700">{{ customer.sex || '---' }}</p>
+            <p class="t-body">{{ customer.sex || '---' }}</p>
           </FormField>
           <FormField :label="$t('accounts.language')">
-            <p class="t-basic-700">{{ customer.language || '---' }}</p>
+            <p class="t-body">{{ customer.language || '---' }}</p>
           </FormField>
           <FormField :label="$t('accounts.group')">
-            <span v-if="customer.group" class="bg-support-100 t-support-400 fs-200 ph-100 br-50">
+            <span v-if="customer.group" class="bg-accent-subtle t-strong fs-200 ph-2 rounded">
               {{ customer.group.name }}
             </span>
-            <span v-else class="t-basic-400">---</span>
+            <span v-else class="t-muted">---</span>
           </FormField>
           <FormField :label="$t('accounts.channel')">
-            <p class="t-basic-700">{{ customer.source_channel ? customer.source_channel.label : '---' }}</p>
+            <p class="t-body">{{ customer.source_channel ? customer.source_channel.label : '---' }}</p>
           </FormField>
           <FormField :label="$t('accounts.external_id')">
-            <p class="t-basic-700">{{ customer.external_id || '---' }}</p>
+            <p class="t-body">{{ customer.external_id || '---' }}</p>
           </FormField>
         </div>
       </div>
 
       <!-- Status Row -->
-      <div class="flex ai-ct gap-200 mb-400">
+      <div class="flex flex-wrap ai-ct gap-5 rg-3 mb-10">
         <StatusBadge
           :label="customer.is_active ? $t('accounts.active') : $t('accounts.inactive')"
-          :variant="customer.is_active ? 'positive' : 'negative'"
+          :tone="customer.is_active ? 'positive' : 'negative'"
         />
         <StatusBadge
           :label="customer.is_verified ? $t('accounts.verified') : $t('accounts.not_verified')"
-          :variant="customer.is_verified ? 'informative' : 'neutral'"
+          :tone="customer.is_verified ? 'info' : 'neutral'"
         />
         <template v-if="customer.blacklist_channels.length">
           <span
             v-for="ch in customer.blacklist_channels"
             :key="ch.idx"
-            class="bg-negative-100 t-negative-300 fs-200 ph-100 br-50"
+            class="bg-negative-subtle t-negative fs-200 ph-2 rounded"
           >
             {{ $t("accounts.blacklisted") }}: {{ ch.label }}
           </span>
@@ -64,27 +63,27 @@
       </div>
 
       <!-- Session Info -->
-      <div v-if="customer.last_session_ip || customer.last_session_country" class="mb-400">
-        <div class="section-label mb-200">{{ $t("accounts.session_info") }}</div>
+      <div v-if="customer.last_session_ip || customer.last_session_country" class="mb-10">
+        <div class="field-label mb-5">{{ $t("accounts.session_info") }}</div>
         <div class="acc-detail__grid">
           <FormField :label="$t('accounts.last_ip')">
-            <p class="t-basic-700">{{ customer.last_session_ip || '---' }}</p>
+            <p class="t-body">{{ customer.last_session_ip || '---' }}</p>
           </FormField>
           <FormField :label="$t('accounts.last_country')">
-            <p class="t-basic-700">{{ customer.last_session_country || '---' }}</p>
+            <p class="t-body">{{ customer.last_session_country || '---' }}</p>
           </FormField>
         </div>
       </div>
 
       <!-- Extra Data -->
-      <div v-if="customer.extra && Object.keys(customer.extra).length" class="mb-400">
-        <div class="section-label mb-200">{{ $t("accounts.extra_data") }}</div>
-        <pre class="bg-basic-200 p-200 br-50 fs-200 t-basic-600 ov-auto">{{ JSON.stringify(customer.extra, null, 2) }}</pre>
+      <div v-if="customer.extra && Object.keys(customer.extra).length" class="mb-10">
+        <div class="field-label mb-5">{{ $t("accounts.extra_data") }}</div>
+        <pre class="bg-raised p-5 rounded fs-200 t-secondary ov-auto">{{ JSON.stringify(customer.extra, null, 2) }}</pre>
       </div>
 
       <!-- Addresses Table -->
-      <div class="mb-400">
-        <div class="section-label mb-200">{{ $t("accounts.addresses") }} ({{ customer.addresses_count }})</div>
+      <div class="mb-10">
+        <div class="field-label mb-5">{{ $t("accounts.addresses") }} ({{ customer.addresses_count }})</div>
         <DataTable
           :columns="addressColumns"
           :rows="customer.addresses"
@@ -93,14 +92,14 @@
         >
           <template #cell-name="{ row }">
             {{ row.firstname }} {{ row.lastname }}
-            <span v-if="row.company" class="t-basic-500 fs-200"> ({{ row.company }})</span>
+            <span v-if="row.company" class="t-muted fs-200"> ({{ row.company }})</span>
           </template>
           <template #cell-defaults="{ row }">
-            <div class="flex gap-100">
-              <span v-if="row.is_default_billing" class="bg-positive-100 t-positive-300 fs-100 ph-100 br-50">
+            <div class="flex gap-2">
+              <span v-if="row.is_default_billing" class="bg-positive-subtle t-positive fs-200 ph-2 rounded">
                 {{ $t("accounts.default_billing") }}
               </span>
-              <span v-if="row.is_default_shipping" class="bg-support-100 t-support-400 fs-100 ph-100 br-50">
+              <span v-if="row.is_default_shipping" class="bg-accent-subtle t-strong fs-200 ph-2 rounded">
                 {{ $t("accounts.default_shipping") }}
               </span>
             </div>
@@ -109,11 +108,11 @@
       </div>
 
       <!-- Stats -->
-      <div class="flex gap-400 t-basic-500 fs-200">
+      <div class="flex gap-10 t-muted fs-200">
         <span>{{ $t("accounts.wishlist_items") }}: {{ customer.wishlist_items_count }}</span>
       </div>
-    </div>
-  </div>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -134,18 +133,18 @@ export default {
     };
   },
   computed: {
-    toolbarTitle() {
-      if (!this.customer) return "";
+    pageTitle() {
+      if (!this.customer) return this.$t("accounts.customer_detail");
       const name = (this.customer.firstname + " " + this.customer.lastname).trim();
       return name || this.customer.email;
     },
     addressColumns() {
       return [
-        { key: "name", label: "Name", width: "1fr" },
-        { key: "street", label: "Street", width: "1fr" },
-        { key: "city", label: "City", width: "120px" },
-        { key: "postcode", label: "Postcode", width: "100px" },
-        { key: "country_code", label: "Country", width: "80px" },
+        { key: "name", label: this.$t("accounts.name"), width: "1fr" },
+        { key: "street", label: this.$t("accounts.street"), width: "1fr" },
+        { key: "city", label: this.$t("accounts.city"), width: "120px" },
+        { key: "postcode", label: this.$t("accounts.postcode"), width: "100px" },
+        { key: "country_code", label: this.$t("accounts.country"), width: "80px" },
         { key: "defaults", label: "", width: "200px" },
       ];
     },
@@ -169,8 +168,11 @@ export default {
         this.loading = false;
       }
     },
+    // Opened from another panel (a Leads company card) the arrow returns there; only an in-app path is followed.
     goBack() {
-      this.$router.push("/accounts/customers");
+      const back = this.$route.query.back;
+      const internal = typeof back === "string" && back.startsWith("/") && !back.startsWith("//");
+      this.$router.push(internal ? back : "/accounts/customers");
     },
   },
 };
@@ -180,21 +182,10 @@ export default {
 .acc-detail__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-200);
-}
-
-.section-label {
-  text-transform: uppercase;
-  font-size: var(--fs-200);
-  font-weight: 600;
-  color: var(--c-basic-500);
-  letter-spacing: 0.05em;
+  gap: var(--space-5);
 }
 
 @media only screen and (max-width: 768px) {
-  .acc-detail__wrapper {
-    padding: 16px !important;
-  }
   .acc-detail__grid {
     grid-template-columns: 1fr;
   }

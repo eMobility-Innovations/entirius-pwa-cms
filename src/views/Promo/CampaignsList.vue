@@ -2,15 +2,17 @@
   <div class="config-list">
     <div class="config-list__toolbar">
       <BasicButton
-        :text="$t('promo.campaign_new')"
-        class="btn-primary"
+        variant="primary"
         @click="openCreate"
-      />
+      >
+        {{ $t('promo.campaign_new') }}
+      </BasicButton>
     </div>
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
 
     <DataTable
+      empty-size="md"
       v-show="!loading"
       :columns="columns"
       :rows="campaigns"
@@ -19,9 +21,7 @@
       @row-click="openEdit"
     >
       <template #cell-typ="{ row }">
-        <span class="config-badge bg-basic-200 t-basic-600">{{
-          typLabel(row.typ)
-        }}</span>
+        <Tag :label="typLabel(row.typ)" />
       </template>
       <template #cell-valid_from="{ row }">{{
         formatDate(row.valid_from)
@@ -32,15 +32,16 @@
       <template #cell-is_active="{ row }">
         <StatusBadge
           :label="row.is_active ? $t('promo.active') : $t('promo.inactive')"
-          :variant="row.is_active ? 'positive' : 'negative'"
+          :tone="row.is_active ? 'positive' : 'negative'"
         />
       </template>
     </DataTable>
 
     <Pagination
       v-if="totalCount > pageSize"
-      :pagination="paginationState"
-      @onChangePage="onPageChange"
+      :page="paginationState.page"
+      :pages="paginationState.pages"
+      @update:page="onPageChange"
     />
 
     <SideDrawer :visible="drawerOpen" :title="drawerTitle" @close="closeDrawer">
@@ -52,6 +53,7 @@
         >
           <BasicInput
             v-model="form.name"
+            :maxlength="128"
             :placeholder="$t('promo.campaign_name')"
           />
         </FormField>
@@ -62,11 +64,10 @@
           required
           :error="errors.typ"
         >
-          <Dropdown
-            :values="typeOptions"
-            :selected="form.typ ? [form.typ] : []"
+          <BasicSelect
+            :options="typeOptions"
+            v-model="form.typ"
             :placeholder="$t('promo.campaign_type')"
-            @onSelect="(v) => (form.typ = v)"
           />
         </FormField>
 
@@ -81,55 +82,40 @@
 
         <FormField
           :label="$t('promo.campaign_max_uses')"
-          :tooltip="$t('promo.campaign_max_uses_tip')"
+          hint-level="important"
+          :hint="$t('promo.campaign_max_uses_tip')"
           :error="errors.max_uses_per_customer"
         >
           <NumberInput v-model="form.max_uses_per_customer" :min="0" />
         </FormField>
 
         <FormField v-if="isEdit" :label="$t('promo.active')">
-          <Switcher
-            :selected="form.is_active"
-            @onSelect="form.is_active = !form.is_active"
+          <BasicSwitch
+            v-model="form.is_active"
           />
         </FormField>
 
-        <div class="voucher-form__actions">
-          <BasicButton
-            v-if="isEdit"
-            :text="$t('promo.btn_delete')"
-            class="btn-secondary"
-            @click="showDelete = true"
-          />
-          <BasicButton
-            :text="$t('promo.btn_save')"
-            class="btn-primary"
-            :is-disabled="saving"
-            @click="save"
-          />
-        </div>
+        <ActionBar :actions="drawerActions" class="mt-10" />
       </div>
     </SideDrawer>
 
-    <Confirmation-modal
-      :visible="showDelete"
-      @accept="doDelete"
-      @reject="showDelete = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDelete"
+      @confirm="doDelete"
+      @cancel="showDelete = false"
+      :title="$t('promo.campaign_delete_title')"
     >
-      <template #header
-        ><h2>{{ $t("promo.campaign_delete_title") }}</h2></template
-      >
-      <template #description
+      <template #default
         ><p>{{ $t("promo.campaign_delete_msg") }}</p></template
       >
-    </Confirmation-modal>
+    </ConfirmDialog>
   </div>
 </template>
 
 <script>
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import {
   GET_Campaigns,
   POST_Campaign,
@@ -137,7 +123,7 @@ import {
   DELETE_Campaign,
   GET_VoucherMeta,
 } from "@/api/voucher/api";
-import { enumDescKey } from "./promo-enum-hints";
+import { enumDescKey, enumLabel } from "./promo-enum-hints";
 import { useCheckoutChannelStore } from "@/stores/checkoutChannel";
 
 function emptyForm() {
@@ -153,7 +139,7 @@ function emptyForm() {
 
 export default {
   name: "CampaignsList",
-  components: { ConfirmationModal },
+  components: {},
   setup() {
     return {
       notify: useNotifyStore(),
@@ -217,6 +203,14 @@ export default {
         },
       ];
     },
+    drawerActions() {
+      const del = { key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("promo.btn_delete"),
+        onClick: () => (this.showDelete = true) };
+      return [
+        ...(this.isEdit ? [del] : []),
+        { key: "save", role: "primary", label: this.$t("promo.btn_save"), onClick: this.save, disabled: this.saving },
+      ];
+    },
     drawerTitle() {
       return this.isEdit
         ? this.$t("promo.campaign_edit")
@@ -243,7 +237,7 @@ export default {
   methods: {
     typLabel(v) {
       const f = this.types.find((t) => t.value === v);
-      return f ? f.label : v;
+      return enumLabel("campaign_type", v, f?.label);
     },
     formatDate(v) {
       return v ? v.split("T")[0] : "—";
@@ -375,33 +369,18 @@ export default {
 .config-list__toolbar {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: var(--space-400);
+  margin-bottom: var(--space-10);
 }
 
 .voucher-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-300);
+  gap: var(--space-8);
 }
 
 .voucher-form__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-300);
-}
-
-.voucher-form__actions {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-200);
-  margin-top: var(--space-400);
-}
-
-.config-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-200);
-  font-weight: 600;
+  gap: var(--space-8);
 }
 </style>

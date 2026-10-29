@@ -13,7 +13,7 @@ export const LEAD_STATUSES = [
 
 const VARIANTS = {
   new: "warning",
-  contacted: "informative",
+  contacted: "info",
   qualified: "positive",
   unqualified: "neutral",
   won: "positive",

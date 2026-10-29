@@ -1,105 +1,104 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#promo-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/promo/list')"
-      />
-      <span class="fw-600 fs-400">
-        {{ isEdit ? form.name || $t("promo.edit_rule") : $t("promo.create_rule") }}
-      </span>
-    </Teleport>
-    <Teleport to="#promo-toolbar-right" defer>
-      <span v-if="isDirty" class="bg-warning-100 t-warning-300 fs-200 ph-100 br-50 fw-600">
-        {{ $t("unsaved.changes") }}
-      </span>
-      <BasicButton
-        v-if="isEdit"
-        text=""
-        icon="trash-can"
-        class="bg-negative-100 t-negative-300"
-        @click="showDeleteConfirm = true"
-      />
-      <BasicButton
-        :text="$t('common.save')"
-        class="bg-support-400 t-basic-100"
-        @click="saveRule"
-      />
-    </Teleport>
-
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-if="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template v-if="!loading" #header>
+      <PageHeader :title="pageTitle" back="/promo/list">
+        <template #actions>
+          <div class="flex ai-ct jc-fe wrap gap-3">
+            <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
+            <BasicSwitch
+              v-model="form.is_active"
+              :disabled="loadFailed"
+              :label="$t('promo.field_is_active')"
+              :hint="$t('promo.hint_is_active')"
+            />
+            <ActionBar :actions="headerActions" />
+          </div>
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
       <template v-else>
         <!-- Section: Basic info -->
-        <div class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("promo.section_basic") }}</h2>
-          <div class="detail-grid">
-            <FormField :label="$t('promo.field_name')" required>
+        <BasicCard :title="$t('promo.section_basic')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
+              :label="$t('promo.field_name')"
+              required
+              :error="formErrors.getFieldError('name')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.name"
-                :validate="formErrors.getFieldError('name')"
+                :maxlength="128"
               />
             </FormField>
             <FormField
               :label="$t('promo.field_modifier')"
               required
-              :error="formErrors.getFieldError('modifier')?.msg"
+              :error="formErrors.getFieldError('modifier')?.msg || ''"
             >
-              <Dropdown
-                :values="modifierOptions"
-                :selected="form.modifier ? [form.modifier] : []"
+              <BasicSelect
+                :options="modifierOptions"
+                :model-value="form.modifier"
                 :placeholder="$t('promo.select_modifier')"
-                @onSelect="onModifierSelect"
+                @update:model-value="onModifierSelect"
               />
             </FormField>
             <FormField :label="$t('promo.field_target')">
-              <Dropdown
-                :values="targetOptions"
-                :selected="form.target ? [form.target] : []"
+              <BasicSelect
+                :options="targetOptions"
+                v-model="form.target"
                 :placeholder="$t('promo.select_target')"
-                @onSelect="(v) => (form.target = v)"
               />
             </FormField>
-            <FormField :label="$t('promo.field_priority')">
+            <FormField
+              :label="$t('promo.field_priority')"
+              :error="formErrors.getFieldError('priority')?.msg || ''"
+            >
               <NumberInput
                 v-model="form.priority"
-                :validate="formErrors.getFieldError('priority')"
+                :max="INT_MAX"
               />
             </FormField>
           </div>
-        </div>
+        </BasicCard>
 
         <!-- Section: Extra value (modifier-specific) -->
-        <div v-if="extraValueKind && extraValueKind !== 'none'" class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("promo.section_extra_value") }}</h2>
-          <div class="detail-grid">
+        <BasicCard
+          v-if="extraValueKind && extraValueKind !== 'none'"
+          :title="$t('promo.section_extra_value')"
+          gap
+          class="mb-8"
+        >
+          <div class="form-grid">
             <!-- percent / amount / gratis_qty -->
             <template v-if="['percent', 'amount', 'gratis_qty'].includes(extraValueKind)">
-              <FormField :label="extraValueLabel">
+              <FormField
+                :label="extraValueLabel"
+                :error="formErrors.getFieldError('extra_value')?.msg || ''"
+              >
                 <NumberInput
                   v-model="form.extra_value"
-                  :validate="formErrors.getFieldError('extra_value')"
+                  :max="extraValueKind === 'percent' ? 100 : INT_MAX"
                 />
               </FormField>
             </template>
 
             <!-- gratis_sku: sku + sku_logic + qty -->
             <template v-else-if="extraValueKind === 'gratis_sku'">
-              <FormField :label="$t('promo.extra_gratis_sku')">
+              <FormField
+                :label="$t('promo.extra_gratis_sku')"
+                :error="formErrors.getFieldError('extra_value')?.msg || ''"
+              >
                 <BasicInput
                   v-model="form.extra_value_sku"
                   :placeholder="$t('promo.extra_gratis_sku_placeholder')"
-                  :validate="formErrors.getFieldError('extra_value')"
                 />
               </FormField>
               <FormField :label="$t('promo.extra_gratis_sku_logic')">
-                <Dropdown
-                  :values="skuLogicOptions"
-                  :selected="form.extra_value_sku_logic ? [form.extra_value_sku_logic] : []"
-                  @onSelect="(v) => (form.extra_value_sku_logic = v)"
+                <BasicSelect
+                  :options="skuLogicOptions"
+                  v-model="form.extra_value_sku_logic"
                 />
               </FormField>
               <FormField :label="$t('promo.extra_gratis_qty')">
@@ -109,26 +108,26 @@
 
             <!-- threshold_percent / threshold_amount / gratis_threshold / currency_threshold_price: per-currency rows -->
             <template v-else-if="['threshold_percent', 'threshold_amount', 'gratis_threshold', 'currency_threshold_price'].includes(extraValueKind)">
-              <FormField :label="extraValueLabel" class="detail-grid--full">
+              <FormField :label="extraValueLabel" class="form-grid__wide">
                 <!-- per-currency groups -->
                 <div
                   v-for="(group, groupIdx) in perCurrencyRows"
                   :key="group.iso3"
-                  class="currency-threshold-group b-basic-300 br-50 p-300 mb-300"
+                  class="currency-threshold-group b-subtle rounded p-8 mb-8"
                 >
-                  <div class="flex ai-ct jc-sb mb-200">
+                  <div class="flex ai-ct jc-sb mb-5">
                     <span class="fw-600 fs-300">{{ group.iso3 }}</span>
-                    <BasicButton
-                      text=""
-                      icon="xmark"
-                      class="bg-basic-200 t-basic-600"
+                    <IconButton
+                      icon="close"
+                      :label="$t('common.delete')"
+                      variant="danger"
                       @click="removeCurrencyGroup(groupIdx)"
                     />
                   </div>
                   <div
                     v-for="(row, rowIdx) in group.rows"
                     :key="rowIdx"
-                    class="flex ai-ct gap-200 mb-200"
+                    class="flex ai-ct gap-5 mb-5"
                   >
                     <BasicInput
                       v-model="row.key"
@@ -140,27 +139,27 @@
                       :placeholder="$t('promo.extra_threshold_value')"
                       class="flex-1"
                     />
-                    <BasicButton
-                      text=""
-                      icon="xmark"
-                      class="bg-basic-200 t-basic-600"
+                    <IconButton
+                      icon="close"
+                      :label="$t('common.delete')"
+                      variant="danger"
                       @click="removeCurrencyRow(groupIdx, rowIdx)"
                     />
                   </div>
                   <BasicButton
-                    :text="$t('promo.extra_add_threshold_row')"
-                    icon="plus"
-                    class="btn-outline"
+                    variant="secondary"
                     @click="addCurrencyRow(groupIdx)"
-                  />
+                  >
+                    {{ $t('promo.extra_add_threshold_row') }}
+                  </BasicButton>
                 </div>
                 <!-- add currency group -->
-                <div class="flex ai-ct gap-200 mt-100">
-                  <Dropdown
-                    :values="availableCurrencyGroupOptions"
-                    :selected="[]"
+                <div class="flex ai-ct gap-5 mt-1">
+                  <BasicSelect
+                    :options="availableCurrencyGroupOptions"
+                    :model-value="null"
                     :placeholder="$t('promo.extra_add_currency')"
-                    @onSelect="addCurrencyGroup"
+                    @update:model-value="addCurrencyGroup"
                   />
                 </div>
               </FormField>
@@ -170,10 +169,10 @@
             <template v-else-if="extraValueKind === 'json'">
               <FormField
                 :label="$t('promo.extra_json')"
-                class="detail-grid--full"
+                class="form-grid__wide"
                 :error="jsonParseError || ''"
               >
-                <TextAreaBasic
+                <BasicTextarea
                   v-model="form.extra_value_json"
                   :rows="5"
                   :placeholder="$t('promo.extra_json_placeholder')"
@@ -181,181 +180,103 @@
               </FormField>
             </template>
           </div>
-        </div>
+        </BasicCard>
 
         <!-- Section: Order conditions -->
-        <div class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("promo.section_conditions") }}</h2>
-          <div class="detail-grid">
-            <FormField :label="$t('promo.field_min_order_amount')">
+        <BasicCard :title="$t('promo.section_conditions')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField
+              :label="$t('promo.field_min_order_amount')"
+              :error="formErrors.getFieldError('min_order_amount')?.msg || ''"
+            >
               <BasicInput
                 v-model="form.min_order_amount"
+                format="money"
                 :placeholder="$t('promo.min_order_amount_placeholder')"
-                :validate="formErrors.getFieldError('min_order_amount')"
               />
             </FormField>
-            <FormField :label="$t('promo.field_currencies')">
-              <Dropdown
-                :custom_droplist="true"
-                :placeholder="`${$t('promo.field_currencies')} (${form.currencies.length})`"
-              >
-                <template #custom>
-                  <div
-                    v-for="opt in currencyOptions"
-                    :key="opt.iso3"
-                    class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                    :class="{ '-primary-100': form.currencies.includes(opt.iso3) }"
-                    @click.stop="toggleCurrency(opt.iso3)"
-                  >
-                    <span class="ml-100">{{ opt.iso3 }} — {{ opt.name }}</span>
-                    <FontAwesomeIcon
-                      v-if="form.currencies.includes(opt.iso3)"
-                      icon="check"
-                      class="t-positive-200"
-                    />
-                  </div>
-                  <div v-if="!currencyOptions.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                    {{ $t("promo.no_currencies") }}
-                  </div>
-                </template>
-              </Dropdown>
-              <p class="fs-200 t-basic-400 mt-100">{{ $t("promo.currencies_hint") }}</p>
+            <FormField :label="$t('promo.field_currencies')" :hint="$t('promo.currencies_hint')">
+              <BasicSelect
+                v-model="form.currencies"
+                multiple
+                :options="currencySelectOptions"
+                :placeholder="$t('promo.field_currencies')"
+              />
             </FormField>
-            <FormField :label="$t('promo.section_channels')">
-              <Dropdown
-                :custom_droplist="true"
-                :placeholder="`${$t('promo.section_channels')} (${form.channels.length})`"
-              >
-                <template #custom>
-                  <div
-                    v-for="opt in checkoutChannel.channels"
-                    :key="opt.idx"
-                    class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                    :class="{ '-primary-100': form.channels.includes(opt.idx) }"
-                    @click.stop="toggleChannel(opt.idx)"
-                  >
-                    <span class="ml-100">
-                      {{ opt.name || opt.idx }}
-                      <span v-if="opt.idx === channel" class="t-basic-400 fs-200">({{ $t("promo.channel_active") }})</span>
-                    </span>
-                    <FontAwesomeIcon
-                      v-if="form.channels.includes(opt.idx)"
-                      icon="check"
-                      class="t-positive-200"
-                    />
-                  </div>
-                  <div v-if="!checkoutChannel.channels.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                    {{ $t("promo.no_channels") }}
-                  </div>
-                </template>
-              </Dropdown>
-              <p class="fs-200 t-basic-400 mt-100">{{ $t("promo.channels_hint") }}</p>
+            <FormField :label="$t('promo.section_channels')" hint-level="important" :hint="$t('promo.channels_hint')">
+              <BasicSelect
+                v-model="form.channels"
+                multiple
+                :options="channelSelectOptions"
+                :placeholder="$t('promo.section_channels')"
+              />
+            </FormField>
+            <FormField v-if="form.free_shipping" :label="$t('promo.field_free_shipping_methods')">
+              <BasicSelect
+                v-model="form.free_shipping_methods"
+                multiple
+                :options="shippingSelectOptions"
+                :placeholder="$t('promo.field_free_shipping_methods')"
+              />
             </FormField>
           </div>
-          <div v-if="form.free_shipping" class="detail-grid mt-300">
-            <FormField :label="$t('promo.field_free_shipping_methods')">
-              <Dropdown
-                :custom_droplist="true"
-                :placeholder="`${$t('promo.field_free_shipping_methods')} (${form.free_shipping_methods.length})`"
-              >
-                <template #custom>
-                  <div
-                    v-for="opt in shippingMethodOptions"
-                    :key="opt.code"
-                    class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                    :class="{ '-primary-100': form.free_shipping_methods.includes(opt.code) }"
-                    @click.stop="toggleShippingMethod(opt.code)"
-                  >
-                    <span class="ml-100">
-                      [{{ opt.channel_idx }}] {{ opt.code }}{{ opt.name ? ` — ${opt.name}` : "" }}
-                    </span>
-                    <FontAwesomeIcon
-                      v-if="form.free_shipping_methods.includes(opt.code)"
-                      icon="check"
-                      class="t-positive-200"
-                    />
-                  </div>
-                  <div v-if="!shippingMethodOptions.length" class="ph-100 pv-100 t-basic-400 fs-200 ml-100">
-                    {{ $t("promo.no_shipping_methods") }}
-                  </div>
-                </template>
-              </Dropdown>
-            </FormField>
-          </div>
-        </div>
+        </BasicCard>
 
-        <!-- Section: Flags -->
-        <div class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("promo.section_flags") }}</h2>
-          <div class="detail-flags">
-            <Switcher
-              :label="$t('promo.field_is_active')"
-              :hint="$t('promo.hint_is_active')"
-              :selected="form.is_active"
-              @onSelect="form.is_active = !form.is_active"
-            />
-            <Switcher
+        <!-- Section: Flags (the rule's on/off sits in the page header) -->
+        <BasicCard :title="$t('promo.section_flags')" gap class="mb-8">
+          <div class="form-grid">
+            <BasicSwitch
               :label="$t('promo.field_automatic')"
               :hint="$t('promo.hint_automatic')"
-              :selected="form.automatic_applications"
-              @onSelect="form.automatic_applications = !form.automatic_applications"
+              v-model="form.automatic_applications"
             />
-            <Switcher
+            <BasicSwitch
               :label="$t('promo.field_free_shipping')"
               :hint="$t('promo.hint_free_shipping')"
-              :selected="form.free_shipping"
-              @onSelect="form.free_shipping = !form.free_shipping"
+              v-model="form.free_shipping"
             />
-            <Switcher
+            <BasicSwitch
               :label="$t('promo.field_free_order')"
               :hint="$t('promo.hint_free_order')"
-              :selected="form.free_order"
-              @onSelect="form.free_order = !form.free_order"
+              v-model="form.free_order"
             />
-            <Switcher
+            <BasicSwitch
               :label="$t('promo.field_is_omnibus')"
               :hint="$t('promo.hint_is_omnibus')"
-              :selected="form.is_omnibus"
-              @onSelect="form.is_omnibus = !form.is_omnibus"
+              v-model="form.is_omnibus"
             />
-            <Switcher
+            <BasicSwitch
               :label="$t('promo.field_show_when_invalid')"
               :hint="$t('promo.hint_show_when_invalid')"
-              :selected="form.show_when_invalid"
-              @onSelect="form.show_when_invalid = !form.show_when_invalid"
+              v-model="form.show_when_invalid"
             />
-            <Switcher
+            <BasicSwitch
               :label="$t('promo.field_combine')"
               :hint="$t('promo.hint_combine')"
-              :selected="form.combine_with_other_rules"
-              @onSelect="form.combine_with_other_rules = !form.combine_with_other_rules"
+              v-model="form.combine_with_other_rules"
             />
           </div>
-        </div>
+        </BasicCard>
 
         <!-- Section: Discount codes (edit only) -->
-        <div v-if="isEdit" class="detail-section mb-400">
-          <div class="flex ai-ct jc-sb mb-300">
-            <h2 class="fs-500 fw-600">{{ $t("promo.section_codes") }}</h2>
-            <BasicButton
-              :text="$t('promo.add_code')"
-              icon="plus"
-              class="btn-outline"
-              @click="openAddCode"
-            />
-          </div>
+        <BasicCard v-if="isEdit" :title="$t('promo.section_codes')" gap class="mb-8">
+          <template #actions>
+            <BasicButton variant="secondary" @click="openAddCode">
+              {{ $t('promo.add_code') }}
+            </BasicButton>
+          </template>
 
-          <!-- Search -->
-          <div class="codes-search-row mb-300">
+          <ReadonlyOff>
             <BasicInput
               v-model="codesSearch"
               :placeholder="$t('promo.codes_search_placeholder')"
-              icon="magnifying-glass"
+              :aria-label="$t('promo.codes_search_placeholder')"
+              icon="search"
+              class="codes-search"
               @input="debouncedFetch(() => fetchCodes(true))"
             />
-          </div>
+          </ReadonlyOff>
 
-          <!-- Codes DataTable -->
           <DataTable
             :columns="codesColumns"
             :rows="codes"
@@ -363,12 +284,10 @@
             row-key="id"
             :empty-text="$t('promo.no_codes')"
             @sort="onCodesSort"
+            @row-click="openEditCode"
           >
             <template #cell-code="{ row }">
-              <span
-                class="promo-code-value fw-600 pointer t-support-400"
-                @click="openEditCode(row)"
-              >{{ row.code }}</span>
+              <span class="promo-code fw-600">{{ row.code }}</span>
             </template>
             <template #cell-used="{ row }">
               {{ row.current_used }} / {{ row.max_used !== null ? row.max_used : "∞" }}
@@ -385,47 +304,51 @@
               {{ row.max_products_qty !== null ? row.max_products_qty : "—" }}
             </template>
             <template #cell-actions="{ row }">
-              <BasicButton
-                text=""
-                icon="pencil"
-                class="bg-basic-200 t-basic-600"
+              <IconButton
+                icon="edit"
+                :label="$t('common.edit')"
+                size="sm"
                 @click="openEditCode(row)"
               />
-              <BasicButton
-                text=""
-                icon="trash-can"
-                class="bg-negative-100 t-negative-300"
+              <IconButton
+                icon="delete"
+                :label="$t('common.delete')"
+                variant="danger"
+                size="sm"
                 @click="confirmDeleteCode(row.id)"
               />
             </template>
           </DataTable>
 
-          <!-- Codes pagination -->
-          <div v-if="codesCount > codesPageSize" class="flex jc-ct mt-300">
-            <Pagination
-              :pagination="codesPaginationState"
-              @onChangePage="onCodesPageChange"
-            />
-          </div>
+          <Pagination
+            v-if="codesCount > codesPageSize"
+            :page="codesPaginationState.page"
+            :pages="codesPaginationState.pages"
+            @update:page="onCodesPageChange"
+          />
 
           <!-- Add code form (inline) -->
-          <div v-if="showAddCode" class="detail-section mt-300">
-            <h3 class="fs-400 fw-600 mb-300">{{ $t("promo.new_code_title") }}</h3>
-            <div class="detail-grid">
-              <FormField :label="$t('promo.code_field_code')" required>
+          <BasicCard v-if="showAddCode" :title="$t('promo.new_code_title')" gap>
+            <div class="form-grid">
+              <FormField
+                :label="$t('promo.code_field_code')"
+                required
+                :error="codeFormErrors.getFieldError('code')?.msg || ''"
+              >
                 <BasicInput
                   v-model="newCode.code"
-                  :validate="codeFormErrors.getFieldError('code')"
+                  format="key"
+                  :maxlength="40"
                 />
               </FormField>
               <FormField :label="$t('promo.code_field_max_used')">
-                <NumberInput v-model="newCode.max_used" />
+                <NumberInput v-model="newCode.max_used" :min="1" :max="INT_MAX" />
               </FormField>
               <FormField :label="$t('promo.code_field_max_per_user')">
-                <NumberInput v-model="newCode.max_uses_per_user" />
+                <NumberInput v-model="newCode.max_uses_per_user" :min="1" :max="INT_MAX" />
               </FormField>
               <FormField :label="$t('promo.code_field_max_qty')">
-                <NumberInput v-model="newCode.max_products_qty" />
+                <NumberInput v-model="newCode.max_products_qty" :min="1" :max="INT_MAX" />
               </FormField>
               <FormField :label="$t('promo.code_field_active_from')">
                 <BasicInput type="date" v-model="newCode.active_from" />
@@ -434,262 +357,229 @@
                 <BasicInput type="date" v-model="newCode.active_to" />
               </FormField>
             </div>
-            <div class="flex jc-fe gap-200 mt-300">
-              <BasicButton
-                :text="$t('common.cancel')"
-                class="bg-basic-200 t-basic-600"
-                @click="showAddCode = false"
-              />
-              <BasicButton
-                :text="$t('promo.save_code')"
-                class="bg-support-400 t-basic-100"
-                @click="saveNewCode"
-              />
-            </div>
-          </div>
-        </div>
+            <ActionBar :actions="newCodeActions" />
+          </BasicCard>
+        </BasicCard>
 
         <!-- Section: Filters (edit only) -->
-        <div v-if="isEdit" class="detail-section mb-400">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t("promo.section_filters") }}</h2>
-          <p class="fs-200 t-basic-500 mb-300">{{ $t("promo.filters_hint") }}</p>
+        <BasicCard v-if="isEdit" :title="$t('promo.section_filters')" gap class="mb-8">
+          <p class="fs-200 t-muted">{{ $t("promo.filters_hint") }}</p>
 
-          <!-- Product filters -->
-          <div class="mb-400">
-            <div class="flex ai-ct jc-sb mb-200">
+          <div>
+            <div class="flex ai-ct jc-sb wrap gap-3 mb-5">
               <h3 class="fs-400 fw-600">{{ $t("promo.product_filters") }}</h3>
-              <BasicButton
-                :text="$t('promo.add_filter')"
-                icon="plus"
-                class="btn-outline"
-                @click="addProductFilter"
-              />
+              <BasicButton variant="secondary" @click="addProductFilter">
+                {{ $t('promo.add_filter') }}
+              </BasicButton>
             </div>
             <DataTable
               :columns="filterColumns"
               :rows="productFilters"
               row-key="id"
               :empty-text="$t('promo.no_filters')"
-              class="filter-table"
+              @row-click="(row) => openFilterDrawer('product', row)"
             >
               <template #cell-mode="{ row }">
                 <StatusBadge
                   :label="row.is_inclusion_or_exclusion === 'exclusion' ? $t('promo.exclusion') : $t('promo.inclusion')"
-                  :variant="row.is_inclusion_or_exclusion === 'exclusion' ? 'negative' : 'positive'"
+                  :tone="row.is_inclusion_or_exclusion === 'exclusion' ? 'negative' : 'positive'"
                 />
               </template>
               <template #cell-summary="{ row }">
-                <span class="fs-200 pointer t-support-400" @click="openFilterDrawer('product', row)">{{ filterSummary(row, 'product') }}</span>
+                <span class="fs-200">{{ filterSummary(row, 'product') }}</span>
               </template>
               <template #cell-actions="{ row }">
-                <div class="flex gap-100">
-                  <BasicButton
-                    text=""
-                    icon="pencil"
-                    class="bg-basic-200 t-basic-600"
+                <div class="flex gap-2">
+                  <IconButton
+                    icon="edit"
+                    :label="$t('common.edit')"
+                    size="sm"
                     @click="openFilterDrawer('product', row)"
                   />
-                  <BasicButton
-                    text=""
-                    icon="trash-can"
-                    class="bg-negative-100 t-negative-300"
+                  <IconButton
+                    icon="delete"
+                    :label="$t('common.delete')"
+                    variant="danger"
+                    size="sm"
                     @click="confirmDeleteFilter(row.id, 'product')"
                   />
                 </div>
               </template>
             </DataTable>
           </div>
-
-          <!-- Customer filters -->
-          <div class="mb-400">
-            <div class="flex ai-ct jc-sb mb-200">
+          <div>
+            <div class="flex ai-ct jc-sb wrap gap-3 mb-5">
               <h3 class="fs-400 fw-600">{{ $t("promo.customer_filters") }}</h3>
-              <BasicButton
-                :text="$t('promo.add_filter')"
-                icon="plus"
-                class="btn-outline"
-                @click="addCustomerFilter"
-              />
+              <BasicButton variant="secondary" @click="addCustomerFilter">
+                {{ $t('promo.add_filter') }}
+              </BasicButton>
             </div>
             <DataTable
               :columns="filterColumns"
               :rows="customerFilters"
               row-key="id"
               :empty-text="$t('promo.no_filters')"
-              class="filter-table"
+              @row-click="(row) => openFilterDrawer('customer', row)"
             >
               <template #cell-mode="{ row }">
                 <StatusBadge
                   :label="row.is_inclusion_or_exclusion === 'exclusion' ? $t('promo.exclusion') : $t('promo.inclusion')"
-                  :variant="row.is_inclusion_or_exclusion === 'exclusion' ? 'negative' : 'positive'"
+                  :tone="row.is_inclusion_or_exclusion === 'exclusion' ? 'negative' : 'positive'"
                 />
               </template>
               <template #cell-summary="{ row }">
-                <span class="fs-200 pointer t-support-400" @click="openFilterDrawer('customer', row)">{{ filterSummary(row, 'customer') }}</span>
+                <span class="fs-200">{{ filterSummary(row, 'customer') }}</span>
               </template>
               <template #cell-actions="{ row }">
-                <div class="flex gap-100">
-                  <BasicButton
-                    text=""
-                    icon="pencil"
-                    class="bg-basic-200 t-basic-600"
+                <div class="flex gap-2">
+                  <IconButton
+                    icon="edit"
+                    :label="$t('common.edit')"
+                    size="sm"
                     @click="openFilterDrawer('customer', row)"
                   />
-                  <BasicButton
-                    text=""
-                    icon="trash-can"
-                    class="bg-negative-100 t-negative-300"
+                  <IconButton
+                    icon="delete"
+                    :label="$t('common.delete')"
+                    variant="danger"
+                    size="sm"
                     @click="confirmDeleteFilter(row.id, 'customer')"
                   />
                 </div>
               </template>
             </DataTable>
           </div>
-
-          <!-- Threshold filters -->
           <div>
-            <div class="flex ai-ct jc-sb mb-200">
+            <div class="flex ai-ct jc-sb wrap gap-3 mb-5">
               <h3 class="fs-400 fw-600">{{ $t("promo.threshold_filters") }}</h3>
-              <BasicButton
-                :text="$t('promo.add_filter')"
-                icon="plus"
-                class="btn-outline"
-                @click="addThresholdFilter"
-              />
+              <BasicButton variant="secondary" @click="addThresholdFilter">
+                {{ $t('promo.add_filter') }}
+              </BasicButton>
             </div>
             <DataTable
               :columns="filterColumns"
               :rows="thresholdFilters"
               row-key="id"
               :empty-text="$t('promo.no_filters')"
-              class="filter-table"
+              @row-click="(row) => openFilterDrawer('threshold', row)"
             >
               <template #cell-mode="{ row }">
                 <StatusBadge
                   :label="row.is_inclusion_or_exclusion === 'exclusion' ? $t('promo.exclusion') : $t('promo.inclusion')"
-                  :variant="row.is_inclusion_or_exclusion === 'exclusion' ? 'negative' : 'positive'"
+                  :tone="row.is_inclusion_or_exclusion === 'exclusion' ? 'negative' : 'positive'"
                 />
               </template>
               <template #cell-summary="{ row }">
-                <span class="fs-200 pointer t-support-400" @click="openFilterDrawer('threshold', row)">{{ filterSummary(row, 'threshold') }}</span>
+                <span class="fs-200">{{ filterSummary(row, 'threshold') }}</span>
               </template>
               <template #cell-actions="{ row }">
-                <div class="flex gap-100">
-                  <BasicButton
-                    text=""
-                    icon="pencil"
-                    class="bg-basic-200 t-basic-600"
+                <div class="flex gap-2">
+                  <IconButton
+                    icon="edit"
+                    :label="$t('common.edit')"
+                    size="sm"
                     @click="openFilterDrawer('threshold', row)"
                   />
-                  <BasicButton
-                    text=""
-                    icon="trash-can"
-                    class="bg-negative-100 t-negative-300"
+                  <IconButton
+                    icon="delete"
+                    :label="$t('common.delete')"
+                    variant="danger"
+                    size="sm"
                     @click="confirmDeleteFilter(row.id, 'threshold')"
                   />
                 </div>
               </template>
             </DataTable>
           </div>
-        </div>
+        </BasicCard>
       </template>
-    </div>
 
     <!-- Delete rule confirmation -->
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deleteRule"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      @confirm="deleteRule"
+      @cancel="showDeleteConfirm = false"
+      :title="$t('promo.confirm_delete_title')"
     >
-      <template #header>
-        <h2>{{ $t("promo.confirm_delete_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>{{ $t("promo.confirm_delete_rule") }}</p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
 
     <!-- Delete code confirmation -->
-    <Confirmation-modal
-      :visible="showDeleteCodeConfirm"
-      @accept="deleteCode"
-      @reject="showDeleteCodeConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteCodeConfirm"
+      @confirm="deleteCode"
+      @cancel="showDeleteCodeConfirm = false"
+      :title="$t('promo.confirm_delete_code_title')"
     >
-      <template #header>
-        <h2>{{ $t("promo.confirm_delete_code_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>{{ $t("promo.confirm_delete_code") }}</p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
 
     <!-- Delete filter confirmation -->
-    <Confirmation-modal
-      :visible="!!pendingDeleteFilter"
-      @accept="executeDeleteFilter"
-      @reject="pendingDeleteFilter = null"
+    <ConfirmDialog
+      tone="danger"
+      :open="!!pendingDeleteFilter"
+      @confirm="executeDeleteFilter"
+      @cancel="pendingDeleteFilter = null"
+      :title="$t('promo.confirm_delete_filter_title')"
     >
-      <template #header>
-        <h2>{{ $t("promo.confirm_delete_filter_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>{{ $t("promo.confirm_delete_filter") }}</p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
 
     <!-- Edit code modal -->
-    <Confirmation-modal
-      :visible="showEditCodeModal"
-      @accept="saveEditCode"
-      @reject="closeEditCodeModal"
+    <BasicModal
+      :open="showEditCodeModal"
+      size="sm"
+      :title="$t('promo.edit_code_title')"
+      :actions="editCodeActions"
+      @update:open="(open) => open || closeEditCodeModal()"
     >
-      <template #header>
-        <h2>{{ $t("promo.edit_code_title") }}</h2>
-      </template>
-      <template #description>
-        <div class="edit-code-body">
-          <p class="fs-200 t-basic-500 mb-300">
-            {{ $t("promo.code_field_current_used") }}: <strong>{{ editCode.current_used }}</strong>
-          </p>
-          <FormField :label="$t('promo.code_field_code')" required class="mb-200">
-            <BasicInput v-model="editCode.code" />
-          </FormField>
-          <FormField :label="$t('promo.code_field_max_used')" class="mb-200">
-            <NumberInput v-model="editCode.max_used" />
-          </FormField>
-          <FormField :label="$t('promo.code_field_max_per_user')" class="mb-200">
-            <NumberInput v-model="editCode.max_uses_per_user" />
-          </FormField>
-          <FormField :label="$t('promo.code_field_active_from')" class="mb-200">
-            <BasicInput type="date" v-model="editCode.active_from" />
-          </FormField>
-          <FormField :label="$t('promo.code_field_active_to')" class="mb-200">
-            <BasicInput type="date" v-model="editCode.active_to" />
-          </FormField>
-          <FormField :label="$t('promo.code_field_max_qty')">
-            <NumberInput v-model="editCode.max_products_qty" />
-          </FormField>
-        </div>
-      </template>
-      <template #footer>
-        <BasicButton
-          :text="$t('common.cancel')"
-          class="bg-basic-200 t-basic-600"
-          @click="closeEditCodeModal"
-        />
-        <BasicButton
-          :text="$t('common.save')"
-          class="bg-support-400 t-basic-100"
-          @click="saveEditCode"
-        />
-      </template>
-    </Confirmation-modal>
+      <div class="edit-code-body">
+        <p class="fs-200 t-muted mb-8">
+          {{ $t("promo.code_field_current_used") }}: <strong>{{ editCode.current_used }}</strong>
+        </p>
+        <FormField
+          :label="$t('promo.code_field_code')"
+          required
+          class="mb-5"
+          :error="codeFormErrors.getFieldError('code')?.msg || ''"
+        >
+          <BasicInput v-model="editCode.code" format="key" :maxlength="40" />
+        </FormField>
+        <FormField :label="$t('promo.code_field_max_used')" class="mb-5">
+          <NumberInput v-model="editCode.max_used" :min="1" :max="INT_MAX" />
+        </FormField>
+        <FormField :label="$t('promo.code_field_max_per_user')" class="mb-5">
+          <NumberInput v-model="editCode.max_uses_per_user" :min="1" :max="INT_MAX" />
+        </FormField>
+        <FormField :label="$t('promo.code_field_active_from')" class="mb-5">
+          <BasicInput type="date" v-model="editCode.active_from" />
+        </FormField>
+        <FormField :label="$t('promo.code_field_active_to')" class="mb-5">
+          <BasicInput type="date" v-model="editCode.active_to" />
+        </FormField>
+        <FormField :label="$t('promo.code_field_max_qty')">
+          <NumberInput v-model="editCode.max_products_qty" :min="1" :max="INT_MAX" />
+        </FormField>
+      </div>
+    </BasicModal>
 
-    <UnsavedChangesModal
-      :visible="!!pendingNav"
-      @save="saveAndLeave"
+    <ConfirmDialog
+      :open="!!pendingNav"
+      @confirm="saveAndLeave"
       @discard="confirmLeave"
-      @stay="cancelLeave"
+      @cancel="cancelLeave"
+      :title="$t('unsaved.title')"
+      :message="$t('unsaved.message')"
+      :confirm-label="$t('unsaved.save_and_leave')"
+      :discard-label="$t('unsaved.discard')"
     />
 
     <FilterEditDrawer
@@ -701,7 +591,7 @@
       @close="closeFilterDrawer"
       @saved="onFilterSaved"
     />
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -732,9 +622,13 @@ import {
   GET_ShippingMethods,
   GET_Currencies,
 } from "@/api/promo/api";
-import UnsavedChangesModal from "@/functionals/Unsaved-changes-modal/index.vue";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import FilterEditDrawer from "./FilterEditDrawer.vue";
+import { INT_MAX } from "@/utils/formats";
+import { formatDay } from "@/utils/format";
+import { ReadonlyOff } from "@/composables/useReadonly";
+
+const RULE_FORMATS = { min_order_amount: { format: "money" } };
+const CODE_FORMATS = { code: { format: "key" } };
 
 const EXTRA_VALUE_KINDS_SCALAR = ["percent", "amount", "gratis_qty"];
 const EXTRA_VALUE_KINDS_THRESHOLD = [
@@ -780,7 +674,7 @@ function buildExtraValuePayload(form, extraValueKind) {
 
 export default {
   name: "PromoEdit",
-  components: { UnsavedChangesModal, ConfirmationModal, FilterEditDrawer, Pagination },
+  components: { ReadonlyOff, FilterEditDrawer, Pagination },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
@@ -789,11 +683,14 @@ export default {
     const codeFormErrors = useFormErrors();
     const unsaved = useUnsavedChanges();
     const { search: codesSearch, debouncedFetch } = useSearchDebounce();
-    return { loader, notify, checkoutChannel, formErrors, codeFormErrors, ...unsaved, codesSearch, debouncedFetch };
+    return { loader, notify, checkoutChannel, formErrors, codeFormErrors, ...unsaved, codesSearch, debouncedFetch, INT_MAX };
   },
   data() {
     return {
-      loading: false,
+      // Until the meta (and the rule) load the header is hidden; after a failed load its Save, Delete and Active
+      // switch stay disabled, so the empty default form never overwrites the stored rule.
+      loading: true,
+      loadFailed: false,
       showDeleteConfirm: false,
       showAddCode: false,
       showEditCodeModal: false,
@@ -828,6 +725,8 @@ export default {
         max_products_qty: null,
         current_used: 0,
       },
+      // The code as stored when the edit opened: a legacy value the operator leaves alone never blocks the save.
+      editCodeStored: "",
       newCode: {
         code: "",
         max_used: null,
@@ -875,6 +774,30 @@ export default {
     ruleId() {
       return this.$route.params.id;
     },
+    pageTitle() {
+      if (!this.isEdit) return this.$t("promo.create_rule");
+      return this.form.name || this.$t("promo.edit_rule");
+    },
+    headerActions() {
+      const del = { key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("common.delete"),
+        disabled: this.loadFailed, onClick: () => (this.showDeleteConfirm = true) };
+      return [
+        ...(this.isEdit ? [del] : []),
+        { key: "save", role: "primary", label: this.$t("common.save"), disabled: this.loadFailed, onClick: this.saveRule },
+      ];
+    },
+    newCodeActions() {
+      return [
+        { key: "cancel", role: "secondary", label: this.$t("common.cancel"), onClick: () => (this.showAddCode = false) },
+        { key: "save", role: "secondary", label: this.$t("promo.save_code"), onClick: this.saveNewCode },
+      ];
+    },
+    editCodeActions() {
+      return [
+        { key: "cancel", role: "secondary", label: this.$t("common.cancel"), onClick: this.closeEditCodeModal },
+        { key: "save", role: "primary", label: this.$t("common.save"), onClick: this.saveEditCode },
+      ];
+    },
     modifierOptions() {
       return this.modifiers.map(m => {
         const label = modifierShortLabel(m.value, m.label);
@@ -888,6 +811,23 @@ export default {
       if (!this.form.modifier) return null;
       const found = this.modifiers.find(m => m.value === this.form.modifier);
       return found ? found.extra_value_kind : null;
+    },
+    currencySelectOptions() {
+      return this.currencyOptions.map(c => ({ label: `${c.iso3} — ${c.name}`, value: c.iso3 }));
+    },
+    // The active channel is always applied (backend auto-adds it) — can't toggle off.
+    channelSelectOptions() {
+      return this.checkoutChannel.channels.map(ch => {
+        const active = ch.idx === this.channel;
+        const description = active ? this.$t("promo.channel_active") : "";
+        return { label: ch.name || ch.idx, value: ch.idx, description, disabled: active };
+      });
+    },
+    shippingSelectOptions() {
+      return this.shippingMethodOptions.map(m => ({
+        label: `[${m.channel_idx}] ${m.code}${m.name ? ` — ${m.name}` : ""}`,
+        value: m.code,
+      }));
     },
     availableCurrencyGroupOptions() {
       const used = new Set(this.perCurrencyRows.map(g => g.iso3));
@@ -974,6 +914,7 @@ export default {
       if (!this.form.channels.length) this.form.channels = [this.channel];
       this.snapshot(this.form);
       this.track(this.form);
+      this.loading = false;
     }
   },
   methods: {
@@ -1036,32 +977,6 @@ export default {
         // Non-critical
       }
     },
-    toggleShippingMethod(code) {
-      const idx = this.form.free_shipping_methods.indexOf(code);
-      if (idx >= 0) {
-        this.form.free_shipping_methods.splice(idx, 1);
-      } else {
-        this.form.free_shipping_methods.push(code);
-      }
-    },
-    toggleCurrency(iso3) {
-      const idx = this.form.currencies.indexOf(iso3);
-      if (idx >= 0) {
-        this.form.currencies.splice(idx, 1);
-      } else {
-        this.form.currencies.push(iso3);
-      }
-    },
-    toggleChannel(channelIdx) {
-      // The active channel is always applied (backend auto-adds it) — can't toggle off.
-      if (channelIdx === this.channel) return;
-      const idx = this.form.channels.indexOf(channelIdx);
-      if (idx >= 0) {
-        this.form.channels.splice(idx, 1);
-      } else {
-        this.form.channels.push(channelIdx);
-      }
-    },
     addCurrencyGroup(iso3) {
       this.perCurrencyRows.push({ iso3, rows: [{ key: "", value: "" }] });
     },
@@ -1081,7 +996,9 @@ export default {
         this.resetFormFromData(data);
         this.snapshot(this.form);
         this.track(this.form);
+        this.loadFailed = false;
       } catch (err) {
+        this.loadFailed = true;
         this.notify.spawnNotification({
           type: "negative",
           msg: this.codeErrorMessage(err),
@@ -1194,6 +1111,7 @@ export default {
       }
     },
     openEditCode(code) {
+      this.editCodeStored = code.code;
       this.editCode = {
         id: code.id,
         code: code.code,
@@ -1204,6 +1122,7 @@ export default {
         max_products_qty: code.max_products_qty ?? null,
         current_used: code.current_used ?? 0,
       };
+      this.codeFormErrors.clearErrors();
       this.showEditCodeModal = true;
     },
     closeEditCodeModal() {
@@ -1218,6 +1137,8 @@ export default {
       return extractApiMessage(err, this.$t("notifications.save_error"));
     },
     async saveEditCode() {
+      const formats = this.editCode.code === this.editCodeStored ? {} : CODE_FORMATS;
+      if (!this.codeFormErrors.validateFormats(this.editCode, formats)) return;
       const codeId = this.editCode.id;
       this.loader.loaderStart();
       try {
@@ -1312,7 +1233,7 @@ export default {
       const valid = this.codeFormErrors.validateRequired(this.newCode, {
         code: this.$t("promo.code_field_code"),
       });
-      if (!valid) return;
+      if (!valid || !this.codeFormErrors.validateFormats(this.newCode, CODE_FORMATS)) return;
 
       this.loader.loaderStart();
       try {
@@ -1424,12 +1345,14 @@ export default {
       await this.saveRule();
       this.confirmLeave();
     },
+    // A rule that failed to load holds the empty default form: never write it over the stored rule.
     async saveRule() {
+      if (this.loadFailed) return;
       const valid = this.formErrors.validateRequired(this.form, {
         name: this.$t("promo.field_name"),
         modifier: this.$t("promo.field_modifier"),
       });
-      if (!valid) return;
+      if (!valid || !this.formErrors.validateFormats(this.form, RULE_FORMATS)) return;
 
       if (this.extraValueKind === "json" && this.jsonParseError) return;
 
@@ -1457,6 +1380,7 @@ export default {
     },
     async deleteRule() {
       this.showDeleteConfirm = false;
+      if (this.loadFailed) return;
       this.loader.loaderStart();
       try {
         await DELETE_DiscountRule(this.channel, this.ruleId);
@@ -1473,78 +1397,25 @@ export default {
       }
     },
     formatDate(d) {
-      if (!d) return "";
-      return new Date(d).toLocaleDateString("pl-PL", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
+      return d ? formatDay(d) : "";
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-.detail-section {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: var(--space-200);
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-300);
-
-  &--full {
-    grid-column: 1 / -1;
-  }
-}
-
-.detail-flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-300);
-}
-
-.promo-channel-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--c-support-100);
-  color: var(--c-support-400);
-  font-size: var(--fs-200);
-  font-weight: 600;
-}
-
-.promo-code-row {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-sm);
-  padding: var(--space-100) var(--space-100);
-}
-
-.promo-code-value {
-  font-family: monospace;
+.promo-code {
+  font-family: var(--font-mono);
   font-size: var(--fs-300);
 }
 
-
-.mr-100 {
-  margin-right: 4px;
-}
-
-.mt-100 {
-  margin-top: 4px;
-}
-
 .currency-threshold-group {
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  padding: var(--space-300);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  padding: var(--space-8);
 }
 
-.codes-search-row {
+.codes-search {
   max-width: 360px;
   min-width: 200px;
 }
@@ -1552,6 +1423,6 @@ export default {
 .edit-code-body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-100);
+  gap: var(--space-2);
 }
 </style>

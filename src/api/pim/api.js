@@ -128,6 +128,15 @@ export const DELETE_FeatureSetFeatures = (idx, data) =>
 export const PATCH_FeatureSetFeaturesReorder = (idx, data) =>
   pimApi.patch(`${PIM}/feature-sets/${idx}/features/reorder/`, data)
 
+// PIM >= 3.3.0: per-set required override of one member ({ is_required: true | false | null }, null = inherit the
+// feature's own flag). A system feature answers 400.
+export const PATCH_FeatureSetFeature = (idx, featureIdx, data) =>
+  pimApi.patch(`${PIM}/feature-sets/${idx}/features/${featureIdx}/`, data)
+
+// PIM >= 3.3.0: [{ feature, source: "system" | "feature" | "feature_set" }]. An older PIM answers 404.
+export const GET_FeatureSetRequiredFeatures = (idx) =>
+  pimApi.get(`${PIM}/feature-sets/${idx}/required-features/`)
+
 // --- Features (global CRUD) ---
 
 export const GET_Features = (params, channelIdx) =>

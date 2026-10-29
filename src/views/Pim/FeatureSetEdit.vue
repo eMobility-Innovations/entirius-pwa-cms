@@ -1,379 +1,323 @@
 <template>
-  <div class="feature-set-edit fs-300 t-basic-800 h-100 ov-h flex">
-    <Teleport to="#pim-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pim/feature-sets')"
-      />
-    </Teleport>
-    <Teleport to="#pim-toolbar-right" defer>
-      <span v-if="isDirty" class="chip bg-warning-100 t-warning-300">
-        {{ $t("unsaved.changes") }}
-      </span>
-      <BasicButton
-        text=""
-        icon="trash-can"
-        class="bg-negative-100 t-negative-300"
-        @click="showDeleteConfirm = true"
-      />
-      <BasicButton
-        :text="$t('pim.save_set_config')"
-        class="bg-support-400 t-basic-100"
-        @click="save"
-      />
-    </Teleport>
-    <div class="flex-1 ovy-auto p-500">
-      <div class="bg-basic-100 b-basic-300 br-50 p-500">
-        <!-- Set identity -->
-        <div class="set-identity mb-400">
-          <span class="fs-200 t-support-400 fw-600 tt-upper">{{
-            $t("pim.currently_editing")
-          }}</span>
-          <div class="flex ai-ct gap-200 mt-200">
-            <Dropdown
-              :values="allSetOptions"
-              :selected="[featureSetIdx]"
-              :placeholder="form.name || featureSetIdx"
-              class="flex-1"
-              @onSelect="onSwitchSet"
-            />
-          </div>
-          <p v-if="form.desc" class="t-basic-500 fs-200 mt-200">
-            {{ form.desc }}
-          </p>
-        </div>
-        <Loader v-if="loading" />
+  <div class="feature-set-edit fs-300 t-body h-100 ov-h flex">
+    <PageLayout class="flex-1">
+      <template v-if="form.idx || !loading" #header>
+        <PageHeader :title="form.name || featureSetIdx" back="/pim/feature-sets">
+          <template #meta>
+            <PimChannelSelect />
+          </template>
+          <template v-if="!loading" #actions>
+            <div class="flex ai-ct jc-fe wrap gap-3">
+              <StatusBadge v-if="isDirty" tone="warning" :dot="false" :label="$t('unsaved.changes')" />
+              <ActionBar :actions="headerActions" />
+            </div>
+          </template>
+        </PageHeader>
+      </template>
 
-        <template v-else>
-          <!-- Set properties -->
-          <div class="flex gap-300 mb-400">
-            <BasicInput
-              v-model="form.name"
-              :label="$t('pim.name')"
-              class="flex-1"
+      <BasicCard gap class="mb-8">
+        <div class="form-grid">
+          <FormField :label="$t('pim.currently_editing')" class="form-grid__wide">
+            <BasicSelect
+              :options="allSetOptions"
+              :model-value="featureSetIdx"
+              :placeholder="form.name || featureSetIdx"
+              @update:model-value="onSwitchSet"
             />
+          </FormField>
+          <template v-if="!loading">
+            <FormField :label="$t('pim.name')">
+              <BasicInput v-model="form.name" :maxlength="256" />
+            </FormField>
             <FormField
               :label="$t('pim.internal_desc_label')"
-              :tooltip="$t('pim.internal_desc_tooltip')"
-              class="flex-1"
+              :hint="$t('pim.internal_desc_tooltip')"
             >
               <BasicInput v-model="form.desc" />
             </FormField>
-            <div class="flex ai-ct gap-100">
-              <Switcher
-                :label="$t('pim.is_default')"
-                :selected="form.is_default"
-                @onSelect="onToggleDefault"
-              />
-            </div>
-          </div>
+            <FormField :label="$t('pim.is_default')">
+              <BasicSwitch :model-value="form.is_default" @update:model-value="onToggleDefault" />
+            </FormField>
+          </template>
+        </div>
+      </BasicCard>
 
-          <!-- Toolbar -->
-          <div class="flex ai-ct gap-200 mb-400">
+      <Loader block v-if="loading" />
+
+      <template v-else>
+        <div class="flex ai-ct flex-wrap gap-5 rg-3 mb-8">
+          <ReadonlyOff>
             <BasicInput
               v-model="featureSearch"
               :placeholder="$t('common.start_typing')"
+              :aria-label="$t('pim.search_features')"
               icon="search"
               class="flex-1"
             />
-            <BasicButton
-              :text="$t('pim.add_attribute_group')"
-              class="bg-basic-200 t-basic-600"
-              @click="showAddGroup = true"
-            />
-          </div>
-
-          <!-- Inline group creation -->
-          <div v-if="showAddGroup" class="add-group-panel br-50 p-300 mb-400">
-            <div class="flex ai-ct gap-200">
-              <BasicInput
-                v-model="newGroupName"
-                :placeholder="$t('pim.group_name_placeholder')"
-                class="flex-1"
-                @keydown.enter="createGroup"
-              />
-              <BasicButton
-                :text="$t('pim.create_group')"
-                class="bg-support-400 t-basic-100"
-                @click="createGroup"
-              />
-              <BasicButton
-                text=""
-                icon="xmark"
-                class="bg-basic-200 t-basic-600"
-                @click="
-                  showAddGroup = false;
-                  newGroupName = '';
-                "
-              />
-            </div>
-            <div v-if="availableGroupOptions.length" class="mt-200">
-              <span class="fs-200 t-basic-500">{{
-                $t("pim.or_add_existing")
-              }}</span>
-              <div class="flex gap-100 mt-100" style="flex-wrap: wrap">
-                <span
-                  v-for="opt in availableGroupOptions"
-                  :key="opt.value"
-                  class="chip bg-basic-200 t-basic-700"
-                  style="cursor: pointer"
-                  @click="onSelectGroup(opt.value)"
-                >
-                  + {{ opt.label }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Default group (ungrouped features) -->
-          <div class="feature-group mb-400">
-            <div
-              class="feature-group__header bg-basic-200 t-basic-700 flex ai-ct jc-sb"
-            >
-              <div class="flex ai-ct gap-200">
-                <span
-                  class="collapse-chevron"
-                  :class="{ 'is-collapsed': isCollapsed('__default') }"
-                  @click="toggleCollapse('__default')"
-                  >&#x25BC;</span
-                >
-                <span class="fw-600">{{ $t("pim.default_group") }}</span>
-                <span
-                  class="chip chip--pill bg-basic-200 t-basic-600"
-                  >{{
-                    $t("pim.attributes_in_group", {
-                      count: ungroupedFeatures.length,
-                    })
-                  }}</span
-                >
-              </div>
-            </div>
-            <div v-show="!isCollapsed('__default')">
-              <draggable
-                v-model="ungroupedFeatures"
-                group="features"
-                ghost-class="bg-support-100"
-                :force-fallback="true"
-                fallback-class="drag-ghost"
-                :item-key="(el) => el.feature_idx"
-                @change="(evt) => onGroupChange(evt, null)"
-              >
-                <template #item="{ element }">
-                  <div
-                    v-if="matchesSearch(element)"
-                    class="feature-row flex ai-ct jc-sb"
-                  >
-                    <div class="flex ai-ct gap-200">
-                      <span class="drag-handle t-basic-400 cursor-grab"
-                        >&#x2630;</span
-                      >
-                      <span class="fw-500">{{
-                        element.feature_name || element.feature_idx
-                      }}</span>
-                      <TypeBadge :feature-type="element.feature_type" />
-                    </div>
-                    <div class="flex ai-ct gap-100">
-                      <BasicButton
-                        text=""
-                        icon="pen"
-                        class="bg-basic-200 t-basic-600"
-                        @click="
-                          $router.push(`/pim/features/${element.feature_idx}`)
-                        "
-                      />
-                      <BasicButton
-                        text=""
-                        icon="xmark"
-                        class="bg-negative-100 t-negative-300"
-                        @click="removeFeature(element.feature_idx)"
-                      />
-                    </div>
-                  </div>
-                </template>
-              </draggable>
-              <div
-                v-if="!ungroupedFeatures.length"
-                class="t-basic-500 fs-200 p-300"
-              >
-                {{ $t("pim.drag_to_add") }}
-              </div>
-            </div>
-          </div>
-
-          <!-- Named groups (drag to reorder) -->
-          <draggable
-            v-model="groups"
-            ghost-class="bg-support-100"
-            handle=".group-drag-handle"
-            :item-key="(el) => el.idx"
+          </ReadonlyOff>
+          <BasicButton
+            variant="secondary"
+            :aria-expanded="String(showAddGroup)"
+            @click="showAddGroup = true"
           >
-            <template #item="{ element: group }">
-              <div class="feature-group mb-400">
+            {{ $t('pim.add_attribute_group') }}
+          </BasicButton>
+        </div>
+
+        <!-- Inline group creation -->
+        <BasicCard v-if="showAddGroup" :title="$t('pim.add_attribute_group')" gap class="mb-8">
+          <template #actions>
+            <IconButton icon="close" :label="$t('common.cancel')" @click="closeAddGroup" />
+          </template>
+          <div class="form-grid">
+            <FormField :label="$t('pim.new_group_name')">
+              <div class="flex ai-ct gap-3">
+                <BasicInput
+                  v-model="newGroupName"
+                  :placeholder="$t('pim.group_name_placeholder')"
+                  class="flex-1"
+                  @on-key-down="createGroup"
+                />
+                <BasicButton mutates variant="secondary" @click="createGroup">
+                  {{ $t('pim.create_group') }}
+                </BasicButton>
+              </div>
+            </FormField>
+            <FormField v-if="availableGroupOptions.length" :label="$t('pim.or_add_existing')">
+              <BasicSelect
+                :options="availableGroupOptions"
+                :model-value="null"
+                :placeholder="$t('pim.pick_existing_group')"
+                searchable
+                @update:model-value="onSelectGroup"
+              />
+            </FormField>
+          </div>
+        </BasicCard>
+
+        <!-- Default group (ungrouped features) -->
+        <BasicCard class="feature-group mb-8">
+          <div class="feature-group__header flex ai-ct gap-3">
+            <IconButton
+              :icon="isCollapsed('__default') ? 'expand' : 'collapse'"
+              :label="collapseLabel('__default', $t('pim.default_group'))"
+              :aria-expanded="String(!isCollapsed('__default'))"
+              size="sm"
+              @click="toggleCollapse('__default')"
+            />
+            <h2 class="feature-group__name">{{ $t("pim.default_group") }}</h2>
+            <CountBadge :count="ungroupedFeatures.length" />
+          </div>
+          <div v-show="!isCollapsed('__default')">
+            <draggable
+              v-model="ungroupedFeatures"
+              :disabled="readonly"
+              group="features"
+              ghost-class="bg-accent-subtle"
+              :force-fallback="true"
+              fallback-class="drag-ghost"
+              :item-key="(el) => el.feature_idx"
+              @change="(evt) => onGroupChange(evt, null)"
+            >
+              <template #item="{ element }">
                 <div
-                  class="feature-group__header bg-basic-200 t-basic-700 flex ai-ct jc-sb"
+                  v-if="matchesSearch(element)"
+                  class="feature-row flex ai-ct jc-sb gap-3"
                 >
-                  <div class="flex ai-ct gap-200">
-                    <span class="group-drag-handle t-basic-400">&#x2630;</span>
-                    <span
-                      class="collapse-chevron"
-                      :class="{ 'is-collapsed': isCollapsed(group.idx) }"
-                      @click="toggleCollapse(group.idx)"
-                      >&#x25BC;</span
-                    >
-                    <span
-                      v-if="renamingGroupIdx !== group.idx"
-                      class="fw-600"
-                      >{{ group.name || group.idx }}</span
-                    >
-                    <BasicInput
-                      v-else
-                      :model-value="group.name"
-                      class="rename-input"
-                      @update:model-value="(val) => (group.name = val)"
-                      @blur="finishRename(group)"
-                      @keydown.enter="finishRename(group)"
+                  <div class="flex ai-ct gap-3 min-w-0">
+                    <FontAwesomeIcon :icon="$icons.drag" class="t-muted" aria-hidden="true" />
+                    <span class="fw-500">{{
+                      element.feature_name || element.feature_idx
+                    }}</span>
+                    <StatusBadge
+                      :tone="featureTypeTone(element.feature_type)"
+                      :dot="false"
+                      :label="$t(featureTypeLabel(element.feature_type))"
                     />
-                    <span
-                      class="chip chip--pill bg-basic-200 t-basic-600"
-                      >{{
-                        $t("pim.attributes_in_group", {
-                          count: group.features.length,
-                        })
-                      }}</span
-                    >
                   </div>
-                  <div class="pim-kebab">
-                    <button
-                      class="pim-kebab__btn"
-                      @click.stop="toggleGroupMenu(group.idx)"
-                    >
-                      &#x22EE;
-                    </button>
+                  <div class="flex ai-ct gap-2">
+                    <RequiredOverrideControl
+                      v-if="requiredPerFeatureSet"
+                      :model-value="element.is_required_override ?? null"
+                      :feature-required="Boolean(element.feature?.is_required)"
+                      :name="element.feature_name || element.feature_idx"
+                      :disabled="readonly || element.feature?.scope === 1"
+                      @update:model-value="(value) => onRequiredChange(element, value)"
+                    />
+                    <IconButton
+                      icon="edit"
+                      :label="$t('common.edit')"
+                      size="sm"
+                      @click="$router.push(`/pim/features/${element.feature_idx}`)"
+                    />
+                    <IconButton mutates
+                      icon="close"
+                      :label="$t('pim.remove_from_set')"
+                      variant="danger"
+                      size="sm"
+                      @click="removeFeature(element.feature_idx)"
+                    />
+                  </div>
+                </div>
+              </template>
+            </draggable>
+            <p v-if="!ungroupedFeatures.length" class="t-muted fs-200 pt-4">
+              {{ $t("pim.drag_to_add") }}
+            </p>
+          </div>
+        </BasicCard>
+
+        <!-- Named groups (drag to reorder) -->
+        <draggable
+          v-model="groups"
+          :disabled="readonly"
+          ghost-class="bg-accent-subtle"
+          handle=".group-drag-handle"
+          :item-key="(el) => el.idx"
+        >
+          <template #item="{ element: group }">
+            <BasicCard class="feature-group mb-8">
+              <div class="feature-group__header flex ai-ct jc-sb gap-3">
+                <div class="flex ai-ct gap-3 min-w-0">
+                  <FontAwesomeIcon :icon="$icons.drag" class="group-drag-handle t-muted" aria-hidden="true" />
+                  <IconButton
+                    :icon="isCollapsed(group.idx) ? 'expand' : 'collapse'"
+                    :label="collapseLabel(group.idx, group.name || group.idx)"
+                    :aria-expanded="String(!isCollapsed(group.idx))"
+                    size="sm"
+                    @click="toggleCollapse(group.idx)"
+                  />
+                  <h2 v-if="renamingGroupIdx !== group.idx" class="feature-group__name">
+                    {{ group.name || group.idx }}
+                  </h2>
+                  <FormField v-else :error="renameError">
+                    <BasicInput
+                      :model-value="group.name"
+                      :maxlength="256"
+                      :aria-label="$t('pim.rename')"
+                      class="rename-input"
+                      focus-on-create
+                      @update:model-value="(val) => (group.name = val)"
+                      @on-focusout="finishRename(group)"
+                      @on-key-down="finishRename(group)"
+                      @keydown.esc="cancelRename(group)"
+                    />
+                  </FormField>
+                  <CountBadge :count="group.features.length" />
+                </div>
+                <BasicMenu
+                  :items="groupMenuItems"
+                  :label="$t('pim.group_actions', { name: group.name || group.idx })"
+                  placement="bottom-end"
+                  @select="(item) => onGroupMenu(group, item)"
+                >
+                  <template #trigger>
+                    <IconButton
+                      icon="more"
+                      size="sm"
+                      :label="$t('pim.group_actions', { name: group.name || group.idx })"
+                    />
+                  </template>
+                </BasicMenu>
+              </div>
+              <div v-show="!isCollapsed(group.idx)">
+                <draggable
+                  v-model="group.features"
+                  :disabled="readonly"
+                  group="features"
+                  ghost-class="bg-accent-subtle"
+                  :force-fallback="true"
+                  fallback-class="drag-ghost"
+                  :item-key="(el) => el.feature_idx"
+                  @change="(evt) => onGroupChange(evt, group.idx)"
+                >
+                  <template #item="{ element }">
                     <div
-                      v-if="activeGroupMenu === group.idx"
-                      class="pim-kebab__menu"
+                      v-if="matchesSearch(element)"
+                      class="feature-row flex ai-ct jc-sb gap-3"
                     >
-                      <div class="pim-kebab__item" @click="startRename(group)">
-                        {{ $t("pim.rename") }}
+                      <div class="flex ai-ct gap-3 min-w-0">
+                        <FontAwesomeIcon :icon="$icons.drag" class="t-muted" aria-hidden="true" />
+                        <span class="fw-500">{{
+                          element.feature_name || element.feature_idx
+                        }}</span>
+                        <StatusBadge
+                          :tone="featureTypeTone(element.feature_type)"
+                          :dot="false"
+                          :label="$t(featureTypeLabel(element.feature_type))"
+                        />
                       </div>
-                      <div
-                        class="pim-kebab__item t-negative-300"
-                        @click="
-                          removeGroup(group.idx);
-                          activeGroupMenu = null;
-                        "
-                      >
-                        {{ $t("pim.remove") }}
+                      <div class="flex ai-ct gap-2">
+                        <RequiredOverrideControl
+                          v-if="requiredPerFeatureSet"
+                          :model-value="element.is_required_override ?? null"
+                          :feature-required="Boolean(element.feature?.is_required)"
+                          :name="element.feature_name || element.feature_idx"
+                          :disabled="readonly || element.feature?.scope === 1"
+                          @update:model-value="(value) => onRequiredChange(element, value)"
+                        />
+                        <IconButton
+                          icon="edit"
+                          :label="$t('common.edit')"
+                          size="sm"
+                          @click="$router.push(`/pim/features/${element.feature_idx}`)"
+                        />
+                        <IconButton mutates
+                          icon="close"
+                          :label="$t('pim.remove_from_set')"
+                          variant="danger"
+                          size="sm"
+                          @click="removeFeature(element.feature_idx)"
+                        />
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div v-show="!isCollapsed(group.idx)">
-                  <draggable
-                    v-model="group.features"
-                    group="features"
-                    ghost-class="bg-support-100"
-                    :force-fallback="true"
-                    fallback-class="drag-ghost"
-                    :item-key="(el) => el.feature_idx"
-                    @change="(evt) => onGroupChange(evt, group.idx)"
-                  >
-                    <template #item="{ element }">
-                      <div
-                        v-if="matchesSearch(element)"
-                        class="feature-row flex ai-ct jc-sb"
-                      >
-                        <div class="flex ai-ct gap-200">
-                          <span class="drag-handle t-basic-400 cursor-grab"
-                            >&#x2630;</span
-                          >
-                          <span class="fw-500">{{
-                            element.feature_name || element.feature_idx
-                          }}</span>
-                          <TypeBadge :feature-type="element.feature_type" />
-                        </div>
-                        <div class="flex ai-ct gap-100">
-                          <BasicButton
-                            text=""
-                            icon="pen"
-                            class="bg-basic-200 t-basic-600"
-                            @click="
-                              $router.push(
-                                `/pim/features/${element.feature_idx}`
-                              )
-                            "
-                          />
-                          <BasicButton
-                            text=""
-                            icon="xmark"
-                            class="bg-negative-100 t-negative-300"
-                            @click="removeFeature(element.feature_idx)"
-                          />
-                        </div>
-                      </div>
-                    </template>
-                  </draggable>
-                  <div
-                    v-if="!group.features.length"
-                    class="t-basic-500 fs-200 p-300"
-                  >
-                    {{ $t("pim.drag_to_add") }}
-                  </div>
-                </div>
+                  </template>
+                </draggable>
+                <p v-if="!group.features.length" class="t-muted fs-200 pt-4">
+                  {{ $t("pim.drag_to_add") }}
+                </p>
               </div>
-            </template>
-          </draggable>
+            </BasicCard>
+          </template>
+        </draggable>
+      </template>
+
+      <!-- Default change confirmation -->
+      <ConfirmDialog
+        :open="showDefaultConfirm"
+        :title="$t('pim.default_feature_set')"
+        :message="defaultConfirmMessage"
+        :confirm-label="$t('common.confirm')"
+        :cancel-label="$t('common.cancel')"
+        @confirm="confirmDefaultChange"
+        @cancel="showDefaultConfirm = false"
+      />
+
+      <!-- Delete confirmation -->
+      <ConfirmDialog
+        tone="danger"
+        :open="showDeleteConfirm"
+        :title="$t('pim.confirm_delete_title')"
+        @confirm="deleteSet"
+        @cancel="showDeleteConfirm = false"
+      >
+        <template #default>
+          <p>{{ $t("pim.confirm_delete_feature_set") }}</p>
         </template>
+      </ConfirmDialog>
 
-        <!-- Default change confirmation -->
-        <Confirmation-modal
-          :visible="showDefaultConfirm"
-          @accept="confirmDefaultChange"
-          @reject="showDefaultConfirm = false"
-        >
-          <template #description>
-            <p>{{ defaultConfirmMessage }}</p>
-          </template>
-          <template #footer>
-            <button
-              class="modal-btn modal-btn--secondary"
-              @click="showDefaultConfirm = false"
-            >
-              {{ $t("common.cancel") }}
-            </button>
-            <button
-              class="modal-btn modal-btn--confirm"
-              @click="confirmDefaultChange"
-            >
-              {{ $t("common.confirm") }}
-            </button>
-          </template>
-        </Confirmation-modal>
-
-        <!-- Delete confirmation -->
-        <Confirmation-modal
-          :visible="showDeleteConfirm"
-          @accept="deleteSet"
-          @reject="showDeleteConfirm = false"
-        >
-          <template #description>
-            <p>{{ $t("pim.confirm_delete_feature_set") }}</p>
-          </template>
-        </Confirmation-modal>
-
-        <!-- Unsaved changes modal -->
-        <UnsavedChangesModal
-          :visible="!!pendingNav"
-          @save="saveAndLeave"
-          @discard="confirmLeave"
-          @stay="cancelLeave"
-        />
-
-        <!-- Add group modal removed — inline creation panel used instead -->
-      </div>
-    </div>
+      <!-- Unsaved changes modal -->
+      <ConfirmDialog
+        :open="!!pendingNav"
+        @confirm="saveAndLeave"
+        @discard="confirmLeave"
+        @cancel="cancelLeave"
+        :title="$t('unsaved.title')"
+        :message="$t('unsaved.message')"
+        :confirm-label="$t('unsaved.save_and_leave')"
+        :discard-label="$t('unsaved.discard')"
+      />
+    </PageLayout>
 
     <!-- Attribute Library sidebar (full height, right edge) -->
     <SideDrawer
@@ -397,6 +341,7 @@ import { inject, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { useLoaderStore } from "@/stores/loader";
 import { useNotifyStore } from "@/stores/notify";
 import { useUnsavedChanges } from "@/composables/useUnsavedChanges";
+import { ReadonlyOff, usePageReadonly } from "@/composables/useReadonly";
 import draggable from "vuedraggable";
 import {
   GET_FeatureSetGlobal,
@@ -410,22 +355,23 @@ import {
   GET_AttributesGroups,
   POST_AttributesGroup,
   PATCH_AttributesGroup,
+  PATCH_FeatureSetFeature,
 } from "@/api/pim/api";
-import { featureTypeLabel } from "./helpers/pimEnums";
+import { featureTypeLabel, featureTypeTone } from "./helpers/pimEnums";
 import AttributeLibrary from "./components/AttributeLibrary.vue";
-import TypeBadge from "./components/TypeBadge.vue";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
-import UnsavedChangesModal from "@/functionals/Unsaved-changes-modal/index.vue";
+import PimChannelSelect from "./components/PimChannelSelect.vue";
+import RequiredOverrideControl from "./components/RequiredOverrideControl.vue";
+import { usePimCapabilities, noteFeatureList } from "@/composables/usePimCapabilities";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 export default {
   name: "FeatureSetEdit",
   components: {
+    ReadonlyOff,
     draggable,
     AttributeLibrary,
-    TypeBadge,
-    ConfirmationModal,
-    UnsavedChangesModal,
+    PimChannelSelect,
+    RequiredOverrideControl,
   },
   setup() {
     const loader = useLoaderStore();
@@ -440,7 +386,9 @@ export default {
     onBeforeUnmount(() => {
       if (isGlobalScope) isGlobalScope.value = false;
     });
-    return { loader, notify, ...unsaved };
+    const { requiredPerFeatureSet } = usePimCapabilities();
+    // The page's read-only mode reaches the drags and the per-set required control.
+    return { loader, notify, requiredPerFeatureSet, ...unsaved, readonly: usePageReadonly() };
   },
   data() {
     return {
@@ -455,8 +403,8 @@ export default {
       ungroupedFeatures: [],
       groups: [],
       featureSearch: "",
-      activeGroupMenu: null,
       renamingGroupIdx: null,
+      renameError: "",
       newGroupName: "",
       collapsedGroups: [],
     };
@@ -494,6 +442,19 @@ export default {
       // Turning OFF
       return this.$t("pim.confirm_unset_default");
     },
+    headerActions() {
+      return [
+        { key: "delete", role: "utility", icon: "delete", variant: "danger", label: this.$t("common.delete"),
+          onClick: () => (this.showDeleteConfirm = true) },
+        { key: "save", role: "primary", label: this.$t("pim.save_set_config"), onClick: this.save },
+      ];
+    },
+    groupMenuItems() {
+      return [
+        { key: "rename", label: this.$t("pim.rename"), icon: "edit" },
+        { key: "remove", label: this.$t("pim.remove"), icon: "delete", danger: true },
+      ];
+    },
     filteredUngrouped() {
       if (!this.featureSearch) return this.ungroupedFeatures;
       return this.ungroupedFeatures.filter((f) => this.matchesSearch(f));
@@ -513,6 +474,7 @@ export default {
   },
   methods: {
     featureTypeLabel,
+    featureTypeTone,
     async saveAndLeave() {
       await this.save();
       this.confirmLeave();
@@ -545,16 +507,36 @@ export default {
       if (!this.featureSearch) return group.features;
       return group.features.filter((f) => this.matchesSearch(f));
     },
-    toggleGroupMenu(groupIdx) {
-      this.activeGroupMenu =
-        this.activeGroupMenu === groupIdx ? null : groupIdx;
+    onGroupMenu(group, item) {
+      if (item.key === "rename") this.startRename(group);
+      else if (item.key === "remove") this.removeGroup(group.idx);
+    },
+    collapseLabel(groupIdx, name) {
+      return this.$t(this.isCollapsed(groupIdx) ? "pim.expand_group" : "pim.collapse_group", { name });
+    },
+    closeAddGroup() {
+      this.showAddGroup = false;
+      this.newGroupName = "";
     },
     startRename(group) {
+      // A rename still open (an empty name left with an error) gets its old name back first.
+      const open = this.groups.find((g) => g.idx === this.renamingGroupIdx);
+      if (open) open.name = this._oldGroupName;
       this._oldGroupName = group.name;
+      this.renameError = "";
       this.renamingGroupIdx = group.idx;
-      this.activeGroupMenu = null;
+    },
+    cancelRename(group) {
+      group.name = this._oldGroupName;
+      this.renamingGroupIdx = null;
     },
     async finishRename(group) {
+      // Enter and the focus leaving the field both finish; the first one wins. An empty name stays in the field.
+      if (this.renamingGroupIdx !== group.idx) return;
+      if (!group.name?.trim()) {
+        this.renameError = this.$t("pim.required_field");
+        return;
+      }
       this.renamingGroupIdx = null;
       if (group.name === this._oldGroupName) return;
       const lang = this.$i18n?.locale?.toLowerCase() || "en";
@@ -650,6 +632,7 @@ export default {
         this.snapshot(this.form);
         this.track(this.form);
         this.featuresInSet = featRes.data.results || featRes.data || [];
+        noteFeatureList(this.featuresInSet);
         this.allGroups = groupsRes.data.results || groupsRes.data || [];
         this.buildGroups();
       } catch (err) {
@@ -737,6 +720,22 @@ export default {
         });
       } finally {
         this.loader.loaderFinish();
+      }
+    },
+    // PIM >= 3.3.0: the override is saved at once (it is not part of the set's Save); a refused change snaps back.
+    async onRequiredChange(element, value) {
+      const before = element.is_required_override ?? null;
+      element.is_required_override = value;
+      try {
+        const { data } = await PATCH_FeatureSetFeature(this.featureSetIdx, element.feature_idx, { is_required: value });
+        element.is_required_override = data.is_required_override ?? value;
+        element.is_required = data.is_required ?? element.is_required;
+      } catch (err) {
+        element.is_required_override = before;
+        this.notify.spawnNotification({
+          type: "negative",
+          msg: extractApiMessage(err, this.$t("notifications.error")),
+        });
       }
     },
     async saveReorder() {
@@ -874,128 +873,23 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.set-identity {
-  border-left: 3px solid var(--c-support-400);
-  padding-left: var(--space-300);
-  padding-top: var(--space-200);
-  padding-bottom: var(--space-200);
-}
-.feature-group {
-  border: 1px solid var(--c-basic-300);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.feature-group__header {
-  padding: 10px 16px;
-  user-select: none;
+.feature-group__name {
+  margin: 0;
+  font-size: var(--fs-300);
+  font-weight: 600;
+  color: var(--text-strong);
 }
 .feature-row {
-  padding: 12px var(--space-200);
-  border-top: 1px solid var(--c-basic-200);
-  transition: background 0.15s;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-subtle);
   cursor: grab;
   user-select: none;
-  &:hover {
-    background: var(--c-basic-200);
-  }
-  :deep(button),
-  :deep(.basic-button) {
-    cursor: pointer;
-  }
-}
-.drag-handle {
-  cursor: grab;
-  user-select: none;
-  font-size: var(--fs-300);
-}
-.cursor-grab {
-  cursor: grab;
-}
-.collapse-chevron {
-  cursor: pointer;
-  transition: transform 0.2s;
-  font-size: 10px;
-  user-select: none;
-  &.is-collapsed {
-    transform: rotate(-90deg);
-  }
 }
 .group-drag-handle {
   cursor: grab;
-  user-select: none;
-  font-size: var(--fs-300);
-}
-.add-group-panel {
-  border: 1px dashed var(--c-basic-300);
-}
-.modal-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  border-radius: 5px;
-  border: 1px solid;
-  cursor: pointer;
-}
-.modal-btn--secondary {
-  background: var(--c-basic-100);
-  border-color: var(--c-basic-400);
-  color: var(--c-basic-700);
-}
-.modal-btn--confirm {
-  background: var(--c-support-400);
-  border-color: var(--c-support-400);
-  color: var(--c-basic-100);
 }
 .rename-input {
   max-width: 200px;
-}
-.pim-kebab {
-  position: relative;
-  .pim-kebab__btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 8px;
-    font-size: 16px;
-    color: var(--c-basic-500);
-    &:hover {
-      color: var(--c-basic-700);
-    }
-  }
-  .pim-kebab__menu {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background: var(--c-basic-100);
-    border: 1px solid var(--c-basic-300);
-    border-radius: 6px;
-    box-shadow: var(--shadow-md);
-    z-index: 10;
-    min-width: 140px;
-    .pim-kebab__item {
-      padding: 8px 14px;
-      cursor: pointer;
-      font-size: var(--fs-300);
-      &:hover {
-        background: var(--c-basic-200);
-      }
-      &:first-child {
-        border-radius: 6px 6px 0 0;
-      }
-      &:last-child {
-        border-radius: 0 0 6px 6px;
-      }
-    }
-  }
-}
-.tt-upper {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 @media only screen and (max-width: 768px) {
@@ -1015,20 +909,8 @@ export default {
       flex: none !important;
       overflow: visible !important;
       border-left: none;
-      border-top: 1px solid var(--c-basic-300);
+      border-top: 1px solid var(--border-subtle);
     }
   }
-}
-</style>
-
-<style lang="scss">
-/* Global (unscoped) — SortableJS clones are appended to <body>, unreachable by scoped styles */
-.drag-ghost {
-  opacity: 0.9;
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-support-400);
-  border-radius: 6px;
-  box-shadow: var(--shadow-md);
-  padding: 12px var(--space-200);
 }
 </style>

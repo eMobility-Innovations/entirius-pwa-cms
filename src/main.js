@@ -1,3 +1,5 @@
+// Brand values (--brand-*) and the fallback font faces; loaded before the theme styles in App.vue.
+import "@entirius/brand-tokens/tokens.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";

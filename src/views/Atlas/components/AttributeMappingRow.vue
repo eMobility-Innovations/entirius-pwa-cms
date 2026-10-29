@@ -1,9 +1,10 @@
 <template>
-  <div class="mapping-row b-basic-300 br-sm p-200 mb-100">
+  <div class="mapping-row b-subtle rounded p-5 mb-2">
     <div class="mapping-row__grid">
       <FormField
         :label="$t('atlas.mappings.attribute.source_field')"
-        :tooltip="$t('atlas.mappings.attribute.source_field_help')"
+        hint-level="important"
+        :hint="$t('atlas.mappings.attribute.source_field_help')"
       >
         <EntitySearchPicker
           v-if="isNew"
@@ -19,28 +20,27 @@
         <BasicInput
           v-else
           v-model="local.source_field"
-          :is-disabled="true"
+          :disabled="true"
           :data-testid="`attr-mapping-source-${rowKey}`"
         />
       </FormField>
       <FormField :label="$t('atlas.mappings.attribute.target_type')">
-        <Dropdown
-          :values="targetTypeOptions"
-          :selected="[local.target_type]"
+        <BasicSelect
+          :options="targetTypeOptions"
+          v-model="local.target_type"
           :data-testid="`attr-mapping-target-type-${rowKey}`"
-          @onSelect="(val) => (local.target_type = val)"
         />
       </FormField>
       <FormField :label="$t('atlas.mappings.attribute.modifier')">
-        <Dropdown
-          :values="modifierOptions"
-          :selected="[local.modifier || 'none']"
+        <BasicSelect
+          :options="modifierOptions"
+          :model-value="local.modifier || 'none'"
           :data-testid="`attr-mapping-modifier-${rowKey}`"
-          @onSelect="(val) => (local.modifier = val)"
+          @update:model-value="(val) => (local.modifier = val)"
         />
         <span
           v-if="modifierPreview"
-          class="modifier-preview t-basic-500 fs-200 mt-100"
+          class="modifier-preview t-muted fs-200 mt-2"
           :data-testid="`attr-mapping-modifier-preview-${rowKey}`"
         >
           {{ modifierPreview }}
@@ -60,22 +60,21 @@
           :client-filter="true"
           :data-testid="`attr-mapping-target-id-${rowKey}`"
         />
-        <Dropdown
+        <BasicSelect
           v-else-if="local.target_type === 'real_product'"
-          :values="realProductOptions"
-          :selected="[local.target_identifier]"
+          :options="realProductOptions"
+          v-model="local.target_identifier"
           :placeholder="
             $t(
               'atlas.mappings.attribute.target_identifier_real_product_placeholder'
             )
           "
           :data-testid="`attr-mapping-target-id-${rowKey}`"
-          @onSelect="(val) => (local.target_identifier = val)"
         />
         <BasicInput
           v-else
           v-model="local.target_identifier"
-          :is-disabled="true"
+          :disabled="true"
           :placeholder="
             $t(
               'atlas.mappings.attribute.target_identifier_skip_placeholder'
@@ -85,41 +84,39 @@
         />
       </FormField>
       <FormField :label="$t('atlas.mappings.attribute.is_required')">
-        <Switcher
-          :selected="local.is_required"
+        <BasicSwitch
+          v-model="local.is_required"
           :data-testid="`attr-mapping-required-${rowKey}`"
-          @onSelect="local.is_required = !local.is_required"
         />
       </FormField>
     </div>
-    <div class="flex ai-ct gap-100 mt-200 jc-end">
+    <div class="flex ai-ct gap-2 mt-5 jc-end">
       <span
         v-if="rowWarnings.length"
-        class="row-warning t-warning-300"
+        class="row-warning t-warning"
         :title="warningTitle"
         :data-testid="`attr-mapping-warning-${rowKey}`"
       >
-        <FontAwesomeIcon icon="triangle-exclamation" />
+        <FontAwesomeIcon :icon="$icons.warning" />
         <span class="fs-200 fw-600">{{ rowWarnings.length }}</span>
       </span>
-      <button
+      <IconButton
         v-if="!isNew"
-        class="row-action-btn bg-negative-100 t-negative-300"
-        :title="$t('common.delete')"
+        icon="delete"
+        variant="danger"
+        size="sm"
+        :label="$t('common.delete')"
         :data-testid="`attr-mapping-delete-${rowKey}`"
         @click="$emit('delete', mapping)"
-      >
-        <FontAwesomeIcon icon="trash-can" />
-      </button>
-      <button
-        class="suppliers-primary-btn"
+      />
+      <BasicButton
+        size="sm"
         :disabled="busy"
         :data-testid="`attr-mapping-save-${rowKey}`"
         @click="emitSave"
       >
-        <FontAwesomeIcon icon="floppy-disk" />
         {{ $t("common.save") }}
-      </button>
+      </BasicButton>
     </div>
   </div>
 </template>
@@ -304,49 +301,21 @@ export default {
 
 <style lang="scss" scoped>
 .mapping-row {
-  background: var(--c-basic-100);
+  background: var(--surface-base);
 }
 .mapping-row__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-200);
-}
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.suppliers-primary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  font-size: var(--fs-200);
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--c-support-400);
-  background: var(--c-support-400);
-  color: var(--c-basic-100);
-  cursor: pointer;
-}
-.suppliers-primary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  gap: var(--space-5);
 }
 .row-warning {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 var(--space-50);
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
 }
 .modifier-preview {
   display: inline-block;
-  font-family: var(--ff-mono, monospace);
+  font-family: var(--font-mono);
 }
 </style>

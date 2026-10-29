@@ -25,7 +25,7 @@
           <editor-content
             :editor="editor"
             :key="'editor-stable'"
-            class="h-100 pb-900 pr-100"
+            class="h-100 pb-900 pr-2"
           />
           <button
             class="focus-mode-trigger"
@@ -36,138 +36,62 @@
             @click="editor_size = editor_size ? null : 'full'"
           >
             <font-awesome-icon
-              :icon="
-                editor_size ? 'fa-solid fa-compress' : 'fa-solid fa-expand'
-              "
+              :icon="editor_size ? $icons.exitFullscreen : $icons.fullscreen"
             />
           </button>
         </div>
         <div
           v-if="editor"
-          class="wysiwyg-options bt-basic-300 pt-100 bg-basic-100 flex ai-ct gap-100"
+          class="wysiwyg-options bt-subtle pt-2 bg-base flex ai-ct gap-2"
         >
-          <div v-if="mode == 'text'" class="wysiwyg-btn-row flex gap-100 fg-1">
+          <div v-if="mode == 'text'" class="wysiwyg-btn-row flex gap-2 fg-1">
+            <IconButton
+              v-for="tool in MARK_TOOLS"
+              :key="tool.key"
+              size="sm"
+              variant="outline"
+              :icon="tool.icon"
+              :label="$t(`wysiwyg.${tool.key}`)"
+              :pressed="editor.isActive(...tool.active)"
+              @click="tool.run()"
+            />
             <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{ 'bg-basic-300 t-basic-700': editor.isActive('bold') }"
-              :custom="true"
-              @click="editor.chain().focus().toggleBold().run()"
+              v-for="level in [1, 2, 3]"
+              :key="`heading_${level}`"
+              size="sm"
+              variant="secondary"
+              :class="{ 'bg-hover t-body': editor.isActive('heading', { level }) }"
+              :aria-label="$t(`wysiwyg.heading_${level}`)"
+              :aria-pressed="String(editor.isActive('heading', { level }))"
+              @click="editor.chain().focus().toggleHeading({ level }).run()"
             >
-              <template v-slot:custom>
-                <span class="wi-bold fs-400 inline-block" />
-              </template>
+              H{{ level }}
             </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{ 'bg-basic-300 t-basic-700': editor.isActive('italic') }"
-              :custom="true"
-              @click="editor.chain().focus().toggleItalic().run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-italic fs-400 inline-block" />
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('underline'),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().toggleUnderline().run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-underline fs-400 inline-block" />
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('heading', {
-                  level: 1,
-                }),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().toggleHeading({ level: 1 }).run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-h1 fs-400 inline-block" />
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('heading', {
-                  level: 2,
-                }),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-h2 fs-400 inline-block" />
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('heading', {
-                  level: 3,
-                }),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().toggleHeading({ level: 3 }).run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-h3 fs-400 inline-block" />
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('link'),
-              }"
-              :custom="true"
+            <IconButton
+              size="sm"
+              variant="outline"
+              icon="link"
+              :label="$t('wysiwyg.link')"
+              :pressed="editor.isActive('link')"
               @click="setLink"
-            >
-              <template v-slot:custom>
-                <span class="wi-link fs-400 inline-block" />
-              </template>
-            </BasicButton>
+            />
 
             <!-- FAQ Tooltip button + search dropdown -->
             <div v-if="faqEnabled" class="relative faq-tooltip-btn">
-              <BasicButton
-                class="b-basic-300 lh-init p-50"
-                :class="{
-                  'bg-basic-300 t-basic-700': editor.isActive('faqTooltip'),
-                }"
-                :custom="true"
-                :title="
-                  editor.isActive('faqTooltip')
-                    ? $t('wysiwyg.faq_remove')
-                    : $t('wysiwyg.faq_add')
-                "
-                @click="
-                  editor.isActive('faqTooltip')
-                    ? removeFaqTooltip()
-                    : openFaqSearch()
-                "
-              >
-                <template v-slot:custom>
-                  <font-awesome-icon
-                    class="fs-400"
-                    icon="fa-solid fa-circle-question"
-                  />
-                </template>
-              </BasicButton>
+              <IconButton
+                size="sm"
+                variant="outline"
+                icon="help"
+                :label="editor.isActive('faqTooltip') ? $t('wysiwyg.faq_remove') : $t('wysiwyg.faq_add')"
+                :pressed="editor.isActive('faqTooltip')"
+                @click="editor.isActive('faqTooltip') ? removeFaqTooltip() : openFaqSearch()"
+              />
 
               <div
                 v-if="showFaqSearch"
-                class="faq-tooltip-dropdown bg-basic-100 b-basic-300 br-50"
+                class="faq-tooltip-dropdown bg-base b-subtle rounded"
               >
-                <div class="p-100">
+                <div class="p-2">
                   <input
                     v-model="faqQuery"
                     class="faq-tooltip-search"
@@ -179,13 +103,13 @@
                 </div>
                 <div
                   v-if="faqLoading"
-                  class="p-100 t-basic-600 fs-200 tc"
+                  class="p-2 t-secondary fs-200 tc"
                 >
                   {{ $t('wysiwyg.faq_searching') }}
                 </div>
                 <div
                   v-else-if="faqResults.length === 0 && faqQuery.trim()"
-                  class="p-100 t-basic-600 fs-200 tc"
+                  class="p-2 t-secondary fs-200 tc"
                 >
                   {{ $t('wysiwyg.faq_no_results') }}
                 </div>
@@ -193,16 +117,16 @@
                   <li
                     v-for="item in faqResults"
                     :key="item.url_key"
-                    class="faq-tooltip-result p-100 bb-basic-300 t-basic-800 fs-200"
+                    class="faq-tooltip-result p-2 bb-subtle t-body fs-200"
                     @click="applyFaqTooltip(item.url_key)"
                   >
                     <div class="fw-600">{{ item.question || item.url_key }}</div>
-                    <div class="t-basic-600 faq-tooltip-urlkey">
+                    <div class="t-secondary faq-tooltip-urlkey">
                       {{ item.url_key }}
                     </div>
                   </li>
                 </ul>
-                <div class="p-100 bt-basic-300">
+                <div class="p-2 bt-subtle">
                   <button class="faq-tooltip-cancel" @click="closeFaqSearch">
                     {{ $t('wysiwyg.faq_cancel') }}
                   </button>
@@ -210,318 +134,37 @@
               </div>
             </div>
 
+            <IconButton
+              v-for="tool in BLOCK_TOOLS"
+              :key="tool.key"
+              size="sm"
+              variant="outline"
+              :icon="tool.icon"
+              :label="$t(`wysiwyg.${tool.key}`)"
+              :pressed="editor.isActive(...tool.active)"
+              @click="tool.run()"
+            />
+          </div>
+          <div v-if="mode == 'table'" class="flex wrap gap-2 fg-1">
             <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('bulletList'),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().toggleBulletList().run()"
+              v-for="tool in TABLE_TOOLS"
+              :key="tool.key"
+              size="sm"
+              :variant="tool.danger ? 'danger' : 'secondary'"
+              @click="tool.run(editor.chain().focus()).run()"
             >
-              <template v-slot:custom>
-                <span class="wi-bulletList fs-400 inline-block" />
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('orderedList'),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().toggleOrderedList().run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-orderedList fs-400 inline-block" />
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('highlight'),
-              }"
-              :custom="true"
-              @click="
-                editor.commands.toggleHighlight({ color: highlightColor })
-              "
-            >
-              <template v-slot:custom>
-                <span class="wi-highlight fs-400 inline-block" />
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive('textStyle', {
-                  color: EDITOR_LINK_COLOR,
-                }),
-              }"
-              :custom="true"
-              @click="
-                editor.isActive('textStyle', { color: EDITOR_LINK_COLOR })
-                  ? editor.chain().focus().unsetColor().run()
-                  : editor.chain().focus().setColor(EDITOR_LINK_COLOR).run()
-              "
-            >
-              <template v-slot:custom>
-                <span class="wi-highlight fs-400 inline-block" />
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive({
-                  textAlign: 'left',
-                }),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().setTextAlign('left').run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-align-left fs-400 inline-block" />
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive({
-                  textAlign: 'center',
-                }),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().setTextAlign('center').run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-align-center fs-400 inline-block" />
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-50"
-              :class="{
-                'bg-basic-300 t-basic-700': editor.isActive({
-                  textAlign: 'right',
-                }),
-              }"
-              :custom="true"
-              @click="editor.chain().focus().setTextAlign('right').run()"
-            >
-              <template v-slot:custom>
-                <span class="wi-align-right fs-400 inline-block" />
-              </template>
+              {{ $t(`wysiwyg.${tool.key}`) }}
             </BasicButton>
           </div>
-          <div v-if="mode == 'table'" class="flex wrap gap-50 t-basic-600 fg-1">
-            <BasicButton
-              @click="
-                editor
-                  .chain()
-                  .focus()
-                  .insertTable({ rows: 2, cols: 3, withHeaderRow: true })
-                  .run()
-              "
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-            >
-              <template v-slot:custom>
-                <font-awesome-icon
-                  class="fs-300"
-                  :icon="` fa-solid fa-table`"
-                />
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().deleteTable().run()"
-            >
-              <template v-slot:custom>
-                <font-awesome-icon
-                  class="fs-300"
-                  :icon="`fa-solid fa-trash-can`"
-                />
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().addColumnBefore().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>col. before</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-plus`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().addColumnAfter().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>col. after</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-plus`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().deleteColumn().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>col. delete</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-trash-can`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().addRowBefore().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>row. before</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-plus`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().addRowAfter().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>row. after</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-plus`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().deleteRow().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>row. delete</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-trash-can`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().mergeCells().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>Merge</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-object-group`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().splitCell().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>Split</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-object-ungroup`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().toggleHeaderColumn().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>Toggle (col.)</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-circle-dot`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().toggleHeaderRow().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>Toggle (row.)</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-circle-dot`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-
-            <BasicButton
-              class="b-basic-300 lh-init p-100"
-              :custom="true"
-              @click="editor.chain().focus().toggleHeaderCell().run()"
-            >
-              <template v-slot:custom>
-                <div class="inline-flex ai-ct gap-50">
-                  <span>Toggle (cell.)</span>
-                  <font-awesome-icon
-                    class="fs-300"
-                    :icon="`fa-solid fa-circle-dot`"
-                  />
-                </div>
-              </template>
-            </BasicButton>
-          </div>
-          <Dropdown
+          <BasicSelect
             v-if="variant !== 'lite'"
-            class="wysiwyg-mode-switcher br-50 b-basic-900 t-basic-200 bg-basic-800"
-            :selected="[mode]"
-            :values="[
-              { label: 'text mode', value: 'text' },
-              { label: 'table mode', value: 'table' },
+            v-model="mode"
+            class="wysiwyg-mode-switcher"
+            :aria-label="$t('wysiwyg.text_mode') + ' / ' + $t('wysiwyg.table_mode')"
+            :options="[
+              { label: $t('wysiwyg.text_mode'), value: 'text' },
+              { label: $t('wysiwyg.table_mode'), value: 'table' },
             ]"
-            @onSelect="($event) => (mode = $event)"
           />
         </div>
       </div>
@@ -546,6 +189,7 @@ import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
+import { useControlAttrs } from "@/boots/FormField/useControlAttrs";
 
 // Defined at module level — created once, not on every component mount
 const FaqTooltip = Mark.create({
@@ -579,6 +223,23 @@ const FaqTooltip = Mark.create({
   },
 });
 
+// Table tools are text buttons: four "add" and three "delete" tools cannot be told apart by an icon (R7).
+const TABLE_TOOLS = [
+  { key: "insert_table", run: (chain) => chain.insertTable({ rows: 2, cols: 3, withHeaderRow: true }) },
+  { key: "delete_table", run: (chain) => chain.deleteTable(), danger: true },
+  { key: "add_column_before", run: (chain) => chain.addColumnBefore() },
+  { key: "add_column_after", run: (chain) => chain.addColumnAfter() },
+  { key: "delete_column", run: (chain) => chain.deleteColumn(), danger: true },
+  { key: "add_row_before", run: (chain) => chain.addRowBefore() },
+  { key: "add_row_after", run: (chain) => chain.addRowAfter() },
+  { key: "delete_row", run: (chain) => chain.deleteRow(), danger: true },
+  { key: "merge_cells", run: (chain) => chain.mergeCells() },
+  { key: "split_cell", run: (chain) => chain.splitCell() },
+  { key: "header_column", run: (chain) => chain.toggleHeaderColumn() },
+  { key: "header_row", run: (chain) => chain.toggleHeaderRow() },
+  { key: "header_cell", run: (chain) => chain.toggleHeaderCell() },
+];
+
 export default {
   props: {
     modelValue: {
@@ -605,6 +266,16 @@ export default {
     EditorContent,
   },
   setup(props, { emit }) {
+    // FormField contract (docs/ui-components.md § P3 inputs): the editable ProseMirror node is not a
+    // `for`-labelable element, so its accessible name/description are set directly via editorProps.attributes.
+    const { field, attrs: fieldAttrs } = useControlAttrs();
+    const editorAttributes = computed(() => {
+      const attrs = { id: fieldAttrs.value.id };
+      if (fieldAttrs.value["aria-describedby"]) attrs["aria-describedby"] = fieldAttrs.value["aria-describedby"];
+      if (field.labelId.value) attrs["aria-labelledby"] = field.labelId.value;
+      return attrs;
+    });
+
     // Munin — FAQ module check
     const muninStore = useMuninStore();
     const faqEnabled = computed(() => muninStore.isPanelEnabled("faq"));
@@ -705,31 +376,41 @@ export default {
           ]
         : [];
 
+    function transformPastedHTML(html) {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      div.querySelectorAll("[style]").forEach((el) => {
+        el.style.color = "";
+        el.style.fontFamily = "";
+        el.style.fontSize = "";
+        el.style.fontWeight = "";
+        el.style.backgroundColor = "";
+        el.style.lineHeight = "";
+        el.style.letterSpacing = "";
+        if (!el.getAttribute("style")?.trim()) el.removeAttribute("style");
+      });
+      return div.innerHTML;
+    }
+    const buildEditorProps = () => ({
+      transformPastedHTML,
+      attributes: editorAttributes.value,
+    });
+
     // Initialize editor with TipTap's official useEditor hook
     const editor = useEditor({
       content: props.modelValue || props.body || props.placeholder,
       autofocus: false,
       editable: true,
-      editorProps: {
-        transformPastedHTML(html) {
-          const div = document.createElement("div");
-          div.innerHTML = html;
-          div.querySelectorAll("[style]").forEach((el) => {
-            el.style.color = "";
-            el.style.fontFamily = "";
-            el.style.fontSize = "";
-            el.style.fontWeight = "";
-            el.style.backgroundColor = "";
-            el.style.lineHeight = "";
-            el.style.letterSpacing = "";
-            if (!el.getAttribute("style")?.trim()) el.removeAttribute("style");
-          });
-          return div.innerHTML;
-        },
-      },
+      editorProps: buildEditorProps(),
       extensions: [...baseExtensions, ...tableExtensions],
       onUpdate: handleEditorUpdate,
       onBlur: handleEditorBlur,
+    });
+
+    // The field's id/description/label can change after mount (an error appears, a label is added); keep the
+    // editable node's accessible name/description in sync.
+    watch(editorAttributes, () => {
+      editor.value?.setOptions({ editorProps: buildEditorProps() });
     });
 
     // FAQ Tooltip methods
@@ -875,7 +556,38 @@ export default {
       document.body.style.overflow = "";
     });
 
+    // Formatting toggles are icon buttons (R7); H1–H3 have no distinct glyph, so they stay text buttons.
+    const chain = () => editor.value.chain().focus();
+    const linkColor = { color: EDITOR_LINK_COLOR };
+    const toggleLinkColor = () =>
+      (editor.value.isActive("textStyle", linkColor) ? chain().unsetColor() : chain().setColor(EDITOR_LINK_COLOR)).run();
+    const MARK_TOOLS = [
+      { key: "bold", icon: "bold", active: ["bold"], run: () => chain().toggleBold().run() },
+      { key: "italic", icon: "italic", active: ["italic"], run: () => chain().toggleItalic().run() },
+      { key: "underline", icon: "underline", active: ["underline"], run: () => chain().toggleUnderline().run() },
+    ];
+    const BLOCK_TOOLS = [
+      { key: "bullet_list", icon: "listBullet", active: ["bulletList"], run: () => chain().toggleBulletList().run() },
+      { key: "ordered_list", icon: "listOrdered", active: ["orderedList"], run: () => chain().toggleOrderedList().run() },
+      {
+        key: "highlight",
+        icon: "highlight",
+        active: ["highlight"],
+        run: () => editor.value.commands.toggleHighlight({ color: highlightColor.value }),
+      },
+      { key: "link_color", icon: "textColor", active: ["textStyle", linkColor], run: toggleLinkColor },
+      ...["left", "center", "right"].map((align) => ({
+        key: `align_${align}`,
+        icon: `align${align[0].toUpperCase()}${align.slice(1)}`,
+        active: [{ textAlign: align }],
+        run: () => chain().setTextAlign(align).run(),
+      })),
+    ];
+
     return {
+      MARK_TOOLS,
+      BLOCK_TOOLS,
+      TABLE_TOOLS,
       mode,
       editor_size,
       highlightColor,
@@ -898,11 +610,13 @@ export default {
 </script>
 
 <style lang="scss">
+@import "@/assets/scss/utils/media-query";
+
 .text-section.input {
-  border: 1px solid var(--c-basic-400);
-  border-radius: var(--space-50);
-  padding: var(--space-100);
-  background-color: var(--c-basic-100);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
+  padding: var(--space-2);
+  background-color: var(--surface-base);
 }
 
 .focus-mode-backdrop {
@@ -919,11 +633,11 @@ export default {
   width: min(56rem, 92vw);
   height: 90vh;
   z-index: 201;
-  background-color: var(--c-basic-100);
-  border-radius: 8px;
-  border: 1px solid var(--c-basic-300);
+  background-color: var(--surface-base);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-lg);
-  padding: var(--space-300);
+  padding: var(--space-8);
   display: flex;
   flex-direction: column;
 }
@@ -939,10 +653,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--c-basic-300);
-  border-radius: 4px;
-  background: var(--c-basic-100);
-  color: var(--c-basic-500);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
+  background: var(--surface-base);
+  color: var(--text-muted);
   font-size: var(--fs-200);
   cursor: pointer;
   opacity: 0;
@@ -950,8 +664,8 @@ export default {
   z-index: 1;
 
   &:hover {
-    color: var(--c-support-400);
-    border-color: var(--c-support-400);
+    color: var(--text-accent);
+    border-color: var(--accent);
   }
 
   &.is-active {
@@ -973,12 +687,12 @@ export default {
 }
 .input-wysiwyg-wrapper {
   .ProseMirror {
-    background-color: var(--c-basic-100);
-    color: var(--c-basic-700);
+    background-color: var(--surface-base);
+    color: var(--text-body);
     cursor: text;
     line-height: 1.7;
-    margin-top: 0.25em;
-    margin-bottom: 0.75em;
+    margin-top: var(--space-1);
+    margin-bottom: var(--space-3);
 
     h1,
     h2,
@@ -994,15 +708,15 @@ export default {
       text-decoration: underline;
     }
     ul {
-      padding-left: var(--space-100);
+      padding-left: var(--space-2);
     }
     &:focus-visible {
       outline: none;
     }
 
     [data-faq-tooltip] {
-      border-bottom: 2px dotted var(--c-support-400);
-      color: var(--c-support-400);
+      border-bottom: 2px dotted var(--accent);
+      color: var(--text-accent);
       cursor: help;
     }
     > * + * {
@@ -1010,10 +724,10 @@ export default {
     }
     table {
       table-layout: fixed;
-      // border-radius: var(--space-50);
-      border: 1px solid var(--c-basic-500);
+      // border-radius: var(--radius-base);
+      border: 1px solid var(--border-default);
       // overflow: hidden;
-      font-size: var(--fs-100);
+      font-size: var(--fs-200);
       font-weight: normal;
 
       border: none;
@@ -1021,32 +735,32 @@ export default {
       min-width: 100%;
       // max-width: 100%;
       // white-space: nowrap;
-      background-color: var(--c-basic-100);
+      background-color: var(--surface-base);
 
       td,
       th {
         //text-align: center;
-        padding: 8px;
+        padding: var(--space-2);
       }
 
       td {
-        border-bottom: 1px solid var(--c-basic-300);
+        border-bottom: 1px solid var(--border-subtle);
         width: 1%;
       }
 
       th {
-        color: var(--editor-table-header-text);
-        background: var(--editor-table-header-bg);
+        color: var(--text-strong);
+        background: var(--accent-subtle);
       }
       th:nth-child(odd) {
-        color: var(--editor-table-header-text);
-        background: var(--editor-table-header-bg-alt);
+        color: var(--text-strong);
+        background: var(--surface-raised);
       }
       tr {
         vertical-align: top;
       }
       tr:nth-child(even) {
-        background: var(--editor-table-even-row);
+        background: var(--surface-raised);
       }
     }
   }
@@ -1060,7 +774,7 @@ export default {
 }
 
 [data-theme="dark"] .ProseMirror mark {
-  color: #1a1d23 !important;
+  color: var(--text-inverse) !important;
 }
 
 .wysiwyg-btn-row {
@@ -1071,15 +785,23 @@ export default {
 .wysiwyg-mode-switcher {
   flex-shrink: 0;
   min-width: 9rem;
-  padding: 0 var(--space-50);
-
-  .dropdown-list {
-    color: var(--c-basic-800);
-  }
 }
 
 .wysiwyg-options {
   overflow: visible;
+}
+
+// A-54: on a phone the mode select takes its own row above the tools, which get the full width. The tool row keeps
+// wrapping: a sideways scroll would clip the FAQ search that opens above it.
+@include max-tablet {
+  .wysiwyg-options {
+    flex-wrap: wrap;
+  }
+
+  .wysiwyg-mode-switcher {
+    order: -1;
+    flex-basis: 100%;
+  }
 }
 
 .faq-tooltip-btn {
@@ -1097,16 +819,16 @@ export default {
 
 .faq-tooltip-search {
   width: 100%;
-  border: 1px solid var(--c-basic-400);
-  border-radius: 4px;
-  padding: 6px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-base);
+  padding: var(--space-1) var(--space-2);
   font-size: var(--fs-200);
-  background: var(--c-basic-100);
-  color: var(--c-basic-800);
+  background: var(--surface-base);
+  color: var(--text-body);
   outline: none;
 
   &:focus {
-    border-color: var(--c-support-400);
+    border-color: var(--accent);
   }
 }
 
@@ -1123,12 +845,12 @@ export default {
   line-height: 1.4;
 
   &:hover {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
   }
 }
 
 .faq-tooltip-urlkey {
-  font-size: 10px;
+  font-size: var(--fs-200);
 }
 
 .faq-tooltip-cancel {
@@ -1136,11 +858,11 @@ export default {
   border: none;
   cursor: pointer;
   padding: 0;
-  color: var(--c-basic-600);
+  color: var(--text-secondary);
   font-size: var(--fs-200);
 
   &:hover {
-    color: var(--c-basic-800);
+    color: var(--text-body);
   }
 }
 </style>

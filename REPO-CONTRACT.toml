@@ -1,0 +1,36 @@
+[repo]
+name = "entirius-pwa-cms"
+what_it_is = "The organization's Vue admin CMS fork for the Entirius platform."
+what_it_does = """
+Provides staff with the PIM, content builder, module panels and organization access
+matrix. It discovers available backend modules, enforces panel access and signs staff
+in through the configured backend SSO endpoints. Deployments compile their public API
+and channel configuration into the static assets and publish matching build metadata.
+"""
+owner = "patryk@escooterclinic.co.uk"
+status = "active"
+
+[rules]
+must = [
+  "Optional backend modules remain dormant without breaking the installed panels.",
+  "SSO-only deployments render no password form and failed automatic SSO cannot redirect in a loop.",
+  "Production builds reject missing API or channel configuration and development auto-login credentials.",
+  "Build metadata contains source identity and public configuration, never credentials or tokens.",
+]
+
+[tests]
+command = "./verify.sh"
+suite = "tests/unit"
+covers = """
+The unit suite checks module routing, access controls, component behavior and the SSO
+state, replay and remount protections. The webpack plugin tests prove missing production
+configuration fails compilation while development retains a warning. The production
+fixture build verifies emitted source identity, package version and public deployment
+settings. Browser journeys against a live backend and visual snapshots are separate
+explicit checks; the default gate does not claim to exercise those integrations.
+"""
+coverage_floor = 80
+
+[runner]
+# Python selects the gate client's helper environment; the application runs on Node.
+toolchains = ["node@22.22.0", "python@3.12"]

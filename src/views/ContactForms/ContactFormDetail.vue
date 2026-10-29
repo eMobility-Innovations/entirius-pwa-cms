@@ -1,92 +1,84 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <Teleport v-if="toolbarReady" to="#forms-toolbar-left">
-        <BasicButton
-          variant="ghost"
-          icon="arrow-left"
-          :label="$t('cf.back_to_list')"
-          @click="$router.push('/forms/list')"
-        />
-      </Teleport>
-
-      <Loader v-if="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <!-- the header renders in every state: its back control stays while loading or after a failed load -->
+      <PageHeader :title="$t('cf.submission_detail')" back="/forms/list">
+        <template v-if="submission" #actions>
+          <BasicSelect
+            :floating-label="$t('cf.status')"
+            :options="statusOptions"
+            :model-value="submission.status"
+            class="cf-detail__status"
+            @update:model-value="updateStatus"
+          />
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
       <template v-else-if="submission">
-        <div class="flex ai-ct jc-sb mb-200">
-          <h1 class="fs-700 fw-600">{{ $t("cf.submission_detail") }}</h1>
-          <Dropdown
-            :values="statusOptions"
-            :selected="[submission.status]"
-            :placeholder="$t('cf.status')"
-            class="cf-status-dropdown"
-            @onSelect="updateStatus"
-          />
-        </div>
-        <div class="mb-400">
+        <div class="mb-10">
           <StatusBadge
             :label="statusLabel(submission.status)"
-            :variant="statusVariant(submission.status)"
+            :tone="statusVariant(submission.status)"
           />
         </div>
 
         <!-- Header info -->
-        <div class="cf-header mb-400">
+        <div class="cf-header mb-10">
           <div class="cf-header__row">
-            <span class="cf-header__label t-basic-500 fs-200 fw-600 tt-upper">{{
+            <span class="cf-header__label t-muted fs-200 fw-600 tt-upper">{{
               $t("cf.id")
             }}</span>
-            <span class="t-basic-800">{{ submission.id }}</span>
+            <span class="t-body">{{ submission.id }}</span>
           </div>
           <div class="cf-header__row">
-            <span class="cf-header__label t-basic-500 fs-200 fw-600 tt-upper">{{
+            <span class="cf-header__label t-muted fs-200 fw-600 tt-upper">{{
               $t("cf.email")
             }}</span>
-            <span class="t-basic-800">{{ submission.email }}</span>
+            <span class="t-body">{{ submission.email }}</span>
           </div>
           <div class="cf-header__row">
-            <span class="cf-header__label t-basic-500 fs-200 fw-600 tt-upper">{{
+            <span class="cf-header__label t-muted fs-200 fw-600 tt-upper">{{
               $t("cf.channel")
             }}</span>
-            <span class="t-basic-800">{{ submission.channel_idx }}</span>
+            <span class="t-body">{{ submission.channel_idx }}</span>
           </div>
           <div class="cf-header__row">
-            <span class="cf-header__label t-basic-500 fs-200 fw-600 tt-upper">{{
+            <span class="cf-header__label t-muted fs-200 fw-600 tt-upper">{{
               $t("cf.type")
             }}</span>
-            <span :class="submission.type ? 't-basic-800' : 't-basic-400'">{{
+            <span :class="submission.type ? 't-body' : 't-muted'">{{
               submission.type || "---"
             }}</span>
           </div>
           <div class="cf-header__row">
-            <span class="cf-header__label t-basic-500 fs-200 fw-600 tt-upper">{{
+            <span class="cf-header__label t-muted fs-200 fw-600 tt-upper">{{
               $t("cf.slug")
             }}</span>
-            <span class="t-basic-800">{{ submission.slug || "---" }}</span>
+            <span class="t-body">{{ submission.slug || "---" }}</span>
           </div>
           <div class="cf-header__row">
-            <span class="cf-header__label t-basic-500 fs-200 fw-600 tt-upper">{{
+            <span class="cf-header__label t-muted fs-200 fw-600 tt-upper">{{
               $t("cf.code")
             }}</span>
-            <span class="t-basic-800">{{ submission.code || "---" }}</span>
+            <span class="t-body">{{ submission.code || "---" }}</span>
           </div>
           <div class="cf-header__row cf-header__row--full">
-            <span class="cf-header__label t-basic-500 fs-200 fw-600 tt-upper">{{
+            <span class="cf-header__label t-muted fs-200 fw-600 tt-upper">{{
               $t("cf.created_at")
             }}</span>
-            <span class="t-basic-800">{{
+            <span class="t-body">{{
               formatDate(submission.created_at)
             }}</span>
           </div>
 
           <!-- Form Data — full-width row at the bottom of the header grid -->
           <div class="cf-header__row cf-header__row--full">
-            <h2 class="fs-400 fw-600 mb-200">{{ $t("cf.body") }}</h2>
+            <h2 class="fs-400 fw-600 mb-5">{{ $t("cf.body") }}</h2>
             <div
               v-if="isRenderableObject(submission.body)"
-              class="cf-fields bg-basic-200 br-50 p-300"
+              class="cf-fields bg-raised rounded p-8"
             >
               <div
                 v-for="(val, key) in submission.body"
@@ -95,22 +87,22 @@
                 :class="{ 'cf-field--full': key === 'message' }"
               >
                 <span
-                  class="cf-field__label t-basic-500 fs-200 fw-600 tt-upper"
+                  class="cf-field__label t-muted fs-200 fw-600 tt-upper"
                   >{{ humanizeKey(key) }}</span
                 >
-                <span v-if="isSimpleValue(val)" class="t-basic-800 fs-300">{{
+                <span v-if="isSimpleValue(val)" class="t-body fs-300">{{
                   val
                 }}</span>
                 <pre
                   v-else
-                  class="cf-body--nested bg-basic-100 br-50 p-200 fs-200 t-basic-700 mt-50"
+                  class="cf-body--nested bg-base rounded p-5 fs-200 t-body mt-1"
                   >{{ JSON.stringify(val, null, 2) }}</pre
                 >
               </div>
             </div>
             <pre
               v-else
-              class="cf-body bg-basic-200 br-50 p-300 fs-200 t-basic-700"
+              class="cf-body bg-raised rounded p-8 fs-200 t-body"
               >{{ formatBody(submission.body) }}</pre
             >
           </div>
@@ -118,27 +110,26 @@
 
         <!-- Attachments -->
         <div v-if="submission.attachments && submission.attachments.length">
-          <h2 class="fs-400 fw-600 mb-200">{{ $t("cf.attachments") }}</h2>
+          <h2 class="fs-400 fw-600 mb-5">{{ $t("cf.attachments") }}</h2>
           <div class="cf-attachments">
             <div
               v-for="att in submission.attachments"
               :key="att.id"
-              class="cf-attachment flex ai-ct gap-200 p-200 bg-basic-200 br-50 mb-100"
+              class="cf-attachment flex ai-ct gap-5 p-5 bg-raised rounded mb-2"
             >
-              <font-awesome-icon icon="paperclip" class="t-basic-500" />
-              <span class="t-basic-800 fs-200">{{ att.name }}</span>
-              <BasicButton
-                variant="ghost"
+              <font-awesome-icon :icon="$icons.attachment" class="t-muted" />
+              <span class="t-body fs-200">{{ att.name }}</span>
+              <IconButton
                 icon="download"
-                size="sm"
+                variant="outline"
+                :label="`${$t('cf.download_attachment')}: ${att.name}`"
                 @click="downloadAttachment(att)"
               />
             </div>
           </div>
         </div>
       </template>
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -162,7 +153,6 @@ export default {
     return {
       submission: null,
       loading: false,
-      toolbarReady: false,
     };
   },
   computed: {
@@ -175,14 +165,13 @@ export default {
     },
   },
   mounted() {
-    this.toolbarReady = !!document.getElementById("forms-toolbar-left");
     this.fetchSubmission();
   },
   methods: {
     statusVariant(status) {
       const map = {
         todo: "warning",
-        in_progress: "informative",
+        in_progress: "info",
         done: "positive",
       };
       return map[status] || "neutral";
@@ -282,13 +271,13 @@ export default {
 .cf-header {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .cf-header__row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .cf-header__row--full {
@@ -298,20 +287,20 @@ export default {
 .cf-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .cf-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .cf-field--full {
   grid-column: 1 / -1;
 }
 
-.cf-status-dropdown {
+.cf-detail__status {
   width: 160px;
   flex-shrink: 0;
 }

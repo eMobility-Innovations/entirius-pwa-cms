@@ -1,35 +1,15 @@
 <template>
   <div class="images-kit">
-    <nav class="tab-navigation flex mb-sm">
-      <span
-        @click="open('ImagesLibrary')"
-        class="tab-navigation__elem txt-center pointer"
-        :class="[
-          { active: fold === 'ImagesLibrary' },
-          { opacity: preventOtherTabs && fold !== 'ImagesLibrary' },
-        ]"
-        >{{ $t("images.library") }}</span
-      >
-      <span
-        @click="open('AddNewImage')"
-        class="tab-navigation__elem txt-center pointer"
-        :class="[
-          { active: fold === 'AddNewImage' },
-          { opacity: preventOtherTabs && fold !== 'AddNewImage' },
-        ]"
-        >{{ $t("images.new_photo") }}</span
-      >
-      <span
-        @click="open('AddNewCategory')"
-        class="tab-navigation__elem txt-center pointer"
-        :class="[
-          { active: fold === 'AddNewCategory' },
-          { opacity: preventOtherTabs && fold !== 'AddNewCategory' },
-        ]"
-        >{{ $t("images.add_new_category") }}</span
-      >
-    </nav>
-    <component :is="fold" />
+    <BasicTabs
+      class="mb-sm"
+      id-prefix="images-kit"
+      :options="tabs"
+      :model-value="fold"
+      @update:model-value="open"
+    />
+    <div :id="`images-kit-panel-${fold}`" role="tabpanel" :aria-labelledby="`images-kit-tab-${fold}`">
+      <component :is="fold" />
+    </div>
   </div>
 </template>
 
@@ -65,6 +45,14 @@ export default {
     },
   },
   computed: {
+    // A kit opened on one tab (handy.preventOtherTabs) shows the others disabled.
+    tabs() {
+      return [
+        { value: "ImagesLibrary", label: this.$t("images.library") },
+        { value: "AddNewImage", label: this.$t("images.new_photo") },
+        { value: "AddNewCategory", label: this.$t("images.add_new_category") },
+      ].map((tab) => ({ ...tab, disabled: Boolean(this.preventOtherTabs) && tab.value !== this.fold }));
+    },
     handyFold() {
       return this.handy.handyFold;
     },

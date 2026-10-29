@@ -1,469 +1,74 @@
 <template>
   <div class="attribute-editor">
-    <div
-      v-if="!featureSetIdx"
-      class="attribute-editor__empty t-basic-500 fs-300"
-    >
-      {{ $t("pim.no_feature_set_attributes") }}
-    </div>
+    <EmptyState v-if="!featureSetIdx" size="sm" :title="$t('pim.no_feature_set_attributes')" />
 
-    <Loader v-else-if="loading" />
+    <Loader block v-else-if="loading" />
 
     <template v-else>
-      <!-- Ungrouped features -->
-      <div
-        v-for="row in groupedRows.ungrouped"
-        :key="row.feature_idx"
-        class="attribute-row"
-      >
-        <div class="attribute-row__label">
-          <router-link
-            :to="'/pim/features/' + row.feature_idx"
-            class="fw-600 t-basic-800 attribute-row__link"
-          >
-            {{ row.feature_name || row.feature_idx }}
-          </router-link>
-          <span
-            v-if="row.is_required"
-            class="required-mark t-negative-300"
-            :title="$t('pim.required_field')"
-            >*</span
-          >
+      <BasicCard v-if="groupedRows.ungrouped.length" gap class="mb-8">
+        <div class="form-grid">
+          <AttributeField
+            v-for="row in groupedRows.ungrouped"
+            :key="row.feature_idx"
+            :row="row"
+            :options="getOptions(row.feature_idx)"
+            :has-more="hasMoreOptions(row.feature_idx)"
+            :stored-labels="labelsOf(row.feature_idx)"
+            :language="defaultLang"
+            :translatable="hasSecondaryLanguages"
+            :class="{ 'form-grid__wide': WIDE_TYPES.includes(row.feature_type) }"
+            @update="(field, value) => updateField(row.feature_idx, field, value)"
+            @update-t9n="(field, value) => updateT9nField(row.feature_idx, field, defaultLang, value)"
+            @update-json="(raw) => updateJsonField(row.feature_idx, raw)"
+            @update-json-t9n="(raw) => updateJsonT9nField(row.feature_idx, defaultLang, raw)"
+            @translate="openTranslationsDrawer(row.feature_idx)"
+            @open-options="openOptions(row.feature_idx)"
+            @load-more="loadMoreOptions(row.feature_idx)"
+            @search="loadAllOptions(row.feature_idx)"
+          />
         </div>
-        <div class="attribute-row__input">
-          <template v-if="row.feature_type === 1">
-            <Switcher
-              :label="row.value_bool ? $t('pim.yes') : $t('pim.no')"
-              :selected="row.value_bool || false"
-              @onSelect="
-                updateField(
-                  row.feature_idx,
-                  'value_bool',
-                  !(row.value_bool || false)
-                )
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 2">
-            <BasicInput
-              :model-value="row.value_decimal"
-              type="number"
-              @update:model-value="
-                (val) => updateField(row.feature_idx, 'value_decimal', val)
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 3">
-            <BasicInput
-              :model-value="row.value_txt"
-              @update:model-value="
-                (val) => updateField(row.feature_idx, 'value_txt', val)
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 4">
-            <div class="translation-field">
-              <div class="translation-field__header">
-                <span class="lang-tag fs-200 t-basic-500">{{ defaultLang }}</span>
-                <BasicButton
-                  v-if="hasSecondaryLanguages"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslationsDrawer(row.feature_idx)"
-                />
-              </div>
-              <BasicInput
-                :model-value="(row.value_txt_t9n || {})[defaultLang]"
-                @update:model-value="
-                  (val) =>
-                    updateT9nField(
-                      row.feature_idx,
-                      'value_txt_t9n',
-                      defaultLang,
-                      val
-                    )
-                "
-              />
-            </div>
-          </template>
-          <template v-else-if="row.feature_type === 5">
-            <BasicWysiwyg
-              variant="lite"
-              :model-value="row.value_txt"
-              @update:model-value="
-                (val) => updateField(row.feature_idx, 'value_txt', val)
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 6">
-            <div class="translation-field">
-              <div class="translation-field__header">
-                <span class="lang-tag fs-200 t-basic-500">{{ defaultLang }}</span>
-                <BasicButton
-                  v-if="hasSecondaryLanguages"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslationsDrawer(row.feature_idx)"
-                />
-              </div>
-              <BasicWysiwyg
-                variant="lite"
-                :model-value="(row.value_txt_t9n || {})[defaultLang]"
-                @update:model-value="
-                  (val) =>
-                    updateT9nField(
-                      row.feature_idx,
-                      'value_txt_t9n',
-                      defaultLang,
-                      val
-                    )
-                "
-              />
-            </div>
-          </template>
-          <template v-else-if="row.feature_type === 7">
-            <SearchableSelect
-              :options="getOptions(row.feature_idx).options"
-              :selected="row.attribute_idx"
-              :feature-idx="row.feature_idx"
-              :channel-idx="channelIdx"
-              :option-count="getOptions(row.feature_idx).count"
-              :placeholder="$t('pim.add_attribute_value')"
-              @update:selected="
-                (val) => updateField(row.feature_idx, 'attribute_idx', val)
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 8">
-            <MultiselectPicker
-              :options="getOptions(row.feature_idx).options"
-              :selected="row.attribute_idxs || []"
-              :feature-idx="row.feature_idx"
-              :channel-idx="channelIdx"
-              :option-count="getOptions(row.feature_idx).count"
-              @update:selected="
-                (idxs) => onMultiselectUpdate(row.feature_idx, idxs)
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 9">
-            <TextAreaBasic
-              :model-value="jsonToString(row.value_json)"
-              :placeholder="'{}'"
-              @update:model-value="
-                (val) => updateJsonField(row.feature_idx, val)
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 10">
-            <BasicDatePicker
-              :model-value="row.value_datetime"
-              @update:model-value="
-                (val) => updateField(row.feature_idx, 'value_datetime', val)
-              "
-            />
-          </template>
-          <template v-else-if="row.feature_type === 11">
-            <div class="translation-field">
-              <div class="translation-field__header">
-                <span class="lang-tag fs-200 t-basic-500">{{ defaultLang }}</span>
-                <BasicButton
-                  v-if="hasSecondaryLanguages"
-                  :text="$t('pim.translations')"
-                  class="btn-outline translation-field__btn"
-                  @click="openTranslationsDrawer(row.feature_idx)"
-                />
-              </div>
-              <TextAreaBasic
-                :model-value="jsonToString((row.value_json || {})[defaultLang])"
-                :placeholder="'{}'"
-                @update:model-value="
-                  (val) => updateJsonT9nField(row.feature_idx, defaultLang, val)
-                "
-              />
-            </div>
-          </template>
-          <template v-else-if="row.feature_type === 12">
-            <div class="input-with-unit">
-              <BasicInput
-                :model-value="row.value_decimal"
-                type="number"
-                @update:model-value="
-                  (val) => updateField(row.feature_idx, 'value_decimal', val)
-                "
-              />
-              <span class="unit-suffix t-basic-500">°C</span>
-            </div>
-          </template>
-          <template v-else-if="row.feature_type === 13">
-            <div class="input-with-unit">
-              <BasicInput
-                :model-value="row.value_decimal"
-                type="number"
-                @update:model-value="
-                  (val) => updateField(row.feature_idx, 'value_decimal', val)
-                "
-              />
-              <span class="unit-suffix t-basic-500">cm</span>
-            </div>
-          </template>
-          <template v-else-if="row.feature_type === 14">
-            <div class="input-with-unit">
-              <BasicInput
-                :model-value="row.value_decimal"
-                type="number"
-                @update:model-value="
-                  (val) => updateField(row.feature_idx, 'value_decimal', val)
-                "
-              />
-              <span class="unit-suffix t-basic-500">kg</span>
-            </div>
-          </template>
-        </div>
-      </div>
+      </BasicCard>
 
-      <!-- Grouped features -->
-      <div
+      <BasicCard
         v-for="group in groupedRows.groups"
         :key="group.idx"
-        class="attribute-group"
+        :title="group.name"
+        gap
+        class="mb-8"
       >
-        <div
-          class="attribute-group__header"
-          @click="toggleGroupCollapse(group.idx)"
-        >
-          <span
-            class="collapse-chevron"
-            :class="{ 'is-collapsed': collapsedGroups.has(group.idx) }"
-            >&#x25BC;</span
-          >
-          <span class="attribute-group__name">{{ group.name }}</span>
-          <span
-            class="chip chip--pill bg-basic-200 t-basic-600 fs-200"
-          >
-            {{ group.rows.length }}
-          </span>
-        </div>
-
-        <div
-          v-show="!collapsedGroups.has(group.idx)"
-          class="attribute-group__body"
-        >
-          <div
+        <template #actions>
+          <div class="flex ai-ct gap-3">
+            <CountBadge :count="group.rows.length" />
+            <IconButton
+              :icon="collapsedGroups.has(group.idx) ? 'expand' : 'collapse'"
+              :label="$t(collapsedGroups.has(group.idx) ? 'pim.expand_group' : 'pim.collapse_group', { name: group.name })"
+              :aria-expanded="String(!collapsedGroups.has(group.idx))"
+              @click="toggleGroupCollapse(group.idx)"
+            />
+          </div>
+        </template>
+        <div v-show="!collapsedGroups.has(group.idx)" class="form-grid">
+          <AttributeField
             v-for="row in group.rows"
             :key="row.feature_idx"
-            class="attribute-row"
-          >
-            <div class="attribute-row__label">
-              <router-link
-                :to="'/pim/features/' + row.feature_idx"
-                class="fw-600 t-basic-800 attribute-row__link"
-              >
-                {{ row.feature_name || row.feature_idx }}
-              </router-link>
-              <span
-                v-if="row.is_required"
-                class="required-mark t-negative-300"
-                :title="$t('pim.required_field')"
-                >*</span
-              >
-            </div>
-            <div class="attribute-row__input">
-              <template v-if="row.feature_type === 1">
-                <Switcher
-                  :label="row.value_bool ? $t('pim.yes') : $t('pim.no')"
-                  :selected="row.value_bool || false"
-                  @onSelect="
-                    updateField(
-                      row.feature_idx,
-                      'value_bool',
-                      !(row.value_bool || false)
-                    )
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 2">
-                <BasicInput
-                  :model-value="row.value_decimal"
-                  type="number"
-                  @update:model-value="
-                    (val) => updateField(row.feature_idx, 'value_decimal', val)
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 3">
-                <BasicInput
-                  :model-value="row.value_txt"
-                  @update:model-value="
-                    (val) => updateField(row.feature_idx, 'value_txt', val)
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 4">
-                <div class="translation-field">
-                  <div class="translation-field__header">
-                    <span class="lang-tag fs-200 t-basic-500">{{ defaultLang }}</span>
-                    <BasicButton
-                      v-if="hasSecondaryLanguages"
-                      :text="$t('pim.translations')"
-                      class="btn-outline translation-field__btn"
-                      @click="openTranslationsDrawer(row.feature_idx)"
-                    />
-                  </div>
-                  <BasicInput
-                    :model-value="(row.value_txt_t9n || {})[defaultLang]"
-                    @update:model-value="
-                      (val) =>
-                        updateT9nField(
-                          row.feature_idx,
-                          'value_txt_t9n',
-                          defaultLang,
-                          val
-                        )
-                    "
-                  />
-                </div>
-              </template>
-              <template v-else-if="row.feature_type === 5">
-                <BasicWysiwyg
-                  variant="lite"
-                  :model-value="row.value_txt"
-                  @update:model-value="
-                    (val) => updateField(row.feature_idx, 'value_txt', val)
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 6">
-                <div class="translation-field">
-                  <div class="translation-field__header">
-                    <span class="lang-tag fs-200 t-basic-500">{{ defaultLang }}</span>
-                    <BasicButton
-                      v-if="hasSecondaryLanguages"
-                      :text="$t('pim.translations')"
-                      class="btn-outline translation-field__btn"
-                      @click="openTranslationsDrawer(row.feature_idx)"
-                    />
-                  </div>
-                  <BasicWysiwyg
-                    variant="lite"
-                    :model-value="(row.value_txt_t9n || {})[defaultLang]"
-                    @update:model-value="
-                      (val) =>
-                        updateT9nField(
-                          row.feature_idx,
-                          'value_txt_t9n',
-                          defaultLang,
-                          val
-                        )
-                    "
-                  />
-                </div>
-              </template>
-              <template v-else-if="row.feature_type === 7">
-                <SearchableSelect
-                  :options="getOptions(row.feature_idx).options"
-                  :selected="row.attribute_idx"
-                  :feature-idx="row.feature_idx"
-                  :channel-idx="channelIdx"
-                  :option-count="getOptions(row.feature_idx).count"
-                  :placeholder="$t('pim.add_attribute_value')"
-                  @update:selected="
-                    (val) => updateField(row.feature_idx, 'attribute_idx', val)
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 8">
-                <MultiselectPicker
-                  :options="getOptions(row.feature_idx).options"
-                  :selected="row.attribute_idxs || []"
-                  :feature-idx="row.feature_idx"
-                  :channel-idx="channelIdx"
-                  :option-count="getOptions(row.feature_idx).count"
-                  @update:selected="
-                    (idxs) => onMultiselectUpdate(row.feature_idx, idxs)
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 9">
-                <TextAreaBasic
-                  :model-value="jsonToString(row.value_json)"
-                  :placeholder="'{}'"
-                  @update:model-value="
-                    (val) => updateJsonField(row.feature_idx, val)
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 10">
-                <BasicDatePicker
-                  :model-value="row.value_datetime"
-                  @update:model-value="
-                    (val) => updateField(row.feature_idx, 'value_datetime', val)
-                  "
-                />
-              </template>
-              <template v-else-if="row.feature_type === 11">
-                <div class="translation-field">
-                  <div class="translation-field__header">
-                    <span class="lang-tag fs-200 t-basic-500">{{ defaultLang }}</span>
-                    <BasicButton
-                      v-if="hasSecondaryLanguages"
-                      :text="$t('pim.translations')"
-                      class="btn-outline translation-field__btn"
-                      @click="openTranslationsDrawer(row.feature_idx)"
-                    />
-                  </div>
-                  <TextAreaBasic
-                    :model-value="jsonToString((row.value_json || {})[defaultLang])"
-                    :placeholder="'{}'"
-                    @update:model-value="
-                      (val) => updateJsonT9nField(row.feature_idx, defaultLang, val)
-                    "
-                  />
-                </div>
-              </template>
-              <template v-else-if="row.feature_type === 12">
-                <div class="input-with-unit">
-                  <BasicInput
-                    :model-value="row.value_decimal"
-                    type="number"
-                    @update:model-value="
-                      (val) =>
-                        updateField(row.feature_idx, 'value_decimal', val)
-                    "
-                  />
-                  <span class="unit-suffix t-basic-500">°C</span>
-                </div>
-              </template>
-              <template v-else-if="row.feature_type === 13">
-                <div class="input-with-unit">
-                  <BasicInput
-                    :model-value="row.value_decimal"
-                    type="number"
-                    @update:model-value="
-                      (val) =>
-                        updateField(row.feature_idx, 'value_decimal', val)
-                    "
-                  />
-                  <span class="unit-suffix t-basic-500">cm</span>
-                </div>
-              </template>
-              <template v-else-if="row.feature_type === 14">
-                <div class="input-with-unit">
-                  <BasicInput
-                    :model-value="row.value_decimal"
-                    type="number"
-                    @update:model-value="
-                      (val) =>
-                        updateField(row.feature_idx, 'value_decimal', val)
-                    "
-                  />
-                  <span class="unit-suffix t-basic-500">kg</span>
-                </div>
-              </template>
-            </div>
-          </div>
+            :row="row"
+            :options="getOptions(row.feature_idx)"
+            :has-more="hasMoreOptions(row.feature_idx)"
+            :stored-labels="labelsOf(row.feature_idx)"
+            :language="defaultLang"
+            :translatable="hasSecondaryLanguages"
+            :class="{ 'form-grid__wide': WIDE_TYPES.includes(row.feature_type) }"
+            @update="(field, value) => updateField(row.feature_idx, field, value)"
+            @update-t9n="(field, value) => updateT9nField(row.feature_idx, field, defaultLang, value)"
+            @update-json="(raw) => updateJsonField(row.feature_idx, raw)"
+            @update-json-t9n="(raw) => updateJsonT9nField(row.feature_idx, defaultLang, raw)"
+            @translate="openTranslationsDrawer(row.feature_idx)"
+            @open-options="openOptions(row.feature_idx)"
+            @load-more="loadMoreOptions(row.feature_idx)"
+            @search="loadAllOptions(row.feature_idx)"
+          />
         </div>
-      </div>
+      </BasicCard>
     </template>
 
     <!-- Translations drawer -->
@@ -483,7 +88,7 @@
           :model-value="modelValue"
           @update:model-value="onUpdate"
         />
-        <TextAreaBasic
+        <BasicTextarea
           v-else-if="translatingRowData?.feature_type === 11"
           :model-value="jsonToString(modelValue)"
           :placeholder="'{}'"
@@ -501,10 +106,15 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from "vue";
-import { GET_FeatureSetFeatures, GET_FeatureAttributes } from "@/api/pim/api";
+import { GET_FeatureSetFeatures, GET_FeatureAttributes, GET_Attribute } from "@/api/pim/api";
+import { useNotifyStore } from "@/stores/notify";
+import { t } from "@/i18n";
+import { createLimiter } from "@/utils/limit";
 import { isSelectType } from "../helpers/pimEnums";
-import SearchableSelect from "./SearchableSelect.vue";
-import MultiselectPicker from "./MultiselectPicker.vue";
+import { effectiveRequired } from "../helpers/requiredFeatures";
+import { noteFeatureList } from "@/composables/usePimCapabilities";
+import { jsonToString } from "../helpers/attributeValues";
+import AttributeField from "./AttributeField.vue";
 
 const props = defineProps({
   attributes: { type: Array, default: () => [] },
@@ -514,6 +124,15 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:attributes"]);
+const notify = useNotifyStore();
+
+// Rich text and JSON attributes take the full width of the form grid.
+const WIDE_TYPES = [5, 6, 9, 11];
+const OPTIONS_PAGE_SIZE = 100;
+// A typed query loads the values left up to this many; past it the operator is told the search is partial.
+const SEARCH_CAP = 2000;
+// Name lookups of stored values in flight at once, for the whole editor.
+const limitLabels = createLimiter(6);
 
 const effectiveLanguages = computed(() =>
   props.languages.length > 0 ? props.languages : ["en"]
@@ -521,7 +140,13 @@ const effectiveLanguages = computed(() =>
 
 const loading = ref(false);
 const editableRows = ref([]);
+// Loaded values and stored-value names per channel + feature set + feature (`cacheKey`), reset when either changes:
+// a late answer of the previous channel lands under its own key and is never shown.
 const optionsCache = ref({});
+const storedLabels = ref({});
+const searchLoads = new Set();
+// Bumped by every reset: a loop of an earlier scope stops even when the channel is switched there and back (A → B → A).
+let generation = 0;
 const collapsedGroups = reactive(new Set());
 const translatingRow = ref(null);
 
@@ -659,48 +284,145 @@ async function fetchFeatureSet() {
       props.featureSetIdx
     );
     const results = data.results || data || [];
+    noteFeatureList(results);
     const normalized = results.map((f) => ({
       feature_idx: f.feature?.idx || f.feature_idx,
       feature_name: f.feature?.name || f.feature_name,
       feature_type: f.feature?.feature_type ?? f.feature_type,
-      is_required: f.feature?.is_required ?? f.is_required ?? false,
+      is_required: effectiveRequired(f),
       attributes_group_idx: f.attributes_group_idx || null,
       attributes_group_name: f.attributes_group_name || null,
       position: f.position || 0,
     }));
     editableRows.value = mergeWithExisting(normalized);
-    await prefetchSelectOptions(normalized);
+    prefetchStoredOptions(editableRows.value);
+  } catch {
+    // Called unawaited (mount, a feature set change): a failure the page would never see — a backend down — is told.
+    notify.spawnNotification({ type: "negative", msg: t("pim.attributes_failed") });
   } finally {
     loading.value = false;
   }
 }
 
-async function prefetchSelectOptions(features) {
-  const selectFeatures = features.filter((f) => isSelectType(f.feature_type));
-  await Promise.all(
-    selectFeatures.map((f) => fetchAttributeOptions(f.feature_idx))
-  );
+const scopeKey = () => `${props.channelIdx}/${props.featureSetIdx}`;
+const cacheKey = (featureIdx) => `${scopeKey()}/${featureIdx}`;
+const storedValues = (row) => [...new Set([row.attribute_idx, ...row.attribute_idxs].filter(Boolean))];
+const notifyValuesFailed = () => notify.spawnNotification({ type: "negative", msg: t("pim.attribute_values_failed") });
+
+// Fire-and-forget: the first page of every select that holds a value, in parallel, then the names of the stored
+// values that page lacks; the editor shows at once. The other selects load when they open. One notice per round,
+// however many selects failed; none for a round of a channel or feature set that is no longer shown.
+async function prefetchStoredOptions(rows) {
+  const started = generation;
+  const loads = rows
+    .filter((r) => isSelectType(r.feature_type) && storedValues(r).length)
+    .map((r) => prefetchSelect(r.feature_idx, storedValues(r)));
+  if ((await Promise.all(loads)).includes(false) && generation === started) notifyValuesFailed();
 }
 
-async function fetchAttributeOptions(featureIdx) {
-  if (optionsCache.value[featureIdx]) return;
+async function prefetchSelect(featureIdx, stored) {
+  const ok = await ensureOptions(featureIdx);
+  if (ok) await loadStoredLabels(featureIdx, stored);
+  return ok;
+}
+
+function ensureOptions(featureIdx) {
+  return optionsCache.value[cacheKey(featureIdx)] ? Promise.resolve(true) : loadOptionsPage(featureIdx);
+}
+
+// A select the operator opens, or its "more" row: a failure gets its own notice.
+async function openOptions(featureIdx) {
+  if (!(await ensureOptions(featureIdx))) notifyValuesFailed();
+}
+
+async function loadMoreOptions(featureIdx) {
+  if (!(await loadOptionsPage(featureIdx))) notifyValuesFailed();
+}
+
+// A typed query must reach every value (the channel endpoint takes no search param): the pages left load once, up to
+// SEARCH_CAP values, while BasicSelect filters what has arrived. The key is taken before the first await, so the
+// keystrokes of one query run one loop and raise one notice. A failure lets the next query try again.
+async function loadAllOptions(featureIdx) {
+  const key = cacheKey(featureIdx);
+  if (searchLoads.has(key)) return;
+  searchLoads.add(key);
+  const outcome = await loadPagesUpToCap(featureIdx);
+  if (outcome === "failed") {
+    searchLoads.delete(key);
+    notifyValuesFailed();
+  }
+  if (outcome === "capped") notify.spawnNotification({ type: "info", msg: t("pim.attribute_values_capped", { count: SEARCH_CAP }) });
+}
+
+// → "done" | "capped" | "failed" | "stale" (the channel or feature set changed under the loop: it stops, silent).
+async function loadPagesUpToCap(featureIdx) {
+  const started = generation;
+  const outcomeOf = (ok) => (generation !== started ? "stale" : ok ? null : "failed");
+  let stop = outcomeOf(await ensureOptions(featureIdx));
+  while (!stop && hasMoreOptions(featureIdx) && getOptions(featureIdx).length < SEARCH_CAP) {
+    stop = outcomeOf(await loadOptionsPage(featureIdx));
+  }
+  return stop || (hasMoreOptions(featureIdx) ? "capped" : "done");
+}
+
+// The names of stored values missing from the loaded values, through the shared limiter (the channel list takes no
+// idx filter, so each is its own global request); a failed one keeps its idx as the label.
+async function loadStoredLabels(featureIdx, idxs) {
+  const key = cacheKey(featureIdx);
+  const missing = idxs.filter((idx) => !getOptions(featureIdx).some((o) => o.value === idx));
+  if (!missing.length) return;
+  const nameOf = (idx) =>
+    limitLabels(() => GET_Attribute(featureIdx, idx))
+      .then(({ data }) => [idx, labelOf(data, idx)])
+      .catch(() => [idx, idx]);
+  storedLabels.value[key] = Object.fromEntries(await Promise.all(missing.map(nameOf)));
+}
+
+// One label rule for listed and stored values: the editor's default language, else the name, else the idx.
+const labelOf = (attribute, idx) => attribute.name_t9n?.[defaultLang.value] || attribute.name || idx;
+
+// The next page of a select feature's values → true when it arrived. Concurrent callers share the request in flight;
+// a failed page stays next, a failed first page drops the entry so the next open asks again.
+function loadOptionsPage(featureIdx) {
+  const key = cacheKey(featureIdx);
+  const entry = (optionsCache.value[key] ??= { options: [], nextPage: 1, pending: null });
+  if (!entry.nextPage) return Promise.resolve(true);
+  entry.pending ??= fetchOptionsPage(featureIdx, key).finally(() => (entry.pending = null));
+  return entry.pending;
+}
+
+async function fetchOptionsPage(featureIdx, key) {
+  const entry = optionsCache.value[key];
   try {
-    const { data } = await GET_FeatureAttributes(featureIdx, props.channelIdx, {
-      page_size: 100,
-    });
-    const results = data.results || data || [];
-    const count = data.count ?? results.length;
-    optionsCache.value[featureIdx] = {
-      options: results.map((a) => ({ label: a.name || a.idx, value: a.idx })),
-      count,
-    };
+    const params = { page_size: OPTIONS_PAGE_SIZE, page: entry.nextPage };
+    const { data } = await GET_FeatureAttributes(featureIdx, props.channelIdx, params);
+    const options = (data.results || data || []).map((a) => ({ label: labelOf(a, a.idx), value: a.idx }));
+    entry.options = [...entry.options, ...options];
+    entry.nextPage = data.next ? entry.nextPage + 1 : null;
+    return true;
   } catch {
-    optionsCache.value[featureIdx] = { options: [], count: 0 };
+    if (!entry.options.length && optionsCache.value[key] === entry) delete optionsCache.value[key];
+    return false;
   }
 }
 
 function getOptions(featureIdx) {
-  return optionsCache.value[featureIdx] || { options: [], count: 0 };
+  return optionsCache.value[cacheKey(featureIdx)]?.options || [];
+}
+
+function hasMoreOptions(featureIdx) {
+  return Boolean(optionsCache.value[cacheKey(featureIdx)]?.nextPage);
+}
+
+function labelsOf(featureIdx) {
+  return storedLabels.value[cacheKey(featureIdx)];
+}
+
+function resetOptions() {
+  generation += 1;
+  optionsCache.value = {};
+  storedLabels.value = {};
+  searchLoads.clear();
 }
 
 // --- Field updates ---
@@ -744,19 +466,6 @@ function updateJsonT9nField(featureIdx, lang, rawString) {
   emitAttributes();
 }
 
-function onMultiselectUpdate(featureIdx, idxs) {
-  const row = editableRows.value.find((r) => r.feature_idx === featureIdx);
-  if (!row) return;
-  row.attribute_idxs = idxs;
-  emitAttributes();
-}
-
-function jsonToString(value) {
-  if (value === null || value === undefined) return "";
-  if (typeof value === "string") return value;
-  return JSON.stringify(value, null, 2);
-}
-
 function emitAttributes() {
   const payload = editableRows.value.map((r) => ({
     feature_idx: r.feature_idx,
@@ -777,8 +486,17 @@ function emitAttributes() {
 watch(
   () => props.featureSetIdx,
   (val) => {
+    resetOptions();
     if (val) fetchFeatureSet();
     else editableRows.value = [];
+  }
+);
+
+watch(
+  () => props.channelIdx,
+  () => {
+    resetOptions();
+    prefetchStoredOptions(editableRows.value);
   }
 );
 
@@ -796,134 +514,3 @@ onMounted(() => {
   if (props.featureSetIdx) fetchFeatureSet();
 });
 </script>
-
-<style lang="scss" scoped>
-.attribute-editor {
-  display: flex;
-  flex-direction: column;
-
-  &__empty {
-    padding: var(--space-400);
-    text-align: center;
-  }
-}
-
-.attribute-group {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-300);
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-200);
-    padding: 10px 16px;
-    background: var(--c-basic-200);
-    cursor: pointer;
-    border-left: 3px solid var(--c-support-400);
-    user-select: none;
-  }
-
-  &__name {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: var(--fs-200);
-    color: var(--c-support-400);
-  }
-
-  &__body {
-    padding: 0 16px;
-  }
-}
-
-.collapse-chevron {
-  cursor: pointer;
-  transition: transform 0.2s;
-  font-size: 10px;
-  color: var(--c-basic-500);
-
-  &.is-collapsed {
-    transform: rotate(-90deg);
-  }
-}
-
-.attribute-row {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: var(--space-300);
-  align-items: start;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--c-basic-200);
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &__label {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-100);
-    padding-top: 6px;
-  }
-
-  &__link {
-    text-decoration: none;
-    &:hover {
-      text-decoration: underline;
-      color: var(--c-support-400);
-    }
-  }
-
-  &__input {
-    min-width: 0;
-  }
-}
-
-.required-mark {
-  font-size: var(--fs-400);
-  font-weight: 700;
-  line-height: 1;
-}
-
-.lang-tag {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: var(--c-basic-200);
-  color: var(--c-basic-500);
-  font-weight: 600;
-  text-transform: uppercase;
-  min-width: 28px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.translation-field {
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
-
-  &__btn {
-    line-height: 1;
-    padding: 4px 10px;
-    font-size: var(--fs-200);
-  }
-}
-
-.input-with-unit {
-  display: flex;
-  align-items: center;
-  gap: var(--space-200);
-
-  .unit-suffix {
-    font-size: var(--fs-300);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-}
-</style>
-

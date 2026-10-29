@@ -1,6 +1,9 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500">
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('faq.items')" />
+    </template>
+    <template #toolbar>
       <div class="item-list__toolbar">
         <BasicInput
           v-model="search"
@@ -13,7 +16,7 @@
           :active-count="activeFilterCount"
           :trigger-label="$t('builder.filters')"
         >
-          <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
+          <p class="fs-200 t-secondary">{{ $t("builder.filters") }}</p>
           <FilterChip
             v-for="tab in statusTabs"
             :key="tab.key"
@@ -21,19 +24,21 @@
             :active="activeFilter === tab.key"
             @click="setFilter(tab.key)"
           />
-          <Dropdown
-            :values="groupFilterOptions"
-            :selected="groupFilter ? [groupFilter] : []"
-            :placeholder="$t('faq.all_groups')"
+          <BasicSelect
+            :floating-label="$t('faq.group')"
+            :options="groupFilterOptions"
+            :model-value="groupFilter"
             class="item-list__group-filter"
-            @onSelect="onGroupFilter"
+            @update:model-value="onGroupFilter"
           />
         </MobileFilterPanel>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="items"
@@ -43,37 +48,37 @@
         @sort="onSort"
         @row-click="onRowClick"
       >
-        <template #cell-question="{ row }">
-          <span class="item-question">{{ row.question }}</span>
-        </template>
         <template #cell-group_name="{ row }">
-          <span v-if="row.group_name" class="chip bg-support-100 t-support-400">
-            {{ row.group_name }}
-          </span>
-          <span v-else class="t-basic-400">—</span>
+          <StatusBadge
+            v-if="row.group_name"
+            tone="accent"
+            :dot="false"
+            :label="row.group_name"
+          />
+          <span v-else class="t-muted">—</span>
         </template>
         <template #cell-association_count="{ row }">
-          <span class="chip bg-basic-200 t-basic-600">
-            {{ (row.associations || []).length }}
-          </span>
+          <StatusBadge tone="neutral" :dot="false" :label="(row.associations || []).length" />
         </template>
         <template #cell-is_active="{ value }">
           <StatusBadge
             :label="value ? $t('faq.active') : $t('faq.inactive')"
-            :variant="value ? 'positive' : 'negative'"
+            :tone="value ? 'positive' : 'negative'"
           />
         </template>
       </DataTable>
 
+    <template #footer>
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
+    </template>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -108,7 +113,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: "plus",
+          icon: "add",
           label: this.$t("faq.create_item"),
           handler: () => this.$router.push("/faq/items/create"),
         },
@@ -141,6 +146,8 @@ export default {
           label: this.$t("faq.position"),
           sortable: true,
           width: "80px",
+          priority: 2,
+          numeric: true,
         },
         {
           key: "question",
@@ -153,12 +160,15 @@ export default {
           label: this.$t("faq.group"),
           sortable: false,
           width: "160px",
+          priority: 2,
         },
         {
           key: "association_count",
           label: this.$t("faq.associations"),
           sortable: false,
           width: "100px",
+          priority: 2,
+          numeric: true,
         },
         {
           key: "is_active",
@@ -258,8 +268,7 @@ export default {
 .item-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 
@@ -275,11 +284,5 @@ export default {
   flex-shrink: 0;
 }
 
-.item-question {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 </style>

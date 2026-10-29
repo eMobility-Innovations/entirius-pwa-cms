@@ -1,5 +1,97 @@
+<template>
+  <div class="entity-picker relative" v-bind="rootAttrs">
+    <input
+      v-if="manual"
+      :id="field.id.value"
+      type="text"
+      class="entity-picker__search"
+      :value="modelValue"
+      :placeholder="placeholder"
+      :aria-describedby="field.describedBy.value || undefined"
+      v-bind="controlAttrs"
+      @input="$emit('update:modelValue', $event.target.value)"
+    />
+    <BasicMenu v-else ref="menu" class="entity-picker__menu" :label="placeholder" :inline="inline" @open="onOpen">
+      <template #trigger>
+        <button
+          :id="field.id.value"
+          ref="control"
+          type="button"
+          role="combobox"
+          class="entity-picker__trigger flex ai-ct gap-2"
+          :disabled="isDisabled"
+          :aria-describedby="field.describedBy.value || undefined"
+          :aria-invalid="field.invalid.value ? 'true' : undefined"
+          :aria-required="field.required.value ? 'true' : undefined"
+          v-bind="controlAttrs"
+        >
+          <span v-if="modelValue" class="entity-picker__hidden">{{ selectedLabel }}</span>
+          <template v-else>
+            <FontAwesomeIcon :icon="ICONS.search" class="entity-picker__icon" aria-hidden="true" />
+            <span class="entity-picker__placeholder">{{ placeholder }}</span>
+          </template>
+          <FontAwesomeIcon :icon="ICONS.expand" class="entity-picker__caret" aria-hidden="true" />
+        </button>
+      </template>
+      <template #panel>
+        <div class="entity-picker__panel flex-column gap-1" :style="{ minWidth: `${width}px` }">
+          <input
+            v-model="query"
+            type="search"
+            role="combobox"
+            class="entity-picker__search"
+            :placeholder="placeholder || $t('entity_picker.search')"
+            :aria-label="placeholder || $t('entity_picker.search')"
+            aria-autocomplete="list"
+            aria-expanded="true"
+            :aria-controls="listId"
+            :aria-activedescendant="activeId"
+            @input="onSearchInput"
+            @keydown="listbox.onKeydown($event, true)"
+          />
+          <p v-if="!options.length" class="entity-picker__status fs-200 t-muted" role="status">
+            {{ loading ? $t("entity_picker.searching") : $t("entity_picker.no_results") }}
+          </p>
+          <OptionList
+            v-else
+            :id="listId"
+            :options="options"
+            :is-selected="(option) => option.value === modelValue"
+            :active="listbox.active.value"
+            :aria-label="placeholder || $t('entity_picker.search')"
+            @hover="listbox.active.value = $event"
+            @choose="select"
+          />
+        </div>
+      </template>
+    </BasicMenu>
+    <Tag
+      v-if="modelValue && !manual"
+      class="entity-picker__tag"
+      :label="selectedLabel"
+      :removable="!isDisabled"
+      @remove="clear"
+    />
+  </div>
+</template>
+
 <script setup>
-import { ref, watch, nextTick } from "vue";
+// Async entity search (docs/ui-rules.md C4): `fetchFn(search)` resolves [{ label, value, secondary? }] (debounced
+// 300 ms, or once when `clientFilter` filters them here). `v-model` = the value, `v-model:displayValue` = its label;
+// the chosen entity shows as a removable Tag (remove → both cleared + `clear`). The list opens in BasicMenu's panel:
+// a filter input driving the listbox (useListbox), `secondary` as the option description. Inside a FormField the
+// control takes the field's id, description, invalid, required and disabled. `inline`: open in the page flow
+// (catalogue). `disabled` disables the control; `manual` swaps it for a plain text field for the value, no search
+// (the Edit* modals without PIM).
+import { computed, onBeforeUnmount, ref, useAttrs, useId, watch } from "vue";
+import BasicMenu from "@/boots/BasicMenu/index.vue";
+import Tag from "@/boots/Tag/index.vue";
+import OptionList from "@/boots/BasicSelect/OptionList.vue";
+import { useListbox } from "@/boots/BasicSelect/useListbox";
+import { ICONS } from "@/boots/Icons/icons";
+import { useFormFieldControl } from "@/composables/formField";
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
   modelValue: { type: String, default: null },
@@ -7,338 +99,224 @@ const props = defineProps({
   fetchFn: { type: Function, required: true },
   placeholder: { type: String, default: "" },
   disabled: { type: Boolean, default: false },
+  manual: { type: Boolean, default: false },
   clientFilter: { type: Boolean, default: false },
+  inline: { type: Boolean, default: false },
 });
-
 const emit = defineEmits(["update:modelValue", "update:displayValue", "clear"]);
 
-const open = ref(false);
+const DEBOUNCE_MS = 300;
+const field = useFormFieldControl();
+const attrs = useAttrs();
+const listId = `${useId()}-listbox`;
+const menu = ref(null);
+const control = ref(null);
+const width = ref(0);
 const query = ref("");
 const results = ref([]);
 const allResults = ref([]);
 const loading = ref(false);
-const debounceTimer = ref(null);
-const searchInput = ref(null);
-const justOpened = ref(false);
+let debounceTimer = null;
+let lastRequest = 0;
 
-watch(
-  () => props.modelValue,
-  (val) => {
-    if (!val) query.value = "";
-  }
-);
+const isAria = (name) => name.startsWith("aria-");
+const controlAttrs = computed(() => Object.fromEntries(Object.entries(attrs).filter(([name]) => isAria(name))));
+const rootAttrs = computed(() => Object.fromEntries(Object.entries(attrs).filter(([name]) => !isAria(name))));
+const isDisabled = computed(() => props.disabled || field.disabled.value);
+const selectedLabel = computed(() => props.displayValue || props.modelValue);
+const options = computed(() => results.value.map((r) => ({ label: r.label, value: r.value, description: r.secondary })));
 
-function openPicker() {
-  if (props.disabled) return;
-  justOpened.value = true;
-  open.value = true;
+const listbox = useListbox(options, select);
+const activeId = computed(() => (listbox.active.value >= 0 ? `${listId}-${listbox.active.value}` : undefined));
+watch(options, () => listbox.reset());
+
+function onOpen() {
   query.value = "";
-  nextTick(() => {
-    const el = searchInput.value?.$el || searchInput.value;
-    const input = el?.querySelector?.("input") || el;
-    input?.focus?.();
-  });
-  setTimeout(() => { justOpened.value = false; }, 0);
+  width.value = control.value?.offsetWidth ?? 0;
   fetchResults("");
-}
-
-function closePicker() {
-  if (justOpened.value) return;
-  open.value = false;
 }
 
 function select(item) {
   emit("update:modelValue", item.value);
   emit("update:displayValue", item.label);
-  open.value = false;
+  menu.value?.close({ returnFocus: true });
 }
 
 function clear() {
   emit("update:modelValue", null);
   emit("update:displayValue", "");
   emit("clear");
+  control.value?.focus();
 }
 
 function onSearchInput() {
-  if (props.clientFilter) {
-    filterLocal();
-    return;
-  }
-  clearTimeout(debounceTimer.value);
-  debounceTimer.value = setTimeout(() => fetchResults(query.value), 300);
+  if (props.clientFilter) return filterLocal();
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => fetchResults(query.value), DEBOUNCE_MS);
 }
 
 function filterLocal() {
   const q = query.value.toLowerCase().trim();
-  if (!q) {
-    results.value = allResults.value;
-    return;
-  }
-  results.value = allResults.value.filter(
-    (r) =>
-      (r.label || "").toLowerCase().includes(q) ||
-      (r.secondary || "").toLowerCase().includes(q) ||
-      (r.value || "").toLowerCase().includes(q)
-  );
+  const matches = (text) => String(text || "").toLowerCase().includes(q);
+  results.value = q ? allResults.value.filter((r) => matches(r.label) || matches(r.secondary) || matches(r.value)) : allResults.value;
 }
 
+// Only the newest request lands: an earlier, slower one never overwrites its results.
 async function fetchResults(search) {
+  const request = ++lastRequest;
   loading.value = true;
   try {
-    const data = await props.fetchFn(search);
+    const data = (await props.fetchFn(search)) || [];
+    if (request !== lastRequest) return;
     if (props.clientFilter) {
-      allResults.value = data || [];
+      allResults.value = data;
       filterLocal();
     } else {
-      results.value = data || [];
+      results.value = data;
     }
   } catch {
+    if (request !== lastRequest) return;
     results.value = [];
+    allResults.value = [];
   } finally {
-    loading.value = false;
+    if (request === lastRequest) loading.value = false;
   }
 }
+
+// The catalogue's open state has no `open` event: it loads the list at mount.
+watch(
+  () => props.inline,
+  (inline) => inline && !props.manual && fetchResults(""),
+  { immediate: true }
+);
+onBeforeUnmount(() => clearTimeout(debounceTimer));
 </script>
-
-<template>
-  <div class="entity-picker" v-out="() => closePicker()">
-    <!-- Disabled: plain BasicInput fallback -->
-    <BasicInput
-      v-if="disabled"
-      :modelValue="modelValue"
-      :placeholder="placeholder"
-      @update:modelValue="$emit('update:modelValue', $event)"
-    />
-
-    <!-- Enabled: trigger is always rendered to hold layout height -->
-    <template v-else>
-      <div
-        class="entity-picker__trigger"
-        :class="{ 'entity-picker__trigger--empty': !modelValue, 'entity-picker__trigger--open': open }"
-        @click="!open && openPicker()"
-      >
-        <!-- Selected chip -->
-        <template v-if="modelValue && !open">
-          <span class="entity-picker__chip">
-            <span class="entity-picker__chip-label">{{ displayValue || modelValue }}</span>
-            <button
-              class="entity-picker__chip-clear"
-              :aria-label="$t('common.delete')"
-              @click.stop="clear"
-            >&times;</button>
-          </span>
-        </template>
-
-        <!-- Empty placeholder -->
-        <template v-else-if="!open">
-          <FontAwesomeIcon icon="magnifying-glass" class="entity-picker__search-icon" />
-          <span class="entity-picker__placeholder">{{ placeholder }}</span>
-        </template>
-
-        <!-- Open: inline search input (replaces placeholder, same height) -->
-        <BasicInput
-          v-if="open"
-          ref="searchInput"
-          v-model="query"
-          :placeholder="placeholder"
-          icon="search"
-          class="entity-picker__inline-input"
-          @update:modelValue="onSearchInput"
-        />
-
-        <!-- Chevron: visual affordance that this is a dropdown, not a textbox -->
-        <FontAwesomeIcon
-          icon="chevron-down"
-          class="entity-picker__chevron"
-          :class="{ 'entity-picker__chevron--open': open }"
-        />
-      </div>
-
-      <!-- Results dropdown (absolutely positioned, doesn't push content) -->
-      <div v-if="open" class="entity-picker__results-panel">
-        <!-- Loading shown inline at top so list still renders below if cached -->
-        <div v-if="loading && !results.length" class="entity-picker__status">
-          <span class="fs-200 t-basic-500">{{ $t("layout_extender.searching") }}</span>
-        </div>
-        <div v-else-if="!results.length" class="entity-picker__status">
-          <span class="fs-200 t-basic-500">
-            {{ query ? $t("layout_extender.no_results") : $t("layout_extender.searching") }}
-          </span>
-        </div>
-        <button
-          v-for="item in results"
-          :key="item.value"
-          class="entity-picker__result"
-          @click="select(item)"
-        >
-          <span class="entity-picker__result-label">{{ item.label }}</span>
-          <span v-if="item.secondary" class="entity-picker__result-secondary">{{ item.secondary }}</span>
-        </button>
-      </div>
-    </template>
-  </div>
-</template>
 
 <style lang="scss" scoped>
 .entity-picker {
-  position: relative;
+  min-width: 0;
+}
+
+// The trigger fills the picker's width; BasicMenu is inline-flex by default.
+.entity-picker__menu {
+  display: flex;
+  width: 100%;
+
+  :deep(.basic-menu__trigger) {
+    flex: 1;
+    align-self: stretch;
+    min-width: 0;
+  }
+
+  :deep(.basic-menu__popover--panel) {
+    align-self: stretch;
+    padding: var(--space-1);
+  }
 }
 
 .entity-picker__trigger {
-  display: flex;
-  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
   height: var(--elem-height);
-  padding: 0 var(--space-100);
-  border: 1px solid var(--c-basic-400);
-  border-radius: var(--space-50);
-  background: var(--c-basic-100);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-base);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--fs-300);
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
   transition: border-color 0.15s;
 
-  &:hover {
-    border-color: var(--c-basic-500);
+  &:hover:not(:disabled) {
+    border-color: var(--border-default);
   }
 
-  &--empty {
-    gap: 8px;
-    color: var(--c-basic-500);
+  &[aria-expanded="true"] {
+    border-color: var(--accent);
   }
 
-  &--open {
-    border-color: var(--c-support-400);
-    cursor: default;
-    padding: 0;
+  &[aria-invalid="true"] {
+    border-color: var(--negative);
+  }
+
+  &:disabled {
+    border-color: var(--border-subtle);
+    background: var(--surface-disabled);
+    cursor: not-allowed;
   }
 }
 
-.entity-picker__search-icon {
-  font-size: 12px;
-  color: var(--c-basic-400);
-}
-
-.entity-picker__chevron {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--c-basic-500);
-  transition: transform 0.15s;
+.entity-picker__icon {
   flex-shrink: 0;
 }
 
-.entity-picker__chevron--open {
-  transform: rotate(180deg);
-}
-
-.entity-picker__trigger--open .entity-picker__chevron {
-  margin-right: var(--space-100);
-}
-
 .entity-picker__placeholder {
-  font-size: var(--fs-200);
-  color: var(--c-basic-500);
   flex: 1;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.entity-picker__inline-input {
-  flex: 1;
-}
-
-.entity-picker__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: var(--fs-200);
-  background: var(--c-basic-200);
-  color: var(--c-basic-700);
-}
-
-.entity-picker__chip-label {
-  max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.entity-picker__chip-clear {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--c-basic-500);
-  transition: color 0.15s;
+.entity-picker__caret {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-secondary);
+  transition: transform 0.15s;
 
-  &:hover {
-    color: var(--c-negative-300);
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
   }
 }
 
-.entity-picker__results-panel {
+// The chosen value's name for assistive tech: the Tag over the control shows it.
+.entity-picker__hidden {
   position: absolute;
-  top: calc(var(--elem-height) + 4px);
-  left: 0;
-  right: 0;
-  z-index: 110;
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-support-400);
-  border-radius: var(--space-50);
-  box-shadow: var(--shadow-md);
-  max-height: 240px;
-  overflow-y: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// The Tag lies over the control's left side: a click on it opens the list, its remove button stays its own.
+.entity-picker__tag {
+  position: absolute;
+  top: calc(var(--elem-height) / 2);
+  left: var(--space-2);
+  max-width: calc(100% - var(--space-10));
+  transform: translateY(-50%);
+  pointer-events: none;
+
+  :deep(.icon-button) {
+    pointer-events: auto;
+  }
+}
+
+.entity-picker__search {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--elem-height);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-base);
+  background: var(--surface-sunken);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: var(--fs-300);
+
+  &:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+  }
 }
 
 .entity-picker__status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.entity-picker__result {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  text-align: left;
-  padding: 8px var(--space-200);
-  font-size: var(--fs-200);
-  color: var(--c-basic-700);
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--c-basic-200);
-  cursor: pointer;
-  transition: background 0.15s;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background: var(--c-basic-200);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--c-support-400);
-    outline-offset: -2px;
-  }
-}
-
-.entity-picker__result-label {
-  font-weight: 600;
-  color: var(--c-basic-700);
-}
-
-.entity-picker__result-secondary {
-  font-size: var(--fs-100);
-  color: var(--c-basic-500);
+  margin: 0;
+  padding: var(--space-3);
+  text-align: center;
 }
 </style>

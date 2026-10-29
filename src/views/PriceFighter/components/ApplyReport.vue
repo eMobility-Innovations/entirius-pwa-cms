@@ -1,51 +1,42 @@
 <template>
-  <ConfirmationModal :visible="true" @reject="onClose">
-    <template #header>
-      <h2>{{ $t('pricefighter.apply_report_title') }}</h2>
-    </template>
-    <template #description>
-      <div class="apply-report__body">
-        <div class="apply-report__buckets">
-          <StatusBadge
-            v-for="bucket in buckets"
-            :key="bucket.key"
-            :label="`${$t(`pricefighter.${bucket.key}`)}: ${safeReport[bucket.key].length}`"
-            :variant="bucket.variant"
-          />
-        </div>
-
-        <div v-if="safeReport.stale.length" class="apply-report__stale-note">
-          <FontAwesomeIcon icon="triangle-exclamation" class="mr-100" />
-          {{ $t('pricefighter.stale_note') }}
-        </div>
-
-        <div v-for="bucket in buckets" :key="bucket.key" class="apply-report__bucket">
-          <template v-if="safeReport[bucket.key].length">
-            <h4 class="apply-report__bucket-heading">{{ $t(`pricefighter.${bucket.key}`) }}</h4>
-            <table class="apply-report__table">
-              <tbody>
-                <tr v-for="(item, i) in safeReport[bucket.key]" :key="i">
-                  <td>{{ item.sku }}</td>
-                  <td>{{ item.channel }} · {{ item.country }} / {{ item.currency }}</td>
-                  <td>{{ item.expected_new_price }}</td>
-                  <td class="t-basic-500">{{ item.reason }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </template>
-        </div>
-
-        <div class="apply-report__actions">
-          <BasicButton :text="$t('common.close')" class="bg-support-400 t-basic-100" @click="onClose" />
-        </div>
+  <BasicModal :open="true" size="lg" :title="$t('pricefighter.apply_report_title')" @close="onClose">
+    <div class="apply-report__body">
+      <div class="apply-report__buckets">
+        <StatusBadge
+          v-for="bucket in buckets"
+          :key="bucket.key"
+          :label="`${$t(`pricefighter.${bucket.key}`)}: ${safeReport[bucket.key].length}`"
+          :tone="bucket.variant"
+        />
       </div>
+
+      <div v-if="safeReport.stale.length" class="apply-report__stale-note">
+        <FontAwesomeIcon :icon="$icons.warning" class="mr-2" />
+        {{ $t('pricefighter.stale_note') }}
+      </div>
+
+      <div v-for="bucket in buckets" :key="bucket.key" class="apply-report__bucket">
+        <template v-if="safeReport[bucket.key].length">
+          <h4 class="apply-report__bucket-heading">{{ $t(`pricefighter.${bucket.key}`) }}</h4>
+          <DataTable :columns="columns" :rows="safeReport[bucket.key]">
+            <template #cell-market="{ row }">
+              <MarketCell :channel="row.channel" :country="row.country" :currency="row.currency" />
+            </template>
+            <template #cell-reason="{ row }">
+              <span class="t-muted">{{ row.reason }}</span>
+            </template>
+          </DataTable>
+        </template>
+      </div>
+    </div>
+    <template #footer>
+      <BasicButton variant="primary" @click="onClose">{{ $t('common.close') }}</BasicButton>
     </template>
-  </ConfirmationModal>
+  </BasicModal>
 </template>
 
 <script>
-import ConfirmationModal from '@/functionals/Confirmation-modal/index.vue'
-
+import MarketCell from './MarketCell.vue'
 const BUCKETS = [
   { key: 'applied', variant: 'positive' },
   { key: 'clamped', variant: 'warning' },
@@ -56,7 +47,7 @@ const BUCKETS = [
 
 export default {
   name: 'ApplyReport',
-  components: { ConfirmationModal },
+  components: { MarketCell },
   props: {
     report: {
       type: Object,
@@ -68,6 +59,15 @@ export default {
     return { buckets: BUCKETS }
   },
   computed: {
+    columns() {
+      return [
+        { key: 'sku', label: this.$t('pricefighter.sku'), width: '1fr' },
+        { key: 'market', label: this.$t('pricefighter.market'), width: '1fr' },
+        { key: 'expected_new_price', label: this.$t('pricefighter.suggested_price'), numeric: true },
+        // The reason says why an item was skipped, clamped or failed: it wraps, never truncates (no tooltip on a phone).
+        { key: 'reason', label: this.$t('pricefighter.reason'), width: '1.4fr', truncate: false },
+      ]
+    },
     // Defensive default — the API always returns all 5 buckets, but never trust the shape blindly.
     safeReport() {
       const r = this.report || {}
@@ -86,21 +86,20 @@ export default {
 .apply-report__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-300);
-  max-width: 560px;
+  gap: var(--space-8);
 }
 
 .apply-report__buckets {
   display: flex;
-  gap: var(--space-100);
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .apply-report__stale-note {
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-  background: var(--c-negative-100);
-  color: var(--c-negative-300);
+  padding: var(--space-5);
+  border-radius: var(--radius-base);
+  background: var(--negative-subtle);
+  color: var(--negative);
   font-size: var(--fs-200);
 }
 
@@ -109,23 +108,7 @@ export default {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-  margin: 0 0 var(--space-100) 0;
-}
-
-.apply-report__table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-200);
-
-  td {
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--c-basic-200);
-  }
-}
-
-.apply-report__actions {
-  display: flex;
-  justify-content: flex-end;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2) 0;
 }
 </style>

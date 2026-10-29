@@ -1,48 +1,34 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#pricing-toolbar-right" defer>
-      <div v-if="dirtyCount > 0" class="flex ai-ct gap-100">
-        <StatusBadge :label="`${dirtyCount} ${$t('pm.unsaved')}`" variant="warning" />
-        <BasicButton
-          :text="saving ? $t('pm.saving') : $t('pm.save_all')"
-          class="bg-support-400 t-basic-100"
-          :disabled="saving"
-          @click="saveAll"
-        />
-      </div>
-    </Teleport>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pm.prices')">
+        <template #meta>
+          <PmChannelSelect />
+        </template>
+        <template v-if="dirtyCount > 0" #actions>
+          <div class="flex ai-ct jc-fe wrap gap-3">
+            <StatusBadge :label="unsavedLabel" tone="warning" />
+            <ActionBar :actions="headerActions" />
+          </div>
+        </template>
+      </PageHeader>
+    </template>
 
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-
-      <!-- Toolbar -->
+    <template #toolbar>
       <div class="price-list__toolbar">
         <!-- Currency multi-select -->
-        <Dropdown
+        <BasicSelect
+          :floating-label="`${$t('pm.currency')} (${selectedCurrencies.length}/${availableCurrencies.length})`"
           v-if="availableCurrencies.length"
-          :custom_droplist="true"
-          :placeholder="`${$t('pm.currency')} (${selectedCurrencies.length}/${availableCurrencies.length})`"
+          :model-value="selectedCurrencies"
+          :options="currencyOptions"
+          multiple
           class="price-list__currency"
-        >
-          <template #custom>
-            <div
-              v-for="code in availableCurrencies"
-              :key="code"
-              class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-              :class="{ 'bg-primary-100': selectedCurrencies.includes(code) }"
-              @click.stop="toggleCurrency(code)"
-            >
-              <span class="fw-600 ml-100">{{ code }}</span>
-              <FontAwesomeIcon
-                v-if="selectedCurrencies.includes(code)"
-                icon="check"
-                class="t-positive-200"
-              />
-            </div>
-          </template>
-        </Dropdown>
+          @update:model-value="onCurrenciesPick"
+        />
 
         <!-- Default country (read-only) -->
-        <span v-if="defaultCountry" class="price-list__country-label t-basic-500 fs-200">
+        <span v-if="defaultCountry" class="price-list__country-label t-muted fs-200">
           {{ $t('pm.default_country_label', { country: defaultCountry }) }}
         </span>
 
@@ -56,7 +42,7 @@
         />
 
         <!-- Filter chips -->
-        <div class="flex ai-ct gap-100">
+        <div class="filter-chip-row" role="group" :aria-label="$t('pm.price_filter')">
           <FilterChip
             :label="$t('pm.all_products')"
             :active="activeFilter === 'all'"
@@ -73,11 +59,10 @@
             @click="setFilter('without_price')"
           />
         </div>
-
-        <!-- Save All is teleported to #pricing-toolbar-right -->
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <div v-show="!loading">
         <EmptyState
@@ -87,7 +72,7 @@
           icon="tag"
         />
 
-        <p v-else-if="!rows.length && !loading" class="t-basic-500 fs-300">
+        <p v-else-if="!rows.length && !loading" class="t-muted fs-300">
           {{ $t('pm.no_prices') }}
         </p>
 
@@ -97,7 +82,7 @@
             <div class="pm-price-table__head">
               <span>{{ $t('pm.sku') }}</span>
               <span>{{ $t('pm.tax_class') }}</span>
-              <span></span>
+              <span>{{ $t('pm.currency') }}</span>
               <span>{{ isNetEditable ? $t('pm.net') : $t('pm.gross') }}</span>
               <span>{{ isNetEditable ? $t('pm.gross') : $t('pm.net') }}</span>
               <span>{{ $t('pm.special_net') }}</span>
@@ -115,92 +100,93 @@
                 :class="{ 'pm-price-table__row--dirty': dirtyRows.has(rowKey(row)) }"
               >
                 <!-- SKU -->
-                <span class="fw-600 t-support-400 pointer text-truncate" @click="goToDetail(row.sku)">
+                <router-link :to="detailPath(row.sku)" class="fw-600 t-accent text-truncate">
                   {{ row.sku }}
-                </span>
+                </router-link>
 
                 <!-- Tax Class -->
-                <span class="t-basic-500 fs-200">{{ row.tax_class || '—' }}</span>
+                <span class="t-muted fs-200">{{ row.tax_class || '—' }}</span>
 
                 <!-- Currency -->
-                <span class="fw-700 fs-200">{{ row.currency || activeCurrency }}</span>
+                <span class="fw-600 fs-200">{{ row.currency || activeCurrency }}</span>
 
                 <!-- Net -->
-                <BasicInput
-                  :modelValue="getDirtyField(rowKey(row), 'value', primaryValue(row))"
-                  class="pm-price-input"
-                  @change="setDirty(rowKey(row), 'value', $event.target.value, row)"
-                />
+                <FormField class="pm-price-input" :error="cellError(row, 'value')">
+                  <BasicInput
+                    :modelValue="getDirtyField(rowKey(row), 'value', primaryValue(row))"
+                    format="money"
+                    @update:model-value="setDirty(rowKey(row), 'value', $event, row)"
+                  />
+                </FormField>
 
                 <!-- Calculated: Gross (or Net), read-only -->
-                <span class="t-basic-500">{{ formatPrice(calculatedValue(row)) }}</span>
+                <span class="t-muted">{{ formatPrice(calculatedValue(row)) }}</span>
 
                 <!-- Special -->
-                <BasicInput
-                  :modelValue="getDirtyField(rowKey(row), 'special_value', specialValue(row))"
-                  class="pm-price-input"
-                  @change="setDirty(rowKey(row), 'special_value', $event.target.value, row)"
-                />
+                <FormField class="pm-price-input" :error="cellError(row, 'special_value')">
+                  <BasicInput
+                    :modelValue="getDirtyField(rowKey(row), 'special_value', specialValue(row))"
+                    format="money"
+                    @update:model-value="setDirty(rowKey(row), 'special_value', $event, row)"
+                  />
+                </FormField>
 
                 <!-- Special Gross (read-only) -->
-                <span class="t-basic-500">{{ formatPrice(specialGrossValue(row)) }}</span>
+                <span class="t-muted">{{ formatPrice(specialGrossValue(row)) }}</span>
 
                 <!-- Special From -->
-                <input
-                  type="date"
-                  class="pm-date-native"
-                  :value="getDirtyField(rowKey(row), 'special_from_date', row.special_from_date || '')"
-                  @change="setDirty(rowKey(row), 'special_from_date', $event.target.value, row)"
+                <BasicDatePicker
+                  fixed
+                  :model-value="getDirtyField(rowKey(row), 'special_from_date', row.special_from_date || '')"
+                  @update:model-value="setDirty(rowKey(row), 'special_from_date', $event, row)"
                 />
 
                 <!-- Special To -->
-                <input
-                  type="date"
-                  class="pm-date-native"
-                  :value="getDirtyField(rowKey(row), 'special_to_date', row.special_to_date || '')"
-                  @change="setDirty(rowKey(row), 'special_to_date', $event.target.value, row)"
+                <BasicDatePicker
+                  fixed
+                  :model-value="getDirtyField(rowKey(row), 'special_to_date', row.special_to_date || '')"
+                  @update:model-value="setDirty(rowKey(row), 'special_to_date', $event, row)"
                 />
 
                 <!-- Actions: eye + flush special + delete -->
-                <div class="flex ai-ct gap-50">
-                  <button
+                <div class="flex ai-ct gap-2">
+                  <IconButton
                     v-if="row.has_price && hasMultipleCountries"
-                    class="pm-expand-btn"
-                    :class="{ 'pm-expand-btn--active': expandedSkus.has(row.sku) }"
-                    :title="$t('pm.expand_countries')"
+                    icon="preview"
+                    :label="$t('pm.expand_countries')"
+                    size="sm"
+                    :pressed="expandedSkus.has(row.sku)"
                     @click="toggleExpand(row.sku)"
-                  >
-                    <FontAwesomeIcon icon="eye" />
-                  </button>
-                  <button
+                  />
+                  <IconButton
                     v-if="row.has_price"
-                    class="pm-action-btn pm-action-btn--flush"
-                    :title="$t('pm.flush_special_tooltip')"
+                    icon="clear"
+                    :label="$t('pm.flush_special_tooltip')"
+                    variant="danger"
+                    size="sm"
                     @click="confirmFlush(row.sku, row.currency)"
-                  >
-                    <FontAwesomeIcon icon="broom" />
-                  </button>
-                  <button
+                  />
+                  <IconButton
                     v-if="row.has_price"
-                    class="pm-action-btn pm-action-btn--delete"
-                    :title="$t('pm.delete_prices_tooltip')"
+                    icon="delete"
+                    :label="$t('pm.delete_prices_tooltip')"
+                    variant="danger"
+                    size="sm"
                     @click="confirmDelete(row.sku, row.currency)"
-                  >
-                    <FontAwesomeIcon icon="trash-can" />
-                  </button>
+                  />
                 </div>
 
                 <!-- Status -->
-                <div class="flex ai-ct gap-100">
+                <div class="flex ai-ct gap-2">
                   <StatusBadge
                     v-if="!row.has_price"
                     :label="$t('pm.no_price_set')"
-                    variant="neutral"
+                    tone="neutral"
                   />
                   <StatusBadge
                     v-else-if="dirtyRows.has(rowKey(row))"
                     :label="$t('pm.unsaved')"
-                    variant="warning"
+                    tone="warning"
                   />
                 </div>
               </div>
@@ -225,10 +211,10 @@
                     class="pm-expand__row"
                   >
                     <span class="fw-600">{{ cr.country }}</span>
-                    <span class="t-basic-500">{{ cr.tax_rate != null ? cr.tax_rate + '%' : '—' }}</span>
+                    <span class="t-muted">{{ cr.tax_rate != null ? cr.tax_rate + '%' : '—' }}</span>
                     <span>{{ formatPrice(cr.net) }}</span>
                     <span>{{ formatPrice(cr.gross) }}</span>
-                    <span class="t-basic-500">
+                    <span class="t-muted">
                       <template v-if="cr.special_net">
                         {{ formatPrice(cr.special_net) }} → {{ formatPrice(cr.special_gross) }}
                       </template>
@@ -239,40 +225,44 @@
               </div>
             </template>
           </div>
-
-          <Pagination
-            v-if="totalCount > pageSize"
-            :pagination="paginationState"
-            @onChangePage="onPageChange"
-          />
         </template>
       </div>
-    </div>
 
     <FloatingActions :actions="fabActions" />
 
-    <Confirmation-modal
-      :visible="!!pendingFlushSku"
-      @accept="doFlushSpecial"
-      @reject="pendingFlushSku = null"
-    >
-      <template #header><h2>{{ $t('pm.flush_special') }}</h2></template>
-      <template #description><p>{{ $t('pm.flush_special_confirm') }}</p></template>
-    </Confirmation-modal>
+    <template v-if="!loading && channelIdx && rows.length && totalCount > pageSize" #footer>
+      <Pagination
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
+      />
+    </template>
 
-    <Confirmation-modal
-      :visible="!!pendingDeleteSku"
-      @accept="doDeletePrices"
-      @reject="pendingDeleteSku = null"
+    <ConfirmDialog
+      tone="danger"
+      :open="!!pendingFlushSku"
+      @confirm="doFlushSpecial"
+      @cancel="pendingFlushSku = null"
+      :title="$t('pm.flush_special')"
     >
-      <template #header><h2>{{ $t('pm.delete_prices') }}</h2></template>
-      <template #description><p>{{ $t('pm.delete_prices_confirm') }}</p></template>
-    </Confirmation-modal>
-  </div>
+      <template #default><p>{{ $t('pm.flush_special_confirm') }}</p></template>
+    </ConfirmDialog>
+
+    <ConfirmDialog
+      tone="danger"
+      :open="!!pendingDeleteSku"
+      @confirm="doDeletePrices"
+      @cancel="pendingDeleteSku = null"
+      :title="$t('pm.delete_prices')"
+    >
+      <template #default><p>{{ $t('pm.delete_prices_confirm') }}</p></template>
+    </ConfirmDialog>
+  </PageLayout>
 </template>
 
 <script>
 import { useLoaderStore } from '@/stores/loader'
+import { toggledValue } from '@/utils/toggled-value'
 import { useNotifyStore } from '@/stores/notify'
 import { useSearchDebounce } from '@/composables/useSearchDebounce'
 import {
@@ -283,12 +273,15 @@ import {
   DELETE_PmPrice,
   POST_PmFlushSpecial,
 } from '@/api/pricemanager/api'
-import ConfirmationModal from '@/functionals/Confirmation-modal/index.vue'
 import { extractApiMessage } from '@/composables/useFormErrors'
+import { formatError } from '@/utils/formats'
+import PmChannelSelect from './PmChannelSelect.vue'
+
+const ROW_IDENTITY = ['sku', 'currency', '_original']
 
 export default {
   name: 'PmPriceList',
-  components: { ConfirmationModal },
+  components: { PmChannelSelect },
   inject: {
     pmChannelIdx: { default: null },
     pmActiveChannel: { default: null },
@@ -315,6 +308,8 @@ export default {
       availableCurrencies: [],
       activeFilter: 'all',
       dirtyRows: new Map(),
+      // A save refused for an invalid price: the invalid cells show their error until they are fixed.
+      saveRefused: false,
       expandedSkus: new Set(),
       expandedData: {},
     }
@@ -340,6 +335,19 @@ export default {
     },
     dirtyCount() {
       return this.dirtyRows.size
+    },
+    // One unsaved entry is one SKU price in one currency (what the save writes); the flat list shows it on each of its
+    // country rows, and every one of them is marked. The counter names both when they differ.
+    unsavedLabel() {
+      const rows = this.rows.filter((row) => this.dirtyRows.has(this.rowKey(row))).length
+      if (rows <= this.dirtyCount) return `${this.dirtyCount} ${this.$t('pm.unsaved')}`
+      return this.$t('pm.unsaved_prices_rows', { prices: this.dirtyCount, rows })
+    },
+    headerActions() {
+      return [
+        { key: 'save-all', role: 'primary', disabled: this.saving, onClick: this.saveAll,
+          label: this.saving ? this.$t('pm.saving') : this.$t('pm.save_all') },
+      ]
     },
     currencyOptions() {
       return this.availableCurrencies.map((c) => ({ value: c, label: c }))
@@ -392,7 +400,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: 'plus',
+          icon: 'add',
           label: this.$t('pm.add_product'),
           handler: () => this.$router.push('/pricing/prices/new'),
         },
@@ -400,6 +408,10 @@ export default {
     },
   },
   watch: {
+    // No unsaved price left (saved, discarded, another page or channel): the refused-save marks go with them.
+    dirtyCount(count) {
+      if (!count) this.saveRefused = false
+    },
     channelIdx(val) {
       if (!val) return
       this.dirtyRows = new Map()
@@ -479,6 +491,10 @@ export default {
       } catch { /* ignore — currencies stay empty */ }
     },
     // --- UI events ---
+    // BasicSelect `multiple` emits the whole list; toggle the one code it added or removed.
+    onCurrenciesPick(codes) {
+      this.toggleCurrency(toggledValue(codes, this.selectedCurrencies))
+    },
     toggleCurrency(code) {
       const idx = this.selectedCurrencies.indexOf(code)
       if (idx >= 0) {
@@ -510,8 +526,8 @@ export default {
       this.dirtyRows = new Map()
       this.fetchPrices()
     },
-    goToDetail(sku) {
-      this.$router.push(`/pricing/prices/${sku}`)
+    detailPath(sku) {
+      return `/pricing/prices/${encodeURIComponent(sku)}`
     },
     // --- Expand / collapse ---
     async toggleExpand(sku) {
@@ -544,14 +560,20 @@ export default {
       return entry[field]
     },
     setDirty(key, field, value, row) {
+      // A price cell (BasicInput format="money") already emits the API decimal; it is stored unchanged.
       const existing = this.dirtyRows.get(key) || { sku: row.sku, currency: row.currency, _original: row }
-      // Normalize commas to dots for price fields
-      if ((field === 'value' || field === 'special_value') && value) {
-        value = String(value).replace(',', '.').trim()
-      }
-      existing[field] = value
-      this.dirtyRows.set(key, existing)
+      // A cell typed back to its stored value is clean again (the money cell updates on every keystroke).
+      if (value === this.storedField(row, field)) delete existing[field]
+      else existing[field] = value
+      const edited = Object.keys(existing).some((k) => !ROW_IDENTITY.includes(k))
+      if (edited) this.dirtyRows.set(key, existing)
+      else this.dirtyRows.delete(key)
       this.dirtyRows = new Map(this.dirtyRows)
+    },
+    storedField(row, field) {
+      if (field === 'value') return this.primaryValue(row)
+      if (field === 'special_value') return this.specialValue(row)
+      return row[field] || ''
     },
     // --- Price helpers ---
     primaryValue(row) {
@@ -588,8 +610,22 @@ export default {
       return num.toFixed(2)
     },
     // --- Save ---
+    // A value the money format rejects is marked in its cell; the save waits until it is fixed.
+    hasInvalidPrice() {
+      return [...this.dirtyRows.values()].some((r) => formatError('money', r.value) || formatError('money', r.special_value))
+    },
+    cellError(row, field) {
+      if (!this.saveRefused) return ''
+      const entry = this.dirtyRows.get(this.rowKey(row))
+      return entry && field in entry ? formatError('money', entry[field]) : ''
+    },
     async saveAll() {
       if (!this.dirtyRows.size) return
+      this.saveRefused = this.hasInvalidPrice()
+      if (this.saveRefused) {
+        this.notify.spawnNotification({ type: 'negative', msg: this.$t('formats.invalid_rows') })
+        return
+      }
       this.saving = true
       this.loader.loaderStart()
       try {
@@ -698,8 +734,7 @@ export default {
 .price-list__toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
-  margin-bottom: var(--space-400);
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
 
@@ -721,71 +756,77 @@ export default {
 
 // --- Table ---
 
+// The rows keep $min-width (two date pickers); only the table box scrolls sideways, never the page. The row date
+// pickers are `fixed`, so this scroll box never clips their calendars.
 .pm-price-table {
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
   overflow-x: auto;
-  // min-width ensures horizontal scroll instead of crushing columns
-  min-width: 900px;
 }
 
 // SKU | Tax | Cur | Net | Gross | Spec.Net | Spec.Gross | From | To | Eye | Status
-// minmax keeps columns readable; fr units share leftover space
+// minmax keeps columns readable; fr units share leftover space. Status fits the longest badge ("Niezapisane").
+$min-width: 1360px;
 $cols:
   minmax(100px, 1.5fr) // SKU
   minmax(70px, 1fr)    // Tax Class
-  40px                 // Currency
+  64px                 // Currency
   minmax(80px, 1fr)    // Net (input)
-  minmax(60px, 1fr)    // Gross (readonly)
-  minmax(70px, 1fr)    // Special Net (input)
-  minmax(55px, 0.8fr)  // Special Gross (readonly)
-  minmax(90px, 1fr)    // Promo Start
-  minmax(90px, 1fr)    // Promo End
-  70px                 // Actions (eye + flush + delete)
-  60px;                // Status
+  minmax(90px, 1fr)    // Gross (readonly)
+  minmax(90px, 1fr)    // Special Net (input)
+  minmax(90px, 0.8fr)  // Special Gross (readonly)
+  minmax(12rem, 1fr)   // Promo Start (BasicDatePicker)
+  minmax(12rem, 1fr)   // Promo End (BasicDatePicker)
+  112px                // Actions (eye + flush + delete)
+  124px;               // Status
 
 .pm-price-table__head {
   display: grid;
+  min-width: $min-width;
   grid-template-columns: $cols;
-  gap: 6px;
-  padding: 10px 12px;
-  background: var(--c-basic-200);
+  // The DataTable cell model: neighbouring columns keep 12 px between them.
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-raised);
   font-size: var(--fs-200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-500);
+  color: var(--text-muted);
 }
 
 .pm-price-table__row {
   display: grid;
+  min-width: $min-width;
   grid-template-columns: $cols;
-  gap: 6px;
-  padding: 6px 12px;
-  border-top: 1px solid var(--c-basic-300);
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  // Every row keeps the bar's width, so marking one moves nothing.
+  border-left: 3px solid transparent;
   align-items: center;
   min-height: 40px;
 
+  // Unsaved: an accent bar on the leading edge and the Status badge, the row itself stays calm.
   &--dirty {
-    background: rgba(255, 193, 7, 0.06);
-    border-left: 3px solid var(--c-warning-200);
+    border-left-color: var(--warning);
   }
 
   &:hover {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
   }
 }
 
 .pm-price-cell {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .pm-currency-tag {
-  font-size: var(--fs-100);
-  font-weight: 700;
-  color: var(--c-basic-600);
+  font-size: var(--fs-200);
+  font-weight: 600;
+  color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -795,90 +836,10 @@ $cols:
   min-width: 0;
 }
 
-.pm-date-native {
-  height: var(--elem-height);
-  padding: 2px 6px;
-  border: 1px solid var(--c-basic-400);
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-100);
-  color: var(--c-basic-800);
-  font-size: var(--fs-100);
-  width: 100%;
-  max-width: 100%;
-  cursor: pointer;
-
-  &::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    filter: invert(0.5);
-  }
-
-  [data-theme="dark"] & {
-    background: var(--c-basic-200);
-    border-color: var(--c-basic-400);
-    color: var(--c-basic-800);
-    color-scheme: dark;
-  }
-}
-
 .text-truncate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-// --- Expand button ---
-
-.pm-expand-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-100);
-  color: var(--c-basic-500);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-
-  &:hover {
-    background: var(--c-basic-200);
-    border-color: var(--c-basic-400);
-    color: var(--c-basic-700);
-  }
-
-  &--active {
-    background: var(--c-support-100);
-    border-color: var(--c-support-400);
-    color: var(--c-support-400);
-  }
-}
-
-.pm-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--fs-100);
-  opacity: 0.4;
-  transition: opacity 0.15s, background 0.15s;
-
-  &:hover { opacity: 1; }
-
-  &--flush {
-    background: var(--c-basic-200);
-    color: var(--c-basic-600);
-  }
-
-  &--delete {
-    background: var(--c-negative-100);
-    color: var(--c-negative-300);
-  }
 }
 
 // --- Expand sub-table ---
@@ -886,33 +847,33 @@ $cols:
 $expand-cols: 80px 80px 110px 110px 1fr;
 
 .pm-expand {
-  border-top: 1px solid var(--c-basic-300);
-  background: var(--c-basic-200);
-  padding: 10px var(--space-200) 10px 56px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+  padding: var(--space-2) var(--space-5) var(--space-2) var(--space-12);
 }
 
 .pm-expand__head {
   display: grid;
   grid-template-columns: $expand-cols;
-  gap: var(--space-100);
+  gap: var(--space-2);
   font-size: var(--fs-200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--c-basic-300);
-  margin-bottom: 4px;
+  color: var(--text-muted);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-1);
 }
 
 .pm-expand__row {
   display: grid;
   grid-template-columns: $expand-cols;
-  gap: var(--space-100);
-  padding: 4px 0;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
   font-size: var(--fs-300);
   align-items: center;
-  border-bottom: 1px solid var(--c-basic-200);
+  border-bottom: 1px solid var(--border-subtle);
 
   &:last-child {
     border-bottom: none;
@@ -926,15 +887,6 @@ $expand-cols: 80px 80px 110px 110px 1fr;
 
   .price-list__search {
     max-width: 100%;
-  }
-
-  .pm-price-table__head,
-  .pm-price-table__row {
-    min-width: 900px;
-  }
-
-  .pm-price-table {
-    overflow-x: auto;
   }
 }
 </style>

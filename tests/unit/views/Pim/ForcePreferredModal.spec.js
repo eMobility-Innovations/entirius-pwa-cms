@@ -1,16 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
-vi.mock("@/functionals/Confirmation-modal/index.vue", () => ({
-  default: {
-    name: "ConfirmationModal",
-    props: { visible: Boolean },
-    emits: ["reject"],
-    template: '<div class="cm-stub"><slot name="header" /><slot name="description" /></div>',
-  },
-}));
-
 import ForcePreferredModal from "@/views/Pim/components/supplier/ForcePreferredModal.vue";
+
+const stubs = {
+  BasicModal: {
+    props: { open: Boolean },
+    emits: ["close"],
+    template: '<div class="bm-stub"><slot name="title" /><slot /><slot name="footer" /></div>',
+  },
+  ActionBar: { template: "<div><slot /></div>" },
+};
 
 const baseProps = {
   visible: true,
@@ -22,14 +22,14 @@ const baseProps = {
 
 describe("ForcePreferredModal", () => {
   it("does not emit confirmed when reason is shorter than 3 chars", async () => {
-    const wrapper = mount(ForcePreferredModal, { props: baseProps });
+    const wrapper = mount(ForcePreferredModal, { global: { stubs }, props: baseProps });
     await wrapper.setData({ reason: "ok" });
     await wrapper.find('[data-test="force-preferred-confirm"]').trigger("click");
     expect(wrapper.emitted("confirmed")).toBeUndefined();
   });
 
   it("emits confirmed with payload when reason is valid and target is set", async () => {
-    const wrapper = mount(ForcePreferredModal, { props: baseProps });
+    const wrapper = mount(ForcePreferredModal, { global: { stubs }, props: baseProps });
     await wrapper.setData({ reason: "strategic partner" });
     await wrapper.find('[data-test="force-preferred-confirm"]').trigger("click");
     await flushPromises();
@@ -41,20 +41,20 @@ describe("ForcePreferredModal", () => {
   });
 
   it("does not emit confirmed while loading=true", async () => {
-    const wrapper = mount(ForcePreferredModal, { props: { ...baseProps, loading: true } });
+    const wrapper = mount(ForcePreferredModal, { global: { stubs }, props: { ...baseProps, loading: true } });
     await wrapper.setData({ reason: "strategic partner" });
     await wrapper.find('[data-test="force-preferred-confirm"]').trigger("click");
     expect(wrapper.emitted("confirmed")).toBeUndefined();
   });
 
   it("emits close when cancel is clicked", async () => {
-    const wrapper = mount(ForcePreferredModal, { props: baseProps });
+    const wrapper = mount(ForcePreferredModal, { global: { stubs }, props: baseProps });
     await wrapper.find('[data-test="force-preferred-cancel"]').trigger("click");
     expect(wrapper.emitted("close")).toBeTruthy();
   });
 
   it("resets reason when visible flips from false to true", async () => {
-    const wrapper = mount(ForcePreferredModal, { props: { ...baseProps, visible: false } });
+    const wrapper = mount(ForcePreferredModal, { global: { stubs }, props: { ...baseProps, visible: false } });
     await wrapper.setData({ reason: "leftover" });
     await wrapper.setProps({ visible: true });
     expect(wrapper.vm.reason).toBe("");

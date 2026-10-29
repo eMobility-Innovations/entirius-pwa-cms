@@ -1,96 +1,95 @@
 <template>
-  <div class="flex-column gap-300 jc-sb h-100 fs-200 t-basic-700">
+  <div class="flex-column gap-8 jc-sb h-100 fs-200 t-body">
     <nav
-      class="grid grid-col-2 grid-col-2-m ai-ct bg-basic-200 pl-400 pr-400 pt-200 pb-200 t-basic-600 br-tl-50 br-tr-50"
+      class="grid grid-col-2 grid-col-2-m ai-ct bg-raised pl-10 pr-10 pt-5 pb-5 t-secondary rounded-tl rounded-tr"
     >
       <p class="fw-600 fs-400 uppercase">
         {{ handyType.label ? handyType.label : $t("common.click") }}
       </p>
       <p
-        class="js-fe t-basic-600"
+        class="js-fe t-secondary"
         @click="handy.open_Handykit({ typeId: false })"
       >
-        <i class="icon-close-mini pointer" />
+        <FontAwesomeIcon :icon="$icons.close" class="pointer" />
       </p>
     </nav>
-    <div class="fg-1 pl-400 pr-400 ovy-auto pb-400">
-      <div class="grid gap-100 mt-200">
+    <div class="fg-1 pl-10 pr-10 ovy-auto pb-10">
+      <div class="grid gap-2 mt-5">
         <div>
-          <Switcher
+          <BasicSwitch
             class="rtl-direction"
             :label="index === 'Index' ? 'Index' : 'No-index'"
-            :selected="index === 'Index'"
-            @onSelect="
-              index === 'Index' ? (index = 'No-index') : (index = 'Index')
-            "
+            :model-value="index === 'Index'"
+            @update:model-value="(on) => (index = on ? 'Index' : 'No-index')"
           />
         </div>
         <div>
-          <Switcher
+          <BasicSwitch
             class="rtl-direction"
             :label="follow === 'Follow' ? 'Follow' : 'No-follow'"
-            :selected="follow === 'Follow'"
-            @onSelect="
-              follow === 'Follow' ? (follow = 'No-follow') : (follow = 'Follow')
-            "
+            :model-value="follow === 'Follow'"
+            @update:model-value="(on) => (follow = on ? 'Follow' : 'No-follow')"
           />
         </div>
-        <div class="mt-400">
-          <BasicInput
-            class="bg-basic-100 lh-base-elem"
-            :label="`${$t('meta.meta_title')} - ${title.length}/60`"
-            v-model="title"
-          />
+        <div class="mt-10">
+          <FormField :label="`${$t('meta.meta_title')} - ${title.length}/60`">
+            <BasicInput
+              class="bg-base lh-base-elem"
+              v-model="title"
+            />
+          </FormField>
         </div>
-        <div class="mt-200">
-          <span class="block fs-200 mb-50">{{
+        <div class="mt-5">
+          <span class="block fs-200 mb-1">{{
             `${$t("meta.meta_description")} - ${description.length}/160`
           }}</span>
-          <TextAreaBasic class="size-sm bg-basic-100" v-model="description" />
+          <BasicTextarea class="size-sm bg-base" v-model="description" />
         </div>
-        <div class="mt-300">
-          <BasicInput
-            class="bg-basic-100 lh-base-elem"
-            :label="`${$t('meta.og_title')} - ${og_title.length}/60`"
-            v-model="og_title"
-          />
+        <div class="mt-8">
+          <FormField :label="`${$t('meta.og_title')} - ${og_title.length}/60`">
+            <BasicInput
+              class="bg-base lh-base-elem"
+              v-model="og_title"
+            />
+          </FormField>
         </div>
-        <div class="mt-200">
-          <span class="block fs-200 mb-50">{{
+        <div class="mt-5">
+          <span class="block fs-200 mb-1">{{
             `${$t("meta.og_description")} - ${og_description.length}/160`
           }}</span>
-          <TextAreaBasic
-            class="size-sm bg-basic-100"
+          <BasicTextarea
+            class="size-sm bg-base"
             v-model="og_description"
           />
         </div>
       </div>
-      <div class="mt-200">
-        <span class="block fs-200 mb-50">{{ $t("meta.og_image") }}</span>
-        <div class="grid grid-col-6 gap-100" v-if="pictures">
+      <div class="mt-5">
+        <span class="block fs-200 mb-1">{{ $t("meta.og_image") }}</span>
+        <div class="grid grid-col-6 gap-2" v-if="pictures">
           <div
-            class="pointer ov-h relative b-support-300 br-50 grid-square shadow-down"
-            :class="{ 'b-negative-200': !og_image.length }"
+            class="pointer ov-h relative b-accent rounded grid-square shadow-down"
+            :class="{ 'b-negative': !og_image.length }"
           >
             <div v-if="!og_image.length" class="flex jc-ct ai-ct h-100">
-              <span class="fs-100">empty</span>
+              <span class="fs-200">empty</span>
             </div>
             <div v-else class="relative w-100 h-100">
               <div
-                class="absolute bg-basic-100 br-100 ov-h t-negative-200"
-                style="top: 3px; right: 3px; z-index: 2"
+                class="meta-kit__remove absolute bg-base rounded-lg ov-h t-negative"
               >
-                <BasicButton
+                <IconButton
+                  icon="close"
+                  variant="danger"
+                  size="sm"
+                  :label="$t('common.delete')"
                   @click="og_image = ''"
-                  :icon="'close-mini'"
-                  class="p-0 p-50 ov-h fs-100"
                 />
               </div>
               <img class="absolute absolute-ct" :src="og_image" alt="" />
             </div>
           </div>
           <div
-            class="pointer relative b-basic-300 p-100 br-50 grid-square"
+            class="pointer relative b-subtle p-2 rounded grid-square"
             v-for="(p, i) in pictures[c_page]"
             @click="
               () => {
@@ -98,7 +97,7 @@
               }
             "
           >
-            <HoverMe
+            <BasicTooltip
               :text="p.meta && p.meta.fileName ? p.meta.fileName : 'No title'"
               class="absolute absolute-ct w-100 h-100"
             >
@@ -110,19 +109,18 @@
                 :ommit_media_query="true"
                 :key="p.uid"
               />
-            </HoverMe>
+            </BasicTooltip>
           </div>
         </div>
-        <div class="flex jc-sb mt-200">
-          <Dropdown
-            :placeholder="$t('common.sort_by')"
-            class="bg-basic-100 br-50 b-basic-400 t-basic-700 js-e"
-            :values="[
+        <div class="flex jc-sb mt-5">
+          <BasicSelect
+            :floating-label="$t('common.sort_by')"
+            :options="[
               { label: $t('common.oldest_first'), value: 'created_at' },
               { label: $t('common.newest_first'), value: '-created_at' },
             ]"
-            :selected="[sort_by]"
-            @onSelect="
+            :model-value="sort_by"
+            @update:model-value="
               ($event) => {
                 pictures = null;
                 m_pages = 1;
@@ -139,8 +137,9 @@
           <Pagination
             v-if="pagination"
             :nav_size="32"
-            :pagination="{ ...pagination, page: c_page }"
-            @onChangePage="
+            :page="c_page"
+            :pages="pagination.pages"
+            @update:page="
               GET_GALLERY({
                 method: 'get',
                 url: '/images/',
@@ -152,11 +151,11 @@
       </div>
     </div>
     <div
-      class="grid grid-col-3 rtl-direction bg-basic-200 pl-400 pr-400 pt-100 pb-100"
+      class="grid grid-col-3 rtl-direction bg-raised pl-10 pr-10 pt-2 pb-2"
     >
       <BasicButton
-        class="bg-basic-700 br-50 bg-support-400 fs-200 b-support-400 t-basic-100 w-100 jc-ct"
-        :text="$t('common.save')"
+        variant="primary"
+        class="rounded fs-200 w-100 jc-ct"
         @click="
           pass_asset({
             index,
@@ -168,7 +167,9 @@
             og_description,
           })
         "
-      />
+      >
+        {{ $t('common.save') }}
+      </BasicButton>
     </div>
   </div>
 </template>
@@ -294,3 +295,11 @@ export default {
   },
 };
 </script>
+
+<style lang="scss" scoped>
+.meta-kit__remove {
+  top: var(--space-1);
+  right: var(--space-1);
+  z-index: 2;
+}
+</style>

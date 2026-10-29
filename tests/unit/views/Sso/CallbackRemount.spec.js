@@ -47,6 +47,19 @@ const setAuth = vi.fn(() => {
   authed = true;
 });
 
+vi.mock("@/composables/useLoginSession", () => ({
+  useLoginSession: () => ({ completeLogin: async ({ access, refresh, customer_id }) => {
+    setAuth({ token: access, refresh, customer_id, expiryDate: new Date() });
+    setUser({});
+    await fetchModules();
+  } }),
+  consumeReturnRoute: () => {
+    const route = localStorage.getItem("cms_return_route");
+    localStorage.removeItem("cms_return_route");
+    return route && route !== "/" ? route : null;
+  },
+}));
+
 vi.mock("@/api/sso/api", () => ({ POST_SsoCallback: (...a) => postCallback(...a) }));
 vi.mock("@/api/contentDB/api", () => ({
   GET_User: vi.fn(() => Promise.resolve({ data: { data: [] } })),
@@ -81,6 +94,7 @@ const mountCallback = (query = { code: "the-code", state: STASHED }) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.VUE_APP_SSO_ENABLED = "true";
   authed = false;
   window.sessionStorage.clear();
   window.localStorage.clear();

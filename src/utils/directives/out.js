@@ -1,7 +1,8 @@
 export const out = {
   mounted(el, binding) {
     const handler = (e) => {
-      if (!el.contains(e.target) && el !== e.target) {
+      // The path, not el.contains(): a click can re-render its own target (a flatpickr day) and detach it first.
+      if (!e.composedPath().includes(el)) {
         if (typeof binding.value === "function") {
           binding.value();
         } else if (typeof binding.value === "string" && binding.instance) {

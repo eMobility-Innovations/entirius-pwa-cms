@@ -7,6 +7,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockIsPanelEnabled = vi.fn();
 const mockIsModuleEnabled = vi.fn();
 
+// django-access is not under test here: allow-all, as without the module.
+vi.mock("@/stores/access", () => ({
+  useAccessStore: () => ({ can: () => true, canAny: () => true, ensureLoaded: () => Promise.resolve(), available: false, isStaff: true }),
+}));
 vi.mock("@/stores/munin", () => ({
   useMuninStore: () => ({
     loaded: true,
@@ -17,7 +21,7 @@ vi.mock("@/stores/munin", () => ({
 }));
 
 vi.mock("@/stores/user", () => ({
-  useUserStore: () => ({ isAuth: true, activeApp: null }),
+  useUserStore: () => ({ isAuth: true }),
 }));
 
 import router from "@/router";
@@ -43,5 +47,14 @@ describe("router meta.module guard", () => {
     await router.push("/promo/voucher/5");
 
     expect(router.currentRoute.value.path).toBe("/promo/voucher/5");
+  });
+
+  it("resolves the SSO callback without a session or panel check", async () => {
+    mockIsPanelEnabled.mockReturnValue(false);
+
+    await router.push("/sso/callback?code=c&state=s");
+
+    expect(router.currentRoute.value.path).toBe("/sso/callback");
+    expect(mockIsPanelEnabled).not.toHaveBeenCalled();
   });
 });

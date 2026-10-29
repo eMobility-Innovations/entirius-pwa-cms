@@ -1,40 +1,40 @@
 <template>
   <div
-    class="find-in-pim-panel p-300 b-basic-300 bb-100"
+    class="find-in-pim-panel p-8 b-subtle bb-100"
     data-testid="find-in-pim-panel"
   >
-    <DedupSearchBox
-      :scope="['pim_product']"
-      :initial-query="initialQuery"
-      :image-url="imageUrl"
-      inline
-      data-testid="find-in-pim-box"
-      @results="onResults"
-    />
+    <ReadonlyOff>
+      <DedupSearchBox
+        :scope="['pim_product']"
+        :initial-query="initialQuery"
+        :image-url="imageUrl"
+        inline
+        data-testid="find-in-pim-box"
+        @results="onResults"
+      />
+    </ReadonlyOff>
 
-    <div class="find-in-pim-panel__results mt-300">
+    <div class="find-in-pim-panel__results mt-8">
       <CandidateRow
         v-for="hit in matched"
         :key="`${hit.kind}-${hit.ref}`"
         :hit="hit"
       >
         <template #actions>
-          <button
-            type="button"
-            class="row-action-btn bg-positive-100 t-positive-300"
+          <IconButton mutates
+            icon="link"
+            size="sm"
             :disabled="linkingSku === hit.basic?.sku"
-            :title="$t('lookup.row.link')"
+            :label="$t('lookup.row.link')"
             :data-testid="`find-in-pim-link-${hit.basic?.sku}`"
             @click="link(hit)"
-          >
-            <FontAwesomeIcon icon="link" />
-          </button>
+          />
         </template>
       </CandidateRow>
 
       <p
         v-if="searched && matched.length === 0"
-        class="fs-200 t-basic-500 mt-200"
+        class="fs-200 t-muted mt-5"
         data-testid="find-in-pim-empty"
       >
         {{ $t("lookup.find.empty_message") }}
@@ -42,29 +42,27 @@
 
       <details
         v-if="groups.none.length"
-        class="mt-200"
+        class="mt-5"
         data-testid="find-in-pim-rest"
       >
-        <summary class="fs-200 t-basic-500">
+        <summary class="fs-200 t-muted">
           {{ $t("lookup.match.none", { n: groups.none.length }) }}
         </summary>
-        <div class="mt-200">
+        <div class="mt-5">
           <CandidateRow
             v-for="hit in groups.none"
             :key="`${hit.kind}-${hit.ref}`"
             :hit="hit"
           >
             <template #actions>
-              <button
-                type="button"
-                class="row-action-btn bg-positive-100 t-positive-300"
+              <IconButton mutates
+                icon="link"
+                size="sm"
                 :disabled="linkingSku === hit.basic?.sku"
-                :title="$t('lookup.row.link')"
+                :label="$t('lookup.row.link')"
                 :data-testid="`find-in-pim-link-${hit.basic?.sku}`"
                 @click="link(hit)"
-              >
-                <FontAwesomeIcon icon="link" />
-              </button>
+              />
             </template>
           </CandidateRow>
         </div>
@@ -80,10 +78,11 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { useNotifyStore } from "@/stores/notify";
 import { POST_LinkToRealProduct } from "@/api/atlas/api";
 import { groupHits } from "@/utils/lookupMatch";
+import { ReadonlyOff } from "@/composables/useReadonly";
 
 export default {
   name: "FindInPimPanel",
-  components: { DedupSearchBox, CandidateRow },
+  components: { ReadonlyOff, DedupSearchBox, CandidateRow },
   props: {
     // The SourceProduct being matched — the link endpoint addresses it by pk.
     productId: { type: [Number, String], required: true },
@@ -146,21 +145,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped>
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-</style>

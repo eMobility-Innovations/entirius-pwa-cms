@@ -73,8 +73,18 @@ hr {
 }
 
 :focus-visible {
-  outline: 2px solid var(--c-support-400);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+// Text fields show focus on the field itself: an accent border and a soft 2 px glow, no offset outline (a ring
+// around a bordered box reads as a second, heavier frame). Buttons, tabs and links keep the outline above.
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 calc(var(--space-1) / 2) color-mix(in srgb, var(--accent) 30%, transparent);
 }
 input:focus:not(:focus-visible),
 button:focus:not(:focus-visible),

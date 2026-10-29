@@ -252,11 +252,11 @@ $base-size: 64px;
   transform: translate(-50%, -50%);
 
   &__circle {
-    border: 14px solid var(--clr-primary-200);
+    border: 14px solid var(--accent-subtle);
     width: $base-size;
     height: $base-size;
     opacity: 1;
-    border-radius: 50%;
+    border-radius: var(--radius-full);
     transform-origin: 50% 50%;
     animation: ripple 1s cubic-bezier(0, 0.2, 0.8, 1) infinite;
   }

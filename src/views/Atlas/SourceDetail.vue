@@ -1,33 +1,41 @@
 <template>
-  <div class="supplier-detail h-100 ovy-auto">
-    <!-- Toolbar buttons teleported into parent index.vue toolbar anchors -->
-    <Teleport to="#suppliers-toolbar-left" defer>
-      <button
-        class="suppliers-toolbar-btn"
-        data-testid="suppliers-detail-back"
-        @click="goBack"
-      >
-        <FontAwesomeIcon icon="arrow-left" />
-        <span class="ml-100">{{ $t("common.back") }}</span>
-      </button>
-      <span class="t-basic-700 fw-600 fs-400">{{ headerLabel }}</span>
-    </Teleport>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="headerLabel" back="/atlas/list">
+        <template v-if="tabActions.length" #actions>
+          <ActionBar :actions="tabActions" />
+        </template>
+      </PageHeader>
+    </template>
+    <template v-if="supplier" #toolbar>
+      <BasicTabs
+        :model-value="visibleTab"
+        :id-prefix="TAB_PREFIX"
+        :options="tabOptions"
+        data-testid="suppliers-detail-tabs"
+        @update:model-value="activeTab = $event"
+      />
+    </template>
 
-    <Loader v-if="loading" />
-    <div v-else-if="!supplier" class="p-500 t-basic-500">
-      {{ $t("atlas.detail_not_found") }}
+    <Loader block v-if="loading" />
+    <EmptyState
+      v-else-if="!supplier"
+      icon="empty"
+      :title="$t('atlas.detail_not_found')"
+    />
+    <div
+      v-else
+      :id="`${TAB_PREFIX}-panel-${visibleTab}`"
+      role="tabpanel"
+      :aria-labelledby="`${TAB_PREFIX}-tab-${visibleTab}`"
+    >
+      <component
+        :is="TAB_COMPONENTS[visibleTab]"
+        :supplier="supplier"
+        @header-actions="tabActions = $event"
+      />
     </div>
-    <div v-else class="supplier-detail__body">
-      <div class="supplier-detail__tabs p-300 b-basic-300 bb-100">
-        <SegmentedControl
-          v-model="activeTab"
-          :options="tabOptions"
-          data-testid="suppliers-detail-tabs"
-        />
-      </div>
-      <component :is="activeTabComponent" :supplier="supplier" />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -44,6 +52,15 @@ import { useNotifyStore } from "@/stores/notify";
 import { GET_Source } from "@/api/atlas/api";
 
 const TABS = ["overview", "feeds", "mappings", "products", "linked", "logs"];
+const TAB_PREFIX = "atlas-source";
+const TAB_COMPONENTS = {
+  overview: "OverviewTab",
+  feeds: "FeedsTab",
+  mappings: "MappingsTab",
+  products: "ProductsTab",
+  linked: "LinkedTab",
+  logs: "LogsTab",
+};
 
 export default {
   name: "SourceDetail",
@@ -56,12 +73,14 @@ export default {
     LogsTab,
   },
   setup() {
-    return { notify: useNotifyStore() };
+    return { notify: useNotifyStore(), TAB_PREFIX, TAB_COMPONENTS };
   },
   data() {
     return {
       supplier: null,
       loading: false,
+      // PageHeader actions of the open tab (OverviewTab's Save): the tab emits them, and [] when it unmounts.
+      tabActions: [],
       activeTab:
         this.$route.query.tab && TABS.includes(this.$route.query.tab)
           ? this.$route.query.tab
@@ -90,19 +109,10 @@ export default {
         testid: `suppliers-tab-${key}`,
       }));
     },
-    activeTabComponent() {
-      const map = {
-        overview: "OverviewTab",
-        feeds: "FeedsTab",
-        mappings: "MappingsTab",
-        products: "ProductsTab",
-        linked: "LinkedTab",
-        logs: "LogsTab",
-      };
+    visibleTab() {
       // Guard deep-links to a tab hidden for this role (e.g. ?tab=mappings on monitoring).
       const available = this.tabOptions.map((t) => t.value);
-      if (!available.includes(this.activeTab)) return "OverviewTab";
-      return map[this.activeTab] || "OverviewTab";
+      return available.includes(this.activeTab) ? this.activeTab : "overview";
     },
   },
   watch: {
@@ -145,39 +155,6 @@ export default {
         this.loading = false;
       }
     },
-    goBack() {
-      this.$router.push("/atlas/list");
-    },
   },
 };
 </script>
-
-<style lang="scss" scoped>
-.supplier-detail {
-  display: flex;
-  flex-direction: column;
-}
-.supplier-detail__body {
-  display: flex;
-  flex-direction: column;
-}
-.supplier-detail__tabs {
-  display: flex;
-  align-items: center;
-  gap: var(--space-200);
-}
-.suppliers-toolbar-btn {
-  display: inline-flex;
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--c-basic-300);
-  color: var(--c-basic-700);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.suppliers-toolbar-btn:hover {
-  background: var(--c-basic-200);
-}
-</style>

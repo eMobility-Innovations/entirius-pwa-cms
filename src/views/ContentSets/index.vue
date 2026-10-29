@@ -1,68 +1,71 @@
 <template>
-  <div class="fs-200 t-basic-600 fg-1 relative p-500">
-    <div class="br-50 b-basic-300 bg-basic-100 p-500">
+  <PageLayout class="fs-200 t-secondary fg-1 relative">
+    <template #header>
+      <PageHeader :title="$t('content_sets.title')" />
+    </template>
+    <template v-if="!isSingleLanguage" #toolbar>
+      <div class="content-sets__toolbar">
+        <div class="filter-chip-row" role="group" :aria-label="$t('content_sets.filters')">
+          <FilterChip
+            v-for="dt in docTypes"
+            :key="dt.value"
+            :label="$t(`config_option.${dt.value}`)"
+            :active="type === dt.value"
+            @click="switchType(dt.value)"
+          />
+        </div>
+        <SegmentedControl
+          v-model="mode"
+          :options="[
+            { value: 'list', label: $t('content_sets.list') },
+            { value: 'edit', label: $t('content_sets.edit_mode') },
+          ]"
+        />
+      </div>
+    </template>
       <div
         v-if="isSingleLanguage"
-        class="flex ai-ct jc-ct gap-200 p-500 t-basic-500"
+        class="flex ai-ct jc-ct gap-5 p-12 t-muted"
         style="min-height: 14rem; flex-direction: column"
       >
-        <p class="fs-400 fw-600 t-basic-600">
+        <p class="fs-400 fw-600 t-secondary">
           {{ $t("content_sets.single_language_title") }}
         </p>
-        <p class="fs-200 t-basic-500 ta-ct" style="max-width: 30rem">
+        <p class="fs-200 t-muted ta-ct" style="max-width: 30rem">
           {{ $t("content_sets.single_language_msg") }}
         </p>
       </div>
       <template v-else>
-        <div class="flex jc-sb ai-ct mv-300">
-          <MobileFilterPanel
-            :active-count="1"
-            :trigger-label="$t('builder.filters')"
-          >
-            <p class="fs-200 t-basic-600">{{ $t("builder.filters") }}</p>
-            <FilterChip
-              v-for="dt in docTypes"
-              :key="dt.value"
-              :label="$t(`config_option.${dt.value}`)"
-              :active="type === dt.value"
-              @click="switchType(dt.value)"
-            />
-          </MobileFilterPanel>
-          <SegmentedControl
-            v-model="mode"
-            :options="[
-              { value: 'list', label: $t('content_sets.list') },
-              { value: 'edit', label: $t('content_sets.edit_mode') },
-            ]"
-          />
-        </div>
         <div v-if="DOCS && mode === 'list'">
-          <div class="grid grid-col-3 gap-400">
+          <div class="grid grid-col-3 gap-10">
             <div
               v-for="(lang_value, lang, lang_index) in DOCS"
               :key="`single-doc-lang-${lang_index}`"
             >
               <div class="flex jc-sb ai-ct">
                 <div>
-                  <p class="t-basic-600">{{ lang }}</p>
+                  <p class="t-secondary">{{ lang }}</p>
                 </div>
                 <Pagination
                   class="fs-200"
                   v-if="DOCS_pagination && DOCS_pagination[lang]"
-                  :nav_size="20"
-                  :pagination="DOCS_pagination[lang]"
-                  @onChangePage="SET_Page({ language: lang, page: $event })"
+                  :nav_size="32"
+                  :page="DOCS_pagination[lang].page"
+                  :pages="DOCS_pagination[lang].pages"
+                  @update:page="SET_Page({ language: lang, page: $event })"
                 />
               </div>
-              <BasicInput
-                :modelValue="langSearch[lang] || ''"
-                @update:modelValue="(val) => onLangSearch(lang, val)"
-                icon="search"
-                :placeholder="$t('content_sets.search_placeholder')"
-                class="mt-100"
-              />
+              <ReadonlyOff>
+                <BasicInput
+                  :modelValue="langSearch[lang] || ''"
+                  @update:modelValue="(val) => onLangSearch(lang, val)"
+                  icon="search"
+                  :placeholder="$t('content_sets.search_placeholder')"
+                  class="mt-2"
+                />
+              </ReadonlyOff>
               <div
-                class="br-50 fs-200 t-basic-600 mt-100 grid gap-200 doc-list"
+                class="rounded fs-200 t-secondary mt-2 grid gap-5 doc-list"
                 :class="{ 'doc-list--loading': langLoading[lang] }"
               >
                 <template
@@ -73,6 +76,10 @@
                 >
                   <div
                     class="doc-tile"
+                    role="button"
+                    :tabindex="page_value.content_set ? -1 : 0"
+                    :aria-disabled="page_value.content_set ? 'true' : undefined"
+                    :aria-pressed="String(!!isDocSelected(lang, doc_index))"
                     :class="[
                       {
                         'doc-tile--linked':
@@ -87,147 +94,109 @@
                       DOCS_pagination[lang]['page']
                     ]"
                     :key="`single-doc-page-${page_index}-${lang}`"
-                    @click="
-                      () => {
-                        if (page_value.content_set) return;
-                        bind_set({
-                          lang,
-                          page: DOCS_pagination[lang]['page'],
-                          doc_index,
-                        });
-                      }
-                    "
+                    @click="pickDoc(lang, doc_index, page_value)"
+                    @keydown.enter.prevent="pickDoc(lang, doc_index, page_value)"
+                    @keydown.space.prevent="pickDoc(lang, doc_index, page_value)"
                   >
-                    <div class="flex jc-sb ai-st gap-100">
+                    <div class="flex jc-sb ai-st gap-2">
                       <p class="fw-600 fs-300 lc-1">
                         {{ page_value.name ?? $t("content_sets.no_name") }}
                       </p>
-                      <span
+                      <StatusBadge
                         v-if="page_value.content_set && !isDocSelected(lang, doc_index)"
-                        class="doc-tile__badge"
-                      >{{ $t("content_sets.linked") }}</span>
+                        :label="$t('content_sets.linked')"
+                        tone="negative"
+                        size="sm"
+                        :dot="false"
+                      />
                     </div>
-                    <p class="fs-200 t-basic-500 lc-1 mt-50">
+                    <p class="fs-200 t-muted lc-1 mt-1">
                       /{{ page_value.routes && page_value.routes.length
                         ? page_value.routes.at(0)
                         : $t("content_sets.not_set") }}
                     </p>
                   </div>
                 </template>
-                <template v-else>
-                  <div class="p-100 br-50 b-basic-400 bg-basic-200 t-basic-500">
-                    <p>{{ $t("content_sets.no_docs") }}</p>
-                  </div>
-                </template>
+                <EmptyState v-else size="sm" :title="$t('content_sets.no_docs')" />
               </div>
             </div>
           </div>
-          <p class="fs-100 t-basic-500 mt-300 mb-100">
+          <p class="fs-200 t-muted mt-8 mb-2">
             {{ $t("content_sets.instruction") }}
           </p>
-          <div class="flex gap-100">
-            <ToolTip
+          <div class="flex jc-fe gap-2">
+            <BasicTooltip
               v-if="!hasEnoughSelections"
-              :tip="$t('content_sets.set_ready_tip')"
-              :is_wrapper="true"
-              class="left"
+              :text="$t('content_sets.clear_set_tip')"
             >
               <BasicButton
-                :text="$t('content_sets.set_ready')"
-                class="br-50 fs-200 bg-basic-300 t-basic-500"
-              />
-            </ToolTip>
+                variant="secondary"
+                :disabled="true"
+              >
+                {{ $t('content_sets.clear_set') }}
+              </BasicButton>
+            </BasicTooltip>
             <BasicButton
               v-else
-              :text="$t('content_sets.set_ready')"
-              class="br-50 fs-200 bg-support-400 b-support-400 t-basic-100"
+              variant="secondary"
+              @click="selected_set_members = null"
+            >
+              {{ $t('content_sets.clear_set') }}
+            </BasicButton>
+            <BasicTooltip
+              v-if="!hasEnoughSelections"
+              :text="$t('content_sets.set_ready_tip')"
+            >
+              <BasicButton
+                variant="primary"
+                :disabled="true"
+              >
+                {{ $t('content_sets.set_ready') }}
+              </BasicButton>
+            </BasicTooltip>
+            <BasicButton
+              v-else
+              variant="primary"
               @click="
                 MODIFY_Set({
                   url: `/content-sets/${edit ? edit : ''}`,
                   method: edit ? 'put' : 'post',
                 })
               "
-            />
-            <ToolTip
-              v-if="!hasEnoughSelections"
-              :tip="$t('content_sets.clear_set_tip')"
-              :is_wrapper="true"
-              class="left"
             >
-              <BasicButton
-                :text="$t('content_sets.clear_set')"
-                class="br-50 fs-200 bg-basic-300 b-basic-300 t-basic-500"
-              />
-            </ToolTip>
-            <BasicButton
-              v-else
-              :text="$t('content_sets.clear_set')"
-              class="br-50 fs-200 bg-negative-200 b-negative-200 t-basic-100"
-              @click="selected_set_members = null"
-            />
+              {{ $t('content_sets.set_ready') }}
+            </BasicButton>
           </div>
         </div>
-        <div v-if="sets && mode === 'edit'" class="grid gap-200">
-          <div v-if="!sets.length" class="flex ai-ct jc-ct p-500 t-basic-500">
-            <p class="fs-200">{{ $t("content_sets.no_sets") }}</p>
-          </div>
-          <div
-            class="set-card b-basic-300 br-50 p-200"
+        <div v-if="sets && mode === 'edit'" class="grid gap-5">
+          <EmptyState v-if="!sets.length" :title="$t('content_sets.no_sets')" />
+          <BasicCard
             v-for="({ uid, members }, i) in sets"
             :key="`set-${uid}`"
           >
             <div class="flex jc-sb ai-ct">
-              <div class="flex ai-ct gap-100 fg-1" style="min-width: 0">
+              <div class="flex flex-wrap ai-ct gap-2 fg-1" style="min-width: 0">
                 <span
                   v-for="({ name, language }, m_index) in members"
                   :key="`member-${uid}-${m_index}`"
-                  class="set-card__member"
+                  class="content-sets__member"
                   >{{ name || $t("content_sets.no_name") }}
-                  <span class="t-basic-500">({{ language }})</span></span
+                  <span class="t-muted">({{ language }})</span></span
                 >
               </div>
-              <button
-                class="set-card__delete pointer"
+              <IconButton
+                icon="delete"
+                variant="danger"
+                size="sm"
+                :label="$t('common.delete')"
                 @click="DELETE_Set({ url: `/content-sets/${uid}`, uid })"
-                :aria-label="$t('common.delete')"
-                tabindex="0"
-              >
-                <FontAwesomeIcon icon="trash-can" />
-              </button>
+              />
             </div>
-            <p class="fs-100 t-basic-500 mt-50 lc-1">{{ uid }}</p>
-          </div>
-          <!-- <div class="mb-300 grid grid-col-3 gap-200">
-          <Dropdown
-            class="bg-basic-100 br-50 b-basic-400 fs-200"
-            :class="{ 'bg-basic-200 t-basic-500': !sets.length }"
-            :placeholder="'Content sets list'"
-            v-if="sets"
-            :icon="edit ? 'close-mini' : 'arrow-right-2'"
-            :selected="[null]"
-            :values="
-              sets.map(({ uid, members = [] }) => {
-                const _label = members
-                  .map(({ name, language }) => {
-                    return `${name} (${language})`;
-                  })
-                  .join(' + ');
-                return {
-                  label: _label,
-                  value: uid,
-                  label_ext: 'delete',
-                  label_ext_class: 't-negative-200',
-                };
-              })
-            "
-            :isDisabled="Boolean(edit || !sets.length)"
-            @onExtension="DELETE_Set({ url: `/content-sets/${$event}` })"
-          />
-        </div> -->
+            <p class="fs-200 t-muted mt-1 lc-1">{{ uid }}</p>
+          </BasicCard>
         </div>
       </template>
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -237,7 +206,9 @@ import { useUserStore } from "@/stores/user";
 import { useContentDBChannelStore } from "@/stores/contentDBChannel";
 import { _METHOD_content } from "@/api/contentDB/api";
 import hidden_config from "@/../__client/configs/__hidden_config";
+import { ReadonlyOff } from "@/composables/useReadonly";
 export default {
+  components: { ReadonlyOff },
   setup() {
     const notify = useNotifyStore();
     const loader = useLoaderStore();
@@ -497,6 +468,10 @@ export default {
         ] === doc_index
       );
     },
+    pickDoc(lang, doc_index, doc) {
+      if (doc.content_set) return;
+      this.bind_set({ lang, page: this.DOCS_pagination[lang].page, doc_index });
+    },
     bind_set({ lang = null, page = null, doc_index = null }) {
       const _candidates = this.selected_set_members
         ? { ...this.selected_set_members }
@@ -518,71 +493,42 @@ export default {
   }
 }
 .doc-tile {
-  padding: 12px var(--space-200);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--space-50);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
   &:hover:not(.doc-tile--linked) {
-    border-color: var(--c-support-400);
+    border-color: var(--accent);
   }
   &--linked {
-    background: var(--c-basic-200);
+    background: var(--surface-raised);
     cursor: default;
-    .fw-600 { color: var(--c-basic-500); }
+    .fw-600 { color: var(--text-muted); }
   }
   &--selected {
-    background: var(--c-support-400);
-    border-color: var(--c-support-400);
-    .fw-600, .fs-200 { color: var(--c-basic-100); }
-  }
-  &__badge {
-    flex-shrink: 0;
-    font-size: 10px;
-    line-height: 1;
-    padding: 3px 6px;
-    border-radius: var(--radius-sm);
-    background: var(--c-negative-100);
-    color: var(--c-negative-300);
-    white-space: nowrap;
+    background: var(--accent-fill);
+    border-color: var(--accent);
+    .fw-600, .fs-200 { color: var(--text-on-accent-fill); }
   }
 }
-.set-card {
-  transition: border-color 0.15s ease;
-  &:hover {
-    border-color: var(--c-basic-500);
-  }
-  &__member {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 13px;
-    color: var(--c-basic-700);
-    white-space: nowrap;
-    &:not(:last-child)::after {
-      content: "+";
-      margin: 0 4px;
-      color: var(--c-basic-500);
-    }
-  }
-  &__delete {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
-    font-size: 12px;
-    border: 1px solid transparent;
-    border-radius: var(--space-50);
-    background: none;
-    color: var(--c-basic-500);
-    transition: all 0.15s ease;
-    &:hover {
-      color: var(--c-negative-200);
-      border-color: var(--c-negative-200);
-      background-color: var(--c-basic-200);
-    }
+.content-sets__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.content-sets__member {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-250);
+  color: var(--text-body);
+  &:not(:last-child)::after {
+    content: "+";
+    margin: 0 var(--space-1);
+    color: var(--text-muted);
   }
 }
 </style>

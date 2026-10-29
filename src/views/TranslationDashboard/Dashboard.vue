@@ -1,40 +1,45 @@
 <template>
+  <PageLayout>
+    <template #header>
+      <PageHeader :title="$t('translation.jobs')">
+        <template #meta>
+          <PimChannelSelect />
+        </template>
+        <template #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
+      <div class="filter-chip-row" role="group" :aria-label="$t('translation.filters')">
+        <FilterChip
+          v-for="chip in filterChips"
+          :key="chip.value"
+          :label="chip.label"
+          :active="jobsStore.statusFilter === chip.value"
+          :count="chip.count"
+          @click="jobsStore.setStatusFilter(chip.value)"
+        />
+      </div>
+    </template>
   <div class="tj-dashboard">
+
     <!-- Stats Cards -->
     <div class="tj-stats">
-      <div
+      <BasicCard
         v-for="stat in statCards"
         :key="stat.key"
-        class="tj-stat-card"
+        class="tj-stat"
       >
-        <span class="tj-stat-card__value" :class="stat.colorClass">{{ stat.count }}</span>
-        <span class="tj-stat-card__label">{{ stat.label }}</span>
-      </div>
-    </div>
-
-    <!-- Filter Chips -->
-    <div class="tj-filters flex ai-ct gap-200 mb-300">
-      <FilterChip
-        v-for="chip in filterChips"
-        :key="chip.value"
-        :label="chip.label"
-        :active="jobsStore.statusFilter === chip.value"
-        :count="chip.count"
-        @click="jobsStore.setStatusFilter(chip.value)"
-      />
-      <div class="flex-1"></div>
-      <BasicButton
-        :text="$t('translation.refresh')"
-        icon="arrows-rotate"
-        class="bg-basic-200 t-basic-600"
-        @click="refresh"
-      />
+        <span class="tj-stat__value" :class="stat.colorClass">{{ stat.count }}</span>
+        <span class="tj-stat__label">{{ stat.label }}</span>
+      </BasicCard>
     </div>
 
     <!-- Empty State -->
     <EmptyState
       v-if="!jobsStore.loading && !jobsStore.filteredJobs.length"
-      icon="language"
+      icon="translate"
       :title="$t('translation.no_jobs')"
       :message="$t('translation.no_jobs_msg')"
     />
@@ -52,12 +57,11 @@
       </template>
 
       <template #cell-source="{ row }">
-        <span
-          class="tj-source-badge"
-          :class="row._source === 'pim' ? 'tj-source-badge--pim' : 'tj-source-badge--content'"
-        >
-          {{ row._source === "pim" ? $t("translation.pim") : $t("translation.content") }}
-        </span>
+        <StatusBadge
+          :label="row._source === 'pim' ? $t('translation.pim') : $t('translation.content')"
+          :tone="row._source === 'pim' ? 'accent' : 'positive'"
+          :dot="false"
+        />
       </template>
 
       <template #cell-type="{ row }">
@@ -82,37 +86,59 @@
         <span v-if="row.actual_cost_usd">
           ${{ Number(row.actual_cost_usd).toFixed(2) }}
         </span>
-        <span v-else-if="row.estimated_cost_usd" class="t-basic-500">
+        <span v-else-if="row.estimated_cost_usd" class="t-muted">
           {{ $t("translation.estimated") }} ${{ Number(row.estimated_cost_usd).toFixed(2) }}
         </span>
-        <span v-else class="t-basic-400">&mdash;</span>
+        <span v-else class="t-muted">&mdash;</span>
       </template>
 
       <template #cell-status="{ row }">
-        <StatusBadge :label="statusLabel(row.status)" :variant="statusVariant(row.status)" />
+        <StatusBadge :label="statusLabel(row.status)" :tone="statusVariant(row.status)" />
       </template>
 
       <template #cell-created="{ row }">
-        <span class="t-basic-500">{{ relativeTime(row.created_at) }}</span>
+        <span class="t-muted">{{ relativeTime(row.created_at) }}</span>
       </template>
     </DataTable>
   </div>
+
+    <PimTranslateDialog
+      v-if="translatorAvailable"
+      v-model:open="showTranslateStore"
+      scope="store"
+      :channel-idx="channelIdx"
+      @translated="watchNewJobs"
+    />
+  </PageLayout>
 </template>
 
 <script>
 import { useTranslationJobsStore } from "@/stores/translationJobs";
 import { usePimChannelStore } from "@/stores/pimChannel";
+import { useMuninStore } from "@/stores/munin";
+import PimChannelSelect from "@/views/Pim/components/PimChannelSelect.vue";
+import PimTranslateDialog from "@/views/Pim/components/PimTranslateDialog.vue";
 
+// The one home of the store-wide translation („Tłumacz sklep”): every entity type of the picked channel in one go.
+// The Pim views offer only what is scoped to their entity or selection.
 export default {
   name: "TranslationDashboard",
+  components: { PimChannelSelect, PimTranslateDialog },
   setup() {
     const jobsStore = useTranslationJobsStore();
     const pimChannel = usePimChannelStore();
-    return { jobsStore, pimChannel };
+    const munin = useMuninStore();
+    return { jobsStore, pimChannel, munin };
+  },
+  data() {
+    return { showTranslateStore: false };
   },
   computed: {
     channelIdx() {
       return this.pimChannel.activeChannelIdx;
+    },
+    translatorAvailable() {
+      return this.munin.isModuleInstalled("pim_translator");
     },
     statCards() {
       return [
@@ -120,27 +146,41 @@ export default {
           key: "pending",
           label: this.$t("translation.stats_pending"),
           count: this.jobsStore.stats.pending,
-          colorClass: "t-informative-200",
+          colorClass: "t-info",
         },
         {
           key: "running",
           label: this.$t("translation.stats_running"),
           count: this.jobsStore.stats.running,
-          colorClass: "t-warning-200",
+          colorClass: "t-warning",
         },
         {
           key: "completed",
           label: this.$t("translation.stats_completed"),
           count: this.jobsStore.stats.completed,
-          colorClass: "t-positive-200",
+          colorClass: "t-positive",
         },
         {
           key: "failed",
           label: this.$t("translation.stats_failed"),
           count: this.jobsStore.stats.failed,
-          colorClass: "t-negative-200",
+          colorClass: "t-negative",
         },
       ];
+    },
+    headerActions() {
+      const refresh = { key: "refresh", role: "secondary", label: this.$t("translation.refresh"), onClick: this.refresh };
+      if (!this.translatorAvailable) return [refresh];
+      const translateStore = {
+        key: "translate-store",
+        role: "primary",
+        label: this.$t("pim.translate_store"),
+        testid: "translation-translate-store",
+        onClick: () => {
+          this.showTranslateStore = true;
+        },
+      };
+      return [refresh, translateStore];
     },
     filterChips() {
       return [
@@ -185,6 +225,12 @@ export default {
         this.jobsStore.fetchJobs(this.channelIdx);
       }
     },
+    // The jobs the dialog just created: read them now and keep polling while any is pending or running.
+    watchNewJobs() {
+      if (this.channelIdx) {
+        this.jobsStore.startPolling(this.channelIdx);
+      }
+    },
     shortId(id) {
       if (!id) return "";
       return String(id).substring(0, 8);
@@ -215,7 +261,7 @@ export default {
     },
     statusVariant(status) {
       const map = {
-        pending: "informative",
+        pending: "info",
         running: "warning",
         completed: "positive",
         failed: "negative",
@@ -244,80 +290,48 @@ export default {
 .tj-dashboard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-300);
+  gap: var(--space-8);
 }
 
 /* Stats Cards */
 .tj-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 
-.tj-stat-card {
-  display: flex;
-  flex-direction: column;
+.tj-stat {
   align-items: center;
-  gap: var(--space-50);
-  padding: var(--space-200);
-  background: var(--c-basic-200);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--c-basic-300);
+  gap: var(--space-1);
 }
 
-.tj-stat-card__value {
+.tj-stat__value {
   font-size: var(--fs-700);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 }
 
-.tj-stat-card__label {
+.tj-stat__label {
   font-size: var(--fs-200);
-  color: var(--c-basic-500);
+  color: var(--text-muted);
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.04em;
-}
-
-/* Filters */
-.tj-filters {
-  flex-wrap: wrap;
 }
 
 /* Monospace ID */
 .tj-mono {
   font-family: monospace;
   font-size: var(--fs-200);
-  color: var(--c-basic-600);
-}
-
-/* Source badge */
-.tj-source-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.tj-source-badge--pim {
-  background: var(--c-support-100);
-  color: var(--c-support-400);
-}
-
-.tj-source-badge--content {
-  background: var(--c-positive-100);
-  color: var(--c-positive-300);
+  color: var(--text-secondary);
 }
 
 /* Progress bar */
 .tj-progress {
   position: relative;
   height: 22px;
-  background: var(--c-basic-200);
-  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border-radius: var(--radius-base);
   overflow: hidden;
   min-width: 120px;
 }
@@ -327,9 +341,9 @@ export default {
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--c-support-400);
+  background: var(--accent-fill);
   opacity: 0.2;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-base);
   transition: width 0.3s ease;
 }
 
@@ -342,7 +356,7 @@ export default {
   height: 100%;
   font-size: var(--fs-200);
   font-weight: 600;
-  color: var(--c-basic-700);
+  color: var(--text-body);
 }
 
 @media only screen and (max-width: 768px) {

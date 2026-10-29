@@ -1,48 +1,22 @@
 <template>
-  <div class="order-list p-500 fs-300 t-basic-800 h-100 ov-h">
-    <!-- Channel selector in toolbar (matches PIM pattern) -->
-    <Teleport to="#checkout-orders-toolbar-left" defer>
-      <span v-if="channels.length > 1" class="flex ai-ct gap-100">
-        <span class="t-basic-500 fs-200"
-          >{{ $t("checkout_orders.channel") }}:</span
-        >
-        <Dropdown
-          :values="channelOptions"
-          :selected="activeChannel ? [activeChannel] : []"
-          :placeholder="$t('checkout_orders.channel')"
-          class="order-list__channel-dropdown"
-          @onSelect="onChannelChange"
-        />
-      </span>
-    </Teleport>
-
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <!-- Heading -->
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("checkout_orders.orders") }}</h1>
-      </div>
-
-      <!-- Status FilterChips -->
-      <div class="flex ai-ct mb-400">
-        <MobileFilterPanel
-          :active-count="activeFilterCount"
-          :trigger-label="$t('checkout_orders.filters')"
-        >
-          <p class="fs-200 t-basic-600">{{ $t("checkout_orders.filters") }}</p>
-          <FilterChip
-            v-for="tab in statusTabs"
-            :key="tab.key"
-            :label="tab.label"
-            :active="selectedStatus === tab.key"
-            @click="setStatusFilter(tab.key)"
-          />
-        </MobileFilterPanel>
-      </div>
-
-      <!-- Search -->
-      <div class="flex ai-ct gap-300 mb-400 flex-wrap">
+  <PageLayout class="order-list fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('checkout_orders.orders')">
+        <template v-if="channels.length > 1" #meta>
+          <FormField :label="$t('checkout_orders.channel')" layout="inline">
+            <BasicSelect
+              :options="channelOptions"
+              :model-value="activeChannel"
+              :placeholder="$t('checkout_orders.channel')"
+              class="order-list__channel-dropdown"
+              @update:model-value="onChannelChange"
+            />
+          </FormField>
+        </template>
+      </PageHeader>
+    </template>
+    <template #toolbar>
+      <div class="order-list__toolbar">
         <BasicInput
           v-model="search"
           icon="search"
@@ -50,12 +24,23 @@
           class="order-list__search"
           @input="onSearchInput"
         />
+        <div class="filter-chip-row" role="group" :aria-label="$t('checkout_orders.filters')">
+          <FilterChip
+            v-for="tab in statusTabs"
+            :key="tab.key"
+            :label="tab.label"
+            :active="selectedStatus === tab.key"
+            @click="setStatusFilter(tab.key)"
+          />
+        </div>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <!-- Table -->
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="orders"
@@ -66,14 +51,14 @@
         <template #status="{ row }">
           <StatusBadge
             :label="statusLabel(row.status)"
-            :variant="statusVariant(row.status)"
+            :tone="statusVariant(row.status)"
           />
         </template>
         <template #total_gross="{ row }">
           <span v-if="row.total_gross"
             >{{ row.total_gross }} {{ row.currency }}</span
           >
-          <span v-else class="t-basic-500">-</span>
+          <span v-else class="t-muted">-</span>
         </template>
         <template #created="{ row }">
           {{ formatDate(row.created) }}
@@ -83,24 +68,25 @@
       <!-- Pagination -->
       <Pagination
         v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
 import { GET_Orders } from "@/api/orders/api";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { formatDate } from "@/utils/format";
 
 const STATUS_VARIANTS = {
   UNPAID: "warning",
   NEW: "warning",
   CONFIRMED: "positive",
-  HOLDED: "informative",
-  IN_PROGRESS: "informative",
+  HOLDED: "info",
+  IN_PROGRESS: "info",
   COMPLETED: "positive",
   RETURNED: "neutral",
   CANCELED: "negative",
@@ -128,6 +114,7 @@ export default {
           key: "pretty_id",
           label: this.$t("checkout_orders.order_id"),
           width: "120px",
+          priority: 2,
         },
         {
           key: "billing_email",
@@ -143,16 +130,21 @@ export default {
           key: "total_gross",
           label: this.$t("checkout_orders.total"),
           width: "120px",
+          priority: 2,
+          numeric: true,
         },
         {
           key: "item_count",
           label: this.$t("checkout_orders.items"),
           width: "80px",
+          priority: 2,
+          numeric: true,
         },
         {
           key: "created",
           label: this.$t("checkout_orders.created"),
           width: "140px",
+          priority: 2,
         },
       ],
     };
@@ -166,9 +158,6 @@ export default {
         page: this.currentPage,
         pages: Math.ceil(this.totalCount / this.pageSize),
       };
-    },
-    activeFilterCount() {
-      return this.selectedStatus && this.selectedStatus !== "all" ? 1 : 0;
     },
     statusTabs() {
       return [
@@ -281,20 +270,19 @@ export default {
       return t !== k ? t : s;
     },
     formatDate(d) {
-      if (!d) return "-";
-      return new Date(d).toLocaleDateString("pl-PL", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return d ? formatDate(d) : "-";
     },
   },
 };
 </script>
 
 <style lang="scss" scoped>
+.order-list__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+}
 .order-list__search {
   flex: 1;
   min-width: 150px;

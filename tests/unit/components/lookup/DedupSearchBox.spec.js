@@ -63,7 +63,7 @@ describe("DedupSearchBox.vue", () => {
     const wrapper = mountBox({ initialQuery: "5901234123457" });
     expect(wrapper.find(".stub-input").element.value).toBe("5901234123457");
 
-    await wrapper.find(".stub-button").trigger("click");
+    await wrapper.find("[data-testid='dedup-search-submit']").trigger("click");
     await flushPromises();
 
     expect(mockLookupSearch).toHaveBeenCalledWith({
@@ -93,7 +93,7 @@ describe("DedupSearchBox.vue", () => {
     });
     const wrapper = mountBox({ initialQuery: "5901234123457" });
 
-    await wrapper.find(".stub-button").trigger("click");
+    await wrapper.find("[data-testid='dedup-search-submit']").trigger("click");
     await flushPromises();
 
     expect(wrapper.emitted("results")[0][0].hits).toEqual([]);
@@ -114,7 +114,7 @@ describe("DedupSearchBox.vue", () => {
     });
     await flushPromises();
 
-    await wrapper.find(".stub-button").trigger("click");
+    await wrapper.find("[data-testid='dedup-search-submit']").trigger("click");
     await flushPromises();
 
     expect(mockDownscaleImage).toHaveBeenCalledWith(imageFile);
@@ -141,7 +141,7 @@ describe("DedupSearchBox.vue", () => {
     const blob = new Blob(["restored"], { type: "image/jpeg" });
     const wrapper = mountBox({ initialImage: blob });
 
-    await wrapper.find(".stub-button").trigger("click");
+    await wrapper.find("[data-testid='dedup-search-submit']").trigger("click");
     await flushPromises();
 
     expect(mockDownscaleImage).not.toHaveBeenCalled();
@@ -185,7 +185,7 @@ describe("DedupSearchBox.vue", () => {
     });
     const wrapper = mountBox({ initialQuery: "5901234123457" });
 
-    await wrapper.find(".stub-button").trigger("click");
+    await wrapper.find("[data-testid='dedup-search-submit']").trigger("click");
     await flushPromises();
 
     expect(wrapper.emitted("results")).toBeUndefined();

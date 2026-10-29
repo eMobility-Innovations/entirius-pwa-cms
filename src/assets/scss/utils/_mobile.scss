@@ -1,11 +1,12 @@
 @import "./media-query";
 
-// Mobile bottom bar height (consumed by layout calculations)
+// The shell's bottom tab bar (BottomTabBar, 72 px below the shell breakpoint): FloatingActions and fixed bottom bars
+// sit above it. App.vue sets it back to 0 on a screen without the bar.
 :root {
   --bottom-bar-height: 0px;
 
-  @include max-tablet {
-    --bottom-bar-height: 56px;
+  @include max-shell {
+    --bottom-bar-height: calc(var(--space-16) + var(--space-2));
   }
 }
 
@@ -29,7 +30,6 @@
     .btn-text {
       display: none !important;
     }
-    padding: 0 0.5rem !important;
+    padding: 0 var(--space-2) !important;
   }
 }
-

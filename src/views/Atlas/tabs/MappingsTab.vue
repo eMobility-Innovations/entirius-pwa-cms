@@ -1,109 +1,107 @@
 <template>
-  <div class="mappings-tab p-300 ovy-auto h-100">
-    <div class="flex ai-ct jc-sb mb-300">
+  <div class="flex flex-column">
+    <div class="flex ai-ct jc-sb mb-8">
       <h2 class="fs-400 fw-600">{{ $t("atlas.tabs.mappings") }}</h2>
-      <button
-        class="suppliers-primary-btn"
+      <BasicButton
+        variant="primary"
         data-testid="mappings-create-profile-btn"
         @click="openCreate"
       >
-        <FontAwesomeIcon icon="plus" />
         {{ $t("atlas.mappings.create_profile") }}
-      </button>
+      </BasicButton>
     </div>
 
-    <Loader v-show="loading" />
+    <Loader block v-show="loading" />
 
     <div v-show="!loading">
-      <div
+      <BasicCard
         v-for="profile in profiles"
         :key="profile.idx"
-        class="mapping-profile bg-basic-100 b-basic-300 br-sm p-300 mb-200"
+        class="mapping-profile mb-5"
         :data-testid="`mapping-profile-${profile.idx}`"
       >
-        <div class="flex ai-ct jc-sb gap-200 flex-wrap mb-200">
-          <div class="flex ai-ct gap-200 flex-wrap">
-            <strong class="t-basic-700">{{
+        <div class="flex ai-ct jc-sb gap-5 flex-wrap mb-5">
+          <div class="flex ai-ct gap-5 flex-wrap">
+            <strong class="t-body">{{
               profile.name || profile.idx
             }}</strong>
-            <span class="t-basic-500 fs-200">({{ profile.idx }})</span>
+            <span class="t-muted fs-200">({{ profile.idx }})</span>
             <StatusBadge
               v-for="ch in profile.target_channel_idxs || []"
               :key="ch"
               :label="ch"
-              variant="informative"
+              tone="info"
             />
             <StatusBadge
               :label="
                 profile.is_active ? $t('common.active') : $t('common.inactive')
               "
-              :variant="profile.is_active ? 'positive' : 'negative'"
+              :tone="profile.is_active ? 'positive' : 'negative'"
             />
-            <button
+            <BasicButton
               v-if="validationBadge(profile)"
-              type="button"
-              class="validation-badge-btn"
+              variant="ghost"
+              size="sm"
+              :aria-expanded="String(!!profile._expandValidation)"
               :data-testid="`mapping-validation-badge-${profile.idx}`"
               @click="toggleValidationDetail(profile)"
             >
               <StatusBadge
                 :label="validationBadge(profile).label"
-                :variant="validationBadge(profile).variant"
+                :tone="validationBadge(profile).variant"
               />
-            </button>
+            </BasicButton>
           </div>
-          <div class="flex ai-ct gap-100">
-            <button
-              class="suppliers-secondary-btn"
+          <div class="flex ai-ct gap-2">
+            <BasicButton
+              size="sm"
               :data-testid="`mapping-edit-profile-${profile.idx}`"
               @click="openEdit(profile)"
             >
-              <FontAwesomeIcon icon="pen-to-square" />
               {{ $t("common.edit") }}
-            </button>
-            <button
-              class="suppliers-secondary-btn"
+            </BasicButton>
+            <BasicButton :mutates="false"
+              size="sm"
               :data-testid="`mapping-validate-${profile.idx}`"
               @click="validateProfile(profile)"
             >
-              <FontAwesomeIcon icon="check" />
               {{ $t("atlas.mappings.validate") }}
-            </button>
-            <button
-              class="row-action-btn bg-negative-100 t-negative-300"
-              :title="$t('common.delete')"
+            </BasicButton>
+            <IconButton
+              icon="delete"
+              variant="danger"
+              size="sm"
+              :label="$t('common.delete')"
               :data-testid="`mapping-delete-profile-${profile.idx}`"
               @click="confirmDeleteProfile(profile)"
-            >
-              <FontAwesomeIcon icon="trash-can" />
-            </button>
+            />
           </div>
         </div>
         <div
           v-if="profile._expandValidation && profile._validation"
-          class="validation-detail mb-200 p-200 b-basic-300 br-sm"
+          class="validation-detail mb-5 p-5 b-subtle rounded"
           :data-testid="`mapping-validation-detail-${profile.idx}`"
         >
           <div
             v-for="(group, kind) in groupedValidation(profile)"
             :key="kind"
-            class="mb-100"
+            class="mb-2"
           >
-            <h4 class="fs-200 fw-600 t-basic-600 mb-50">
+            <h4 class="fs-200 fw-600 t-secondary mb-1">
               {{ kind }} ({{ group.length }})
             </h4>
             <ul class="validation-list">
               <li
                 v-for="(w, i) in group"
                 :key="i"
-                class="validation-entry fs-200 t-basic-700"
+                class="validation-entry fs-200 t-body"
                 :class="
-                  w.severity === 'error' ? 't-negative-300' : 't-warning-300'
+                  w.severity === 'error' ? 't-negative' : 't-warning'
                 "
               >
                 <strong>{{ w.code }}:</strong>
                 {{ w.message }}
-                <em v-if="w.details?.suggestion" class="t-basic-500">
+                <em v-if="w.details?.suggestion" class="t-muted">
                   ({{
                     $t(
                       "atlas.mappings.warning_codes.source_value_suggestion",
@@ -118,11 +116,11 @@
           </div>
         </div>
         <details class="mapping-profile__expand">
-          <summary class="t-basic-600 fs-200 pointer">
+          <summary class="t-secondary fs-200 pointer">
             {{ $t("atlas.mappings.expand_label") }}
           </summary>
-          <div class="mt-200">
-            <h3 class="fs-300 fw-600 mb-100">
+          <div class="mt-5">
+            <h3 class="fs-300 fw-600 mb-2">
               {{ $t("atlas.mappings.attribute_section") }}
             </h3>
             <AttributeMappingRow
@@ -138,16 +136,16 @@
               @save="(payload) => saveAttributeMapping(profile, payload)"
               @delete="(payload) => deleteAttributeMapping(profile, payload)"
             />
-            <button
-              class="suppliers-secondary-btn mt-100"
+            <BasicButton
+              size="sm"
+              class="mt-2"
               :data-testid="`mapping-add-attribute-${profile.idx}`"
               @click="addAttributeRow(profile)"
             >
-              <FontAwesomeIcon icon="plus" />
               {{ $t("atlas.mappings.add_attribute") }}
-            </button>
+            </BasicButton>
 
-            <h3 class="fs-300 fw-600 mt-300 mb-100">
+            <h3 class="fs-300 fw-600 mt-8 mb-2">
               {{ $t("atlas.mappings.category_section") }}
             </h3>
             <CategoryMappingRow
@@ -162,21 +160,21 @@
               @save="(payload) => saveCategoryMapping(profile, payload)"
               @delete="(payload) => deleteCategoryMapping(profile, payload)"
             />
-            <button
-              class="suppliers-secondary-btn mt-100"
+            <BasicButton
+              size="sm"
+              class="mt-2"
               :data-testid="`mapping-add-category-${profile.idx}`"
               @click="addCategoryRow(profile)"
             >
-              <FontAwesomeIcon icon="plus" />
               {{ $t("atlas.mappings.add_category") }}
-            </button>
+            </BasicButton>
           </div>
         </details>
-      </div>
+      </BasicCard>
       <EmptyState
         v-if="!profiles.length"
         :title="$t('atlas.mappings.empty')"
-        icon="layer-group"
+        icon="layers"
       />
     </div>
 
@@ -186,25 +184,28 @@
       width="420px"
       @close="closeForm"
     >
-      <form class="flex flex-column gap-200" @submit.prevent="submitForm">
+      <form class="flex flex-column gap-5" @submit.prevent="submitForm">
         <FormField :label="$t('atlas.form.name_label')" required>
-          <BasicInput v-model="formData.name" data-testid="mapping-form-name" />
+          <BasicInput v-model="formData.name" :maxlength="128" data-testid="mapping-form-name" />
         </FormField>
-        <FormField :label="$t('atlas.form.idx_label')" required>
+        <FormField
+          :label="$t('atlas.form.idx_label')"
+          required
+          :error="errors.idx?.msg || ''"
+        >
           <BasicInput
             :model-value="formData.idx"
+            format="key"
+            :maxlength="64"
             placeholder="default"
-            :is-disabled="!!editingIdx"
+            :disabled="!!editingIdx"
             data-testid="mapping-form-idx"
             @update:modelValue="onIdxInput"
           />
-          <p v-if="errors.idx" class="form-error t-negative-300 fs-200">
-            {{ errors.idx.msg }}
-          </p>
         </FormField>
         <FormField
           :label="$t('atlas.mappings.target_channels_label')"
-          :description="$t('atlas.mappings.target_channels_hint_select')"
+          :hint="$t('atlas.mappings.target_channels_hint_select')"
         >
           <ChannelMultiSelect
             v-model="formData.target_channel_idxs"
@@ -215,68 +216,58 @@
           />
         </FormField>
         <FormField :label="$t('atlas.mappings.import_language_label')">
-          <Dropdown
-            :values="languageOptions"
-            :selected="[formData.import_language_id]"
+          <BasicSelect
+            :options="languageOptions"
+            v-model="formData.import_language_id"
             :placeholder="$t('atlas.mappings.import_language_placeholder')"
             data-testid="mapping-form-language"
-            @onSelect="(val) => (formData.import_language_id = val)"
           />
           <p
             v-if="languageMismatchHint"
-            class="fs-200 t-warning-300 mt-50"
+            class="fs-200 t-warning mt-1"
             data-testid="mapping-form-language-mismatch-hint"
           >
             {{ languageMismatchHint }}
           </p>
         </FormField>
         <FormField :label="$t('atlas.form.feature_set_label')">
-          <Dropdown
-            :values="featureSetOptions"
-            :selected="[formData.feature_set_idx]"
+          <BasicSelect
+            :options="featureSetOptions"
+            v-model="formData.feature_set_idx"
             :placeholder="$t('atlas.mappings.feature_set_placeholder')"
             data-testid="mapping-form-feature-set"
-            @onSelect="(val) => (formData.feature_set_idx = val)"
           />
         </FormField>
         <FormField :label="$t('atlas.form.is_active_label')">
-          <Switcher
-            :selected="formData.is_active"
+          <BasicSwitch
+            v-model="formData.is_active"
             data-testid="mapping-form-is-active"
-            @onSelect="formData.is_active = !formData.is_active"
           />
         </FormField>
-        <div class="flex ai-ct jc-end gap-200 mt-300">
-          <button
-            type="button"
-            class="suppliers-secondary-btn"
-            data-testid="mapping-form-cancel"
-            @click="closeForm"
-          >
+        <div class="flex ai-ct jc-end gap-5 mt-8">
+          <BasicButton data-testid="mapping-form-cancel" @click="closeForm">
             {{ $t("common.cancel") }}
-          </button>
-          <button
+          </BasicButton>
+          <BasicButton
+            variant="primary"
             type="submit"
-            class="suppliers-primary-btn"
             :disabled="formBusy"
             data-testid="mapping-form-submit"
           >
-            <FontAwesomeIcon icon="floppy-disk" />
             {{ $t("common.save") }}
-          </button>
+          </BasicButton>
         </div>
       </form>
     </SideDrawer>
 
-    <Confirmation-modal
-      :visible="deleteVisible"
-      @accept="executeDeleteProfile"
-      @reject="deleteVisible = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="deleteVisible"
+      @confirm="executeDeleteProfile"
+      @cancel="deleteVisible = false"
+      :title="$t('atlas.mappings.delete_title')"
     >
-      <template #header>
-        <h2>{{ $t("atlas.mappings.delete_title") }}</h2>
-      </template>
-      <template #description>
+      <template #default>
         <p>
           {{
             $t("atlas.mappings.delete_body", {
@@ -285,14 +276,13 @@
           }}
         </p>
       </template>
-    </Confirmation-modal>
+    </ConfirmDialog>
   </div>
 </template>
 
 <script>
 import AttributeMappingRow from "../components/AttributeMappingRow.vue";
 import CategoryMappingRow from "../components/CategoryMappingRow.vue";
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
 import { useNotifyStore } from "@/stores/notify";
 import { useFormErrors, extractApiMessage } from "@/composables/useFormErrors";
 import {
@@ -330,14 +320,14 @@ const EMPTY_PROFILE = () => ({
 
 export default {
   name: "MappingsTab",
-  components: { AttributeMappingRow, CategoryMappingRow, ConfirmationModal },
+  components: { AttributeMappingRow, CategoryMappingRow },
   props: {
     supplier: { type: Object, default: null },
   },
   setup() {
     const notify = useNotifyStore();
-    const { errors, handleApiError, clearErrors } = useFormErrors();
-    return { notify, errors, handleApiError, clearErrors };
+    const { errors, handleApiError, clearErrors, validateFormats } = useFormErrors();
+    return { notify, errors, handleApiError, clearErrors, validateFormats };
   },
   data() {
     return {
@@ -548,8 +538,9 @@ export default {
     },
     async submitForm() {
       if (!this.supplier?.idx) return;
-      this.formBusy = true;
       this.clearErrors();
+      if (!this.editingIdx && !this.validateFormats(this.formData, { idx: { format: "key" } })) return;
+      this.formBusy = true;
       try {
         const isEdit = !!this.editingIdx;
         const payload = {
@@ -656,7 +647,7 @@ export default {
       if (v.busy) {
         return {
           label: this.$t("atlas.mappings.badge.checking"),
-          variant: "informative",
+          variant: "info",
         };
       }
       if (v.errors.length) {
@@ -839,73 +830,14 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.mappings-tab {
-  display: flex;
-  flex-direction: column;
-}
 .mapping-profile__expand summary {
   cursor: pointer;
-}
-.suppliers-primary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--c-support-400);
-  background: var(--c-support-400);
-  color: var(--c-basic-100);
-  cursor: pointer;
-}
-.suppliers-primary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.suppliers-secondary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  font-size: var(--fs-200);
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--c-basic-400);
-  background: var(--c-basic-100);
-  color: var(--c-basic-700);
-  cursor: pointer;
-}
-.suppliers-secondary-btn:hover {
-  background: var(--c-basic-200);
-}
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-.form-error {
-  margin: 0;
-  margin-top: 2px;
 }
 .pointer {
   cursor: pointer;
 }
-.validation-badge-btn {
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
 .validation-detail {
-  background: var(--c-basic-200);
+  background: var(--surface-raised);
 }
 .validation-list {
   list-style: none;
@@ -916,7 +848,7 @@ export default {
   padding: 2px 0;
   line-height: 1.4;
 }
-.mb-50 {
-  margin-bottom: 5px;
+.mb-1 {
+  margin-bottom: var(--space-1);
 }
 </style>

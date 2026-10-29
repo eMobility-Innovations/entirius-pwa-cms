@@ -1,51 +1,48 @@
 <template>
-  <div class="voucher-detail p-500 fs-300 t-basic-800 h-100 ovy-auto">
-    <Teleport to="#promo-toolbar-left" defer>
-      <BasicButton text="" icon="arrow-left" @click="navigateBack" />
-      <span class="fw-600">{{ $t("promo.voucher_title") }} #{{ pk }}</span>
-    </Teleport>
-    <Teleport to="#promo-toolbar-right" defer>
-      <BasicButton
-        :text="$t('promo.voucher_reveal_btn')"
-        class="btn-secondary"
-        @click="reveal"
-      />
-    </Teleport>
+  <PageLayout class="voucher-detail fs-300 t-body">
+    <template #header>
+      <PageHeader :title="`${$t('promo.voucher_title')} #${pk}`" :back="navigateBack">
+        <template #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
 
-    <Loader v-if="loading" />
+    <Loader block v-if="loading" />
 
     <template v-else-if="voucher">
-      <div class="bg-basic-100 b-basic-300 br-50 p-500 mb-400">
-        <div class="flex ai-ct jc-sb mb-400">
+      <BasicCard class="mb-10">
+        <div class="flex ai-ct jc-sb mb-10">
           <StatusBadge
             :label="statusLabel(voucher.status)"
-            :variant="statusVariant(voucher.status)"
+            :tone="statusVariant(voucher.status)"
           />
           <span class="fs-400 fw-600">
             {{ voucher.balance }}
-            <span class="t-basic-400"
+            <span class="t-muted"
               >/ {{ voucher.face_value }} {{ voucher.currency }}</span
             >
           </span>
         </div>
 
-        <div v-if="availableActions.length" class="voucher-detail__bok mb-400">
-          <BasicButton
+        <div v-if="availableActions.length" class="voucher-detail__bok mb-10">
+          <BasicButton mutates
             v-for="act in availableActions"
             :key="act.action"
-            :text="$t('promo.act_' + act.key)"
-            class="btn-secondary"
+            variant="secondary"
             @click="openAction(act)"
-          />
+          >
+            {{ $t('promo.act_' + act.key) }}
+          </BasicButton>
         </div>
 
         <div
           v-if="revealedCode"
-          class="voucher-detail__code bg-support-100 t-support-400 br-50 p-300 mb-400"
+          class="voucher-detail__code bg-accent-subtle t-strong rounded p-8 mb-10"
         >
           <span class="fs-200">{{ $t("promo.voucher_code") }}:</span>
           <code class="fw-600">{{ revealedCode }}</code>
-          <span v-if="hasPin" class="fs-200 t-basic-500"
+          <span v-if="hasPin" class="fs-200 t-muted"
             >({{ $t("promo.voucher_has_pin") }})</span
           >
         </div>
@@ -84,14 +81,16 @@
             <dd>{{ voucher.admin_notes }}</dd>
           </div>
         </dl>
-      </div>
+      </BasicCard>
 
-      <div class="bg-basic-100 b-basic-300 br-50 p-500">
-        <SegmentedControl
-          v-model="historyTab"
-          :options="historyTabs"
-          class="mb-400"
-        />
+      <BasicCard>
+        <ReadonlyOff>
+          <SegmentedControl
+            v-model="historyTab"
+            :options="historyTabs"
+            class="mb-10"
+          />
+        </ReadonlyOff>
         <DataTable
           v-if="historyTab === 'events'"
           :columns="eventColumns"
@@ -121,11 +120,11 @@
           :empty-text="$t('promo.voucher_no_redemptions')"
         >
           <template #cell-order_id="{ row }">
-            <a
+            <router-link
               v-if="ordersEnabled && row.order_pretty_id"
-              class="voucher-order-link"
-              @click="openOrder(row)"
-              >{{ row.order_pretty_id }}</a
+              class="t-accent"
+              :to="orderRoute(row)"
+              >{{ row.order_pretty_id }}</router-link
             >
             <span v-else>{{ row.order_pretty_id || row.order_id }}</span>
           </template>
@@ -136,7 +135,7 @@
             formatDateTime(row.created_at)
           }}</template>
         </DataTable>
-      </div>
+      </BasicCard>
     </template>
 
     <SideDrawer
@@ -164,17 +163,10 @@
           />
           <BasicInput v-else v-model="actionForm[f]" />
         </FormField>
-        <div class="voucher-form__actions">
-          <BasicButton
-            :text="$t('promo.btn_save')"
-            class="btn-primary"
-            :is-disabled="actionSaving"
-            @click="submitAction"
-          />
-        </div>
+        <ActionBar :actions="actionDrawerActions" class="mt-10" />
       </div>
     </SideDrawer>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -190,6 +182,8 @@ import {
   POST_VoucherReveal,
   POST_VoucherAction,
 } from "@/api/voucher/api";
+import { enumLabel } from "./promo-enum-hints";
+import { ReadonlyOff } from "@/composables/useReadonly";
 
 const STATUS_VARIANT = {
   active: "positive",
@@ -221,6 +215,7 @@ const STATUS_ACTIONS = {
 
 export default {
   name: "VoucherDetail",
+  components: { ReadonlyOff },
   setup() {
     const notify = useNotifyStore();
     const munin = useMuninStore();
@@ -255,6 +250,15 @@ export default {
     },
     pk() {
       return this.$route.params.pk;
+    },
+    headerActions() {
+      return [{ key: "reveal", role: "secondary", label: this.$t("promo.voucher_reveal_btn"), onClick: this.reveal }];
+    },
+    actionDrawerActions() {
+      return [
+        { key: "save", role: "primary", label: this.$t("promo.btn_save"), onClick: this.submitAction,
+          disabled: this.actionSaving },
+      ];
     },
     historyTabs() {
       return [
@@ -328,7 +332,7 @@ export default {
     },
     statusLabel(status) {
       const found = this.statuses.find((s) => s.value === status);
-      return found ? found.label.split("—")[0].trim() : status;
+      return enumLabel("voucher_status", status, found?.label.split("—")[0].trim());
     },
     eventLabel(type) {
       const found = this.eventTypes.find((e) => e.value === type);
@@ -397,13 +401,8 @@ export default {
         });
       }
     },
-    openOrder(row) {
-      if (!this.ordersEnabled || !row.order_pretty_id) return;
-      this.$router.push({
-        name: "OrderDetail",
-        params: { uid: row.order_pretty_id },
-        query: { channel: this.channel },
-      });
+    orderRoute(row) {
+      return { name: "OrderDetail", params: { uid: row.order_pretty_id }, query: { channel: this.channel } };
     },
     navigateBack() {
       this.$router.push({ path: "/promo/list", query: { tab: "vouchers" } });
@@ -463,42 +462,30 @@ export default {
 .voucher-detail__bok {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 
 .voucher-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-300);
-}
-
-.voucher-form__actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-400);
-}
-
-.voucher-order-link {
-  color: var(--c-support-400);
-  text-decoration: underline;
-  cursor: pointer;
+  gap: var(--space-8);
 }
 
 .voucher-detail__code {
   display: flex;
   align-items: center;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 
 .voucher-detail__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-300);
+  gap: var(--space-8);
   margin: 0;
 
   dt {
     font-size: var(--fs-200);
-    color: var(--c-basic-500);
+    color: var(--text-muted);
     margin-bottom: 2px;
   }
 

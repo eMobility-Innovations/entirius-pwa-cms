@@ -10,14 +10,16 @@
           :active="mode === opt.value"
           @click="setMode(opt.value)"
         />
-        <Dropdown
-          v-if="mode === 'by_source' && sourceOptions.length > 1"
-          :values="sourceOptions"
-          :selected="selectedSource ? [selectedSource] : []"
-          :placeholder="$t('pim.supplier.timeline.source_label')"
-          class="supplier-timeline__source-dropdown"
-          @onSelect="onSourceSelect"
-        />
+        <ReadonlyOff>
+          <BasicSelect
+            :floating-label="$t('pim.supplier.timeline.source_label')"
+            v-if="mode === 'by_source' && sourceOptions.length > 1"
+            :options="sourceOptions"
+            v-model="selectedSource"
+            class="supplier-timeline__source-dropdown"
+            @update:model-value="onSourceSelect"
+          />
+        </ReadonlyOff>
       </div>
     </div>
     <ul v-if="filteredEntries.length" class="supplier-timeline__list">
@@ -27,17 +29,18 @@
       v-else
       :title="$t('pim.supplier.timeline.empty')"
       :message="''"
-      icon="clock-rotate-left"
+      icon="history"
     />
   </div>
 </template>
 
 <script>
 import TimelineEntry from "./TimelineEntry.vue";
+import { ReadonlyOff } from "@/composables/useReadonly";
 
 export default {
   name: "SupplierTimeline",
-  components: { TimelineEntry },
+  components: { ReadonlyOff, TimelineEntry },
   props: {
     entries: { type: Array, default: () => [] },
   },
@@ -86,21 +89,21 @@ export default {
 
 <style lang="scss" scoped>
 .supplier-timeline {
-  margin-top: var(--space-400);
+  margin-top: var(--space-10);
 }
 .supplier-timeline__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-200);
-  margin-bottom: var(--space-200);
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
 }
 .supplier-timeline__filters {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-100);
+  gap: var(--space-2);
 }
 .supplier-timeline__source-dropdown {
   min-width: 180px;
@@ -108,7 +111,9 @@ export default {
 .supplier-timeline__list {
   list-style: none;
   margin: 0;
-  padding: var(--space-200) 0;
-  border-top: 1px solid var(--c-basic-200);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 </style>

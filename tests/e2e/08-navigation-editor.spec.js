@@ -7,6 +7,24 @@
 
 const { test, expect } = require("@playwright/test");
 const { login } = require("../helpers/auth");
+const { either: escapedEither, escapeRegExp } = require("./helpers/text");
+const en = require("../../src/i18n/locales/en.json");
+const pl = require("../../src/i18n/locales/pl.json");
+
+// The admin profile picks the UI language; accept either locale's text.
+const either = (pick) => escapedEither(pick(en), pick(pl));
+const LE = (key) => either((t) => t.layout_extender[key]);
+const dialog = (page) => page.getByRole("dialog");
+// A required field's name ends in the FormField marker (" *").
+const fieldName = (key) => {
+  const names = [en, pl].map((t) => escapeRegExp(t.layout_extender[key]));
+  return new RegExp(`^(${names.join("|")})( \\*)?$`);
+};
+const textbox = (page, key) =>
+  dialog(page).getByRole("textbox", { name: fieldName(key) });
+const closeDialog = (page) =>
+  dialog(page).getByRole("button", { name: either((t) => t.common.close) }).click();
+const saveDraft = (page) => page.getByRole("button", { name: LE("save_draft") }).click();
 
 const API_BASE = process.env.VUE_APP_API_URL || "http://localhost:8000";
 const CHANNEL = process.env.VUE_APP_CHANNEL || "default-local";
@@ -28,7 +46,8 @@ async function apiLogin() {
     }
   );
   if (!resp.ok) throw new Error(`API login failed: ${resp.status}`);
-  return (await resp.json()).access;
+  // The token endpoint answers in the API v2 envelope ({ meta, data: { access } }).
+  return (await resp.json()).data.access;
 }
 
 async function apiPost(token, path, body) {
@@ -110,7 +129,10 @@ test.describe("Navigation Editor", () => {
 
       for (let i = 0; i < count; i++) {
         const hasDanger =
-          (await rows.nth(i).locator(".le-list__action--danger").count()) > 0;
+          (await rows
+            .nth(i)
+            .getByRole("button", { name: either((t) => t.common.delete) })
+            .count()) > 0;
         if (!hasDanger) foundSystem = true;
       }
 
@@ -159,9 +181,9 @@ test.describe("Navigation Editor", () => {
       ).toBeVisible({ timeout: 10000 });
 
       await page.locator(".data-table__row").first().click();
-      await page.waitForLoadState("networkidle", { timeout: 10000 });
 
-      expect(page.url()).toMatch(/\/pages\/layout-extender\/(header|footer)\//);
+      // The editor route loads lazily: retry until the push lands.
+      await expect(page).toHaveURL(/\/pages\/layout-extender\/(header|footer)\//);
     });
   });
 
@@ -200,10 +222,10 @@ test.describe("Navigation Editor", () => {
       await page.goto(`/pages/layout-extender/header/${testDocUid}`);
       await page.waitForLoadState("networkidle", { timeout: 15000 });
 
-      // Doc name in toolbar
-      await expect(
-        page.locator(".nav-editor__toolbar-name .fw-600")
-      ).toHaveText("E2E Test Nav");
+      // Doc name is the page title
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        "E2E Test Nav"
+      );
 
       // Empty state visible, no items
       await expect(page.locator(".nav-empty")).toBeVisible();
@@ -213,16 +235,12 @@ test.describe("Navigation Editor", () => {
     // --- Add items ---
 
     test("add simple link item via modal", async () => {
-      // Click "Add item" (the support-400 button with mt-300 in content area)
-      await page.locator("button.bg-support-400.mt-300").click();
-      await expect(page.locator(".modal-overlay")).toBeVisible({ timeout: 5000 });
+      // Click "Add item" (content area, below the list)
+      await page.getByTestId("nav-editor-add-item").click();
+      await expect(dialog(page)).toBeVisible({ timeout: 5000 });
 
       // Fill label
-      await page
-        .locator(".modal-body .form-group")
-        .first()
-        .locator("input")
-        .fill("Test Link");
+      await textbox(page, "label").fill("Test Link");
 
       // display_as defaults to "link"
       await expect(
@@ -233,16 +251,12 @@ test.describe("Navigation Editor", () => {
       await page.locator('input[type="radio"][value="url"]').click();
       await page.waitForTimeout(300);
 
-      // Fill URL in the last form-group input
-      await page
-        .locator(".modal-body .form-group")
-        .last()
-        .locator("input")
-        .fill("https://example.com");
+      // Fill the URL field
+      await textbox(page, "url").fill("https://example.com");
 
       // Save
-      await page.locator(".modal-btn--confirm").click();
-      await expect(page.locator(".modal-overlay")).not.toBeVisible({
+      await page.locator('[data-testid="modal-save"]').click();
+      await expect(dialog(page)).not.toBeVisible({
         timeout: 3000,
       });
 
@@ -252,41 +266,37 @@ test.describe("Navigation Editor", () => {
       await expect(items.first().locator(".fg-1.fw-500")).toHaveText(
         "Test Link"
       );
-      // Link badge (bg-basic-300)
+      // Link badge
       await expect(
-        items.first().locator(".nav-item__row .bg-basic-300.t-basic-700")
+        items.first().getByTestId("nav-item-type-link")
       ).toBeVisible();
     });
 
     test("add megamenu item via modal", async () => {
-      await page.locator("button.bg-support-400.mt-300").click();
-      await expect(page.locator(".modal-overlay")).toBeVisible({ timeout: 5000 });
+      await page.getByTestId("nav-editor-add-item").click();
+      await expect(dialog(page)).toBeVisible({ timeout: 5000 });
 
-      await page
-        .locator(".modal-body .form-group")
-        .first()
-        .locator("input")
-        .fill("Test Mega");
+      await textbox(page, "label").fill("Test Mega");
 
       // Select megamenu
       await page.locator('input[type="radio"][value="megamenu"]').click();
 
-      await page.locator(".modal-btn--confirm").click();
-      await expect(page.locator(".modal-overlay")).not.toBeVisible({
+      await page.locator('[data-testid="modal-save"]').click();
+      await expect(dialog(page)).not.toBeVisible({
         timeout: 3000,
       });
 
       const items = page.locator(".nav-item");
       await expect(items).toHaveCount(2);
 
-      // Second item has megamenu badge (bg-support-100)
+      // Second item has megamenu badge
       await expect(
-        items.nth(1).locator(".nav-item__row .bg-support-100.t-support-400")
+        items.nth(1).getByTestId("nav-item-type-megamenu")
       ).toBeVisible();
     });
 
     test("unsaved badge appears", async () => {
-      await expect(page.locator(".chip.bg-warning-100")).toBeVisible();
+      await expect(page.getByTestId("nav-editor-unsaved-badge")).toBeVisible();
     });
 
     // --- Expand megamenu & manage columns ---
@@ -300,10 +310,9 @@ test.describe("Navigation Editor", () => {
         megaItem.locator(".nav-item__expanded")
       ).toBeVisible({ timeout: 3000 });
 
-      // Click "Add column" — first nav-btn-outline in expanded area
       await megaItem
-        .locator(".nav-item__expanded button.nav-btn-outline")
-        .first()
+        .locator(".nav-item__expanded")
+        .getByRole("button", { name: LE("add_column") })
         .click();
 
       // Links column should appear
@@ -314,29 +323,20 @@ test.describe("Navigation Editor", () => {
       const megaItem = page.locator(".nav-item").nth(1);
       const column = megaItem.locator(".nav-column").first();
 
-      // Click "+ Add link"
-      await column.locator("a.nav-add-link").click();
-      await expect(page.locator(".modal-overlay")).toBeVisible({ timeout: 5000 });
+      await column.getByRole("button", { name: LE("add_link") }).click();
+      await expect(dialog(page)).toBeVisible({ timeout: 5000 });
 
       // Fill label
-      await page
-        .locator(".modal-body .form-group")
-        .first()
-        .locator("input")
-        .fill("Column Link 1");
+      await textbox(page, "label").fill("Column Link 1");
 
       // Select url link type
       await page.locator('input[type="radio"][value="url"]').click();
       await page.waitForTimeout(300);
 
-      await page
-        .locator(".modal-body .form-group")
-        .last()
-        .locator("input")
-        .fill("https://link1.example.com");
+      await textbox(page, "url").fill("https://link1.example.com");
 
-      await page.locator(".modal-btn--confirm").click();
-      await expect(page.locator(".modal-overlay")).not.toBeVisible({
+      await page.locator('[data-testid="modal-save"]').click();
+      await expect(dialog(page)).not.toBeVisible({
         timeout: 3000,
       });
 
@@ -350,18 +350,17 @@ test.describe("Navigation Editor", () => {
     test("add banner column via modal", async () => {
       const megaItem = page.locator(".nav-item").nth(1);
 
-      // Click "Add banner" — second nav-btn-outline in expanded area
       await megaItem
-        .locator(".nav-item__expanded button.nav-btn-outline")
-        .nth(1)
+        .locator(".nav-item__expanded")
+        .getByRole("button", { name: LE("add_banner") })
         .click();
 
       // EditBannerModal opens
-      await expect(page.locator(".modal-overlay")).toBeVisible({ timeout: 5000 });
+      await expect(dialog(page)).toBeVisible({ timeout: 5000 });
 
       // Save with defaults (no image required)
-      await page.locator(".modal-btn--confirm").click();
-      await expect(page.locator(".modal-overlay")).not.toBeVisible({
+      await page.locator('[data-testid="modal-save"]').click();
+      await expect(dialog(page)).not.toBeVisible({
         timeout: 3000,
       });
 
@@ -380,17 +379,14 @@ test.describe("Navigation Editor", () => {
         .first()
         .click();
 
-      await expect(page.locator(".modal-overlay")).toBeVisible({ timeout: 5000 });
+      await expect(dialog(page)).toBeVisible({ timeout: 5000 });
 
       // Change label
-      const labelInput = page
-        .locator(".modal-body .form-group")
-        .first()
-        .locator("input");
+      const labelInput = textbox(page, "label");
       await labelInput.fill("Updated Link");
 
-      await page.locator(".modal-btn--confirm").click();
-      await expect(page.locator(".modal-overlay")).not.toBeVisible({
+      await page.locator('[data-testid="modal-save"]').click();
+      await expect(dialog(page)).not.toBeVisible({
         timeout: 3000,
       });
 
@@ -436,11 +432,7 @@ test.describe("Navigation Editor", () => {
       await expect(megaItem.locator(".nav-column")).toHaveCount(2);
 
       // Remove banner column (second)
-      await megaItem
-        .locator(".nav-column")
-        .nth(1)
-        .locator(".nav-action--danger")
-        .click();
+      await megaItem.locator(".nav-column").nth(1).getByTestId("nav-column-delete").click();
 
       await expect(megaItem.locator(".nav-column")).toHaveCount(1);
     });
@@ -461,13 +453,12 @@ test.describe("Navigation Editor", () => {
     // --- Save / Reload / Publish ---
 
     test("save draft clears unsaved badge", async () => {
-      await expect(page.locator(".chip.bg-warning-100")).toBeVisible();
+      await expect(page.getByTestId("nav-editor-unsaved-badge")).toBeVisible();
 
-      // Save draft — btn-outline in the toolbar
-      await page.locator("button.btn-outline").click();
+      await saveDraft(page);
       await page.waitForLoadState("networkidle", { timeout: 10000 });
 
-      await expect(page.locator(".chip.bg-warning-100")).not.toBeVisible({
+      await expect(page.getByTestId("nav-editor-unsaved-badge")).not.toBeVisible({
         timeout: 5000,
       });
     });
@@ -483,10 +474,8 @@ test.describe("Navigation Editor", () => {
     });
 
     test("publish shows success notification", async () => {
-      // Click Publish — the bg-support-400 button (not the Add-item button,
-      // which is also bg-support-400 but has mt-300 and is in content area).
-      // Publish lives in the toolbar, rendered via Teleport.
-      await page.locator("button.bg-support-400:not(.mt-300)").click();
+      // Publish is the primary action of the page header.
+      await page.getByTestId("nav-editor-publish").click();
       await page.waitForLoadState("networkidle", { timeout: 10000 });
 
       // Notification should appear (positive toast)
@@ -512,20 +501,20 @@ test.describe("Navigation Editor", () => {
         await page.waitForLoadState("networkidle", { timeout: 15000 });
 
         // Open Add item modal
-        await page.locator("button.bg-support-400.mt-300").click();
-        await expect(page.locator(".modal-overlay")).toBeVisible({
+        await page.getByTestId("nav-editor-add-item").click();
+        await expect(dialog(page)).toBeVisible({
           timeout: 5000,
         });
 
         // Leave label empty, click save
-        await page.locator(".modal-btn--confirm").click();
+        await page.locator('[data-testid="modal-save"]').click();
 
         // Modal should still be open (validation prevents save)
-        await expect(page.locator(".modal-overlay")).toBeVisible();
+        await expect(dialog(page)).toBeVisible();
 
         // Close and verify no items added
-        await page.locator(".modal-close").click();
-        await expect(page.locator(".modal-overlay")).not.toBeVisible({
+        await closeDialog(page);
+        await expect(dialog(page)).not.toBeVisible({
           timeout: 3000,
         });
         await expect(page.locator(".nav-item")).toHaveCount(0);
@@ -543,20 +532,16 @@ test.describe("Navigation Editor", () => {
         await page.goto(`/pages/layout-extender/header/${uid}`);
         await page.waitForLoadState("networkidle", { timeout: 15000 });
 
-        await page.locator("button.bg-support-400.mt-300").click();
-        await expect(page.locator(".modal-overlay")).toBeVisible({
+        await page.getByTestId("nav-editor-add-item").click();
+        await expect(dialog(page)).toBeVisible({
           timeout: 5000,
         });
 
         // Fill label but close via X
-        await page
-          .locator(".modal-body .form-group")
-          .first()
-          .locator("input")
-          .fill("Should Not Be Added");
+        await textbox(page, "label").fill("Should Not Be Added");
 
-        await page.locator(".modal-close").click();
-        await expect(page.locator(".modal-overlay")).not.toBeVisible({
+        await closeDialog(page);
+        await expect(dialog(page)).not.toBeVisible({
           timeout: 3000,
         });
         await expect(page.locator(".nav-item")).toHaveCount(0);
@@ -574,22 +559,18 @@ test.describe("Navigation Editor", () => {
         await page.goto(`/pages/layout-extender/header/${uid}`);
         await page.waitForLoadState("networkidle", { timeout: 15000 });
 
-        await page.locator("button.bg-support-400.mt-300").click();
-        await expect(page.locator(".modal-overlay")).toBeVisible({
+        await page.getByTestId("nav-editor-add-item").click();
+        await expect(dialog(page)).toBeVisible({
           timeout: 5000,
         });
 
-        await page
-          .locator(".modal-body .form-group")
-          .first()
-          .locator("input")
-          .fill("Should Not Be Added");
+        await textbox(page, "label").fill("Should Not Be Added");
 
         // Click overlay (self-click closes via @click.self)
         await page
-          .locator(".modal-overlay")
+          .locator(".basic-modal")
           .click({ position: { x: 10, y: 10 } });
-        await expect(page.locator(".modal-overlay")).not.toBeVisible({
+        await expect(dialog(page)).not.toBeVisible({
           timeout: 3000,
         });
         await expect(page.locator(".nav-item")).toHaveCount(0);
@@ -631,12 +612,13 @@ test.describe("Navigation Editor", () => {
         ).toBeVisible({ timeout: 3000 });
 
         // Both add buttons should be disabled
-        const addBtns = megaItem.locator(
-          ".nav-item__expanded button.nav-btn-outline"
-        );
-        await expect(addBtns).toHaveCount(2);
-        await expect(addBtns.nth(0)).toBeDisabled();
-        await expect(addBtns.nth(1)).toBeDisabled();
+        const expanded = megaItem.locator(".nav-item__expanded");
+        await expect(
+          expanded.getByRole("button", { name: LE("add_column") })
+        ).toBeDisabled();
+        await expect(
+          expanded.getByRole("button", { name: LE("add_banner") })
+        ).toBeDisabled();
       } finally {
         await deleteTestDoc(token, uid);
       }
@@ -652,8 +634,8 @@ test.describe("Navigation Editor", () => {
         await page.waitForLoadState("networkidle", { timeout: 15000 });
 
         // Open add item modal
-        await page.locator("button.bg-support-400.mt-300").click();
-        await expect(page.locator(".modal-overlay")).toBeVisible({
+        await page.getByTestId("nav-editor-add-item").click();
+        await expect(dialog(page)).toBeVisible({
           timeout: 5000,
         });
 
@@ -679,7 +661,7 @@ test.describe("Navigation Editor", () => {
           page.locator('input[type="radio"][value="category"]')
         ).toBeVisible();
 
-        await page.locator(".modal-close").click();
+        await closeDialog(page);
       } finally {
         await deleteTestDoc(token, uid);
       }
@@ -751,8 +733,7 @@ test.describe("Navigation Editor", () => {
           { timeout: 10000 }
         );
 
-        // Click save draft
-        await page.locator("button.btn-outline").click();
+        await saveDraft(page);
 
         const putRequest = await putPromise;
         const body = putRequest.postDataJSON();

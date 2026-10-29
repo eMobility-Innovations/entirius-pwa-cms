@@ -21,21 +21,21 @@ export function accessRoutes() {
   return [
     {
       path: "/access",
-      component: () => import(/* webpackChunkName: "access" */ "../views/Access/index.vue"),
+      component: () => import(/* webpackChunkName: "access" */ "../views/Access/MatrixShell.vue"),
       meta: { requiresAuth: true, panel: ACCESS_PANEL_IDX },
       children: [
         {
           path: "grants",
           name: "AccessGrants",
           component: () => import(/* webpackChunkName: "access" */ "../views/Access/Grants.vue"),
-          meta: { requiresAuth: true, titleKey: "access.grants", panel: ACCESS_PANEL_IDX },
+          meta: { requiresAuth: true, titleKey: "access.matrix_labels.grants", panel: ACCESS_PANEL_IDX },
         },
         {
           path: "roles",
           name: "AccessRoles",
           component: () =>
             import(/* webpackChunkName: "access" */ "../views/Access/RoleMatrix.vue"),
-          meta: { requiresAuth: true, titleKey: "access.roles", panel: ACCESS_PANEL_IDX },
+          meta: { requiresAuth: true, titleKey: "access.matrix_labels.roles", panel: ACCESS_PANEL_IDX },
         },
         {
           path: "users",
@@ -48,7 +48,7 @@ export function accessRoutes() {
           path: "audit",
           name: "AccessAudit",
           component: () => import(/* webpackChunkName: "access" */ "../views/Access/AuditLog.vue"),
-          meta: { requiresAuth: true, titleKey: "access.audit", panel: ACCESS_PANEL_IDX },
+          meta: { requiresAuth: true, titleKey: "access.matrix_labels.audit", panel: ACCESS_PANEL_IDX },
         },
         {
           path: "service-accounts",

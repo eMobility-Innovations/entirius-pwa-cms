@@ -1,113 +1,71 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport to="#pricing-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pricing/channels')"
-      />
-      <span class="fw-600 fs-400">
-        {{ isEdit ? (channel.name || channel.idx) : $t('pm.create_channel') }}
-      </span>
-    </Teleport>
-    <Teleport to="#pricing-toolbar-right" defer>
-      <BasicButton
-        v-if="isEdit"
-        text=""
-        icon="trash-can"
-        class="bg-negative-100 t-negative-300"
-        @click="showDeleteConfirm = true"
-      />
-      <BasicButton
-        :text="$t('pm.save')"
-        class="bg-support-400 t-basic-100"
-        @click="save"
-      />
-    </Teleport>
-
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-if="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="pageTitle" back="/pricing/channels">
+        <template v-if="!loading" #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
       <template v-else>
-        <div class="pm-section">
-          <h2 class="fs-500 fw-600 mb-300">{{ $t('pm.channel_detail') }}</h2>
-          <div class="pm-grid">
-            <div class="pm-field">
-              <label class="pm-label required">IDX</label>
+        <BasicCard :title="$t('pm.channel_detail')" gap class="mb-8">
+          <div class="form-grid">
+            <FormField label="IDX" required :error="formErrors.getFieldError('idx')?.msg || ''">
               <BasicInput
                 v-model="form.idx"
-                :isDisabled="isEdit"
-                :validate="formErrors.getFieldError('idx')"
+                :disabled="isEdit"
               />
-            </div>
-            <div class="pm-field">
-              <label class="pm-label required">{{ $t('pm.name') }}</label>
+            </FormField>
+            <FormField :label="$t('pm.name')" required :error="formErrors.getFieldError('name')?.msg || ''">
               <BasicInput
                 v-model="form.name"
-                :validate="formErrors.getFieldError('name')"
               />
-            </div>
-            <div class="pm-field">
-              <label class="pm-label">{{ $t('pm.calculate_direction') }}</label>
-              <Dropdown
-                :values="directionOptions"
-                :selected="[form.calculate_direction]"
-                @onSelect="(val) => form.calculate_direction = val[0]"
+            </FormField>
+            <FormField :label="$t('pm.calculate_direction')">
+              <BasicSelect
+                v-model="form.calculate_direction"
+                :options="directionOptions"
               />
-            </div>
-            <div class="pm-field">
-              <label class="pm-label">{{ $t('pm.calculate_countries') }}</label>
-              <Dropdown
-                :custom_droplist="true"
+            </FormField>
+            <FormField :label="$t('pm.calculate_countries')">
+              <BasicSelect
+                :model-value="form.calculate_country_codes"
+                :options="countryOptions"
                 :placeholder="`${$t('pm.calculate_countries')} (${form.calculate_country_codes.length})`"
-              >
-                <template #custom>
-                  <div
-                    v-for="c in countryOptions"
-                    :key="c.value"
-                    class="pointer flex jc-sb ai-ct ph-100 dropdown-list-el"
-                    :class="{ 'bg-primary-100': form.calculate_country_codes.includes(c.value) }"
-                    @click.stop="toggleCountry(c.value)"
-                  >
-                    <span class="ml-100">{{ c.label }}</span>
-                    <FontAwesomeIcon
-                      v-if="form.calculate_country_codes.includes(c.value)"
-                      icon="check"
-                      class="t-positive-200"
-                    />
-                  </div>
-                </template>
-              </Dropdown>
-            </div>
-            <div class="pm-field">
-              <label class="pm-label">{{ $t('pm.default_country') }}</label>
-              <Dropdown
-                :values="defaultCountryOptions"
-                :selected="form.default_country_code ? [form.default_country_code] : []"
-                :placeholder="$t('pm.select_default_country')"
-                :isDisabled="!form.calculate_country_codes.length"
-                @onSelect="(val) => form.default_country_code = val[0]"
+                multiple
+                searchable
+                @update:model-value="onCountriesPick"
               />
-            </div>
+            </FormField>
+            <FormField :label="$t('pm.default_country')">
+              <BasicSelect
+                v-model="form.default_country_code"
+                :options="defaultCountryOptions"
+                :placeholder="$t('pm.select_default_country')"
+                :disabled="!form.calculate_country_codes.length"
+              />
+            </FormField>
           </div>
-        </div>
+        </BasicCard>
       </template>
-    </div>
 
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deleteChannel"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      @confirm="deleteChannel"
+      @cancel="showDeleteConfirm = false"
+      :title="$t('pm.confirm_delete_title')"
     >
-      <template #header><h2>{{ $t('pm.confirm_delete_title') }}</h2></template>
-      <template #description><p>{{ $t('pm.confirm_delete_msg') }}</p></template>
-    </Confirmation-modal>
-  </div>
+      <template #default><p>{{ $t('pm.confirm_delete_msg') }}</p></template>
+    </ConfirmDialog>
+  </PageLayout>
 </template>
 
 <script>
 import { useLoaderStore } from '@/stores/loader'
+import { toggledValue } from '@/utils/toggled-value'
 import { useNotifyStore } from '@/stores/notify'
 import { useFormErrors, extractApiMessage } from '@/composables/useFormErrors'
 import {
@@ -146,6 +104,19 @@ export default {
     isEdit() {
       return !!this.$route.params.idx
     },
+    pageTitle() {
+      if (!this.isEdit) return this.$t('pm.create_channel')
+      return this.channel.name || this.channel.idx || this.$t('pm.channel_detail')
+    },
+    headerActions() {
+      return [
+        ...(this.isEdit
+          ? [{ key: 'delete', role: 'utility', icon: 'delete', variant: 'danger', label: this.$t('common.delete'),
+              onClick: () => (this.showDeleteConfirm = true) }]
+          : []),
+        { key: 'save', role: 'primary', label: this.$t('pm.save'), onClick: this.save },
+      ]
+    },
     directionOptions() {
       return [
         { value: 'from_net_to_gross', label: this.$t('pm.from_net_to_gross') },
@@ -181,6 +152,10 @@ export default {
     if (this.isEdit) this.fetch()
   },
   methods: {
+    // BasicSelect `multiple` emits the whole list; toggle the one code it added or removed.
+    onCountriesPick(codes) {
+      this.toggleCountry(toggledValue(codes, this.form.calculate_country_codes))
+    },
     toggleCountry(iso2) {
       const idx = this.form.calculate_country_codes.indexOf(iso2)
       if (idx >= 0) {
@@ -285,34 +260,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.pm-section {
-  border: 1px solid var(--c-basic-200);
-  border-radius: var(--radius-md);
-  padding: 20px;
-}
-
-.pm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: var(--space-200);
-}
-
-.pm-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pm-label {
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-}
-
 .pm-hint {
   font-size: var(--fs-200);
-  color: var(--c-basic-500);
+  color: var(--text-muted);
 }
 </style>

@@ -1,78 +1,65 @@
 <template>
-  <Confirmation-modal :visible="true" @reject="$emit('close')">
-    <template #description>
-      <h3 class="fs-500 fw-600 mb-300">{{ $t("stock.add_products_title") }}</h3>
+  <BasicModal
+    :open="true"
+    size="sm"
+    :title="$t('stock.add_products_title')"
+    :actions="footerActions"
+    @close="$emit('close')"
+  >
+    <div class="add-product__toolbar flex ai-ct gap-5 mb-5">
+      <BasicInput
+        v-model="search"
+        :placeholder="$t('stock.search_sku')"
+        :aria-label="$t('stock.search_sku')"
+        icon="search"
+        class="add-product__search"
+        @input="debouncedSearch"
+      />
+      <FilterChip
+        :label="$t('stock.filter_without_stock')"
+        :active="onlyMissing"
+        @click="onlyMissing = !onlyMissing; fetchProducts()"
+      />
+    </div>
 
-      <div class="add-product__toolbar flex ai-ct gap-200 mb-200">
-        <BasicInput
-          v-model="search"
-          :placeholder="$t('stock.search_sku')"
-          icon="magnifying-glass"
-          class="add-product__search"
-          @input="debouncedSearch"
-        />
-        <FilterChip
-          :label="$t('stock.filter_without_stock')"
-          :active="onlyMissing"
-          @click="onlyMissing = !onlyMissing; fetchProducts()"
-        />
-      </div>
+    <Loader v-if="loading" block />
 
-      <div v-if="loading" class="flex-center pv-300">
-        <Loader />
-      </div>
+    <div v-else-if="products.length === 0" class="pv-8 fs-300 t-muted">
+      {{ $t("stock.no_products_found") }}
+    </div>
 
-      <div v-else-if="products.length === 0" class="pv-300 fs-300 t-basic-500">
-        {{ $t("stock.no_products_found") }}
-      </div>
-
-      <div v-else class="add-product__list">
-        <div
-          v-for="p in products"
-          :key="p.sku"
-          class="add-product__row flex ai-ct jc-sb"
-          :class="{ 'add-product__row--selected': selectedSkus.has(p.sku) }"
-          @click="toggleSku(p.sku)"
-        >
-          <div class="flex ai-ct gap-200">
-            <FontAwesomeIcon
-              :icon="selectedSkus.has(p.sku) ? 'check-square' : 'square'"
-              :class="selectedSkus.has(p.sku) ? 't-support-400' : 't-basic-400'"
-            />
-            <span class="fw-500">{{ p.sku }}</span>
-          </div>
-          <StatusBadge
-            v-if="p.has_stock"
-            :label="String(p.quantity)"
-            variant="neutral"
-          />
-          <span v-else class="fs-200 t-basic-500">{{ $t("stock.no_stock_yet") }}</span>
-        </div>
-      </div>
-
-      <div v-if="totalCount > pageSize" class="mt-200">
-        <Pagination
-          :current="currentPage"
-          :total="totalCount"
-          :perPage="pageSize"
-          @change="onPageChange"
-        />
-      </div>
-    </template>
-
-    <template #footer>
-      <button class="modal-btn modal-btn--secondary" @click="$emit('close')">
-        Cancel
-      </button>
-      <button
-        class="modal-btn modal-btn--confirm"
-        :disabled="selectedSkus.size === 0"
-        @click="addSelected"
+    <div v-else class="add-product__list">
+      <div
+        v-for="p in products"
+        :key="p.sku"
+        class="add-product__row flex ai-ct jc-sb"
+        @click="toggleSku(p.sku)"
       >
-        {{ $t("stock.add_selected") }} ({{ selectedSkus.size }})
-      </button>
-    </template>
-  </Confirmation-modal>
+        <BasicCheckbox
+          :model-value="selectedSkus.has(p.sku)"
+          @update:model-value="toggleSku(p.sku)"
+          @click.stop
+        >
+          <span class="fw-500">{{ p.sku }}</span>
+        </BasicCheckbox>
+        <StatusBadge
+          v-if="p.has_stock"
+          :label="String(p.quantity)"
+          tone="neutral"
+        />
+        <span v-else class="fs-200 t-muted">{{ $t("stock.no_stock_yet") }}</span>
+      </div>
+    </div>
+
+    <div v-if="totalCount > pageSize" class="mt-5">
+      <Pagination
+        :page="currentPage"
+        :pages="Math.ceil(totalCount / pageSize)"
+        @update:page="onPageChange"
+      />
+    </div>
+
+  </BasicModal>
 </template>
 
 <script>
@@ -96,6 +83,20 @@ export default {
       selectedSkus: new Set(),
       _debounceTimer: null,
     }
+  },
+  computed: {
+    footerActions() {
+      return [
+        { key: "cancel", label: this.$t("common.cancel"), role: "secondary", onClick: () => this.$emit("close") },
+        {
+          key: "add",
+          label: `${this.$t("stock.add_selected")} (${this.selectedSkus.size})`,
+          role: "primary",
+          disabled: this.selectedSkus.size === 0,
+          onClick: this.addSelected,
+        },
+      ]
+    },
   },
   mounted() {
     this.fetchProducts()
@@ -153,31 +154,16 @@ export default {
 .add-product__list {
   max-height: 350px;
   overflow-y: auto;
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
 }
 
 .add-product__row {
-  padding: 10px var(--space-200);
-  border-bottom: 1px solid var(--c-basic-300);
-  cursor: pointer;
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
 
   &:last-child {
     border-bottom: none;
   }
-
-  &:hover {
-    background: var(--c-basic-200);
-  }
-
-  &--selected {
-    background: var(--c-support-100);
-  }
-}
-
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

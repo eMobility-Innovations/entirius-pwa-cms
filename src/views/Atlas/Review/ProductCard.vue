@@ -1,67 +1,65 @@
 <template>
-  <div class="product-card bg-basic-100 b-basic-300 br-100 p-300 shadow-sm">
-    <div class="product-card__hero" data-testid="product-card-hero">
+  <BasicCard class="review-product">
+    <div class="review-product__hero flex ai-ct jc-ct bg-raised rounded" data-testid="product-card-hero">
       <img
         v-if="heroImage"
         :src="heroImage"
         :alt="product?.name || ''"
-        class="product-card__image"
+        class="review-product__image"
       />
-      <div v-else class="product-card__image product-card__image--empty">
-        <FontAwesomeIcon icon="image" />
-      </div>
+      <FontAwesomeIcon v-else :icon="$icons.image" class="review-product__placeholder t-muted" />
     </div>
-    <h2 class="fs-500 fw-600 mt-200" data-testid="product-card-name">
+    <h2 class="fs-500 fw-600 mt-5" data-testid="product-card-name">
       {{ product?.name }}
     </h2>
-    <div v-if="product?.ean" class="flex ai-ct gap-200 mt-100 flex-wrap">
-      <span class="t-basic-500 fs-200">EAN: {{ product.ean }}</span>
+    <div v-if="product?.ean" class="flex ai-ct gap-5 mt-2 flex-wrap">
+      <span class="t-muted fs-200">EAN: {{ product.ean }}</span>
     </div>
-    <div class="flex ai-ct gap-300 mt-200 flex-wrap">
-      <span class="fs-400 fw-600 t-basic-700">
+    <div class="flex ai-ct gap-8 mt-5 flex-wrap">
+      <span class="fs-400 fw-600 t-body">
         {{ formatCost(product?.cost, product?.currency) }}
       </span>
       <StatusBadge
-        :label="`stock: ${product?.stock ?? 0}`"
-        :variant="(product?.stock ?? 0) > 0 ? 'positive' : 'negative'"
+        :label="$t('atlas.stock_count', { count: product?.stock ?? 0 })"
+        :tone="(product?.stock ?? 0) > 0 ? 'positive' : 'negative'"
       />
     </div>
-    <div class="flex ai-ct gap-200 mt-300 flex-wrap">
-      <button
+    <div class="flex ai-ct gap-5 mt-8 flex-wrap">
+      <BasicButton
         v-if="extraImagesCount > 0"
-        class="product-card__gallery-btn"
+        size="sm"
         data-testid="product-card-gallery-btn"
         @click="$emit('show-gallery')"
       >
-        <FontAwesomeIcon icon="image" />
-        {{ $t("atlas.review.show_gallery") }}
-        <span class="t-basic-500">({{ imagesCount }})</span>
-      </button>
+        {{ $t("atlas.review.show_gallery") }} ({{ imagesCount }})
+      </BasicButton>
       <a
         v-if="product?.url"
-        :href="product.url"
+        :href="safeHref(product.url)"
         target="_blank"
-        rel="noopener"
-        class="product-card__link"
+        rel="noopener noreferrer"
+        class="review-product__link inline-flex ai-ct gap-1 fs-200 t-accent"
         data-testid="product-card-supplier-url"
       >
-        <FontAwesomeIcon icon="link" />
+        <FontAwesomeIcon :icon="$icons.link" />
         {{ $t("atlas.review.view_at_supplier") }}
       </a>
-      <button
-        class="product-card__raw-btn product-card__raw-btn--mobile"
+      <!-- Desktop shows the raw data in a side panel; a phone opens it in a dialog. -->
+      <BasicButton
+        size="sm"
+        class="show-mobile"
         data-testid="product-card-raw-data-btn"
         @click="$emit('show-raw')"
       >
-        <FontAwesomeIcon icon="eye" />
         {{ $t("atlas.review.show_raw_data") }}
-      </button>
+      </BasicButton>
     </div>
-  </div>
+  </BasicCard>
 </template>
 
 <script>
 import { formatCost } from "@/utils/format";
+import { safeHref } from "@/utils/safeHref";
 
 export default {
   name: "ProductCard",
@@ -69,7 +67,7 @@ export default {
     product: { type: Object, default: null },
   },
   emits: ["show-raw", "show-gallery"],
-  methods: { formatCost },
+  methods: { formatCost, safeHref },
   computed: {
     images() {
       return Array.isArray(this.product?.image_urls) ? this.product.image_urls : [];
@@ -88,77 +86,28 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.product-card {
+.review-product {
   max-width: 520px;
   margin: 0 auto;
 }
-.product-card__hero {
+.review-product__hero {
   width: 100%;
   aspect-ratio: 1;
-  background: var(--c-basic-200);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
 }
-.product-card__image {
+.review-product__image {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  display: block;
 }
-.product-card__image--empty {
-  font-size: 48px;
-  color: var(--c-basic-400);
+.review-product__placeholder {
+  font-size: var(--fs-700);
 }
-.product-card__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--c-support-400);
+.review-product__link {
   text-decoration: none;
-  font-size: var(--fs-200);
 }
-.product-card__link:hover {
+.review-product__link:hover {
   text-decoration: underline;
-}
-.product-card__raw-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--c-basic-200);
-  color: var(--c-basic-700);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  font-size: var(--fs-200);
-  cursor: pointer;
-}
-.product-card__raw-btn:hover {
-  background: var(--c-basic-300);
-}
-.product-card__gallery-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--c-basic-200);
-  color: var(--c-basic-700);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 6px 12px;
-  font-size: var(--fs-200);
-  font-weight: 500;
-  cursor: pointer;
-}
-.product-card__gallery-btn:hover {
-  background: var(--c-basic-300);
-}
-
-/* Desktop has a permanent side panel — mobile-only button to open modal. */
-@media (min-width: 769px) {
-  .product-card__raw-btn--mobile {
-    display: none;
-  }
 }
 </style>

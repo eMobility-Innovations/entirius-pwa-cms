@@ -21,7 +21,10 @@ const DEFAULT_CALLBACK_PATH = "/api/escootersauth/v2/staff/callback/";
 
 /** True only for the exact string "true" (any case). Read at call time, so a test can flip it. */
 export function isSsoEnabled() {
-  return String(process.env.VUE_APP_SSO_ENABLED || "false").toLowerCase() === "true";
+  if (process.env.VUE_APP_SSO_ENABLED !== undefined) {
+    return String(process.env.VUE_APP_SSO_ENABLED).toLowerCase() === "true";
+  }
+  return Boolean(process.env.VUE_APP_SSO_API_BASE);
 }
 
 /**
@@ -39,12 +42,12 @@ export function isSsoOnly() {
 
 /** Backend endpoint that returns the provider's authorization URL and a state token. */
 export function ssoLoginUrlPath() {
-  return process.env.VUE_APP_SSO_LOGIN_URL_PATH || DEFAULT_LOGIN_URL_PATH;
+  return process.env.VUE_APP_SSO_LOGIN_URL_PATH || (process.env.VUE_APP_SSO_API_BASE ? `${process.env.VUE_APP_SSO_API_BASE.replace(/\/$/, "")}/login-url/` : DEFAULT_LOGIN_URL_PATH);
 }
 
 /** Backend endpoint that exchanges the returned code for the app's own token pair. */
 export function ssoCallbackPath() {
-  return process.env.VUE_APP_SSO_CALLBACK_PATH || DEFAULT_CALLBACK_PATH;
+  return process.env.VUE_APP_SSO_CALLBACK_PATH || (process.env.VUE_APP_SSO_API_BASE ? `${process.env.VUE_APP_SSO_API_BASE.replace(/\/$/, "")}/callback/` : DEFAULT_CALLBACK_PATH);
 }
 
 /** The absolute redirect URI sent to the backend — must match what the provider has registered. */

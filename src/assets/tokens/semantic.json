@@ -1,0 +1,138 @@
+{
+  "$description": "CMS semantic layer (draft r01). Values are references into @entirius/brand-tokens brand.json ({path}); raw values appear only for overlays and light shadows, which are app-level. Emits CSS custom properties `--<name>` under [data-theme=\"dark\"] and [data-theme=\"default\"] (light). Utility classes: text.* -> .t-<suffix>, surface.* -> .bg-<suffix>, border.* -> .b-/.bt-/.bb-/.bl-/.br-<suffix>, status -> all three.",
+
+  "color": {
+    "surface": {
+      "surface-page":     { "dark": "{black}",        "light": "{light.neutral.150}", "class": "bg-page",     "role": "app shell: page, header, sidebar, mobile tab bar (Figma #0D0A09, #0E0B0A)" },
+      "surface-base":     { "dark": "{basic.200}",    "light": "{light.neutral.50}",  "class": "bg-base",     "role": "containers: section blocks, tables, drawers, modals, dropdown menus (Figma #111111)" },
+      "surface-raised":   { "dark": "{basic.300}",    "light": "{light.neutral.100}", "class": "bg-raised",   "role": "inside containers: table header, block header, tiles (Figma #1A1A1A, #1E2830 fill)" },
+      "surface-sunken":   { "dark": "{basic.100}",    "light": "{light.neutral.50}",  "class": "bg-sunken",   "role": "inputs, selects, textareas, icon buttons in content (Figma #0C1017)" },
+      "surface-hover":    { "dark": "{basic.400}",    "light": "{light.neutral.200}", "class": "bg-hover",    "role": "row / item / nav hover" },
+      "surface-disabled": { "dark": "{basic.300}",    "light": "{light.neutral.200}", "class": "bg-disabled", "role": "disabled controls" },
+      "surface-inverse":  { "dark": "{basic.950}",    "light": "{basic.200}",         "class": "bg-inverse",  "role": "tooltips, toasts" },
+      "surface-card":     { "dark": "{gradient.card}", "light": "{light.neutral.50}",  "class": "bg-card",     "role": "panel cards (D2); light has no gradient: flat + border-subtle", "type": "background" }
+    },
+    "text": {
+      "text-strong":        { "dark": "{basic.950}",   "light": "{light.neutral.900}",   "class": "t-strong",        "role": "H1, titles, nav items, icons (Figma #EBEDF2)" },
+      "text-body":          { "dark": "{basic.900}",   "light": "{light.neutral.800}",   "class": "t-body",          "role": "default text, table cells, input values (Figma #B4C3D1)" },
+      "text-secondary":     { "dark": "{basic.800}",   "light": "{light.neutral.700}",   "class": "t-secondary",     "role": "labels, row actions, secondary info (Figma #9A9CAA, #8899AB)" },
+      "text-muted":         { "dark": "{basic.750}",   "light": "{light.neutral.600}",   "class": "t-muted",         "role": "hints, descriptions, breadcrumbs, placeholders, meta, sub-items (Figma #727276, #5A6B7D)" },
+      "text-disabled":      { "dark": "{basic.600}",   "light": "{basic.800}",   "class": "t-disabled",      "role": "disabled controls, locked panels (Figma #2B2B2B); WCAG-exempt" },
+      "text-accent":        { "dark": "{primary.100}", "light": "{tertiary.200}", "class": "t-accent",       "role": "links, active nav item, accent labels (Figma #239AAB -> Q1)" },
+      "text-on-accent-fill":{ "dark": "{white}",       "light": "{white}",       "class": "t-on-accent-fill", "role": "text/icons on accent-fill (D1)" },
+      "text-on-status-fill":{ "dark": "{basic.100}",   "light": "{white}",       "class": "t-on-status-fill", "role": "text/icons on positive/negative/warning/info fills" },
+      "text-inverse":       { "dark": "{basic.100}",   "light": "{white}",       "class": "t-inverse",       "role": "text on surface-inverse" }
+    },
+    "border": {
+      "border-hairline": { "dark": "{hairline}",     "light": "{light.neutral.300}", "class": "b-hairline", "role": "shell dividers only: sidebar rail, header/sidebar edge (Figma #2B2B2B@.5); R4: never to split page sections" },
+      "border-subtle":   { "dark": "{basic.400}",    "light": "{light.neutral.300}", "class": "b-subtle",   "role": "container borders, table row dividers (Figma #1E2830)" },
+      "border-default":  { "dark": "{basic.500}",    "light": "{light.neutral.400}", "class": "b-default",  "role": "labelled controls: outline buttons, chips, icon buttons (Figma #2D3A48); the label identifies them, so no 3:1 boundary is required" },
+      "border-control":  { "dark": "{basic.500}",    "light": "{light.neutral.600}", "class": "b-control",  "role": "form fields: input, select, textarea, checkbox, radio; dark (Q-7): same as border-default, keeps Figma's faint input borders (#2D3A48); light: >= 3:1 on every surface a control sits on, surface-hover included (WCAG 1.4.11; light.basic.400 gave 2.92:1 there)" },
+      "border-strong":   { "dark": "{basic.750}",    "light": "{light.neutral.700}", "class": "b-strong",   "role": "hover of border-control / border-default; inactive sidebar sub-item rail (Figma #727276 fill); light: darker than border-control (the only focus mark of a textarea)" },
+      "focus-ring":      { "dark": "{primary.100}",  "light": "{tertiary.200}",      "class": null,         "role": "2px outline on :focus-visible" }
+    },
+    "accent": {
+      "accent":            { "dark": "{primary.100}",      "light": "{tertiary.200}",     "class": "accent",       "role": "active indicators (sidebar rail), selected borders, checkbox/radio, icons" },
+      "accent-hover":      { "dark": "{primary.200}",      "light": "{tertiary.100}",     "class": "accent-hover", "role": "hover of accent text/borders" },
+      "accent-fill":       { "dark": "{tertiary.100}",     "light": "{tertiary.100}",     "class": "accent-fill",  "role": "primary button, FAB, active chip, count badge (D1)" },
+      "accent-fill-hover": { "dark": "{tertiary.200}",     "light": "{tertiary.200}",     "class": null,           "role": "hover/pressed of accent-fill" },
+      "accent-subtle":     { "dark": "{primary.300}",      "light": "{light.tint.primary}", "class": "accent-subtle", "role": "selected row, active nav background, tinted info" }
+    },
+    "status": {
+      "positive":        { "dark": "{positive.100}",    "light": "{light.positive.600}",    "role": "success text, icons, borders" },
+      "positive-subtle": { "dark": "{positive.200}",    "light": "{light.tint.positive}",     "role": "success badge / alert background (Figma #0D2618)" },
+      "positive-fill":   { "dark": "{positive.100}",    "light": "{light.positive.600}",    "role": "solid success fill, text-on-status-fill on it" },
+      "negative":        { "dark": "{negative.100}",    "light": "{light.negative.600}",    "role": "error text, invalid field border" },
+      "negative-subtle": { "dark": "{negative.300}",    "light": "{light.tint.negative}",     "role": "error alert / badge background" },
+      "negative-fill":   { "dark": "{negative.100}",    "light": "{light.negative.600}",    "role": "danger button" },
+      "warning":         { "dark": "{notice.200}",      "light": "{light.notice.600}",      "role": "warning text" },
+      "warning-subtle":  { "dark": "{notice.300}",      "light": "{light.tint.notice}",       "role": "warning background" },
+      "warning-fill":    { "dark": "{notice.200}",      "light": "{light.notice.600}",      "role": "solid warning fill" },
+      "info":            { "dark": "{informative.100}", "light": "{light.informative.600}", "role": "info text" },
+      "info-subtle":     { "dark": "{informative.200}", "light": "{light.tint.informative}",  "role": "info background" },
+      "info-fill":       { "dark": "{informative.100}", "light": "{light.informative.600}", "role": "solid info fill" }
+    }
+  },
+
+  "overlay": {
+    "overlay-backdrop": { "dark": "rgba(0, 0, 0, 0.65)",    "light": "rgba(0, 0, 0, 0.5)",        "role": "modal/drawer backdrop (unchanged)" },
+    "overlay-heavy":    { "dark": "rgba(0, 0, 0, 0.7)",     "light": "rgba(0, 0, 0, 0.55)",       "role": "unchanged" },
+    "overlay-loading":  { "dark": "rgba(13, 10, 9, 0.6)",   "light": "rgba(255, 255, 255, 0.45)", "role": "loading veil; dark re-based from old #0C1017 to black" },
+    "overlay-handy":    { "dark": "rgba(0, 0, 0, 0.7)",     "light": "rgba(17, 17, 17, 0.6)",     "role": "unchanged" },
+    "overlay-ripple":   { "dark": "rgba(255, 255, 255, 0.15)", "light": "rgba(255, 255, 255, 0.7)", "role": "unchanged" }
+  },
+
+  "shadow": {
+    "shadow-sm":     { "dark": "{shadow.sm}",   "light": "0 1px 3px rgba(0, 0, 0, 0.08)" },
+    "shadow-md":     { "dark": "{shadow.md}",   "light": "0 4px 12px rgba(0, 0, 0, 0.1)" },
+    "shadow-lg":     { "dark": "{shadow.lg}",   "light": "0 10px 30px rgba(0, 0, 0, 0.12)" },
+    "shadow-down":   { "dark": "{shadow.down}", "light": "0 34px 10px -33px rgba(189, 189, 195, 1)" },
+    "shadow-arrow":  { "dark": "0 3px 6px rgba(0, 0, 0, 0.35)", "light": "0 3px 6px rgba(52, 64, 84, 0.15)", "role": "1 use — r02/r06 decide keep or drop" },
+    "shadow-right":  { "dark": "27px 0 27px -35px rgba(0, 0, 0, 0.8)", "light": "27px 0 27px -35px rgba(66, 68, 90, 1)", "role": "1 use" },
+    "shadow-left":   { "dark": "-27px 0 27px -35px rgba(0, 0, 0, 0.8)", "light": "-27px 0 27px -35px rgba(66, 68, 90, 1)", "role": "1 use" },
+    "shadow-top":    { "dark": "0 -27px 27px -35px rgba(0, 0, 0, 0.8)", "light": "0 -27px 27px -35px rgba(66, 68, 90, 1)", "role": "1 use" },
+    "shadow-around": { "dark": "0 0 20px 14px rgba(0, 0, 0, 0.5)", "light": "0 0 20px 14px rgba(66, 68, 90, 0.3)", "role": "1 use" }
+  },
+
+  "radius": {
+    "$description": "Same names and px as brand (D5 amended). Theme-independent; main.scss emits them from $brand-radii with the .rounded-<name> classes (.rounded = base).",
+    "radius-base": "{radius.base}",
+    "radius-lg": "{radius.lg}",
+    "radius-xl": "{radius.xl}",
+    "radius-2xl": "{radius.2xl}",
+    "radius-3xl": "{radius.3xl}",
+    "radius-4xl": "{radius.4xl}",
+    "radius-full": "{radius.full}"
+  },
+
+  "space": {
+    "$description": "D4 + Q-6: the brand steps under the brand names (space-1 = 4 px … space-30 = 120 px). Theme-independent; main.scss emits them from $brand-space-steps with the .p-/.m-/.gap-<step> classes.",
+    "space-0": "{space.0}",
+    "space-1": "{space.1}",
+    "space-2": "{space.2}",
+    "space-3": "{space.3}",
+    "space-4": "{space.4}",
+    "space-5": "{space.5}",
+    "space-6": "{space.6}",
+    "space-8": "{space.8}",
+    "space-10": "{space.10}",
+    "space-12": "{space.12}",
+    "space-16": "{space.16}",
+    "space-30": "{space.30}"
+  },
+
+  "font-size": {
+    "$description": "--fs-* is the Figma size scale behind the .fs-<step> classes; new text uses type roles.",
+    "fs-100": "10px", "fs-150": "11px", "fs-200": "12px", "fs-250": "13px", "fs-300": "14px",
+    "fs-400": "16px", "fs-500": "20px", "fs-600": "24px", "fs-700": "30px",
+    "fs-display": "48px"
+  },
+
+  "font": {
+    "$description": "Theme-independent. body{} switches from Inter-only to --font-ui; titles/nav/cards use --font-brand via type roles.",
+    "font-brand": "{font.family.brand}",
+    "font-ui": "{font.family.ui}",
+    "font-mono": "{font.family.mono}"
+  },
+
+  "type": {
+    "$description": "Type roles from the Figma CMS frames. Emits .type-<role> classes and --type-<role> (font shorthand) + --tracking-<role>. brand = Lexend Deca, ui = Inter.",
+    "display":      { "family": "brand", "weight": 300, "size": "48px", "line": "56px", "tracking": "{font.tracking.brand}", "color": "text-strong",    "figma": "sign-in editorial line (1); desktop only" },
+    "page-title":   { "family": "brand", "weight": 400, "size": "30px", "line": "33px", "tracking": "{font.tracking.brand}", "color": "text-strong",    "figma": "H1 (8 uses)" },
+    "title":        { "family": "brand", "weight": 400, "size": "20px", "line": "22px", "tracking": "{font.tracking.brand}", "color": "text-strong",    "figma": "home card titles, mobile H2 (42)" },
+    "nav":          { "family": "brand", "weight": 400, "size": "16px", "line": "24px", "tracking": "{font.tracking.brand}", "color": "text-strong",    "figma": "sidebar items (74); desktop breadcrumbs 16/18 (5)" },
+    "nav-sub":      { "family": "brand", "weight": 400, "size": "14px", "line": "24px", "tracking": "{font.tracking.brand}", "color": "text-muted",     "figma": "sidebar sub-items (20)" },
+    "description":  { "family": "brand", "weight": 300, "size": "14px", "line": "21px", "tracking": "{font.tracking.brand}", "color": "text-muted",     "figma": "card descriptions (39)" },
+    "crumb-sm":     { "family": "brand", "weight": 400, "size": "12px", "line": "13px", "tracking": "{font.tracking.brand}", "color": "text-muted",     "figma": "mobile breadcrumbs (10)" },
+    "tab-label":    { "family": "brand", "weight": 400, "size": "10px", "line": "12px", "tracking": "{font.tracking.brand}", "color": "text-secondary", "figma": "mobile tab bar (20)" },
+    "overline":     { "family": "ui", "weight": 500, "size": "13px", "line": "16px", "tracking": "{font.tracking.overline}", "case": "uppercase", "color": "text-muted", "figma": "HELLO (3)" },
+    "label":        { "family": "ui", "weight": 500, "size": "14px", "line": "17px", "tracking": "0", "color": "text-body",      "figma": "block titles, pagination (12)" },
+    "cell":         { "family": "ui", "weight": 500, "size": "13px", "line": "16px", "tracking": "0", "color": "text-body",      "figma": "table cells, content links (44)" },
+    "control":      { "family": "ui", "weight": 500, "size": "12px", "line": "15px", "tracking": "0", "color": "text-secondary", "figma": "buttons, row actions, select values (82 + 6 at lh 31 = control height)" },
+    "badge":        { "family": "ui", "weight": 600, "size": "12px", "line": "15px", "tracking": "0", "color": "inherit",        "figma": "status badge, tile labels (35)" },
+    "table-header": { "family": "ui", "weight": 600, "size": "12px", "line": "15px", "tracking": "{font.tracking.caps}", "case": "uppercase", "color": "text-secondary", "figma": "column headers, group headers (20)" },
+    "count":        { "family": "ui", "weight": 600, "size": "11px", "line": "13px", "tracking": "{font.tracking.caps}", "case": "uppercase", "color": "inherit", "figma": "group count badge (5)" },
+    "caption":      { "family": "ui", "weight": 400, "size": "12px", "line": "15px", "tracking": "0", "color": "text-muted",     "figma": "tile meta '· 2 tiles' (7)" },
+    "micro":        { "family": "ui", "weight": 500, "size": "10px", "line": "12px", "tracking": "0", "color": "text-muted",     "figma": "content-builder tile details (18, C9)" }
+  }
+}

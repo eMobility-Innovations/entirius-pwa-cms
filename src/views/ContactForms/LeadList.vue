@@ -1,13 +1,10 @@
 <template>
-  <div class="cf-lead-list__wrapper p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div
-      class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto pl-500 pt-500 pb-500 pr-500"
-    >
-      <div class="flex ai-ct mb-400">
-        <h1 class="fs-700 fw-600">{{ $t("cf.leads") }}</h1>
-      </div>
-
-      <div class="flex ai-ct gap-300 mb-400">
+  <PageLayout class="cf-lead-list__wrapper fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('cf.leads')" />
+    </template>
+    <template #toolbar>
+      <div class="flex ai-ct flex-wrap gap-8 rg-3">
         <BasicInput
           v-model="search"
           :placeholder="$t('cf.search_placeholder')"
@@ -15,21 +12,14 @@
           class="cf-list__search"
           @input="debouncedFetch(searchAndFetch)"
         />
-        <Dropdown
-          :values="channelOptions"
-          :selected="[channelFilter]"
-          :placeholder="$t('cf.channel')"
+        <BasicSelect
+          :floating-label="$t('cf.channel')"
+          :options="channelOptions"
+          :model-value="channelFilter"
           class="cf-list__filter"
-          @onSelect="onChannelFilter"
+          @update:model-value="onChannelFilter"
         />
-      </div>
-
-      <div class="flex ai-ct mb-400">
-        <MobileFilterPanel
-          :active-count="statusFilter === '__all' ? 0 : 1"
-          :trigger-label="$t('cf.filters')"
-        >
-          <p class="fs-200 t-basic-600">{{ $t("cf.filters") }}</p>
+        <div class="filter-chip-row" role="group" :aria-label="$t('cf.status')">
           <FilterChip
             v-for="opt in statusFilterOptions"
             :key="opt.value"
@@ -37,12 +27,14 @@
             :active="statusFilter === opt.value"
             @click="onStatusFilter(opt.value)"
           />
-        </MobileFilterPanel>
+        </div>
       </div>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <DataTable
+        empty-size="md"
         v-show="!loading"
         :columns="columns"
         :rows="leads"
@@ -53,12 +45,12 @@
         <template #cell-status="{ value }">
           <StatusBadge
             :label="leadStatusLabel($t, value)"
-            :variant="leadStatusVariant(value)"
+            :tone="leadStatusVariant(value)"
           />
         </template>
         <template #cell-deal_value="{ value }">
           <span v-if="value">{{ value }}</span>
-          <span v-else class="t-basic-400">---</span>
+          <span v-else class="t-muted">—</span>
         </template>
         <template #cell-contact_date="{ value }">
           {{ formatDateTime(value) }}
@@ -72,19 +64,20 @@
             class="cf-ads-imported"
             :title="$t('cf.ads_imported_tooltip')"
           >
-            <font-awesome-icon icon="bullseye" />
+            <font-awesome-icon :icon="$icons.target" />
           </span>
-          <span v-else class="t-basic-400">---</span>
+          <span v-else class="t-muted">—</span>
         </template>
       </DataTable>
 
+    <template v-if="totalCount > pageSize" #footer>
       <Pagination
-        v-if="totalCount > pageSize"
-        :pagination="paginationState"
-        @onChangePage="onPageChange"
+        :page="paginationState.page"
+        :pages="paginationState.pages"
+        @update:page="onPageChange"
       />
-    </div>
-  </div>
+    </template>
+  </PageLayout>
 </template>
 
 <script>
@@ -138,27 +131,32 @@ export default {
     columns() {
       return [
         { key: "name", label: this.$t("cf.name"), width: "1fr" },
-        { key: "email", label: this.$t("cf.email"), width: "1fr" },
+        { key: "email", label: this.$t("cf.email"), width: "1fr", priority: 2 },
         { key: "status", label: this.$t("cf.status"), width: "120px" },
         {
           key: "source_type",
           label: this.$t("cf.source_type"),
           width: "140px",
+          priority: 2,
         },
         {
           key: "deal_value",
           label: this.$t("cf.deal_value"),
           width: "120px",
+          priority: 2,
+          numeric: true,
         },
         {
           key: "contact_date",
           label: this.$t("cf.contact_date"),
           width: "180px",
+          priority: 2,
         },
         {
           key: "ads_conversion_imported",
           label: this.$t("cf.ads_imported"),
           width: "100px",
+          priority: 2,
         },
       ];
     },
@@ -186,7 +184,7 @@ export default {
     leadStatusLabel,
     leadStatusVariant,
     formatDateTime(iso) {
-      if (!iso) return "---";
+      if (!iso) return "—";
       const d = new Date(iso);
       return d.toLocaleString("en-GB", {
         day: "2-digit",
@@ -197,7 +195,7 @@ export default {
       });
     },
     sourceTypeLabel(value) {
-      if (!value) return "---";
+      if (!value) return "—";
       const key = `cf.source_types.${value}`;
       const translated = this.$t(key);
       return translated !== key ? translated : value;
@@ -250,10 +248,18 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .cf-list__search {
   flex: 1;
   max-width: 400px;
   min-width: 150px;
+
+  // A phone gives the search its own row above the filters.
+  @include max-tablet {
+    flex-basis: 100%;
+    max-width: none;
+  }
 }
 
 .cf-list__filter {
@@ -268,14 +274,8 @@ export default {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-sm);
-  background: var(--c-positive-100);
-  color: var(--c-positive-300);
-}
-
-@media only screen and (max-width: 768px) {
-  .cf-lead-list__wrapper {
-    padding: 16px !important;
-  }
+  border-radius: var(--radius-base);
+  background: var(--positive-subtle);
+  color: var(--positive);
 }
 </style>

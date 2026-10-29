@@ -31,15 +31,35 @@ test.describe('Content Builder Workflow', () => {
     const headerText = await sectionHeader.textContent();
     expect(headerText.length).toBeGreaterThan(0);
 
-    // Section should have control buttons (eye, pen, copy, trash)
-    const sectionBtns = page.locator('.section-icon-btn');
+    // Section should have control buttons (pen, copy, trash); the eye is a display-only config summary
+    const sectionBtns = page.getByTestId('builder-section-actions').first().getByRole('button');
     const btnCount = await sectionBtns.count();
-    expect(btnCount).toBeGreaterThanOrEqual(4);
+    expect(btnCount).toBeGreaterThanOrEqual(3);
+    await expect(page.getByTestId('builder-section-config').first()).toBeVisible();
 
     await page.screenshot({ path: 'test-results/content-builder-sections.png' });
   });
 
-  test('should display tiles in swiper slider', async ({ page }) => {
+  // Redmine #34300: the section type select rendered empty, so nothing after it could be configured. The section
+  // editor is the same config drawer as "New section" (which the first page's section limit may disable). Nothing is saved.
+  test('should pick the section type and load its fields', async ({ page }) => {
+    await login(page);
+
+    await page.goto('/pages/content?lg=pl');
+    await page.waitForLoadState('networkidle');
+    await page.locator('.data-table__action-btn').first().click();
+    await page.waitForLoadState('networkidle');
+
+    await page.getByTestId('builder-section-actions').first().getByRole('button').first().click();
+
+    await page.getByRole('combobox', { name: 'Type', exact: true }).click();
+    await page.getByRole('option', { name: 'Banner', exact: true }).click();
+
+    await expect(page.getByRole('combobox', { name: 'Type', exact: true })).toContainText('Banner');
+    await expect(page.getByText('Video URL')).toBeVisible();
+  });
+
+  test('should display tiles as cards in the section row', async ({ page }) => {
     await login(page);
 
     await page.goto('/pages/content?lg=pl');
@@ -53,18 +73,17 @@ test.describe('Content Builder Workflow', () => {
     // Wait for builder to render
     await page.waitForTimeout(1000);
 
-    // Tiles are shown by default in a swiper slider (compact mode)
-    // Look for swiper slides containing tile data
-    const swiperSlides = page.locator('.swiper-slide');
-    const hasSlides = await swiperSlides.first().isVisible({ timeout: 5000 }).catch(() => false);
+    // Tiles are shown as preview cards in the section's tile row
+    const tileCards = page.locator('.tile-card');
+    const hasCards = await tileCards.first().isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (hasSlides) {
-      const slideCount = await swiperSlides.count();
-      expect(slideCount).toBeGreaterThan(0);
-      console.log(`Found ${slideCount} tile slides in swiper`);
+    if (hasCards) {
+      const cardCount = await tileCards.count();
+      expect(cardCount).toBeGreaterThan(0);
+      console.log(`Found ${cardCount} tile cards`);
     } else {
       // Section may have no tiles -- that is valid
-      console.log('No tile slides found -- section may have max_tiles: 0');
+      console.log('No tile cards found -- section may have max_tiles: 0');
     }
   });
 

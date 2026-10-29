@@ -1,27 +1,30 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <div class="flex ai-ct jc-sb mb-400">
-        <h1 class="fs-700 fw-600">{{ $t('pricefighter.strategies') }}</h1>
-        <BasicButton
-          :text="$t('pricefighter.new_rule')"
-          icon="plus"
-          class="bg-support-400 t-basic-100"
-          @click="openCreate"
-        />
-      </div>
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pricefighter.strategies')">
+        <template #actions>
+          <BasicButton
+            variant="primary"
+            @click="openCreate"
+          >
+            {{ $t('pricefighter.new_rule') }}
+          </BasicButton>
+        </template>
+      </PageHeader>
+    </template>
 
-      <Loader v-show="loading" />
+      <Loader block v-show="loading" />
 
       <template v-if="!loading">
         <EmptyState
           v-if="!rules.length"
           :title="$t('pricefighter.no_rules')"
           :message="$t('pricefighter.no_rules_desc')"
-          icon="scale-balanced"
+          icon="pricing"
         />
 
         <DataTable
+          empty-size="md"
           v-else
           :columns="columns"
           :rows="rules"
@@ -33,46 +36,45 @@
             <span class="fw-600">{{ scopeLabel(row) }}</span>
           </template>
           <template #cell-strategy="{ row }">
-            <StatusBadge :label="$t(`pricefighter.recommendation_${row.strategy}`)" :variant="strategyVariant(row.strategy)" />
+            <StatusBadge :label="$t(`pricefighter.recommendation_${row.strategy}`)" :tone="strategyVariant(row.strategy)" />
           </template>
           <template #cell-price_war="{ row }">
-            <StatusBadge v-if="row.price_war" :label="$t('pricefighter.active')" variant="negative" />
-            <span v-else class="t-basic-500">—</span>
+            <StatusBadge v-if="row.price_war" :label="$t('pricefighter.active')" tone="negative" />
+            <span v-else class="t-muted">—</span>
           </template>
           <template #cell-mode="{ row }">
             {{ row.mode }}
           </template>
         </DataTable>
       </template>
-    </div>
 
-    <!-- Create/Edit modal -->
-    <div v-if="editingRule !== null" class="rule-modal-backdrop" @click.self="closeModal">
-      <div class="rule-modal">
-        <h2 class="fs-500 fw-600 mb-400">
-          {{ editingRule.id ? $t('pricefighter.edit_rule') : $t('pricefighter.new_rule') }}
-        </h2>
-
-        <FormField :label="$t('pricefighter.scope_type')" :tooltip="$t('pricefighter.scope_type_tooltip')" class="mb-300">
-          <Dropdown
-            :values="scopeTypeOptions"
-            :selected="[form.scopeType]"
-            @onSelect="onScopeTypeSelect"
+    <BasicModal
+      :open="editingRule !== null"
+      :title="editingRule?.id ? $t('pricefighter.edit_rule') : $t('pricefighter.new_rule')"
+      :actions="ruleActions"
+      @close="closeModal"
+    >
+      <div class="form-grid">
+        <FormField :label="$t('pricefighter.scope_type')" hint-level="important" :hint="$t('pricefighter.scope_type_tooltip')">
+          <BasicSelect
+            :model-value="form.scopeType"
+            :options="scopeTypeOptions"
+            @update:model-value="onScopeTypeSelect"
           />
         </FormField>
 
         <FormField
           v-if="form.scopeType === 'sku'"
           :label="$t('pricefighter.sku')"
-          :error="formErrors.getFieldError('sku')?.msg"
-          class="mb-300"
+          required
+          :error="formErrors.getFieldError('sku')?.msg || ''"
         >
           <EntitySearchPicker
             :modelValue="form.scopeValue"
             :displayValue="form.scopeDisplay"
             :fetchFn="productFetch"
             :placeholder="$t('pricefighter.search_sku')"
-            :disabled="pickerDisabled"
+            :manual="pickerDisabled"
             @update:modelValue="form.scopeValue = $event"
             @update:displayValue="form.scopeDisplay = $event"
             @clear="form.scopeValue = ''; form.scopeDisplay = ''"
@@ -81,15 +83,15 @@
         <FormField
           v-else-if="form.scopeType === 'category_idx'"
           :label="$t('pricefighter.category')"
-          :error="formErrors.getFieldError('category_idx')?.msg"
-          class="mb-300"
+          required
+          :error="formErrors.getFieldError('category_idx')?.msg || ''"
         >
           <EntitySearchPicker
             :modelValue="form.scopeValue"
             :displayValue="form.scopeDisplay"
             :fetchFn="categoryFetch"
             :placeholder="$t('pricefighter.search_category')"
-            :disabled="pickerDisabled"
+            :manual="pickerDisabled"
             @update:modelValue="form.scopeValue = $event"
             @update:displayValue="form.scopeDisplay = $event"
             @clear="form.scopeValue = ''; form.scopeDisplay = ''"
@@ -98,73 +100,54 @@
         <FormField
           v-else
           :label="$t('pricefighter.market')"
-          :tooltip="$t('pricefighter.market_tooltip')"
-          :error="formErrors.getFieldError('channel')?.msg"
-          class="mb-300"
+          :hint="$t('pricefighter.market_tooltip')"
+          required
+          :error="formErrors.getFieldError('channel')?.msg || ''"
         >
-          <Dropdown
-            :values="channelOptions"
-            :selected="[form.scopeValue]"
-            @onSelect="(v) => (form.scopeValue = v)"
+          <BasicSelect
+            :options="channelOptions"
+            v-model="form.scopeValue"
           />
         </FormField>
 
-        <FormField :label="$t('pricefighter.strategy')" :tooltip="$t('pricefighter.strategy_tooltip')" class="mb-300">
-          <Dropdown
-            :values="strategyOptions"
-            :selected="[form.strategy]"
-            @onSelect="(v) => (form.strategy = v)"
+        <FormField
+          :label="$t('pricefighter.strategy')"
+          hint-level="important"
+          :hint="$t('pricefighter.strategy_tooltip')"
+          class="form-grid__wide"
+        >
+          <BasicSelect
+            :options="strategyOptions"
+            v-model="form.strategy"
           />
         </FormField>
 
-        <div class="flex ai-ct gap-300 mb-400">
-          <Switcher
+        <div class="form-grid__wide flex ai-ct wrap gap-8">
+          <BasicSwitch
             :label="$t('pricefighter.price_war')"
-            :selected="form.price_war"
-            @onSelect="form.price_war = !form.price_war"
+            v-model="form.price_war"
           />
-          <Switcher
+          <BasicSwitch
             :label="$t('pricefighter.mode_authoritative')"
             :hint="$t('pricefighter.mode_v2_note')"
-            :selected="false"
-            prevent
+            hint-level="important"
+            :model-value="false"
+            disabled
           />
-        </div>
-
-        <div class="flex ai-ct jc-sb gap-200">
-          <BasicButton
-            v-if="editingRule.id"
-            text=""
-            icon="trash-can"
-            class="bg-negative-100 t-negative-300"
-            @click="showDeleteConfirm = true"
-          />
-          <div v-else />
-          <div class="flex ai-ct gap-200">
-            <BasicButton
-              :text="$t('common.cancel')"
-              class="bg-basic-200 t-basic-600"
-              @click="closeModal"
-            />
-            <BasicButton
-              :text="$t('common.save')"
-              class="bg-support-400 t-basic-100"
-              @click="saveRule"
-            />
-          </div>
         </div>
       </div>
-    </div>
+    </BasicModal>
 
-    <Confirmation-modal
-      :visible="showDeleteConfirm"
-      @accept="deleteRule"
-      @reject="showDeleteConfirm = false"
+    <ConfirmDialog
+      tone="danger"
+      :open="showDeleteConfirm"
+      @confirm="deleteRule"
+      @cancel="showDeleteConfirm = false"
+      :title="$t('pricefighter.confirm_delete_title')"
     >
-      <template #header><h2>{{ $t('pricefighter.confirm_delete_title') }}</h2></template>
-      <template #description><p>{{ $t('pricefighter.confirm_delete_rule') }}</p></template>
-    </Confirmation-modal>
-  </div>
+      <template #default><p>{{ $t('pricefighter.confirm_delete_rule') }}</p></template>
+    </ConfirmDialog>
+  </PageLayout>
 </template>
 
 <script>
@@ -176,7 +159,6 @@ import { useProductFetch, useCategoryFetch } from '@/composables/useEntityFetch'
 import { useMuninStore } from '@/stores/munin'
 import { GET_PfRules, POST_PfRule, PATCH_PfRule, DELETE_PfRule } from '@/api/pricefighter/api'
 import { STRATEGIES, RECOMMENDATION_VARIANTS } from './constants'
-import ConfirmationModal from '@/functionals/Confirmation-modal/index.vue'
 
 const SCOPE_TYPES = ['sku', 'category_idx', 'channel']
 
@@ -186,7 +168,7 @@ function emptyForm() {
 
 export default {
   name: 'PfStrategies',
-  components: { ConfirmationModal },
+  components: {},
   setup() {
     const loader = useLoaderStore()
     const notify = useNotifyStore()
@@ -219,6 +201,15 @@ export default {
         label: this.$t(`pricefighter.recommendation_${s}`),
         description: this.$t(`pricefighter.recommendation_${s}_desc`),
       }))
+    },
+    ruleActions() {
+      const actions = [
+        { key: 'cancel', label: this.$t('common.cancel'), role: 'secondary', onClick: this.closeModal },
+        { key: 'save', label: this.$t('common.save'), role: 'primary', onClick: this.saveRule },
+      ]
+      if (!this.editingRule?.id) return actions
+      const remove = { key: 'delete', label: this.$t('common.delete'), role: 'utility', icon: 'delete', variant: 'danger' }
+      return [{ ...remove, onClick: () => (this.showDeleteConfirm = true) }, ...actions]
     },
     scopeTypeOptions() {
       return SCOPE_TYPES.map((s) => ({ value: s, label: this.$t(`pricefighter.scope_${s}`) }))
@@ -345,25 +336,3 @@ export default {
   },
 }
 </script>
-
-<style lang="scss" scoped>
-.rule-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay-heavy);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rule-modal {
-  background: var(--c-basic-100);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-lg);
-  padding: 28px;
-  min-width: min(420px, 95vw);
-  max-width: 560px;
-  width: 100%;
-}
-</style>

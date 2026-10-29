@@ -1,62 +1,62 @@
 <template>
-  <ConfirmationModal :visible="visible" @reject="$emit('close')">
-    <template #header>
-      <h2 class="t-warning-300">
-        <FontAwesomeIcon icon="triangle-exclamation" class="mr-100" />
+  <BasicModal :open="visible" size="sm" @close="$emit('close')">
+    <template #title>
+      <h2 class="t-warning">
+        <FontAwesomeIcon :icon="$icons.warning" class="mr-2" />
         {{ $t("pim.supplier.force_preferred_modal.title") }}
       </h2>
     </template>
-    <template #description>
-      <div class="force-preferred__body">
-        <p class="t-basic-700">
-          {{ introText }}
-        </p>
-        <FormField :label="forceLabel">
-          <TextAreaBasic
-            v-model="reason"
-            :placeholder="$t('pim.supplier.force_preferred_modal.reason_placeholder')"
-            rows="3"
-            :disabled="loading"
-            data-test="force-preferred-reason"
-          />
-        </FormField>
-        <p
-          v-if="reasonTooShort"
-          class="force-preferred__hint t-basic-500 fs-200"
+    <div class="force-preferred__body">
+      <p class="t-body">
+        {{ introText }}
+      </p>
+      <FormField :label="forceLabel">
+        <BasicTextarea
+          v-model="reason"
+          :maxlength="512"
+          :placeholder="$t('pim.supplier.force_preferred_modal.reason_placeholder')"
+          rows="3"
+          :disabled="loading"
+          data-test="force-preferred-reason"
+        />
+      </FormField>
+      <p
+        v-if="reasonTooShort"
+        class="force-preferred__hint t-muted fs-200"
+      >
+        {{ $t("pim.supplier.force_preferred_modal.reason_min_hint") }}
+      </p>
+      <p class="force-preferred__warning t-negative fs-200">
+        <FontAwesomeIcon :icon="$icons.warning" class="mr-2" />
+        {{ $t("pim.supplier.force_preferred_modal.warning") }}
+      </p>
+    </div>
+    <template #footer>
+      <ActionBar>
+        <BasicButton
+          variant="secondary"
+          :disabled="loading"
+          data-test="force-preferred-cancel"
+          @click="$emit('close')"
         >
-          {{ $t("pim.supplier.force_preferred_modal.reason_min_hint") }}
-        </p>
-        <p class="force-preferred__warning t-negative-300 fs-200">
-          <FontAwesomeIcon icon="triangle-exclamation" class="mr-100" />
-          {{ $t("pim.supplier.force_preferred_modal.warning") }}
-        </p>
-        <div class="force-preferred__actions">
-          <BasicButton
-            :text="$t('pim.supplier.force_preferred_modal.cancel')"
-            class="btn-outline"
-            :disabled="loading"
-            data-test="force-preferred-cancel"
-            @click="$emit('close')"
-          />
-          <BasicButton
-            :text="loading ? $t('pim.supplier.force_preferred_modal.confirming') : confirmText"
-            class="btn-primary"
-            :disabled="!canConfirm"
-            data-test="force-preferred-confirm"
-            @click="onConfirm"
-          />
-        </div>
-      </div>
+          {{ $t('pim.supplier.force_preferred_modal.cancel') }}
+        </BasicButton>
+        <BasicButton
+          variant="primary"
+          :disabled="!canConfirm"
+          data-test="force-preferred-confirm"
+          @click="onConfirm"
+        >
+          {{ loading ? $t('pim.supplier.force_preferred_modal.confirming') : confirmText }}
+        </BasicButton>
+      </ActionBar>
     </template>
-  </ConfirmationModal>
+  </BasicModal>
 </template>
 
 <script>
-import ConfirmationModal from "@/functionals/Confirmation-modal/index.vue";
-
 export default {
   name: "ForcePreferredModal",
-  components: { ConfirmationModal },
   props: {
     visible: { type: Boolean, default: false },
     autoPreferredName: { type: String, default: "" },
@@ -122,21 +122,15 @@ export default {
 .force-preferred__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-200);
+  gap: var(--space-5);
 }
 .force-preferred__warning {
-  padding: var(--space-200);
-  border-radius: var(--radius-sm);
-  background: var(--c-negative-100);
-  border-left: 3px solid var(--c-negative-300);
+  padding: var(--space-5);
+  border-radius: var(--radius-base);
+  background: var(--negative-subtle);
+  border-left: 3px solid var(--negative);
 }
 .force-preferred__hint {
-  margin-top: calc(-1 * var(--space-100));
-}
-.force-preferred__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-200);
-  margin-top: var(--space-200);
+  margin-top: calc(-1 * var(--space-2));
 }
 </style>

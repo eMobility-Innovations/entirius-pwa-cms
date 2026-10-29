@@ -1,254 +1,186 @@
-const accesses = {
-  builderTypes: [
-    /* comes from backend*/
-  ],
-  routes: [
-    {
-      route: "/",
-      label: "Home",
-      access: ["admin", "moderator", "user"],
-      app: ["pages", "pim", "points", "forms", "agreements", "accounts", "checkout", "emails", "faq", "translation", "promo"],
-    },
-    {
-      route: "/pages/content",
-      label: "List of content",
-      access: ["admin", "moderator"],
-      app: ["pages"],
-    },
-    {
-      route: "/pages/gallery",
-      label: "Gallery",
-      access: ["admin", "moderator"],
-      app: ["pages"],
-    },
-    {
-      route: "/pages/doc",
-      label: "Docs",
-      access: ["admin", "moderator", "user"],
-      app: ["pages"],
-    },
-    {
-      route: "/accounts/customers",
-      label: "Customers",
-      access: ["admin"],
-      app: ["accounts"],
-    },
-    {
-      route: "/checkout-orders/orders",
-      label: "Orders",
-      access: ["admin"],
-      app: ["checkout"],
-    },
-    {
-      route: "/agreements/list",
-      label: "Agreements",
-      access: ["admin"],
-      app: ["agreements"],
-    },
-    {
-      route: "/agreements/consents",
-      label: "Consent Log",
-      access: ["admin"],
-      app: ["agreements"],
-    },
-  ],
-  apps: [
-    {
-      name: "Pages",
-      idx: "pages",
-      icon: "file-code",
-      root: "/pages/content",
-      labelKey: "panels.pages",
-      descriptionKey: "panels.pages_desc",
-      access: ["admin", "moderator"],
-    },
-    {
-      name: "PIM",
-      idx: "pim",
-      icon: "boxes-stacked",
-      root: "/pim/products",
-      labelKey: "panels.pim",
-      descriptionKey: "panels.pim_desc",
-      access: ["admin", "moderator"],
-    },
-    {
-      name: "Points",
-      idx: "points",
-      icon: "location-dot",
-      root: "/points/list",
-      labelKey: "panels.points",
-      descriptionKey: "panels.points_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Forms",
-      idx: "forms",
-      icon: "envelope",
-      root: "/forms/list",
-      labelKey: "panels.forms",
-      descriptionKey: "panels.forms_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Accounts",
-      idx: "accounts",
-      icon: "users",
-      root: "/accounts/customers",
-      labelKey: "panels.accounts",
-      descriptionKey: "panels.accounts_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Orders",
-      idx: "checkout",
-      icon: "shopping-cart",
-      root: "/checkout-orders/orders",
-      labelKey: "panels.checkout_orders",
-      descriptionKey: "panels.checkout_orders_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Agreements",
-      idx: "agreements",
-      icon: "file-contract",
-      root: "/agreements/list",
-      labelKey: "panels.agreements",
-      descriptionKey: "panels.agreements_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Emails",
-      idx: "emails",
-      icon: "at",
-      root: "/emails",
-      labelKey: "panels.emails",
-      descriptionKey: "panels.emails_desc",
-      access: ["admin"],
-    },
-    {
-      name: "FAQ",
-      idx: "faq",
-      icon: "circle-question",
-      root: "/faq/groups",
-      labelKey: "panels.faq",
-      descriptionKey: "panels.faq_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Pricing",
-      idx: "pricing",
-      icon: "money-bill-wave",
-      root: "/pricing/prices",
-      labelKey: "panels.pricing",
-      descriptionKey: "panels.pricing_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Stock",
-      idx: "stock",
-      icon: "warehouse",
-      root: "/stock/manage",
-      labelKey: "panels.stock",
-      descriptionKey: "panels.stock_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Translation",
-      idx: "translation",
-      icon: "language",
-      root: "/translation-jobs",
-      labelKey: "panels.translation",
-      descriptionKey: "panels.translation_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Atlas",
-      idx: "atlas",
-      icon: "globe",
-      root: "/atlas/list",
-      labelKey: "panels.atlas",
-      descriptionKey: "panels.atlas_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Enricher",
-      idx: "enricher",
-      icon: "wand-magic-sparkles",
-      root: "/enrichment",
-      labelKey: "panels.enricher",
-      descriptionKey: "panels.enricher_desc",
-      access: ["admin"],
-    },
-    {
-      name: "Promo",
-      idx: "promo",
-      icon: "tags",
-      root: "/promo/list",
-      labelKey: "panels.promo",
-      descriptionKey: "panels.promo_desc",
-      access: ["admin"],
-    },
-    {
-      name: "PriceFighter",
-      idx: "pricefighter",
-      icon: "scale-balanced",
-      root: "/pricefighter/gap",
-      labelKey: "panels.pricefighter",
-      descriptionKey: "panels.pricefighter_desc",
-      access: ["admin"],
-    },
-  ],
-};
+import { isAccessPanelEnabled } from "@/configs/accessMatrix";
+import { AREAS } from "@/configs/areas";
 
-const grantAccess = (obj, role = "user", builderTypes) => {
-  const result = Object.fromEntries(
-    Object.entries(obj).map(([key, val]) => {
-      const accessibleValues = val.reduce((acc, values) => {
-        const hasAccess = values.access.indexOf(role) > -1;
-        delete values.access;
-        return hasAccess ? [...acc, values] : acc;
-      }, []);
-
-      return [key, accessibleValues];
-    })
-  );
-  const bt = builderTypes.map((type) => {
-    return {
-      label: type.label,
-      v: type.slug,
-    };
-  });
-  result.builderTypes = [...bt];
-
-  return result;
-};
-
-// The access-matrix panel is an OPTIONAL overlay: with its flag off the entry is never
-// added, so a deployment without the backend never renders a button that leads nowhere.
-// Read here rather than imported from configs/accessMatrix so this file keeps its single
-// responsibility — it is a config table, not a consumer of the panel's module.
-if (String(process.env.VUE_APP_ACCESS_PANEL_ENABLED || "false").toLowerCase() === "true") {
-  accesses.apps.push({
+// The panel registry: one entry per CMS panel. `areas` are the django-access areas the panel works on (the area
+// catalogue keys); a panel is shown when the user can read any of them (`useAccessStore().canAny`).
+export const panels = [
+  {
+    name: "Pages",
+    idx: "pages",
+    icon: "file-code",
+    root: "/pages/content",
+    labelKey: "panels.pages",
+    descriptionKey: "panels.pages_desc",
+    areas: [AREAS.CONTENT_PAGES, AREAS.CONTENT_PUBLISH, AREAS.CONTENT_MEDIA, AREAS.CONTENT_SCHEMA],
+  },
+  {
+    name: "PIM",
+    idx: "pim",
+    icon: "boxes-stacked",
+    root: "/pim/products",
+    labelKey: "panels.pim",
+    descriptionKey: "panels.pim_desc",
+    areas: [AREAS.PIM_PRODUCTS, AREAS.PIM_CATEGORIES, AREAS.PIM_SCHEMA, AREAS.PIM_QUALITY, AREAS.SUPPLIERS_SOURCES, AREAS.SUPPLIERS_PRODUCTS],
+  },
+  {
+    name: "Points",
+    idx: "points",
+    icon: "location-dot",
+    root: "/points/list",
+    labelKey: "panels.points",
+    descriptionKey: "panels.points_desc",
+    areas: [AREAS.DELIVERYPOINTS_POINTS],
+  },
+  {
+    name: "Forms",
+    idx: "forms",
+    icon: "envelope",
+    root: "/forms/list",
+    labelKey: "panels.forms",
+    descriptionKey: "panels.forms_desc",
+    areas: [AREAS.CONTACT_FORMS_SUBMISSIONS, AREAS.CONTACT_FORMS_LEADS, AREAS.CONTACT_FORMS_SETTINGS],
+  },
+  {
+    name: "Accounts",
+    idx: "accounts",
+    icon: "users",
+    root: "/accounts/customers",
+    labelKey: "panels.accounts",
+    descriptionKey: "panels.accounts_desc",
+    areas: [AREAS.ACCOUNTS_CUSTOMERS],
+  },
+  {
+    name: "Orders",
+    idx: "checkout",
+    icon: "shopping-cart",
+    root: "/checkout-orders/orders",
+    labelKey: "panels.checkout_orders",
+    descriptionKey: "panels.checkout_orders_desc",
+    areas: [AREAS.CHECKOUT_ORDERS],
+  },
+  {
+    name: "Agreements",
+    idx: "agreements",
+    icon: "file-contract",
+    root: "/agreements/list",
+    labelKey: "panels.agreements",
+    descriptionKey: "panels.agreements_desc",
+    areas: [AREAS.AGREEMENTS_DEFINITIONS, AREAS.AGREEMENTS_CONSENTS],
+  },
+  {
+    name: "Emails",
+    idx: "emails",
+    icon: "at",
+    root: "/emails",
+    labelKey: "panels.emails",
+    descriptionKey: "panels.emails_desc",
+    areas: [AREAS.EMAIL_TEMPLATES],
+  },
+  {
+    name: "FAQ",
+    idx: "faq",
+    icon: "circle-question",
+    root: "/faq/groups",
+    labelKey: "panels.faq",
+    descriptionKey: "panels.faq_desc",
+    areas: [AREAS.FAQ_FAQ],
+  },
+  {
+    name: "Pricing",
+    idx: "pricing",
+    icon: "money-bill-wave",
+    root: "/pricing/prices",
+    labelKey: "panels.pricing",
+    descriptionKey: "panels.pricing_desc",
+    areas: [AREAS.PRICEMANAGER_PRICES, AREAS.PRICEMANAGER_SETTINGS],
+  },
+  {
+    name: "Stock",
+    idx: "stock",
+    icon: "warehouse",
+    root: "/stock/manage",
+    labelKey: "panels.stock",
+    descriptionKey: "panels.stock_desc",
+    areas: [AREAS.QMS_STOCK],
+  },
+  {
+    name: "Translation",
+    idx: "translation",
+    icon: "language",
+    root: "/translation-jobs",
+    labelKey: "panels.translation",
+    descriptionKey: "panels.translation_desc",
+    areas: [AREAS.PIM_TRANSLATOR_TRANSLATE, AREAS.CONTENTDB_TRANSLATOR_TRANSLATE],
+  },
+  {
+    name: "Atlas",
+    idx: "atlas",
+    icon: "globe",
+    root: "/atlas/list",
+    labelKey: "panels.atlas",
+    descriptionKey: "panels.atlas_desc",
+    areas: [AREAS.ATLAS_SOURCES, AREAS.ATLAS_PRODUCTS, AREAS.ATLAS_CREDENTIALS, AREAS.LOOKUP_SEARCH],
+  },
+  {
+    name: "Enricher",
+    idx: "enricher",
+    icon: "wand-magic-sparkles",
+    root: "/enrichment",
+    labelKey: "panels.enricher",
+    descriptionKey: "panels.enricher_desc",
+    areas: [AREAS.ENRICHMENT_RULES, AREAS.ENRICHMENT_PROPOSALS, AREAS.ENRICHMENT_PROFILE],
+  },
+  {
+    name: "Promo",
+    idx: "promo",
+    icon: "tags",
+    root: "/promo/list",
+    labelKey: "panels.promo",
+    descriptionKey: "panels.promo_desc",
+    areas: [AREAS.CHECKOUT_DISCOUNTS],
+  },
+  {
+    name: "PriceFighter",
+    idx: "pricefighter",
+    icon: "scale-balanced",
+    root: "/pricefighter/gap",
+    labelKey: "panels.pricefighter",
+    descriptionKey: "panels.pricefighter_desc",
+    areas: [AREAS.PRICEFIGHTER_DECISIONS, AREAS.PRICEFIGHTER_RULES],
+  },
+  {
+    name: "Leads",
+    idx: "leads",
+    icon: "inbox",
+    root: "/leads/inbox",
+    // the Inbox needs django-communicator; a leads-only backend opens the company list (phone-usable)
+    fallback: "/leads/companies",
+    labelKey: "panels.leads",
+    descriptionKey: "panels.leads_desc",
+    areas: [
+      AREAS.LEADS_COMPANIES,
+      AREAS.LEADS_SETTINGS,
+      AREAS.LEADS_GDPR,
+      AREAS.COMMUNICATOR_REVIEW,
+      AREAS.COMMUNICATOR_CONTENT,
+      AREAS.COMMUNICATOR_CONVERSATIONS,
+      AREAS.COMMUNICATOR_SETTINGS,
+      AREAS.SITEINTEL_AUDITS,
+    ],
+  },
+  {
     name: "Access",
     idx: "access",
     icon: "user-shield",
-    root: "/access/grants",
+    root: isAccessPanelEnabled() ? "/access/grants" : "/access/roles",
     labelKey: "panels.access",
     descriptionKey: "panels.access_desc",
-    access: ["admin"],
-  });
-}
-
-export const panels = accesses.apps;
+    areas: [AREAS.ACCESS_MANAGE],
+  },
+];
 
 export const User = class {
-  constructor({
-    username = "namelessking",
-    first_name = "",
-    last_name = "",
-    email = "",
-    buildTypes = [],
-  }) {
+  constructor({ username = "namelessking", first_name = "", last_name = "", email = "", buildTypes = [] }) {
     this.username = username;
     this.first_name = first_name;
     this.last_name = last_name;

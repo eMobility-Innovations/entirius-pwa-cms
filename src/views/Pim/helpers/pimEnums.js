@@ -3,21 +3,22 @@
  * Used across FeatureList, FeatureEdit, and FeatureSetEdit views.
  */
 
+/** `tone`: the StatusBadge tone of the type — select accent, text neutral, number negative, bool positive, date warning */
 export const FEATURE_TYPES = [
-  { value: 1, key: "bool", labelKey: "pim.type_bool" },
-  { value: 2, key: "decimal", labelKey: "pim.type_decimal" },
-  { value: 3, key: "varchar", labelKey: "pim.type_varchar" },
-  { value: 4, key: "varchar_t9n", labelKey: "pim.type_varchar_t9n" },
-  { value: 5, key: "text", labelKey: "pim.type_text" },
-  { value: 6, key: "text_t9n", labelKey: "pim.type_text_t9n" },
-  { value: 7, key: "select", labelKey: "pim.type_select" },
-  { value: 8, key: "multiselect", labelKey: "pim.type_multiselect" },
-  { value: 9, key: "json", labelKey: "pim.type_json" },
-  { value: 10, key: "datetime", labelKey: "pim.type_datetime" },
-  { value: 11, key: "json_t9n", labelKey: "pim.type_json_t9n" },
-  { value: 12, key: "temperature", labelKey: "pim.type_temperature" },
-  { value: 13, key: "length", labelKey: "pim.type_length" },
-  { value: 14, key: "mass", labelKey: "pim.type_mass" },
+  { value: 1, key: "bool", labelKey: "pim.type_bool", tone: "positive" },
+  { value: 2, key: "decimal", labelKey: "pim.type_decimal", tone: "negative" },
+  { value: 3, key: "varchar", labelKey: "pim.type_varchar", tone: "neutral" },
+  { value: 4, key: "varchar_t9n", labelKey: "pim.type_varchar_t9n", tone: "neutral" },
+  { value: 5, key: "text", labelKey: "pim.type_text", tone: "neutral" },
+  { value: 6, key: "text_t9n", labelKey: "pim.type_text_t9n", tone: "neutral" },
+  { value: 7, key: "select", labelKey: "pim.type_select", tone: "accent" },
+  { value: 8, key: "multiselect", labelKey: "pim.type_multiselect", tone: "accent" },
+  { value: 9, key: "json", labelKey: "pim.type_json", tone: "neutral" },
+  { value: 10, key: "datetime", labelKey: "pim.type_datetime", tone: "warning" },
+  { value: 11, key: "json_t9n", labelKey: "pim.type_json_t9n", tone: "neutral" },
+  { value: 12, key: "temperature", labelKey: "pim.type_temperature", tone: "negative" },
+  { value: 13, key: "length", labelKey: "pim.type_length", tone: "negative" },
+  { value: 14, key: "mass", labelKey: "pim.type_mass", tone: "negative" },
 ]
 
 export const FEATURE_SCOPES = [
@@ -66,4 +67,9 @@ export function featureTypeLabel(value) {
 export function scopeLabel(value) {
   const s = FEATURE_SCOPES.find(sc => sc.value === value)
   return s ? s.labelKey : String(value)
+}
+
+/** StatusBadge tone of a feature type (FEATURE_TYPES `tone`); an unknown type is neutral */
+export function featureTypeTone(value) {
+  return FEATURE_TYPES.find(t => t.value === value)?.tone ?? "neutral"
 }

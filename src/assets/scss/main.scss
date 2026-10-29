@@ -1,4 +1,6 @@
-@import "./themes/__config";
+@use "sass:list";
+@use "sass:map";
+
 @import "./variables/spacing";
 @import "./variables/fonts";
 
@@ -8,7 +10,7 @@
 @import "./utils//decorators";
 @import "./utils/links";
 @import "./utils/mobile";
-@import "./utils/auth-card";
+@import "./utils/table";
 
 * {
   box-sizing: border-box;
@@ -18,461 +20,137 @@
 }
 
 :root {
-  --elem-height: 31px;
+  --elem-height: 32px;
   --header-height: 3.5rem;
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-
-  --label-gap: 6px;
-
-  @each $device, $font-size in $fontsize {
-    @if $device==m {
-      @media screen and (max-width: 40rem) {
-        @each $size, $value in $font-size {
-          --fs-#{$size}: #{$value};
-
-          .fs-#{$size} {
-            font-size: #{$value};
-            &-#{$device} {
-              font-size: #{$value} !important;
-            }
-          }
-        }
-      }
-    } @else {
-      @media screen and (min-width: 40rem) {
-        @each $size, $value in $font-size {
-          --fs-#{$size}: #{$value};
-
-          .fs-#{$size} {
-            font-size: #{$value};
-            &-#{$device} {
-              font-size: #{$value} !important;
-            }
-          }
-        }
-      }
-    }
+  @each $radius in $brand-radii {
+    --radius-#{$radius}: var(--brand-radius-#{$radius});
   }
 
-  @each $device, $spaces in $spacing {
-    @each $space, $value in $spaces {
-      @if $device==m {
-        @media screen and (max-width: 40rem) {
-          --space-#{$space}: #{$value};
+  @each $step in $brand-space-steps {
+    --space-#{$step}: var(--brand-space-#{$step});
+  }
 
-          .pv-#{$space} {
-            padding: $value 0;
-            &-#{$device} {
-              padding: $value 0 !important;
-            }
-          }
-          .ph-#{$space} {
-            padding: 0 $value;
-            &-#{$device} {
-              padding: 0 $value !important;
-            }
-          }
-          .p-#{$space} {
-            padding: $value;
-            &-#{$device} {
-              padding: $value !important;
-            }
-          }
-          .pt-#{$space} {
-            padding-top: $value;
-            &-#{$device} {
-              padding-top: $value !important;
-            }
-          }
-          .pr-#{$space} {
-            padding-right: $value;
-            &-#{$device} {
-              padding-right: $value !important;
-            }
-          }
-          .pb-#{$space} {
-            padding-bottom: $value;
-            &-#{$device} {
-              padding-bottom: $value !important;
-            }
-          }
-          .pl-#{$space} {
-            padding-left: $value;
-            &-#{$device} {
-              padding-left: $value !important;
-            }
-          }
-          // margins --------------------
-          .mv-#{$space} {
-            margin: $value 0;
-            &-#{$device} {
-              margin: $value 0 !important;
-            }
-          }
-          .mh-#{$space} {
-            margin: 0 $value;
-            &-#{$device} {
-              margin: 0 $value !important;
-            }
-          }
-          .m-#{$space} {
-            margin: $value;
-            &-#{$device} {
-              margin: $value !important;
-            }
-          }
-          .mt-#{$space} {
-            margin-top: $value;
-            &-#{$device} {
-              margin-top: $value !important;
-            }
-          }
-          .mr-#{$space} {
-            margin-right: $value;
-            &-#{$device} {
-              margin-right: $value !important;
-            }
-          }
-          .mb-#{$space} {
-            margin-bottom: $value;
-            &-#{$device} {
-              margin-bottom: $value !important;
-            }
-          }
-          .ml-#{$space} {
-            margin-left: $value;
-            &-#{$device} {
-              margin-left: $value !important;
-            }
-          }
+  --label-gap: var(--space-1);
 
-          // supports
-          .gap-#{$space} {
-            gap: #{$value};
-            &-#{$device} {
-              gap: $value !important;
-            }
-          }
+  --font-ui: var(--brand-font-family-ui);
+  --font-brand: var(--brand-font-family-brand);
+  --font-mono: var(--brand-font-family-mono);
 
-          .br-#{$space} {
-            border-radius: #{$value};
-            &-#{$device} {
-              border-radius: #{$value} !important;
-            }
-          }
+  @each $size, $value in $fontsize {
+    --fs-#{$size}: #{$value};
 
-          .br-tl-#{$space} {
-            border-top-left-radius: #{$value};
+    .fs-#{$size} {
+      font-size: var(--fs-#{$size});
+    }
+  }
+}
 
-            &-#{$device} {
-              border-top-left-radius: #{$value} !important;
-            }
-          }
+// Theme: the semantic layer only — colour, overlay and shadow tokens per theme, the $semantic-classes map, type roles.
+@import "./themes/semantic.generated";
 
-          .br-tr-#{$space} {
-            border-top-right-radius: #{$value};
-            &-#{$device} {
-              border-top-right-radius: #{$value} !important;
-            }
-          }
+// Semantic utility classes from $semantic-classes (themes/_semantic.generated.scss); values follow the theme via var().
+@mixin semantic-class($selector, $hover) {
+  @if $hover {
+    #{$selector},
+    #{$selector}-hover:hover {
+      @content;
+    }
+  } @else {
+    #{$selector} {
+      @content;
+    }
+  }
+}
 
-          .br-bl-#{$space} {
-            border-bottom-left-radius: #{$value};
-            &-#{$device} {
-              border-bottom-left-radius: #{$value} !important;
-            }
-          }
+// Utilities sit under :root (0,2,0), the weight the removed palette classes had, so no call site changes weight.
+:root {
+  @each $token, $class in $semantic-classes {
+    $name: map.get($class, name);
+    $families: map.get($class, families);
+    $hover: map.get($class, hover);
+    $value: var(--#{$token});
 
-          .br-br-#{$space} {
-            border-bottom-right-radius: #{$value};
-            &-#{$device} {
-              border-bottom-right-radius: #{$value} !important;
-            }
-          }
-        }
-      } @else {
-        @media screen and (min-width: 40rem) {
-          --space-#{$space}: #{$value};
-
-          .pv-#{$space} {
-            padding: $value 0;
-            &-#{$device} {
-              padding: $value 0 !important;
-            }
-          }
-          .ph-#{$space} {
-            padding: 0 $value;
-            &-#{$device} {
-              padding: 0 $value !important;
-            }
-          }
-          .p-#{$space} {
-            padding: $value;
-            &-#{$device} {
-              padding: $value !important;
-            }
-          }
-          .pt-#{$space} {
-            padding-top: $value;
-            &-#{$device} {
-              padding-top: $value !important;
-            }
-          }
-          .pr-#{$space} {
-            padding-right: $value;
-            &-#{$device} {
-              padding-right: $value !important;
-            }
-          }
-          .pb-#{$space} {
-            padding-bottom: $value;
-            &-#{$device} {
-              padding-bottom: $value !important;
-            }
-          }
-          .pl-#{$space} {
-            padding-left: $value;
-            &-#{$device} {
-              padding-left: $value !important;
-            }
-          }
-          // margins --------------------
-          .mv-#{$space} {
-            margin: $value 0;
-            &-#{$device} {
-              margin: $value 0 !important;
-            }
-          }
-          .mh-#{$space} {
-            margin: 0 $value;
-            &-#{$device} {
-              margin: 0 $value !important;
-            }
-          }
-          .m-#{$space} {
-            margin: $value;
-            &-#{$device} {
-              margin: $value !important;
-            }
-          }
-          .mt-#{$space} {
-            margin-top: $value;
-            &-#{$device} {
-              margin-top: $value !important;
-            }
-          }
-          .mr-#{$space} {
-            margin-right: $value;
-            &-#{$device} {
-              margin-right: $value !important;
-            }
-          }
-          .mb-#{$space} {
-            margin-bottom: $value;
-            &-#{$device} {
-              margin-bottom: $value !important;
-            }
-          }
-          .ml-#{$space} {
-            margin-left: $value;
-            &-#{$device} {
-              margin-left: $value !important;
-            }
-          }
-
-          // supports
-          .gap-#{$space} {
-            gap: #{$value};
-            &-#{$device} {
-              gap: $value !important;
-            }
-          }
-
-          .br-#{$space} {
-            border-radius: #{$value};
-            &-#{$device} {
-              border-radius: #{$value} !important;
-            }
-          }
-
-          .br-tl-#{$space} {
-            border-top-left-radius: #{$value};
-
-            &-#{$device} {
-              border-top-left-radius: #{$value} !important;
-            }
-          }
-
-          .br-tr-#{$space} {
-            border-top-right-radius: #{$value};
-            &-#{$device} {
-              border-top-right-radius: #{$value} !important;
-            }
-          }
-
-          .br-bl-#{$space} {
-            border-bottom-left-radius: #{$value};
-            &-#{$device} {
-              border-bottom-left-radius: #{$value} !important;
-            }
-          }
-
-          .br-br-#{$space} {
-            border-bottom-right-radius: #{$value};
-            &-#{$device} {
-              border-bottom-right-radius: #{$value} !important;
-            }
-          }
+    @if list.index($families, t) {
+      @include semantic-class(".t-#{$name}", $hover) {
+        color: $value;
+      }
+    }
+    @if list.index($families, bg) {
+      @include semantic-class(".bg-#{$name}", $hover) {
+        #{map.get($class, background)}: $value;
+      }
+    }
+    @if list.index($families, b) {
+      @include semantic-class(".b-#{$name}", $hover) {
+        border: 1px solid $value;
+      }
+      @each $side, $prefix in (top: bt, bottom: bb, right: br, left: bl) {
+        .#{$prefix}-#{$name} {
+          border-#{$side}: 1px solid $value;
         }
       }
     }
   }
 }
 
-@each $theme, $set in $themes {
-  [data-theme="#{$theme}"] {
-    @each $color, $shades in $set {
-      @each $shade, $value in $shades {
-        --c-#{$color}-#{$shade}: #{$value};
+// Spacing classes from the brand steps (.p-1 = 4 px …, .rg-* = the row gap of a wrapping row); radius classes from
+// the radius scale (Tailwind names: .rounded = base, .rounded-lg …), with the corner variants in use. `br-` is the
+// border-right colour prefix only.
+$space-properties: (
+  p: padding, pt: padding-top, pr: padding-right, pb: padding-bottom, pl: padding-left,
+  m: margin, mt: margin-top, mr: margin-right, mb: margin-bottom, ml: margin-left, gap: gap,
+);
+$radius-corners: (tl: top-left, tr: top-right);
 
-        .t-#{$color}-#{$shade},
-        .t-#{$color}-#{$shade}-hover:hover {
-          color: #{$value};
-        }
+:root {
+  @each $step in $brand-space-steps {
+    $value: var(--space-#{$step});
 
-        .bg-#{$color}-#{$shade},
-        .bg-#{$color}-#{$shade}-hover:hover {
-          background-color: $value;
-        }
-
-        .bb-#{$color}-#{$shade} {
-          border-bottom: 1px solid $value;
-        }
-
-        .bt-#{$color}-#{$shade} {
-          border-top: 1px solid $value;
-        }
-
-        .br-#{$color}-#{$shade} {
-          border-right: 1px solid $value;
-        }
-
-        .bl-#{$color}-#{$shade} {
-          border-left: 1px solid $value;
-        }
-
-        .b-#{$color}-#{$shade},
-        .b-#{$color}-#{$shade}-hover:hover {
-          border: 1px solid $value;
-        }
-
-        .o-#{$color}-#{$shade},
-        .o-#{$color}-#{$shade}-hover:hover {
-          outline: 1px solid $value;
-        }
-
-        .stroke-#{$color}-#{$shade} {
-          stroke: $value;
-        }
+    @each $class, $property in $space-properties {
+      .#{$class}-#{$step} {
+        #{$property}: $value;
       }
     }
+    .pv-#{$step} {
+      padding: $value 0;
+    }
+    .ph-#{$step} {
+      padding: 0 $value;
+    }
+    .mv-#{$step} {
+      margin: $value 0;
+    }
+    .mh-#{$step} {
+      margin: 0 $value;
+    }
   }
-}
 
-// Theme-scoped variables (shadows, overlays, gradients, editor)
-[data-theme="default"] {
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
-  --shadow-arrow: 0px 3px 6px rgba(52, 64, 84, 0.15);
-  --shadow-right: 27px 0 27px -35px rgba(66, 68, 90, 1);
-  --shadow-left: -27px 0 27px -35px rgba(66, 68, 90, 1);
-  --shadow-down: 0px 34px 10px -33px rgba(189, 189, 195, 1);
-  --shadow-top: 0 -27px 27px -35px rgba(66, 68, 90, 1);
-  --shadow-around: 0 0 20px 14px rgba(66, 68, 90, 0.3);
+  // After the loop above, so a row gap refines the `.gap-*` of the same element.
+  @each $step in $brand-space-steps {
+    .rg-#{$step} {
+      row-gap: var(--space-#{$step});
+    }
+  }
 
-  --overlay-backdrop: rgba(0, 0, 0, 0.5);
-  --overlay-heavy: rgba(0, 0, 0, 0.55);
-  --overlay-loading: rgba(255, 255, 255, 0.45);
-  --overlay-handy: rgba(17, 17, 17, 0.6);
-  --overlay-ripple: rgba(255, 255, 255, 0.7);
-
-  --gradient-blue: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
-  --gradient-blue-light: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
-  --gradient-tech: linear-gradient(135deg, #3B82F6 0%, #2563EB 50%, #1E40AF 100%);
-  --gradient-subtle: linear-gradient(135deg, #F5F7FA 0%, #E8ECEF 100%);
-  --gradient-main-bg: linear-gradient(135deg, #fdfcfb 0%, #c6c3e25c 100%);
-
-  --editor-table-header-bg: #3B82F6;
-  --editor-table-header-bg-alt: #2563EB;
-  --editor-table-header-text: #ffffff;
-  --editor-table-even-row: #f8f8f8;
-}
-
-[data-theme="dark"] {
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
-  --shadow-arrow: 0px 3px 6px rgba(0, 0, 0, 0.35);
-  --shadow-right: 27px 0 27px -35px rgba(0, 0, 0, 0.8);
-  --shadow-left: -27px 0 27px -35px rgba(0, 0, 0, 0.8);
-  --shadow-down: 0px 34px 10px -33px rgba(0, 0, 0, 0.5);
-  --shadow-top: 0 -27px 27px -35px rgba(0, 0, 0, 0.8);
-  --shadow-around: 0 0 20px 14px rgba(0, 0, 0, 0.5);
-
-  --overlay-backdrop: rgba(0, 0, 0, 0.65);
-  --overlay-heavy: rgba(0, 0, 0, 0.7);
-  --overlay-loading: rgba(12, 16, 23, 0.6);
-  --overlay-handy: rgba(0, 0, 0, 0.7);
-  --overlay-ripple: rgba(255, 255, 255, 0.15);
-
-  --gradient-blue: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
-  --gradient-blue-light: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
-  --gradient-tech: linear-gradient(135deg, #3B82F6 0%, #2563EB 50%, #1E40AF 100%);
-  --gradient-subtle: linear-gradient(135deg, #141A24 0%, #1E2830 100%);
-  --gradient-main-bg: linear-gradient(135deg, #0C1017 0%, #141A24 100%);
-
-  --editor-table-header-bg: #163450;
-  --editor-table-header-bg-alt: #0F2636;
-  --editor-table-header-text: #D6E0EA;
-  --editor-table-even-row: #141A24;
+  @each $radius in $brand-radii {
+    $class: "rounded-#{$radius}";
+    @if $radius == base {
+      $class: "rounded";
+    }
+    .#{$class} {
+      border-radius: var(--radius-#{$radius});
+    }
+  }
+  @each $corner, $side in $radius-corners {
+    .rounded-#{$corner} {
+      border-#{$side}-radius: var(--radius-base);
+    }
+  }
 }
 
 [data-theme] * {
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.bg-gradient-blue {
-  background: var(--gradient-blue);
-}
-
-.bg-gradient-blue-light {
-  background: var(--gradient-blue-light);
-}
-
-.bg-gradient-tech {
-  background: var(--gradient-tech);
-}
-
-.bg-gradient-subtle {
-  background: var(--gradient-subtle);
-}
-
-.text-gradient-blue {
-  background: var(--gradient-blue);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.text-gradient-tech {
-  background: var(--gradient-tech);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .bg-inherit {
@@ -481,12 +159,11 @@
 
 body {
   font-size: var(--fs-400);
-  color: var(--c-basic-800);
-  font-family: "Inter", sans-serif;
+  color: var(--text-body);
+  font-family: var(--font-ui);
   font-optical-sizing: auto;
   font-weight: 500;
   font-style: normal;
-  font-variation-settings: "slnt" 0;
   -ms-text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
   -moz-osx-font-smoothing: grayscale;

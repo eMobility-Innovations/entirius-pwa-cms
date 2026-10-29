@@ -4,30 +4,28 @@
       <li
         v-for="notification in notifications"
         :key="notification.uuid"
-        class="notification flex jc-sb ai-ct mb-100 p-200 br-50 shadow-down"
-        :class="`bg-${notification.type}-100 t-${notification.type}-300 notification--${notification.type}`"
+        class="notification flex jc-sb ai-ct mb-2 p-5 rounded shadow-down"
+        :class="[toneClasses(notification.type), `notification--${notification.type}`]"
         :role="severityRole(notification.type)"
         :aria-live="severityAriaLive(notification.type)"
-        @mouseenter="notify.pauseTimer(notification.uuid)"
-        @mouseleave="notify.resumeTimer(notification.uuid)"
+        @pointerenter="onPointer($event, notify.pauseTimer, notification.uuid)"
+        @pointerleave="onPointer($event, notify.resumeTimer, notification.uuid)"
       >
         <div class="notification__msg">
           <p
             v-if="notification.title"
             class="fs-300 fw-600"
-            :class="notification.msg ? 'mb-50' : ''"
+            :class="notification.msg ? 'mb-1' : ''"
             v-text="notification.title"
           />
           <p v-if="notification.msg" class="fs-200" v-text="notification.msg" />
         </div>
-        <button
-          type="button"
+        <IconButton
+          icon="close"
+          :label="$t('common.dismiss')"
           class="notification__close"
-          :aria-label="$t('common.dismiss')"
           @click="notify.hideNotification(notification.uuid)"
-        >
-          ×
-        </button>
+        />
       </li>
     </transition-group>
   </div>
@@ -35,6 +33,10 @@
 
 <script>
 import { useNotifyStore } from "@/stores/notify";
+
+// notify type → semantic status name (the semantic layer calls informative `info`)
+const TONES = { positive: "positive", negative: "negative", warning: "warning", informative: "info" };
+
 export default {
   setup() {
     const notify = useNotifyStore();
@@ -46,6 +48,14 @@ export default {
     },
   },
   methods: {
+    // Only a hovering mouse holds a toast: a tap never leaves, so it would pin the toast over the page.
+    onPointer(event, action, uuid) {
+      if (event.pointerType === "mouse") action(uuid);
+    },
+    toneClasses(type) {
+      const tone = TONES[type] ?? "info";
+      return `bg-${tone}-subtle t-${tone}`;
+    },
     severityRole(type) {
       return type === "negative" || type === "warning" ? "alert" : "status";
     },
@@ -57,17 +67,6 @@ export default {
 </script>
 
 <style lang="scss">
-@media screen and (max-width: 768px) {
-  .notifications {
-    top: 0;
-    right: 0;
-    left: 0;
-    width: 100%;
-  }
-  .notification {
-    width: 100%;
-  }
-}
 .notifications {
   position: fixed;
   z-index: 101;
@@ -85,35 +84,33 @@ export default {
   border-left: 3px solid currentColor;
 }
 .notification--positive {
-  border-left-color: var(--c-positive-300);
+  border-left-color: var(--positive);
 }
 .notification--negative {
-  border-left-color: var(--c-negative-300);
+  border-left-color: var(--negative);
 }
 .notification--informative {
-  border-left-color: var(--c-informative-300);
+  border-left-color: var(--info);
 }
 .notification--warning {
-  border-left-color: var(--c-warning-300);
+  border-left-color: var(--warning);
 }
 .notification__close {
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 var(--space-50);
-  margin-left: var(--space-100);
-  opacity: 0.7;
-  transition: opacity 120ms ease;
+  margin-left: var(--space-2);
 }
-.notification__close:hover {
-  opacity: 1;
-}
-.notification__close:focus-visible {
-  opacity: 1;
-  outline: 2px solid var(--c-support-400);
-  outline-offset: 2px;
+/* Phone: after the base rules so it wins — the toast fits the screen and sits at the bottom, clear of the header
+   and the page's Back, and above a sticky action bar (`--action-bar-height`, set by ReviewActions) so it never covers
+   the action it explains. */
+@media screen and (max-width: 768px) {
+  .notifications {
+    top: auto;
+    right: var(--space-5);
+    bottom: calc(max(var(--space-5), env(safe-area-inset-bottom)) + var(--action-bar-height, 0px));
+    left: var(--space-5);
+    width: auto;
+  }
+  .notification {
+    width: 100%;
+  }
 }
 </style>

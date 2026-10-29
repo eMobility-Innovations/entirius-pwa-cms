@@ -1,30 +1,34 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <!-- Title shown by router titleKey in header bar -->
-
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-show="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template #header>
+      <PageHeader :title="$t('pm.tax_classes')" />
+    </template>
+      <Loader block v-show="loading" />
 
       <div v-show="!loading">
-        <p v-if="!taxClasses.length" class="t-basic-500 fs-300">
-          {{ $t('pm.tax_classes') }}: —
-        </p>
-
-        <DataTable v-else :columns="columns" :rows="taxClasses" @row-click="onRowClick">
+        <DataTable
+          :columns="columns"
+          :rows="taxClasses"
+          :empty-text="$t('pm.no_tax_classes')"
+          empty-size="md"
+          @row-click="onRowClick"
+        >
+          <template #cell-idx="{ row }">
+            <router-link :to="`/pricing/tax-classes/${encodeURIComponent(row.idx)}`" class="fw-600 t-accent" @click.stop>
+              {{ row.idx }}
+            </router-link>
+          </template>
           <template #cell-name="{ row }">
             <span class="fw-600">{{ row.name }}</span>
           </template>
           <template #cell-rate_count="{ row }">
-            <span class="chip bg-support-100 t-support-400">
-              {{ row.rate_count ?? 0 }} {{ $t('pm.rate_count') }}
-            </span>
+            <StatusBadge tone="accent" :dot="false" :label="`${row.rate_count ?? 0} ${$t('pm.rate_count')}`" />
           </template>
         </DataTable>
       </div>
 
       <FloatingActions :actions="fabActions" />
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
@@ -57,7 +61,7 @@ export default {
     fabActions() {
       return [
         {
-          icon: 'plus',
+          icon: 'add',
           label: this.$t('pm.create_tax_class'),
           handler: () => this.$router.push('/pricing/tax-classes/create'),
         },

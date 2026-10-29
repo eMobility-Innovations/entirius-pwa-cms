@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>{{ $t("access.audit") }}</h1>
+    <h1>{{ $t("access.matrix_labels.audit") }}</h1>
     <!-- Read-only by construction: this component imports nothing that writes. -->
     <table>
       <thead>

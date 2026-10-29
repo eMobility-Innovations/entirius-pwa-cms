@@ -13,6 +13,7 @@
     <div class="dedup-search-box__row">
       <BasicInput
         v-model="q"
+        :maxlength="500"
         :placeholder="$t('lookup.box.placeholder')"
         class="dedup-search-box__input"
         data-testid="dedup-search-input"
@@ -27,17 +28,19 @@
         @remove="removeImage"
       />
       <BasicButton
-        :text="$t('lookup.box.search_button')"
-        :is-disabled="loading || !canSearch"
+        variant="primary"
+        :disabled="loading || !canSearch"
         data-testid="dedup-search-submit"
         @click="search"
-      />
+      >
+        {{ $t('lookup.box.search_button') }}
+      </BasicButton>
     </div>
 
     <!-- Directly under the picker it describes, not stranded in the filter row. -->
     <span
       class="dedup-search-box__hint fs-200"
-      :class="isDragging ? 't-support-400' : 't-basic-500'"
+      :class="isDragging ? 't-accent' : 't-muted'"
       data-testid="dedup-search-drop-hint"
     >
       {{
@@ -58,7 +61,7 @@
 
     <p
       v-if="displayError"
-      class="dedup-search-box__error fs-200 t-negative-300"
+      class="dedup-search-box__error fs-200 t-negative"
     >
       {{ displayError }}
     </p>
@@ -195,30 +198,42 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .dedup-search-box {
   display: flex;
   flex-direction: column;
-  gap: var(--space-200);
+  gap: var(--space-5);
   // Transparent by default so the box does not shift by 2px the moment a drag starts.
   border: 1px dashed transparent;
-  border-radius: var(--radius-sm);
-  padding: var(--space-100);
+  border-radius: var(--radius-base);
+  padding: var(--space-2);
   transition: border-color 0.12s ease, background 0.12s ease;
 
   // Same tokens as ProductFiles.vue / MediaGallery.vue / Gallery.vue dropzones.
   &--dragover {
-    border-color: var(--c-support-400);
-    background: var(--c-basic-200);
+    border-color: var(--accent);
+    background: var(--surface-raised);
   }
 
   &__row,
   &__scope {
     display: flex;
     align-items: center;
-    gap: var(--space-200);
+    gap: var(--space-5);
+  }
+  // A phone gives the query its own full-width row; the photo picker and Search wrap under it.
+  &__row {
+    @include max-tablet {
+      flex-wrap: wrap;
+    }
   }
   &__input {
     flex: 1;
+
+    @include max-tablet {
+      flex-basis: 100%;
+    }
   }
   &__hint,
   &__error {

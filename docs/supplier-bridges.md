@@ -90,7 +90,7 @@ Three views live under `/atlas`:
   trimmed) + confirm/cancel buttons. Posts to `POST_MergeByEan({
   winner_sku, loser_sku, reason })` and emits `confirmed(responseData)` on
   success, `cancelled` on close. Error states surface inline
-  (`.merge-confirm__error`, `--c-negative-100`) instead of as a toast, so the
+  (`.merge-confirm__error`, `--negative-subtle`) instead of as a toast, so the
   modal stays open for retry. Cancel is blocked while a request is in
   flight.
 

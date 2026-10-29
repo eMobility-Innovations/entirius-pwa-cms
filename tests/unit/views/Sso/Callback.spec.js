@@ -34,6 +34,19 @@ const loadPreferences = vi.fn();
 const fetchModules = vi.fn();
 const replace = vi.fn();
 
+vi.mock("@/composables/useLoginSession", () => ({
+  useLoginSession: () => ({ completeLogin: async ({ access, refresh, customer_id }) => {
+    setAuth({ token: access, refresh, customer_id, expiryDate: new Date() });
+    setUser({});
+    await fetchModules();
+  } }),
+  consumeReturnRoute: () => {
+    const route = localStorage.getItem("cms_return_route");
+    localStorage.removeItem("cms_return_route");
+    return route && route !== "/" ? route : null;
+  },
+}));
+
 vi.mock("@/api/sso/api", () => ({
   POST_SsoCallback: (...a) => postCallback(...a),
 }));
@@ -64,6 +77,7 @@ const mountCallback = (query = { code: "the-code", state: STASHED }) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.VUE_APP_SSO_ENABLED = "true";
   window.sessionStorage.clear();
   window.localStorage.clear();
   window.sessionStorage.setItem("sso_state", STASHED);

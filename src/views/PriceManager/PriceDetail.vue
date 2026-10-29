@@ -1,185 +1,130 @@
 <template>
-  <div class="p-500 fs-300 t-basic-800 h-100 ov-h">
-    <Teleport v-if="!embedded" to="#pricing-toolbar-left" defer>
-      <BasicButton
-        text=""
-        icon="arrow-left"
-        class="bg-basic-200 t-basic-600"
-        @click="$router.push('/pricing/prices')"
-      />
-      <span class="fw-600 fs-400">{{ effectiveSku || $t('pm.price_detail') }}</span>
-    </Teleport>
-
-    <div class="bg-basic-100 b-basic-300 br-50 h-100 ovy-auto p-500">
-      <Loader v-if="loading" />
+  <PageLayout class="fs-300 t-body">
+    <template v-if="!embedded" #header>
+      <PageHeader :title="effectiveSku || $t('pm.price_detail')" back="/pricing/prices">
+        <template #meta>
+          <PmChannelSelect />
+        </template>
+        <template v-if="showActions" #actions>
+          <ActionBar :actions="headerActions" />
+        </template>
+      </PageHeader>
+    </template>
+      <Loader block v-if="loading" />
 
       <template v-else>
         <EmptyState
           v-if="productNotFound"
           :title="$t('pm.no_price_for_product')"
-          :message="$t('pm.no_price_for_product')"
+          :message="configurable ? $t('pm.prices_per_variant') : $t('pm.no_price_for_product')"
           icon="tag"
         />
 
         <template v-else>
           <!-- Top bar: currency selector + meta info -->
-          <div class="flex ai-ct gap-300 mb-400 flex-wrap">
-            <div class="pm-field">
-              <label class="pm-label">{{ $t('pm.currency') }}</label>
-              <Dropdown
-                :values="currencyOptions"
-                :selected="activeCurrency ? [activeCurrency] : []"
-                @onSelect="onCurrencyChange"
+          <div class="flex ai-ct gap-8 mb-10 flex-wrap">
+            <FormField :label="$t('pm.currency')">
+              <BasicSelect
+                :model-value="activeCurrency"
+                :options="currencyOptions"
+                @update:model-value="onCurrencyChange"
               />
-            </div>
+            </FormField>
             <div class="pm-meta-item">
-              <span class="pm-label">{{ $t('pm.country') }}</span>
+              <span class="field-label">{{ $t('pm.country') }}</span>
               <span class="fw-600">{{ flatPrice?.country || defaultCountryIso || '—' }}</span>
             </div>
             <div class="pm-meta-item">
-              <span class="pm-label">{{ $t('pm.direction') }}</span>
+              <span class="field-label">{{ $t('pm.direction') }}</span>
               <span>{{ isNetEditable ? $t('pm.from_net_to_gross') : $t('pm.from_gross_to_net') }}</span>
             </div>
             <div v-if="sourceBadge" class="pm-meta-item">
-              <span class="pm-label">{{ $t('pm.source_label') }}</span>
-              <span class="flex ai-ct gap-100">
-                <StatusBadge :label="sourceBadge.label" :variant="sourceBadge.variant" />
+              <span class="field-label">{{ $t('pm.source_label') }}</span>
+              <span class="flex ai-ct gap-2">
+                <StatusBadge :label="sourceBadge.label" :tone="sourceBadge.variant" />
               </span>
             </div>
             <div v-if="flatPurchaseCost" class="pm-meta-item">
-              <span class="pm-label">{{ $t('pm.purchase_cost') }}</span>
-              <span class="flex ai-ct gap-100">
-                <span class="t-basic-700 fw-600">{{ flatPurchaseCost.net_cost }} {{ flatPurchaseCost.currency }}</span>
-                <span v-if="flatPurchaseCost.supplier_idx" class="t-basic-500 fs-200">
+              <span class="field-label">{{ $t('pm.purchase_cost') }}</span>
+              <span class="flex ai-ct gap-2">
+                <span class="t-body fw-600">{{ flatPurchaseCost.net_cost }} {{ flatPurchaseCost.currency }}</span>
+                <span v-if="flatPurchaseCost.supplier_idx" class="t-muted fs-200">
                   · {{ flatPurchaseCost.supplier_idx }}
                 </span>
                 <StatusBadge
                   v-if="marginPercent !== null"
                   :label="$t('pm.margin_percent', { value: marginPercent })"
-                  :variant="Number(marginPercent) > 0 ? 'positive' : 'negative'"
+                  :tone="Number(marginPercent) > 0 ? 'positive' : 'negative'"
                 />
-                <span v-else-if="!flatPrice" class="t-warning-300 fs-200">{{ $t('pm.unpriced_hint') }}</span>
+                <span v-else-if="!flatPrice" class="t-warning fs-200">{{ $t('pm.unpriced_hint') }}</span>
               </span>
             </div>
           </div>
 
           <!-- Editable row -->
-          <div class="pm-edit-form mb-300">
-            <div class="pm-edit-fields">
+          <BasicCard :title="$t('pm.price_detail')" gap class="mb-8">
+            <div class="form-grid">
               <!-- Editable price (net or gross depending on direction) -->
-              <div class="pm-field">
-                <label class="pm-label required">
-                  {{ isNetEditable ? $t('pm.net') : $t('pm.gross') }}
-                </label>
-                <BasicInput
-                  v-model="form.value"
-                  :validate="formErrors.getFieldError('value')"
-                  @blur="form.value = normalizePrice(form.value)"
-                />
-              </div>
+              <FormField
+                :label="isNetEditable ? $t('pm.net') : $t('pm.gross')"
+                required
+                :error="formErrors.getFieldError('value')?.msg || ''"
+              >
+                <BasicInput v-model="form.value" format="money" />
+              </FormField>
 
               <!-- Calculated price (read-only) -->
-              <div class="pm-field">
-                <label class="pm-label">
-                  {{ isNetEditable ? $t('pm.gross') : $t('pm.net') }}
-                  <span class="pm-lock-icon t-basic-400 ml-50">
-                    <FontAwesomeIcon icon="lock" />
-                  </span>
-                </label>
-                <div class="pm-readonly-value">
-                  {{ flatPrice ? fmt2(isNetEditable ? flatPrice.gross : flatPrice.net) : '—' }}
-                </div>
-              </div>
+              <FormField :label="isNetEditable ? $t('pm.gross') : $t('pm.net')">
+                <BasicInput
+                  :model-value="flatPrice ? fmt2(isNetEditable ? flatPrice.gross : flatPrice.net) : '—'"
+                  readonly
+                />
+              </FormField>
 
               <!-- Special price -->
-              <div class="pm-field">
-                <label class="pm-label">{{ $t('pm.special_net') }}</label>
-                <BasicInput
-                  v-model="form.special_value"
-                  :validate="formErrors.getFieldError('special_value')"
-                  @blur="form.special_value = normalizePrice(form.special_value)"
-                />
-              </div>
+              <FormField
+                :label="$t('pm.special_net')"
+                :error="formErrors.getFieldError('special_value')?.msg || ''"
+              >
+                <BasicInput v-model="form.special_value" format="money" />
+              </FormField>
 
               <!-- Promo dates -->
-              <div class="pm-field">
-                <label class="pm-label">{{ $t('pm.special_from') }}</label>
-                <input
-                  type="date"
-                  class="pm-date-input"
-                  :value="form.special_from_date"
-                  @input="form.special_from_date = $event.target.value"
-                />
-              </div>
-              <div class="pm-field">
-                <label class="pm-label">{{ $t('pm.special_to') }}</label>
-                <input
-                  type="date"
-                  class="pm-date-input"
-                  :value="form.special_to_date"
-                  @input="form.special_to_date = $event.target.value"
-                />
-              </div>
+              <FormField :label="$t('pm.special_from')">
+                <BasicDatePicker v-model="form.special_from_date" />
+              </FormField>
+              <FormField :label="$t('pm.special_to')">
+                <BasicDatePicker v-model="form.special_to_date" />
+              </FormField>
             </div>
-          </div>
+          </BasicCard>
 
-          <!-- Actions row -->
-          <div class="flex gap-200 mb-400 flex-wrap ai-ct">
-            <BasicButton
-              :text="$t('pm.save')"
-              class="bg-support-400 t-basic-100"
-              @click="save"
-            />
-            <BasicButton
-              :text="showCountries ? $t('pm.hide_countries') : $t('pm.view_all_countries')"
-              class="btn-outline"
-              @click="showCountries = !showCountries"
-            />
-            <BasicButton
-              :text="showHistory ? $t('pm.hide_history') : $t('pm.view_history')"
-              class="btn-outline"
-              @click="toggleHistory"
-            />
-            <span :title="$t('pm.flush_special_tooltip')">
-              <BasicButton
-                text=""
-                icon="broom"
-                class="bg-basic-200 t-basic-600"
-                @click="showFlushConfirm = true"
-              />
-            </span>
-            <span :title="$t('pm.delete_prices_tooltip')">
-              <BasicButton
-                text=""
-                icon="trash-can"
-                class="bg-negative-100 t-negative-300"
-                @click="showDeleteConfirm = true"
-              />
-            </span>
-          </div>
+          <!-- Embedded (Pim product tab): no page header, the actions sit under the form -->
+          <ActionBar v-if="embedded" class="mb-8" :actions="headerActions" />
 
           <!-- Confirmation modals -->
-          <Confirmation-modal
-            :visible="showFlushConfirm"
-            @accept="flushSpecial"
-            @reject="showFlushConfirm = false"
+          <ConfirmDialog
+            tone="danger"
+            :open="showFlushConfirm"
+            @confirm="flushSpecial"
+            @cancel="showFlushConfirm = false"
+            :title="$t('pm.flush_special')"
           >
-            <template #header><h2>{{ $t('pm.flush_special') }}</h2></template>
-            <template #description><p>{{ $t('pm.flush_special_confirm') }}</p></template>
-          </Confirmation-modal>
+            <template #default><p>{{ $t('pm.flush_special_confirm') }}</p></template>
+          </ConfirmDialog>
 
-          <Confirmation-modal
-            :visible="showDeleteConfirm"
-            @accept="deletePrices"
-            @reject="showDeleteConfirm = false"
+          <ConfirmDialog
+            tone="danger"
+            :open="showDeleteConfirm"
+            @confirm="deletePrices"
+            @cancel="showDeleteConfirm = false"
+            :title="$t('pm.delete_prices')"
           >
-            <template #header><h2>{{ $t('pm.delete_prices') }}</h2></template>
-            <template #description><p>{{ $t('pm.delete_prices_confirm') }}</p></template>
-          </Confirmation-modal>
+            <template #default><p>{{ $t('pm.delete_prices_confirm') }}</p></template>
+          </ConfirmDialog>
 
           <!-- All-countries breakdown (collapsible) -->
-          <div v-if="showCountries" class="mb-400">
-            <h3 class="fs-400 fw-600 mb-200 t-basic-600">{{ $t('pm.all_countries') }}</h3>
+          <BasicCard v-if="showCountries" :title="$t('pm.all_countries')" gap class="mb-8">
             <div class="pm-country-table">
               <div class="pm-country-table__head">
                 <span>{{ $t('pm.country') }}</span>
@@ -199,46 +144,48 @@
                 <span>{{ row.tax_rate }}</span>
                 <span>{{ fmt2(row.net) }}</span>
                 <span>{{ fmt2(row.gross) }}</span>
-                <span class="t-basic-500">
+                <span class="t-muted">
                   {{ fmt2(row.special_net) || '—' }}
                   <template v-if="row.special_gross"> → {{ fmt2(row.special_gross) }}</template>
                 </span>
               </div>
             </div>
-          </div>
+          </BasicCard>
 
           <!-- History (collapsible) -->
-          <div v-if="showHistory" class="mt-200">
-            <h3 class="fs-400 fw-600 mb-200">{{ $t('pm.history') }}</h3>
+          <BasicCard v-if="showHistory" :title="$t('pm.history')" gap class="mb-8">
             <Loader v-if="historyLoading" />
-            <div v-else-if="!history.length" class="t-basic-500 fs-200">—</div>
+            <EmptyState v-else-if="!history.length" icon="empty" size="sm" :title="$t('pm.no_history')" />
             <div
               v-for="entry in history"
               :key="entry.id"
-              class="pm-history-row flex ai-ct gap-200"
+              class="pm-history-row flex ai-ct gap-5"
             >
-              <span class="t-basic-500 fs-200">{{ entry.created_at }}</span>
+              <span class="t-muted fs-200">{{ formatDate(entry.created_at) }}</span>
               <span class="fw-600">{{ entry.country }}</span>
               <span>{{ entry.source }} — gross: {{ entry.gross_value }}, net: {{ entry.net_value }}</span>
-              <span class="t-basic-500 fs-200">{{ entry.changed_by }}</span>
+              <span class="t-muted fs-200">{{ entry.changed_by }}</span>
             </div>
-          </div>
+          </BasicCard>
         </template>
       </template>
-    </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script>
 import { useLoaderStore } from '@/stores/loader'
 import { useNotifyStore } from '@/stores/notify'
 import { useFormErrors, extractApiMessage } from '@/composables/useFormErrors'
+import { isNotFound } from '@/api/createClient'
 import { GET_PmPriceDetail, GET_PmPrices, PATCH_PmPrice, DELETE_PmPrice, POST_PmFlushSpecial, GET_PmPriceHistory } from '@/api/pricemanager/api'
-import ConfirmationModal from '@/functionals/Confirmation-modal/index.vue'
+import { formatDate } from '@/utils/format'
+import PmChannelSelect from './PmChannelSelect.vue'
+
+const PRICE_FORMATS = { value: { format: 'money' }, special_value: { format: 'money' } }
 
 export default {
   name: 'PmPriceDetail',
-  components: { ConfirmationModal },
+  components: { PmChannelSelect },
   inject: {
     pmChannelIdx: { default: null },
     pmActiveChannel: { default: null },
@@ -247,6 +194,8 @@ export default {
     sku: { type: String, default: null },
     channelIdxProp: { type: String, default: null },
     embedded: { type: Boolean, default: false },
+    // A configurable product has no prices of its own: they live on its variants.
+    configurable: { type: Boolean, default: false },
   },
   setup() {
     const loader = useLoaderStore()
@@ -277,6 +226,23 @@ export default {
     }
   },
   computed: {
+    // The price actions exist once the product's prices loaded (not while loading, not for an unknown product).
+    showActions() {
+      return !this.loading && !this.productNotFound
+    },
+    headerActions() {
+      return [
+        { key: 'countries', role: 'secondary', onClick: () => (this.showCountries = !this.showCountries),
+          label: this.showCountries ? this.$t('pm.hide_countries') : this.$t('pm.view_all_countries') },
+        { key: 'history', role: 'secondary', onClick: this.toggleHistory,
+          label: this.showHistory ? this.$t('pm.hide_history') : this.$t('pm.view_history') },
+        { key: 'flush', role: 'utility', icon: 'clear', variant: 'danger', label: this.$t('pm.flush_special'),
+          onClick: () => (this.showFlushConfirm = true) },
+        { key: 'delete', role: 'utility', icon: 'delete', variant: 'danger', label: this.$t('pm.delete_prices'),
+          onClick: () => (this.showDeleteConfirm = true) },
+        { key: 'save', role: 'primary', label: this.$t('pm.save'), onClick: this.save },
+      ]
+    },
     effectiveSku() {
       return this.sku || this.$route?.params?.sku || ''
     },
@@ -366,6 +332,7 @@ export default {
     if (this.effectiveChannelIdx && this.effectiveSku) this.fetchDetail()
   },
   methods: {
+    formatDate,
     async fetchDetail() {
       this.loading = true
       this.productNotFound = false
@@ -391,7 +358,7 @@ export default {
         }
         this.syncFormToPrice()
       } catch (err) {
-        if (err?.response?.status === 404 || err?.error === 'NOT_FOUND') {
+        if (isNotFound(err)) {
           this.productNotFound = true
         } else {
           this.notify.spawnNotification({
@@ -420,13 +387,6 @@ export default {
       } catch {
         // silent — currencies dropdown will be empty
       }
-    },
-    normalizePrice(val) {
-      if (!val) return val
-      const s = String(val).replace(',', '.').trim()
-      const num = Number(s)
-      if (isNaN(num) || num < 0) return s
-      return num.toFixed(2)
     },
     fmt2(val) {
       if (val == null || val === '') return ''
@@ -470,7 +430,7 @@ export default {
       const valid = this.formErrors.validateRequired(this.form, {
         value: this.isNetEditable ? this.$t('pm.net') : this.$t('pm.gross'),
       })
-      if (!valid) return
+      if (!valid || !this.formErrors.validateFormats(this.form, PRICE_FORMATS)) return
 
       this.loader.loaderStart()
       try {
@@ -544,106 +504,43 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.pm-edit-form {
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  background: var(--c-basic-100);
-}
-
-.pm-edit-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: var(--space-200);
-  align-items: end;
-}
-
-.pm-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pm-label {
-  font-size: var(--fs-200);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-basic-500);
-}
-
-.pm-lock-icon {
-  font-size: var(--fs-100);
-}
-
-.pm-readonly-value {
-  height: var(--elem-height);
-  display: flex;
-  align-items: center;
-  padding: 0 var(--space-100);
-  background: var(--c-basic-200);
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-sm);
-  color: var(--c-basic-600);
-  font-size: var(--fs-300);
-}
-
 .pm-meta-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .pm-country-table {
-  border: 1px solid var(--c-basic-300);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-base);
   overflow: hidden;
 }
 
 .pm-country-table__head {
   display: grid;
   grid-template-columns: 60px 60px 70px 1fr 1fr 1fr;
-  gap: var(--space-100);
-  padding: 8px var(--space-200);
-  background: var(--c-basic-200);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: var(--surface-raised);
   font-size: var(--fs-200);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--c-basic-500);
+  color: var(--text-muted);
 }
 
 .pm-country-table__row {
   display: grid;
   grid-template-columns: 60px 60px 70px 1fr 1fr 1fr;
-  gap: var(--space-100);
-  padding: 8px var(--space-200);
-  border-top: 1px solid var(--c-basic-300);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
   align-items: center;
 }
 
 .pm-history-row {
-  padding: 8px var(--space-200);
-  border-bottom: 1px solid var(--c-basic-300);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: var(--fs-200);
-}
-
-.pm-date-input {
-  height: var(--elem-height);
-  padding: 0 var(--space-100);
-  border: 1px solid var(--c-basic-400);
-  border-radius: var(--radius-sm);
-  background: var(--c-basic-100);
-  color: var(--c-basic-800);
-  font-size: var(--fs-300);
-  font-family: inherit;
-
-  &::-webkit-calendar-picker-indicator {
-    filter: var(--calendar-icon-filter, none);
-  }
-}
-
-[data-theme="dark"] .pm-date-input {
-  color-scheme: dark;
 }
 </style>
