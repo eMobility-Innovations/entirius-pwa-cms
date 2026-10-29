@@ -1,13 +1,20 @@
 import { defineAsyncComponent } from "vue";
 
+// The login wall's first paint (logo, fields, submit button) is registered synchronously: as async chunks the auth
+// card showed its headings first and the fields popped in a round trip later, or never after a redeploy 404.
+import BasicButton from "./BasicButton/index.vue";
+import BasicInput from "./BasicInput/index.vue";
+import BasicLogo from "./BasicLogo/index.vue";
+
 // Per-plan slots (dev-plans § Streams): a P3/P4 plan registers its new boots under its own anchor only; the anchors
 // keep their order and a blank line around each, so two streams never edit the same lines.
 export default function registerBootComponents(app) {
-  app.component("BasicButton", defineAsyncComponent(() => import("./BasicButton/index.vue")));
+  app.component("BasicButton", BasicButton);
+  app.component("BasicInput", BasicInput);
+  app.component("BasicLogo", BasicLogo);
   app.component("BasicSwiper", defineAsyncComponent(() => import("./BasicSwiper/index.vue")));
   app.component("BasicCheckbox", defineAsyncComponent(() => import("./BasicCheckbox/index.vue")));
   app.component("BasicImage", defineAsyncComponent(() => import("./BasicImage/index.vue")));
-  app.component("BasicInput", defineAsyncComponent(() => import("./BasicInput/index.vue")));
   app.component("ColorInput", defineAsyncComponent(() => import("./ColorInput/index.vue")));
   app.component("NumberInput", defineAsyncComponent(() => import("./NumberInput/index.vue")));
   app.component("BasicWysiwyg", defineAsyncComponent(() => import("./BasicWysiwyg/index.vue")));
@@ -17,7 +24,6 @@ export default function registerBootComponents(app) {
   app.component("NoticeMe", defineAsyncComponent(() => import("./NoticeMe/index.vue")));
   app.component("DataTable", defineAsyncComponent(() => import("./DataTable/index.vue")));
   app.component("Loader", defineAsyncComponent(() => import("./Loader/index.vue")));
-  app.component("BasicLogo", defineAsyncComponent(() => import("./BasicLogo/index.vue")));
   app.component("Pagination", defineAsyncComponent(() => import("./Pagination/index.vue")));
   app.component("SubscriberSetter", defineAsyncComponent(() => import("./SubscriberSetter/index.vue")));
   app.component("FloatingActions", defineAsyncComponent(() => import("./FloatingActions/index.vue")));
