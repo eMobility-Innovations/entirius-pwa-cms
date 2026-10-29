@@ -1,41 +1,36 @@
-import { describe, it, expect } from "vitest";
-import { createApp, h, resolveComponent } from "vue";
-import { createPinia } from "pinia";
+import { describe, it, expect, vi } from "vitest";
+import { mount } from "@vue/test-utils";
 
+vi.mock("axios", () => ({ default: { post: vi.fn() } }));
+vi.mock("@/api/contentDB/api", () => ({ POST_Login: vi.fn(), POST_PasswordReset: vi.fn() }));
+vi.mock("@/composables/useLoginSession", () => ({
+  useLoginSession: () => ({ completeLogin: vi.fn() }),
+  consumeReturnRoute: () => null,
+}));
+
+import LoginWall from "@/functionals/Login-wall/Login-wall.vue";
 import registerBootComponents from "@/boots/register-elems";
 
-// Mirrors the first paint of an unauthenticated visit: the app-shell logo plus the
-// credential input and submit button Login-wall renders.
-const FirstPaintLike = {
-  render() {
-    return h("div", [
-      h(resolveComponent("BasicLogo"), { size: 22, variant: "full" }),
-      h(resolveComponent("BasicInput"), { label: "Username" }),
-      h(resolveComponent("BasicButton"), null, () => "Sign in"),
-    ]);
-  },
-};
-
-const mountApp = (rootComponent) => {
-  const host = document.createElement("div");
-  document.body.appendChild(host);
-  const app = createApp(rootComponent);
-  app.use(createPinia());
-  registerBootComponents(app);
-  app.mount(host);
-  return { app, host };
-};
+// The real wall with the real boot registration. The global test setup stubs BasicButton, BasicInput and FormField,
+// so they are switched off here. Nothing is awaited: an async-registered boot is still a placeholder comment.
+const mountWall = () =>
+  mount(LoginWall, {
+    global: {
+      plugins: [registerBootComponents],
+      stubs: { BasicButton: false, BasicInput: false, FormField: false },
+    },
+  });
 
 describe("boot component registration", () => {
-  it("paints logo, input and button on the first render, without waiting for a chunk to resolve", () => {
-    const { app, host } = mountApp(FirstPaintLike);
+  it("paints the login wall's fields and buttons on the first render, before any async chunk resolves", () => {
+    const wrapper = mountWall();
 
-    // No await anywhere: an async-registered component would still be a placeholder comment here.
-    expect(host.querySelector(".basic-logo")).not.toBeNull();
-    expect(host.querySelector("input.input-field")).not.toBeNull();
-    expect(host.querySelector("button.button-basic").textContent).toContain("Sign in");
+    expect(wrapper.find(".basic-logo").exists()).toBe(true);
+    expect(wrapper.find('input[autocomplete="username"]').exists()).toBe(true);
+    expect(wrapper.find('input[type="password"]').exists()).toBe(true);
+    expect(wrapper.find('button[type="submit"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-pressed]').exists()).toBe(true);
 
-    app.unmount();
-    host.remove();
+    wrapper.unmount();
   });
 });
