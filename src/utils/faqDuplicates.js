@@ -35,14 +35,17 @@ export function documentQuestions(content) {
 }
 
 // Groups occurrences (`{ question, ... }`) by normalised question and keeps those seen more than once, most
-// repeated first. A group is labelled with its first occurrence's wording.
+// repeated first. A group is labelled with its first occurrence's wording. An item (`source` + `itemId`) counts once
+// per question: a translation that repeats the base text is not a second place.
 export function findDuplicates(occurrences) {
   const groups = new Map();
   for (const occurrence of occurrences) {
     const key = normalizeQuestion(occurrence.question);
     if (!key) continue;
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(occurrence);
+    const group = groups.get(key);
+    const sameItem = (other) => occurrence.itemId != null && other.itemId === occurrence.itemId && other.source === occurrence.source;
+    if (!group.some(sameItem)) group.push(occurrence);
   }
   return [...groups.values()]
     .filter((group) => group.length > 1)

@@ -106,4 +106,10 @@ describe("findDuplicates", () => {
   it("returns nothing without repeats and ignores empty questions", () => {
     expect(findDuplicates([{ question: "Co to OE?" }, { question: "" }, { question: "?" }])).toEqual([]);
   });
+
+  it("counts an item once when its translation repeats the base text, but two items with one question stay a repeat", () => {
+    const at = (itemId, language) => ({ question: "Co to OE?", source: "faq", itemId, language });
+    expect(findDuplicates([at(1, null), at(1, "pl")])).toEqual([]);
+    expect(findDuplicates([at(1, null), at(1, "pl"), at(2, null)])).toHaveLength(1);
+  });
 });

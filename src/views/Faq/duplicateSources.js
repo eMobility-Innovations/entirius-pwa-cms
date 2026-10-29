@@ -8,11 +8,12 @@ import { faqItemQuestions, documentQuestions } from "@/utils/faqDuplicates";
 
 const PAGE_SIZE = 100;
 
+// Pages of a list sorted by `position` alone are unstable: an item can come back on two pages, so items are kept by id.
 async function fetchFaqItems(channel) {
   const items = [];
   for (let page = 1; ; page++) {
     const { data } = await GET_FaqItems(channel, { page, page_size: PAGE_SIZE });
-    items.push(...(data.results || []));
+    items.push(...(data.results || []).filter((item) => !items.some((seen) => seen.id === item.id)));
     if (!data.next) return items;
   }
 }
@@ -33,6 +34,7 @@ export async function loadFaqOccurrences(channel) {
       question,
       language,
       source: "faq",
+      itemId: item.id,
       name: item.question,
       routes: [],
       isPublished: true,

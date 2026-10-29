@@ -28,6 +28,7 @@ describe("duplicate sources", () => {
         question: "Co to OE?",
         language: null,
         source: "faq",
+        itemId: 1,
         name: "Co to OE?",
         routes: [],
         isPublished: true,
@@ -84,5 +85,16 @@ describe("duplicate sources", () => {
     expect(GET_ContentTypes).toHaveBeenNthCalledWith(1, { CDB_TYPE: "content", page: 1, limit: 100 });
     expect(GET_ContentTypes).toHaveBeenNthCalledWith(2, { CDB_TYPE: "content", page: 2, limit: 100 });
     expect(occurrences.map((o) => o.source)).toEqual(["A", "B"]);
+  });
+
+  it("keeps an FAQ item that comes back on two pages once", async () => {
+    const item = { id: 1, question: "Co to OE?", is_active: true, translations: [] };
+    GET_FaqItems.mockResolvedValueOnce({ data: { next: "page=2", results: [item] } }).mockResolvedValueOnce({
+      data: { next: null, results: [item, { ...item, id: 2 }] },
+    });
+
+    const occurrences = await loadFaqOccurrences("shop");
+
+    expect(occurrences.map((o) => o.to)).toEqual(["/faq/items/1", "/faq/items/2"]);
   });
 });
