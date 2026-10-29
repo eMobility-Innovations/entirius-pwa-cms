@@ -281,9 +281,9 @@ export const DELETE_Published = async ({
 //
 //
 // -- get DOCUMENT TYPE
-export const GET_ContentTypes = async ({ CDB_TYPE = "content" }) => {
+export const GET_ContentTypes = async ({ CDB_TYPE = "content", page, limit }) => {
   const url = `${contentDb}/${CDB_TYPE}-types/`;
-  return api.get(url);
+  return api.get(url, { params: { page, limit } });
 };
 //
 //

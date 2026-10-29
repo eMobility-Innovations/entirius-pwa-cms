@@ -233,6 +233,13 @@ export function buildNavRoutes() {
       app: ["faq"],
     },
     {
+      route: "/faq/duplicates",
+      labelKey: "nav.faq_duplicates",
+      icon: "copy",
+      query: {},
+      app: ["faq"],
+    },
+    {
       route: "/pricing/prices",
       labelKey: "nav.pm_prices",
       icon: "money-bill-wave",
