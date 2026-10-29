@@ -54,15 +54,20 @@ export default {
     return { notify, munin, access };
   },
   data() {
-    return { groups: [], loading: false };
+    return { groups: [], loading: false, contentFailed: false };
   },
   computed: {
-    // Pages are optional: without contentdb (or read on it) the report compares FAQ items only.
+    // Pages are optional: without contentdb (or read on pages and on the schema, which lists the content types) the
+    // report compares FAQ items only.
     includesPages() {
-      return this.munin.isModuleEnabled("contentdb") && this.access.can(AREAS.CONTENT_PAGES);
+      return (
+        this.munin.isModuleEnabled("contentdb") &&
+        this.access.can(AREAS.CONTENT_PAGES) &&
+        this.access.can(AREAS.CONTENT_SCHEMA)
+      );
     },
     description() {
-      return this.includesPages ? this.$t("faq.duplicates_description") : this.$t("faq.duplicates_description_faq_only");
+      return this.includesPages && !this.contentFailed ? this.$t("faq.duplicates_description") : this.$t("faq.duplicates_description_faq_only");
     },
     headerActions() {
       return [
@@ -85,11 +90,12 @@ export default {
   methods: {
     async load() {
       this.loading = true;
+      this.contentFailed = false;
       try {
         const channel = process.env.VUE_APP_CHANNEL;
         const [faq, pages] = await Promise.all([
           loadFaqOccurrences(channel),
-          this.includesPages ? loadContentOccurrences(channel) : [],
+          this.includesPages ? this.loadPages(channel) : [],
         ]);
         this.groups = findDuplicates([...faq, ...pages]).map((group) => ({
           ...group,
@@ -99,6 +105,15 @@ export default {
         this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
       } finally {
         this.loading = false;
+      }
+    },
+    // The content half is optional: when it fails the FAQ items still get compared.
+    async loadPages(channel) {
+      try {
+        return await loadContentOccurrences(channel);
+      } catch {
+        this.contentFailed = true;
+        return [];
       }
     },
     sourceLabel(row) {

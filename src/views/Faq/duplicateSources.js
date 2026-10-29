@@ -58,10 +58,19 @@ function draftOccurrences(draft, type) {
   }));
 }
 
+async function fetchContentTypes() {
+  const types = [];
+  for (let page = 1; ; page++) {
+    const { data } = await GET_ContentTypes({ CDB_TYPE: "content", page, limit: PAGE_SIZE });
+    types.push(...(data.data || []));
+    if (page >= (data.pagination?.pages || 1)) return types;
+  }
+}
+
 export async function loadContentOccurrences(channel) {
-  const { data } = await GET_ContentTypes({ CDB_TYPE: "content" });
+  const types = await fetchContentTypes();
   const perType = await Promise.all(
-    (data.data || []).map(async (type) => {
+    types.map(async (type) => {
       const drafts = await fetchDrafts(type.slug, channel);
       return drafts.flatMap((draft) => draftOccurrences(draft, type));
     })

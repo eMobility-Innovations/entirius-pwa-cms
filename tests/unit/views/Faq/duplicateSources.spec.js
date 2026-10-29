@@ -64,4 +64,25 @@ describe("duplicate sources", () => {
       },
     ]);
   });
+
+  it("reads every page of content types, 100 at a time", async () => {
+    GET_ContentTypes.mockResolvedValueOnce({
+      data: { data: [{ slug: "a", label: "A" }], pagination: { page: 1, pages: 2, limit: 100, total: 2 } },
+    }).mockResolvedValueOnce({
+      data: { data: [{ slug: "b", label: "B" }], pagination: { page: 2, pages: 2, limit: 100, total: 2 } },
+    });
+    GET_Content.mockResolvedValue({
+      data: {
+        pagination: { page: 1, pages: 1, limit: 100, total: 1 },
+        data: [{ uid: "u", name: "N", language: null, routes: [], is_published: true,
+          content: { sections: { a: faqSection("Co to OE?") } } }],
+      },
+    });
+
+    const occurrences = await loadContentOccurrences("shop");
+
+    expect(GET_ContentTypes).toHaveBeenNthCalledWith(1, { CDB_TYPE: "content", page: 1, limit: 100 });
+    expect(GET_ContentTypes).toHaveBeenNthCalledWith(2, { CDB_TYPE: "content", page: 2, limit: 100 });
+    expect(occurrences.map((o) => o.source)).toEqual(["A", "B"]);
+  });
 });
