@@ -64,6 +64,12 @@ another automatic redirect until deliberate retry; unavailable session storage
 also blocks automatic login. The main SSO enablement check interlocks this mode
 so a disabled provider cannot leave an unusable login wall.
 
+Startup restores cookie authentication before route guards and waits for the initial
+route before mounting the shell. A cold callback must never briefly mount the login
+wall and start a second OAuth flow. SSO starts share one pending attempt across wall
+remounts and repeated clicks until the browser leaves; a failed start permits deliberate
+retry. This preserves the existing server throttle and single-use callback state.
+
 The callback checks single-use state before exchanging the code, validates that
 both tokens were returned, and preserves the successful-login remount regression.
 The organization endpoint flags remain supported alongside upstream's

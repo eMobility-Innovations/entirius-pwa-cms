@@ -2,6 +2,7 @@
 import "@entirius/brand-tokens/tokens.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
+import { useUserStore } from "@/stores/user";
 import App from "./App.vue";
 import router from "./router";
 import registerBootComponents from "./boots/register-elems";
@@ -24,6 +25,8 @@ const pinia = createPinia();
 
 // Use plugins
 app.use(pinia);
+// Initial route guards need cookie authentication before App.created runs.
+useUserStore(pinia).readCookies();
 app.use(router);
 app.use(i18n);
 
@@ -36,5 +39,6 @@ registerBootComponents(app);
 registerConfigComponents(app);
 registerFontAwesome(app);
 
-// Mount app
-app.mount("#app");
+// Initial navigation is asynchronous, including a cold SSO callback chunk.
+// Mounting sooner briefly shows LoginWall and starts a second OAuth flow.
+router.isReady().then(() => app.mount("#app"));

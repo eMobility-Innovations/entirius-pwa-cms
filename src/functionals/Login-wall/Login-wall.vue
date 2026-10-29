@@ -32,9 +32,9 @@
       </form>
 
       <template v-if="ssoEnabled">
-        <p v-if="autoStarting" data-test="sso-redirecting">{{ $t("login.sso_signing_in") }}</p>
+        <p v-if="autoStarting && ssoStarting" data-test="sso-redirecting">{{ $t("login.sso_signing_in") }}</p>
         <p v-if="!ssoOnly" class="login-wall__divider fs-200 t-muted mv-5">{{ $t("login.sso_or") }}</p>
-        <BasicButton data-testid="sso-login" data-test="sso-login" :text="$t('login.sso_submit')" variant="secondary" size="lg" class="jc-ct w-100" @click="ssoLogin">
+        <BasicButton data-testid="sso-login" data-test="sso-login" :text="$t('login.sso_submit')" :loading="ssoStarting" variant="secondary" size="lg" class="jc-ct w-100" @click="ssoLogin">
           {{ $t("login.sso_submit") }}
         </BasicButton>
       </template>
@@ -53,6 +53,7 @@ const username = environment ? process.env.VUE_APP_USERNAME : "";
 const password = environment ? process.env.VUE_APP_PASSWORD : "";
 
 import { POST_Login, POST_PasswordReset } from "../../api/contentDB/api";
+import { ref } from "vue";
 import {
   POST_SsoLoginUrl,
 } from "@/api/sso/api";
@@ -64,6 +65,10 @@ import AuthLayout from "@/boots/AuthLayout/index.vue";
 import PasswordField from "@/boots/AuthLayout/PasswordField.vue";
 
 const noErrors = () => ({ username: "", password: "", email: "" });
+// A layout remount must share the pending attempt. A resolved login-url request is
+// still pending until the browser actually leaves; releasing it sooner replaces state.
+const ssoStartInFlight = ref(false);
+if (typeof window !== "undefined") window.addEventListener("pagehide", () => { ssoStartInFlight.value = false; });
 
 // Errors show under their field and once in the AuthLayout live summary (plan 59), never as a toast.
 export default {
@@ -87,6 +92,7 @@ export default {
     };
   },
   computed: {
+    ssoStarting() { return ssoStartInFlight.value; },
     ssoEnabled() {
       return isSsoEnabled();
     },
@@ -156,6 +162,8 @@ export default {
       }
     },
     async ssoLogin() {
+      if (ssoStartInFlight.value) return;
+      ssoStartInFlight.value = true;
       this.clearErrors();
       allowAutoLogin();
       try {
@@ -166,6 +174,7 @@ export default {
         sessionStorage.setItem("cms_sso_state", data.state);
         window.location.assign(data.authorization_url);
       } catch (error) {
+        ssoStartInFlight.value = false;
         blockAutoLogin();
         this.autoStarting = false;
         this.formError = extractApiMessage(error, this.$t("login.sso_error_generic"));

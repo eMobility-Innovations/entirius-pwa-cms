@@ -45,6 +45,7 @@ describe("Login-wall", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    window.dispatchEvent(new Event("pagehide"));
     sessionStorage.clear();
     process.env.VUE_APP_API_URL = "http://api.test";
     assign = vi.spyOn(window.location, "assign").mockImplementation(() => {});
@@ -88,6 +89,26 @@ describe("Login-wall", () => {
     expect(sessionStorage.getItem("cms_sso_state")).toBeNull();
     await nextTick();
     expect(summary(wrapper)).toBe("Not configured.");
+  });
+
+  it("keeps the SSO button busy until the browser actually leaves", async () => {
+    process.env.VUE_APP_SSO_ENABLED = "true";
+    process.env.VUE_APP_SSO_ONLY = "false";
+    let answer;
+    mockAxiosPost.mockReturnValueOnce(new Promise((resolve) => { answer = resolve; }));
+    const wrapper = mountWithBoots();
+    const pending = wrapper.vm.ssoLogin();
+    await nextTick();
+    expect(ssoButton(wrapper).attributes("disabled")).toBeDefined();
+    expect(ssoButton(wrapper).attributes("aria-busy")).toBe("true");
+    answer({ data: { authorization_url: "https://idp.test/auth", state: "one-state" } });
+    await pending;
+    await nextTick();
+    expect(ssoButton(wrapper).attributes("disabled")).toBeDefined();
+    window.dispatchEvent(new Event("pagehide"));
+    await nextTick();
+    expect(ssoButton(wrapper).attributes("disabled")).toBeUndefined();
+    wrapper.unmount();
   });
 
   it("password login hands the token pair to the shared session setup", async () => {
