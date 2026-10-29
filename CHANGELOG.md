@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
   app draws on the browser's `<canvas>`, the unit suite runs on happy-dom); its install script downloads a prebuilt
   binary from GitHub releases and, when that times out, compiles with node-gyp, which a slim Node image cannot. It is
   now only jsdom's optional peer, so a failed install no longer stops `npm ci`.
+- Login wall: the username and password fields render on the first paint. BasicInput, FormField (the wrapper every
+  field sits in) and IconButton (the show-password toggle) were async chunks, so the auth card showed its headings and
+  the fields popped in a round trip later, or never when the chunk 404ed after a redeploy; they are now registered
+  synchronously.
 - Enrichment Review list: a long product name stays in its column. The name (a ghost button, which sizes to its text)
   ran over the Field column; it now wraps to two lines and ends in an ellipsis, with the full name in its title. The
   Product column takes a bigger share of the free width (2fr, was 1fr; Change 2fr, was 3fr) so a clamped name still reads.
@@ -36,6 +40,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- FAQ: Duplicate questions (`/faq/duplicates`, EN, PL) lists every question shown more than once in the channel:
+  active FAQ items (and their translations) and the FAQ sections (`faq_items`) of the drafts of every content type,
+  each place with its source, URL, publish state and a link to edit it. Questions match without tags, case,
+  punctuation or diacritics; without the `contentdb` module or read on `content.pages` + `content.schema` it compares FAQ items only.
 - AI tasks: a failed task, or a done one with failed products, has "Try again" (EN, PL) in the product's AI drawer
   (Recent tasks and History) and on the Runs page. It runs only the failed products as a new task, shown and
   watched like one started from a template; the failed task stays in History. Hidden on a read-only page, disabled
