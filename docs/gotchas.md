@@ -31,6 +31,12 @@ Repo-specific traps. Read before touching configs, i18n, or panels.
   `src/boots/Icons/fa-icons.js` (both the `import {}` statement AND the
   `library.add()` call). Missing imports fail silently — no console error,
   the icon just doesn't render.
+- A full-height page owns its own scrolling. `#app` and `.app-main` are
+  `overflow: hidden` and the route's `router-view` gets `h-100`, so the shell
+  clips. Build pages on `PageLayout`, which scrolls itself (`ovy-auto`). A page
+  that bypasses it must set its own `overflow-y: auto`, or content below the
+  fold is unreachable. Nothing warns, and jsdom/happy-dom applies no scoped
+  SCSS, so a unit test cannot catch it.
 - `PimField.vue` (`views/Pim/components/`) is a legacy alias for the
   `FormField` boot component — use `<FormField>` directly in new code.
 - Project i18n is a hand-rolled reactive `state.lang` (no vue-i18n). Only
