@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Login wall: the username and password fields render on the first paint. BasicInput, FormField (the wrapper every
+  field sits in) and IconButton (the show-password toggle) were async chunks, so the auth card showed its headings and
+  the fields popped in a round trip later, or never when the chunk 404ed after a redeploy; they are now registered
+  synchronously.
 - Enrichment Review list: a long product name stays in its column. The name (a ghost button, which sizes to its text)
   ran over the Field column; it now wraps to two lines and ends in an ellipsis, with the full name in its title. The
   Product column takes a bigger share of the free width (2fr, was 1fr; Change 2fr, was 3fr) so a clamped name still reads.
