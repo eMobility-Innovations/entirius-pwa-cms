@@ -122,7 +122,7 @@
         :loading="loading"
         :total-count="totalCount"
         :busy="busy"
-        :bulk="!filters.task"
+        :bulk="!filters.task && canBulk"
         :status-filter="filters.status"
         @accept="acceptOne"
         @reject="rejectOne"
@@ -207,6 +207,7 @@
       :message="bulkAsk ? $t(`enrichment.review.bulk.confirm_${bulkAsk}_message`) : ''"
       :confirm-label="bulkAsk ? $t(`enrichment.review.bulk.${bulkAsk}_all`, { count: totalCount }) : ''"
       confirm-testid="enrichment-bulk-confirm"
+      :hold-seconds="bulkAsk === 'undo' ? 0 : bulkHoldSeconds"
       @confirm="runBulk"
       @cancel="bulkAsk = null"
     />
@@ -243,6 +244,8 @@
 import { defineAsyncComponent } from "vue";
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
+import { useAccessStore } from "@/stores/access";
+import { AREAS } from "@/configs/areas";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import RouteTabs from "@/components/Navigation/RouteTabs.vue";
 import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
@@ -280,6 +283,9 @@ const STATUS_VALUES = [
   "superseded",
   "reverted",
 ];
+
+// Seconds the bulk confirm stays disabled after it opens — time to read the count before an irreversible act.
+const BULK_HOLD_SECONDS = 5;
 
 export default {
   name: "EnrichmentReview",
@@ -323,6 +329,14 @@ export default {
     };
   },
   computed: {
+    // Apply all / Reject all write or close every proposal in the filter at once (Reject is terminal), so they are
+    // shown only to whoever may write the enrichment rules — reviewers with proposal rights work one by one.
+    canBulk() {
+      return useAccessStore().can(AREAS.ENRICHMENT_RULES, "write");
+    },
+    bulkHoldSeconds() {
+      return BULK_HOLD_SECONDS;
+    },
     // A Studio step's proposal has no product: the drawer names its article.
     detailTitle() {
       if (runUidOf(this.detail)) return this.detail.subject_label || this.$t("enrichment.review.studio_article");

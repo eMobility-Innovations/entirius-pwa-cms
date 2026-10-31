@@ -9,6 +9,9 @@ vi.mock("@/api/enrichment/api", () => ({
   GET_Workers: () => Promise.resolve({ data: [] }),
   GET_Templates: () => Promise.resolve({ data: [{ key: "desc", label: "Product description" }] }),
 }));
+// The bulk bar is gated on the access store; these suites run as a user who may write enrichment rules.
+const access = vi.hoisted(() => ({ allowed: true }));
+vi.mock("@/stores/access", () => ({ useAccessStore: () => ({ can: () => access.allowed }) }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ channels: [{}], fetchChannels: vi.fn(), activeChannelIdx: "c1" }),

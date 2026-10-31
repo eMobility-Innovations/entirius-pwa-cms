@@ -6,6 +6,7 @@
     :proposal-id="proposalId"
     :alt="subjectLabel"
   />
+  <FeatureSetChange v-else-if="targetKind === 'feature_set'" :proposed="proposed" :current="current" />
   <TagChanges v-else-if="isOptions" :proposed="proposed" :current="current" :locator="locator" />
   <TextDiff v-else-if="diffComponent === 'TextDiff'" :before="before" :after="after" :wide="wide" :rules="rules" :snippet="snippet" />
   <component :is="diffComponent" v-else :before="before" :after="after" />
@@ -14,7 +15,7 @@
 <script>
 // Universal before/after renderer. Dispatches to the existing supplier diff
 // components keyed by the proposal's `target_kind`: a select value is tag chips (TagChanges), text is a word diff (TextDiff), a
-// video plays the staged file, the rest reuses the suppliers diff widgets (etap-06).
+// video plays the staged file, a feature set reads "now → proposed" by name (FeatureSetChange), the rest reuses the suppliers diff widgets (etap-06).
 //
 // `proposed` = ContentProposal.proposed_value, `current` = current_snapshot.
 // Both are dicts. The PIM adapter convention wraps the value as {text: "..."},
@@ -28,6 +29,7 @@ import TagChanges from "./TagChanges.vue";
 import TextDiff from "./TextDiff.vue";
 import { isOptionValue } from "./reviewLogic";
 import VideoPreview from "./VideoPreview.vue";
+import FeatureSetChange from "./FeatureSetChange.vue";
 
 const KIND_TO_COMPONENT = {
   text: "TextDiff",
@@ -48,7 +50,7 @@ const IMAGE_KINDS = new Set(["image", "picture"]);
 
 export default {
   name: "DiffRenderer",
-  components: { NumericDiff, ArrayDiff, JsonDiff, ImageDiff, TagChanges, TextDiff, VideoPreview },
+  components: { NumericDiff, ArrayDiff, JsonDiff, ImageDiff, TagChanges, TextDiff, VideoPreview, FeatureSetChange },
   props: {
     targetKind: { type: String, default: "text" },
     proposed: { type: [Object, Array, String, Number], default: null },
