@@ -16,6 +16,9 @@ vi.mock("@/api/enrichment/api", () => ({
 }));
 // The run labels (useRunLabels) are not under test here.
 vi.mock("@/views/EnrichmentReview/useRunLabels", () => ({ useRunLabels: () => ({ labels: {}, load: () => Promise.resolve() }) }));
+// The bulk bar is gated on the access store; these suites run as a user who may write enrichment rules.
+const access = vi.hoisted(() => ({ allowed: true }));
+vi.mock("@/stores/access", () => ({ useAccessStore: () => ({ can: () => access.allowed }) }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ channels: [], fetchChannels: vi.fn(), activeChannelIdx: "c1" }),
