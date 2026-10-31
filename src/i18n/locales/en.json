@@ -2887,6 +2887,13 @@
         "model": "Model",
         "default_model": "Default model",
         "source": "Made by"
+      },
+      "page_of": "Page {page} of {total}",
+      "prev": "Previous",
+      "next": "Next",
+      "feature_set": {
+        "now": "Now",
+        "proposed": "AI proposes"
       }
     },
     "status": {

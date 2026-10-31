@@ -2886,6 +2886,13 @@
         "model": "Model",
         "default_model": "Model domyślny",
         "source": "Wykonawca"
+      },
+      "page_of": "Strona {page} z {total}",
+      "prev": "Poprzednia",
+      "next": "Następna",
+      "feature_set": {
+        "now": "Teraz",
+        "proposed": "AI proponuje"
       }
     },
     "status": {
