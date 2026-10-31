@@ -2975,7 +2975,11 @@
       },
       "page_of": "Strona {page} z {total}",
       "prev": "Poprzednia",
-      "next": "Następna"
+      "next": "Następna",
+      "feature_set": {
+        "now": "Teraz",
+        "proposed": "AI proponuje"
+      }
     },
     "status": {
       "pending": "Oczekująca",
