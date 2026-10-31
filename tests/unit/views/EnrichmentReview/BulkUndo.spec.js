@@ -25,6 +25,9 @@ const { spawnNotification } = vi.hoisted(() => ({
 }));
 // The run labels (useRunLabels) are not under test here.
 vi.mock("@/views/EnrichmentReview/useRunLabels", () => ({ useRunLabels: () => ({ labels: {}, load: () => Promise.resolve() }) }));
+// The bulk bar is gated on the access store; these suites run as a user who may write enrichment rules.
+const access = vi.hoisted(() => ({ allowed: true }));
+vi.mock("@/stores/access", () => ({ useAccessStore: () => ({ can: () => access.allowed }) }));
 vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification }),
 }));
@@ -105,5 +108,18 @@ describe("EnrichmentReview bulk undo (etap-09)", () => {
     const types = spawnNotification.mock.calls.map((c) => c[0].type);
     expect(types).toContain("positive");
     expect(types).toContain("warning");
+  });
+
+  it("offers the bulk bar only to a user who may write enrichment rules", async () => {
+    const listBulk = async () => {
+      const w = mount(EnrichmentReview, { global: { stubs: { ...stubs, ListMode: true } } });
+      await flushPromises();
+      return w.findComponent({ name: "ListMode" }).props("bulk");
+    };
+    access.allowed = true;
+    expect(await listBulk()).toBe(true);
+    access.allowed = false;
+    expect(await listBulk()).toBe(false);
+    access.allowed = true;
   });
 });
