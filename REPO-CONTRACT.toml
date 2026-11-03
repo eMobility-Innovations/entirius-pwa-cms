@@ -33,4 +33,4 @@ coverage_floor = 80
 
 [runner]
 # Python selects the gate client's helper environment; the application runs on Node.
-toolchains = ["node@22.22.0", "python@3.12"]
+toolchains = ["node@22.23.4", "python@3.12"]
