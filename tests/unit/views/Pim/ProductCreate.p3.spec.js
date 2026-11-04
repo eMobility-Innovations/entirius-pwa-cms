@@ -64,6 +64,7 @@ describe("ProductCreate — formats (plan 61)", () => {
     const wrapper = mountCreate();
     await flushPromises();
     Object.assign(wrapper.vm.form, { sku: "CHAIR-1", feature_set_idx: "outdoor", ean: "5901234123458" });
+    await flushPromises(); // the form watcher clears errors: let it run before the save, as typing does
     await wrapper.vm.createProduct();
     expect(postProduct).not.toHaveBeenCalled();
     expect(wrapper.vm.formErrors.getFieldError("ean").msg).toMatch(/check digit/);
@@ -73,6 +74,7 @@ describe("ProductCreate — formats (plan 61)", () => {
     const wrapper = mountCreate();
     await flushPromises();
     Object.assign(wrapper.vm.form, { sku: "CHAIR 1", feature_set_idx: "outdoor", ean: "" });
+    await flushPromises(); // the form watcher clears errors: let it run before the save, as typing does
     await wrapper.vm.createProduct();
     expect(postProduct).not.toHaveBeenCalled();
     expect(wrapper.vm.formErrors.getFieldError("sku").msg).toMatch(/without spaces/);
