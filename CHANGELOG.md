@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Minor and patch updates of 29 dependencies, among them TipTap 3.32.2, axios 1.21.0, swiper 14.4.0, core-js 3.51.0,
+  vue-fontawesome 3.3.3 and, for the tooling, Playwright 1.64.1, @vue/test-utils 2.5.1, sass 1.107.1 and ESLint 10.14.0.
+
+### Security
+
+- Lock bumps for the open advisories of the dev tooling: undici 8.12.3 (five alerts, through jsdom), qs 6.16.2,
+  fast-uri 3.1.9, postcss-selector-parser 6.1.5, serialize-javascript 7.1.4, body-parser 1.20.9 and joi 17.13.9.
+  `npm audit --omit=dev` reports nothing.
+
 ## [3.3.0] (2026-10-29)
 
 ### Added
