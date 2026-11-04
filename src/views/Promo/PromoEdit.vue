@@ -195,7 +195,11 @@
                 :placeholder="$t('promo.min_order_amount_placeholder')"
               />
             </FormField>
-            <FormField :label="$t('promo.field_currencies')" :hint="$t('promo.currencies_hint')">
+            <FormField
+              :label="$t('promo.field_currencies')"
+              :hint="$t('promo.currencies_hint')"
+              :error="formErrors.getFieldError('currencies')?.msg || ''"
+            >
               <BasicSelect
                 v-model="form.currencies"
                 multiple
@@ -203,7 +207,12 @@
                 :placeholder="$t('promo.field_currencies')"
               />
             </FormField>
-            <FormField :label="$t('promo.section_channels')" hint-level="important" :hint="$t('promo.channels_hint')">
+            <FormField
+              :label="$t('promo.section_channels')"
+              hint-level="important"
+              :hint="$t('promo.channels_hint')"
+              :error="formErrors.getFieldError('channels')?.msg || ''"
+            >
               <BasicSelect
                 v-model="form.channels"
                 multiple
@@ -626,6 +635,7 @@ import FilterEditDrawer from "./FilterEditDrawer.vue";
 import { INT_MAX } from "@/utils/formats";
 import { formatDay } from "@/utils/format";
 import { ReadonlyOff } from "@/composables/useReadonly";
+import { codeClash } from "./promo-code-clash";
 
 const RULE_FORMATS = { min_order_amount: { format: "money" } };
 const CODE_FORMATS = { code: { format: "key" } };
@@ -894,6 +904,19 @@ export default {
         }
       },
     },
+    // An edit after a refusal clears the code form's errors: a fixed code never keeps the old sentence.
+    newCode: {
+      deep: true,
+      handler() {
+        this.codeFormErrors.clearErrors();
+      },
+    },
+    editCode: {
+      deep: true,
+      handler() {
+        this.codeFormErrors.clearErrors();
+      },
+    },
   },
   beforeRouteLeave(to, from, next) {
     this.guardNavigation(to, from, next);
@@ -1136,6 +1159,13 @@ export default {
     codeErrorMessage(err) {
       return extractApiMessage(err, this.$t("notifications.save_error"));
     },
+    // A code clash reads in the UI language on the field it names; the toast keeps the server's sentence, the only
+    // text that names the other rule. null for any other refusal.
+    showCodeClash(formErrors, err, textKey) {
+      const clash = codeClash(err);
+      if (clash) formErrors.errors[clash.field] = { status: "error", msg: this.$t(textKey) };
+      return clash;
+    },
     async saveEditCode() {
       const formats = this.editCode.code === this.editCodeStored ? {} : CODE_FORMATS;
       if (!this.codeFormErrors.validateFormats(this.editCode, formats)) return;
@@ -1155,8 +1185,11 @@ export default {
         this.showEditCodeModal = false;
         this.notify.spawnNotification({ type: "positive", msg: this.$t("promo.code_updated") });
       } catch (err) {
-        this.showEditCodeModal = false;
-        this.notify.spawnNotification({ type: "negative", msg: this.codeErrorMessage(err) });
+        this.codeFormErrors.handleApiError(err);
+        const clash = this.showCodeClash(this.codeFormErrors, err, "promo.code_clash");
+        // A refusal of the code keeps the dialog open with the error on its field; any other error closes it.
+        if (!this.codeFormErrors.getFieldError("code")) this.showEditCodeModal = false;
+        this.notify.spawnNotification({ type: "negative", msg: clash?.description || this.codeErrorMessage(err) });
       } finally {
         this.loader.loaderFinish();
       }
@@ -1253,9 +1286,10 @@ export default {
         this.notify.spawnNotification({ type: "positive", msg: this.$t("promo.code_created") });
       } catch (err) {
         this.codeFormErrors.handleApiError(err);
+        const clash = this.showCodeClash(this.codeFormErrors, err, "promo.code_clash");
         this.notify.spawnNotification({
           type: "negative",
-          msg: this.codeErrorMessage(err),
+          msg: clash?.description || this.codeErrorMessage(err),
         });
       } finally {
         this.loader.loaderFinish();
@@ -1370,9 +1404,10 @@ export default {
         }
       } catch (err) {
         this.formErrors.handleApiError(err);
+        const clash = this.showCodeClash(this.formErrors, err, "promo.code_clash_scope");
         this.notify.spawnNotification({
           type: "negative",
-          msg: extractApiMessage(err, this.$t("notifications.save_error")),
+          msg: clash?.description || extractApiMessage(err, this.$t("notifications.save_error")),
         });
       } finally {
         this.loader.loaderFinish();

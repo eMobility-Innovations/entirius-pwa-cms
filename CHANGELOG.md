@@ -4,10 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Configuration health: EN and PL texts for three backend checks, which the panel showed as the backend's English
+  title: `agreements.storefront_url` (django-agreements: `STOREFRONT_BASE_URL` unset, so newsletter confirmation and
+  unsubscribe links point at the development address), `checkout.discount_codes` (django-checkout: stored discount
+  codes shared by rules of one channel and currency, one row per channel) and `django_checkout.W002` (PayPal payment
+  methods without `webhook_id`: their webhook notifications are refused, an order is confirmed only when the buyer
+  returns to the shop).
+
 ### Changed
 
 - Minor and patch updates of 29 dependencies, among them TipTap 3.32.2, axios 1.21.0, swiper 14.4.0, core-js 3.51.0,
   vue-fontawesome 3.3.3 and, for the tooling, Playwright 1.64.1, @vue/test-utils 2.5.1, sass 1.107.1 and ESLint 10.14.0.
+
+### Fixed
+
+- Discount rule: a code that repeats another rule's code in the same channel and currency (django-checkout's v2 admin
+  API answers 400 `VALIDATION_ERROR`, issue `UNIQUE`) shows on its field in the UI language: under Code in the new
+  code form and in the edit code dialog, which now stays open, and under Currencies or Channels when a rule's new
+  scope makes one of its codes clash. The toast carries the server's sentence, which names the other rule; before,
+  it said only "Request validation failed." and the edit dialog closed. Editing a code clears the code form's errors.
 
 ### Security
 
