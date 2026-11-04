@@ -53,10 +53,23 @@ export function sourceText(product, featureIdx, language) {
   return attribute?.value_txt_t9n?.[language] || "";
 }
 
-/** An editable proposal carries its value as `{ text }`. */
+/** An editable proposal carries its value as `{ text }`, or a number as `{ value: "12.5" }`. */
 export function editableText(proposal) {
-  const text = proposal?.proposed_value?.text;
-  return typeof text === "string" ? text : null;
+  const { text, value } = proposal?.proposed_value || {};
+  if (typeof text === "string") return text;
+  return typeof value === "string" ? value : null;
+}
+
+/** The proposal's value with `draft` in the key it came in. */
+export function withEditedText(proposal, draft) {
+  const key = typeof proposal?.proposed_value?.text === "string" ? "text" : "value";
+  return { ...proposal.proposed_value, [key]: draft };
+}
+
+/** A product's proposals in apply order: the feature set first, PIM refuses a feature outside the product's set. */
+export function acceptOrder(proposals) {
+  const isSet = (proposal) => proposal.target_kind === "feature_set";
+  return [...proposals.filter(isSet), ...proposals.filter((proposal) => !isSet(proposal))];
 }
 
 /** Nothing there yet: null, "", whitespace or an empty paragraph — a proposal for it is new text, not a change. */
