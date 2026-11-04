@@ -4578,7 +4578,10 @@
       "communicator_smtp": "Outreach mail (SMTP)",
       "siteintel_sources": "Site audit sources",
       "siteintel_keys": "Site audit API keys",
-      "enrichment_profile": "Company profile"
+      "enrichment_profile": "Company profile",
+      "agreements_storefront_url": "Storefront URL",
+      "checkout_discount_codes": "Discount codes",
+      "django_checkout_W002": "PayPal webhooks"
     },
     "checks": {
       "toolbox_status": {
@@ -4604,6 +4607,15 @@
       },
       "enrichment_profile": {
         "incomplete": "The company profile is incomplete: {scope} — AI texts stay generic there"
+      },
+      "agreements_storefront_url": {
+        "unconfigured": "The storefront URL is not set — newsletter confirmation and unsubscribe links point at the development address"
+      },
+      "checkout_discount_codes": {
+        "unconfigured": "Channel {scope} has discount codes shared by rules of one currency — usage limits may be counted on the wrong rule"
+      },
+      "django_checkout_W002": {
+        "unconfigured": "PayPal payment methods without a webhook ID — PayPal notifications are refused, an order is confirmed only when the buyer returns to the shop"
       }
     }
   },

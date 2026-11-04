@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Configuration health: EN and PL texts for three backend checks, which the panel showed as the backend's English
+  title: `agreements.storefront_url` (django-agreements: `STOREFRONT_BASE_URL` unset, so newsletter confirmation and
+  unsubscribe links point at the development address), `checkout.discount_codes` (django-checkout: stored discount
+  codes shared by rules of one channel and currency, one row per channel) and `django_checkout.W002` (PayPal payment
+  methods without `webhook_id`: their webhook notifications are refused, an order is confirmed only when the buyer
+  returns to the shop).
+
 ### Changed
 
 - Minor and patch updates of 29 dependencies, among them TipTap 3.32.2, axios 1.21.0, swiper 14.4.0, core-js 3.51.0,
