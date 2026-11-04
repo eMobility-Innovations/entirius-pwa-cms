@@ -38,8 +38,9 @@ values.
 - **T3 Spacing comes from `--space-*`.** The brand steps on the 4 px grid: `--space-0`, `-1` (4 px), `-2`, `-3`, `-4`,
   `-5`, `-6`, `-8`, `-10`, `-12`, `-16`, `-30` (120 px); the step number times 4 is the px value. Classes use the same
   numbers: `p-*`, `pt-*` / `pr-*` / `pb-*` / `pl-*`, `pv-*` / `ph-*`, `m-*` and its sides and axes, `gap-*`. Margin,
-  padding and gap never take raw px or rem. The one exception is a 1–3 px hairline alignment (border compensation, a
-  focus offset, an icon nudge), which stays raw. When no step fits, ask for a token.
+  padding and gap never take raw px or rem. The exceptions stay raw: a 1–3 px hairline alignment (border compensation,
+  a focus offset, an icon nudge) and the ±0.15em block pad that keeps descenders inside a clipped one-line title
+  (PageHeader). When no step fits, ask for a token.
 - **T4 Radius comes from `--radius-*`.** `--radius-base` (4 px), `-lg`, `-xl`, `-2xl`, `-3xl`, `-4xl`, `-full`, or the
   classes `rounded` (base), `rounded-lg` … `rounded-full` and the corner variants `rounded-tl` / `rounded-tr`. Radius
   never comes from the spacing scale. `br-` is the border-right prefix of T1 and never a radius.
