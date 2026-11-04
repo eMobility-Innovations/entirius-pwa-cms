@@ -124,6 +124,7 @@ describe("RoleDetail", () => {
   it("refuses the key \"new\" (it is the create route) without calling the server", async () => {
     const { wrapper } = await open({});
     Object.assign(wrapper.vm.form, { key: "new", name: "New" });
+    await flushPromises(); // the form watcher clears errors: let it run before the save, as typing does
     expect(await wrapper.vm.saveRole()).toBe(false);
     expect(api.POST_AccessRole).not.toHaveBeenCalled();
     expect(wrapper.vm.formErrors.getFieldError("key")?.msg).toBe("access.roles.key_reserved");
