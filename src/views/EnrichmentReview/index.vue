@@ -158,6 +158,7 @@
         :loading="loading"
         :busy="busy"
         @accept="acceptOne"
+        @accept-product="acceptWholeProduct"
         @reject="rejectOne"
         @updated="patchRow"
         @preview-product="openProductPreview"
@@ -251,6 +252,7 @@ import RouteTabs from "@/components/Navigation/RouteTabs.vue";
 import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import ListMode from "./ListMode.vue";
 import ProductMode from "./ProductMode.vue";
+import { acceptProduct } from "./acceptProduct";
 import DriftModal from "./DriftModal.vue";
 import ImportCsvDialog from "./ImportCsvDialog.vue";
 import ProductPreviewDrawer from "./ProductPreviewDrawer.vue";
@@ -456,7 +458,8 @@ export default {
       const params = {
         page: this.page,
         page_size: this.pageSize,
-        ordering: "-created_at",
+        // By product, a product's proposals stay together on one page.
+        ordering: this.mode === "product" ? "subject_ref" : "-created_at",
       };
       // The "All" chip asks for every status (no status param would mean only pending); Focus walks what is to decide.
       if (this.filters.status)
@@ -620,6 +623,29 @@ export default {
       } finally {
         this.busy = false;
       }
+    },
+    async acceptWholeProduct({ subjectRef }) {
+      if (this.busy) return;
+      this.busy = true;
+      try {
+        const { accepted, drifted } = await acceptProduct(subjectRef);
+        if (drifted) {
+          this.driftProposal = drifted;
+          this.driftVisible = true;
+        }
+        this.notify.spawnNotification({
+          type: "positive",
+          msg: this.$t("enrichment.review.toast.bulk_accepted", { count: accepted }),
+        });
+      } catch (err) {
+        this.notify.spawnNotification({
+          type: "negative",
+          msg: extractApiMessage(err, this.$t("notifications.error")),
+        });
+      } finally {
+        this.busy = false;
+      }
+      await this.fetchRows();
     },
     async rejectOne({ proposal, reason }) {
       if (this.busy) return;

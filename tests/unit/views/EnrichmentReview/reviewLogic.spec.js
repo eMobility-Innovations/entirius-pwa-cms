@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   editableText,
+  withEditedText,
   groupBySubject,
   isHtml,
   changeSummary,
@@ -205,5 +206,22 @@ describe("subjectName", () => {
     expect(subjectName({ subject_label: "", subject_ref: "ENT-S001" })).toBe("ENT-S001");
     expect(subjectName({ subject_label: "ENT-S001", subject_ref: "ENT-S001" })).toBe("ENT-S001");
     expect(subjectName({ subject_label: "Orion lamp", subject_ref: "" })).toBe("Orion lamp");
+  });
+});
+
+describe("number proposals", () => {
+  it("edits a number as text and keeps it under value", () => {
+    const proposal = { proposed_value: { value: "12.5" } };
+
+    expect(editableText(proposal)).toBe("12.5");
+    expect(withEditedText(proposal, "13")).toEqual({ value: "13" });
+  });
+
+  it("keeps a text proposal under text", () => {
+    expect(withEditedText({ proposed_value: { text: "a", extra: 1 } }, "b")).toEqual({ text: "b", extra: 1 });
+  });
+
+  it("does not offer a yes/no value as text", () => {
+    expect(editableText({ proposed_value: { value: true } })).toBeNull();
   });
 });
