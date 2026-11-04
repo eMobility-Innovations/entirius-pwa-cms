@@ -113,7 +113,16 @@ import QaWarnings from "./QaWarnings.vue";
 import { revisable, uniqueFragment, valueText } from "./correction";
 import { MODE_ADD, MODE_REPLACE, canReplace, chooseMode, modeOf } from "./applyMode";
 import { useFieldLabels } from "./useFieldLabels";
-import { editableText, isHtml, plainText, runUidOf, sourceText, textRules, translationSource } from "./reviewLogic";
+import {
+  editableText,
+  isHtml,
+  plainText,
+  runUidOf,
+  sourceText,
+  textRules,
+  translationSource,
+  withEditedText,
+} from "./reviewLogic";
 
 const ACTIONABLE = ["pending", "drifted"];
 
@@ -281,7 +290,7 @@ export default {
     async saveEdit() {
       this.saving = true;
       try {
-        const proposedValue = { ...this.proposal.proposed_value, text: this.draft };
+        const proposedValue = withEditedText(this.proposal, this.draft);
         const { data } = await PATCH_Proposal(this.proposal.id, { proposed_value: proposedValue });
         this.editing = false;
         this.$emit("updated", data);

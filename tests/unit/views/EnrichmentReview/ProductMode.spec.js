@@ -132,3 +132,48 @@ describe("ProductMode", () => {
     expect(sources[1]).toContain("Short text");
   });
 });
+
+describe("ProductMode: one product at a time", () => {
+  const mountMode = (props = {}) =>
+    mount(ProductMode, { props: { rows: ROWS, ...props }, global: { stubs } });
+
+  beforeEach(() => {
+    mockGetTask.mockResolvedValue({ data: {} });
+  });
+
+  it("offers the whole product in one click", async () => {
+    const wrapper = mountMode();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="enrichment-accept-product"]').trigger("click");
+
+    expect(wrapper.emitted("accept-product")[0][0].subjectRef).toBe("SKU-1");
+  });
+
+  it("disables it while another action runs", async () => {
+    const wrapper = mountMode({ busy: true });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="enrichment-accept-product"]').attributes("disabled")).toBeDefined();
+  });
+
+  it("shows what the shop said about the product on demand, and hides it again", async () => {
+    mockGetProduct.mockResolvedValue({
+      data: { attributes: [{ feature_idx: "idosell_hints", value_txt_t9n: { en: "param 10 Voltage: 36V" } }] },
+    });
+    const wrapper = mountMode();
+    await flushPromises();
+    const toggle = wrapper.find('[data-testid="enrichment-product-source"]');
+
+    await toggle.trigger("click");
+    await flushPromises();
+
+    expect(mockGetProduct).toHaveBeenCalledWith("c1", "SKU-1");
+    expect(wrapper.find('[data-testid="enrichment-product-source-text"]').text()).toBe("param 10 Voltage: 36V");
+
+    await toggle.trigger("click");
+
+    expect(wrapper.find('[data-testid="enrichment-product-source-text"]').exists()).toBe(false);
+  });
+});
+
