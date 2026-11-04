@@ -11,8 +11,9 @@ const OLD_SCALE_CLASS =
   /\.((p|pt|pr|pb|pl|pv|ph|m|mt|mr|mb|ml|mv|mh|gap)-(50|100|200|300|400|500|600|700)|(br|radius)-((tl|tr|bl|br)-)?(\d+|sm|md|base|lg|xl|2xl|3xl|4xl|full)|fs-(800|900|1000)|fw-(100|700))(?!\w)/;
 const BASE_VALUES = ["0", "auto", "inherit", "initial", "unset", "none"];
 const MARGIN_PADDING = "/^(margin|padding)-(top|right|bottom|left|inline|block)(-(start|end))?$/";
-// T3 1–3 px hairline alignments (border compensation, focus offsets, icon nudges) have no step and stay raw
-const SPACING_VALUES = [...BASE_VALUES, "/^-?[1-3]px$/"];
+// T3 1–3 px hairline alignments (border compensation, focus offsets, icon nudges) have no step and stay raw, and so
+// does the ±0.15em block pad that keeps descenders inside a clipped one-line title (PageHeader): it follows the font size
+const SPACING_VALUES = [...BASE_VALUES, "/^-?[1-3]px$/", "/^-?0\\.15em$/"];
 
 // Every custom property the CMS defines globally: the literal declarations of the global SCSS (semantic layer,
 // main.scss, utils) and the scales main.scss emits from loops. Local ones (declared in the same file) are known to
