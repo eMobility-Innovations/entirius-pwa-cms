@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file.
 - Lock bumps for the open advisories of the dev tooling: undici 8.12.3 (five alerts, through jsdom), qs 6.16.2,
   fast-uri 3.1.9, postcss-selector-parser 6.1.5, serialize-javascript 7.1.4, body-parser 1.20.9 and joi 17.13.9.
   `npm audit --omit=dev` reports nothing.
+- happy-dom 21.0.4, the unit tests' DOM (three alerts, two high): CSS and iframe loading is now off by default; the
+  unit suite passes unchanged.
 
 ## [3.3.0] (2026-10-29)
 
