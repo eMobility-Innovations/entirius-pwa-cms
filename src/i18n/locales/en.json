@@ -3898,6 +3898,8 @@
     "threshold_filters": "Threshold filters",
     "edit_code_title": "Edit discount code",
     "code_updated": "Code updated",
+    "code_clash": "Another discount rule already uses this code in the same channel and currency. Pick a different code.",
+    "code_clash_scope": "With these channels and currencies a code of this rule repeats a code of another discount rule, and a code is unique per channel and currency. Change the code or the currencies.",
     "filter_drawer_title_product": "Edit Product Filter",
     "filter_drawer_title_threshold": "Edit Threshold Filter",
     "filter_drawer_title_customer": "Edit Customer Filter",

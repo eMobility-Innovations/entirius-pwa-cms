@@ -3897,6 +3897,8 @@
     "threshold_filters": "Filtry progowe",
     "edit_code_title": "Edytuj kod rabatowy",
     "code_updated": "Kod zaktualizowany",
+    "code_clash": "Inna reguła rabatowa używa już tego kodu w tym samym kanale i walucie. Wybierz inny kod.",
+    "code_clash_scope": "Przy tych kanałach i walutach kod tej reguły powtarza kod innej reguły rabatowej, a kod musi być unikalny w kanale i walucie. Zmień kod albo waluty.",
     "filter_drawer_title_product": "Edytuj filtr produktów",
     "filter_drawer_title_threshold": "Edytuj filtr progowy",
     "filter_drawer_title_customer": "Edytuj filtr klientów",

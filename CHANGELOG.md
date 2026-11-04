@@ -18,6 +18,14 @@ All notable changes to this project will be documented in this file.
 - Minor and patch updates of 29 dependencies, among them TipTap 3.32.2, axios 1.21.0, swiper 14.4.0, core-js 3.51.0,
   vue-fontawesome 3.3.3 and, for the tooling, Playwright 1.64.1, @vue/test-utils 2.5.1, sass 1.107.1 and ESLint 10.14.0.
 
+### Fixed
+
+- Discount rule: a code that repeats another rule's code in the same channel and currency (django-checkout's v2 admin
+  API answers 400 `VALIDATION_ERROR`, issue `UNIQUE`) shows on its field in the UI language: under Code in the new
+  code form and in the edit code dialog, which now stays open, and under Currencies or Channels when a rule's new
+  scope makes one of its codes clash. The toast carries the server's sentence, which names the other rule; before,
+  it said only "Request validation failed." and the edit dialog closed. Editing a code clears the code form's errors.
+
 ### Security
 
 - Lock bumps for the open advisories of the dev tooling: undici 8.12.3 (five alerts, through jsdom), qs 6.16.2,
