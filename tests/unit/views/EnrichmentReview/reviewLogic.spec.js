@@ -219,6 +219,26 @@ describe("number proposals", () => {
 });
 
 describe("changeSummary of a measured value", () => {
+  it("adds the unit the decimal was asked in, which the proposal does not carry", () => {
+    const proposal = {
+      target_kind: "attribute_value",
+      target_locator: { feature_idx: "battery_capacity" },
+      proposed_value: { value: "40" },
+      current_snapshot: { value: null },
+    };
+    expect(changeSummary(proposal).excerpt).toBe("40 Ah");
+  });
+
+  it("keeps the unit the proposal states over the feature's", () => {
+    const proposal = {
+      target_kind: "attribute_value",
+      target_locator: { feature_idx: "top_speed" },
+      proposed_value: { value: "20", unit: "mph" },
+      current_snapshot: { value: null },
+    };
+    expect(changeSummary(proposal).excerpt).toBe("20 mph");
+  });
+
   const summary = (proposed_value) => changeSummary({ target_kind: "attribute_value", proposed_value, current_snapshot: {} });
 
   it("shows the number with its unit", () => {

@@ -122,3 +122,24 @@ describe("DiffRenderer length", () => {
   });
 });
 
+describe("DiffRenderer numbers", () => {
+  const number = (feature_idx, proposed, current = { value: null }) =>
+    render({ targetKind: "attribute_value", proposed, current, locator: { feature_idx } });
+
+  it("shows a decimal with the unit of its feature", () => {
+    const w = number("battery_capacity", { value: "40" }, { value: "21" });
+    expect(w.findComponent({ name: "TextDiff" }).props("after")).toBe("40 Ah");
+    expect(w.findComponent({ name: "TextDiff" }).props("before")).toBe("21 Ah");
+  });
+
+  it("shows a number of an unknown feature without inventing a unit", () => {
+    expect(number("unknown_number", { value: "40" }).findComponent({ name: "TextDiff" }).props("after")).toBe("40");
+  });
+
+  it("calls a new number a value and new words text", () => {
+    const label = (w) => w.get("[data-testid='text-diff-new']").text();
+    expect(label(number("battery_capacity", { value: "40" }))).toBe("enrichment.review.new_value");
+    expect(label(number("rim_diameter", { value: "6.5", unit: "inch" }))).toBe("enrichment.review.new_value");
+    expect(label(number("battery_configuration", { value: "72v" }))).toBe("enrichment.review.new_text");
+  });
+});
