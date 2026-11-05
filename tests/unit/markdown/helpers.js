@@ -21,7 +21,7 @@ export function unsafeIn(root) {
 }
 
 /** Shared behaviour assertions on a rendered root (cases rendered together from FULL or alone). */
-export function expectRenderedCorpus(root, { keepsListStart = false } = {}) {
+export function expectRenderedCorpus(root) {
   expect([...root.querySelectorAll("h1")].map((h) => h.textContent)).toContain("Title one");
   expect(root.querySelector("h2").textContent).toBe("Section two");
   expect(root.textContent).toContain("Zażółć gęślą jaźń");
@@ -29,7 +29,7 @@ export function expectRenderedCorpus(root, { keepsListStart = false } = {}) {
   expect([...root.querySelectorAll("table td")].map((c) => c.textContent)).toContain("Łódź");
   expect(root.querySelector("ul ul li").textContent).toContain("nested a");
   expect(root.querySelector("ol ol li").textContent).toContain("inner one");
-  expect(root.querySelector("ol[start='5']") !== null).toBe(keepsListStart);
+  expect(root.querySelector("ol[start='5']")).not.toBeNull();
   expect(root.querySelectorAll("ol")).toHaveLength(3);
   expect(root.querySelector("pre code").textContent).toContain("const a = 1 < 2");
   expect(root.querySelector("p code").textContent).toBe("npm run build");

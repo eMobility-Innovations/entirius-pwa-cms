@@ -42,7 +42,7 @@ second line of it</p>
 <li>third</li>
 </ol>
 <p>between lists</p>
-<ol>
+<ol start="5">
 <li>starts at five</li>
 <li>six</li>
 </ol>
@@ -59,46 +59,46 @@ second line of it</p>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Qty</th>
-<th>Note</th>
+<th align="left">Name</th>
+<th align="right">Qty</th>
+<th align="center">Note</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>Sofa</td>
-<td>2</td>
-<td><strong>new</strong></td>
+<td align="left">Sofa</td>
+<td align="right">2</td>
+<td align="center"><strong>new</strong></td>
 </tr>
 <tr>
-<td>Łódź</td>
-<td>10</td>
-<td>a | pipe</td>
+<td align="left">Łódź</td>
+<td align="right">10</td>
+<td align="center">a | pipe</td>
 </tr>
 </tbody></table>
 
 
 <!-- code_inline -->
-Use `npm run build` and `<div>` here.</div>
+<p>Use <code>npm run build</code> and <code>&lt;div&gt;</code> here.</p>
+
 
 <!-- code_block -->
-```js
-const a = 1 &lt; 2 &amp;&amp; "x";
+<pre><code>const a = 1 &lt; 2 &amp;&amp; "x";
 console.log(a);
-```
+</code></pre>
+<pre><code>indented code
+second line
+</code></pre>
+<pre><code>no language &lt;b&gt;x&lt;/b&gt;
+</code></pre>
 
-    indented code
-    second line
-
-```
-no language <b>x</b>
-```
 
 <!-- links -->
 <p><a href="https://example.com/a?b=1&amp;c=2">plain</a> and <a href="https://example.com" title="The title">titled</a> and <a href="mailto:a@b.pl">mail</a> and <a href="/docs/page#anchor">rel</a></p>
 
 
 <!-- autolink -->
-Bare https://example.com/path and  and www.example.net and a@b.pl
+<p>Bare <a href="https://example.com/path">https://example.com/path</a> and <a href="https://example.org">https://example.org</a> and <a href="http://www.example.net">www.example.net</a> and <a href="mailto:a@b.pl">a@b.pl</a></p>
+
 
 <!-- link_javascript -->
 <p><a>click</a> and <a>data</a> and <a>mixed</a></p>

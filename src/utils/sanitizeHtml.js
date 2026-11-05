@@ -9,8 +9,9 @@ const TAGS = [
 ];
 const ATTRS = [
   "href", "target", "rel", "src", "alt", "title", "width", "height", "style",
-  "colspan", "rowspan", "colwidth", "data-color", "data-faq-tooltip",
+  "colspan", "rowspan", "colwidth", "data-color", "data-faq-tooltip", "align", "start",
 ];
+// `align` and `start` are what markdown writes for table column alignment and a list that starts at another number.
 // http, https, mailto, or no scheme at all (a path or an anchor).
 const URI = /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i;
 const SCHEME = /^\s*[a-z][a-z0-9+.-]*:/i;

@@ -13,8 +13,14 @@ export function wordDiff(before, after) {
   }));
 }
 
+// Markdown that only mentions a tag is still markdown: a tag inside a code fence or code span does not count, and an
+// autolink (`<https://…>`) is not a tag, since a tag name ends at whitespace, `/` or `>`.
+const CODE = /```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]*`/g;
+const TAG = /<[a-z][a-z0-9-]*(?=[\s/>])[^>]*>/i;
+
+/** Stored HTML (a tag outside code), as opposed to markdown or plain text. */
 export function isHtml(value) {
-  return typeof value === "string" && /<([a-z][a-z0-9]*)\b[^>]*>/i.test(value);
+  return typeof value === "string" && TAG.test(value.replace(CODE, ""));
 }
 
 /** Proposals grouped by their subject (a PIM SKU), in the order the list has them; a product is titled by its name

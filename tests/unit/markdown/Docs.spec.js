@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Docs view: the two bundled .md files (webpack `raw-loader`) through `marked(…)` with global
-// `marked.setOptions({ gfm: true, breaks: true })`, then `v-html` WITHOUT sanitizeHtml (build-time content only,
-// see tests/unit/audit/vHtml.spec.js). vitest.config.js maps the `!!raw-loader!` specifier to Vite's `?raw`; the specs
+// own `Marked({ gfm: true, breaks: true })` instance, then `v-html` through sanitizeHtml like every other sink
+// (tests/unit/audit/vHtml.spec.js). vitest.config.js maps the `!!raw-loader!` specifier to Vite's `?raw`; the specs
 // replace the loaded text with the corpus through setData.
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
@@ -25,7 +25,7 @@ async function rendered(md, doc = "config_docs") {
 describe("Docs renders markdown", () => {
   it("shows the corpus as the expected elements", async () => {
     const root = (await rendered(FULL)).element;
-    expectRenderedCorpus(root, { keepsListStart: true });
+    expectRenderedCorpus(root);
   });
 
   it("keeps the HTML of every case in one file snapshot", async () => {
@@ -40,7 +40,7 @@ describe("Docs renders markdown", () => {
   });
 
   // marked 18 no longer emits heading ids (headerIds was removed in v8; the Docs .md files link to no anchors).
-  it("keeps table alignment (no sanitiser); headings carry no id since marked 18", async () => {
+  it("keeps table alignment through the sanitiser; headings carry no id since marked 18", async () => {
     const el = (await rendered(`${CASES.headings}\n\n${CASES.table}`)).element;
     expect(el.querySelector("h2").getAttribute("id")).toBeNull();
     expect(el.querySelector("th").getAttribute("align")).toBe("left");
@@ -58,13 +58,11 @@ describe("Docs renders markdown", () => {
     expect((await rendered("")).element.innerHTML).toBe("");
   });
 
-  // Documented gap, not a fix: raw HTML in the .md passes through unchanged. Safe only because the files ship with
-  // the build; the audit spec keeps API data off this path.
-  it("passes raw HTML through unsanitised (build-time files only)", async () => {
+  it("cleans raw HTML with the sanitiser, like every other markdown view", async () => {
     const el = (await rendered(`${CASES.html_script}\n\n${CASES.html_onerror}\n\n${CASES.link_javascript}`)).element;
-    expect(el.querySelector("script")).not.toBeNull();
-    expect(el.querySelector("[onerror]")).not.toBeNull();
-    expect(el.querySelector("a[href^='javascript:']")).not.toBeNull();
+    expect(el.querySelector("script")).toBeNull();
+    expect(el.querySelector("[onerror]")).toBeNull();
+    expect(el.querySelector("a[href^='javascript:']")).toBeNull();
   });
 
   it("does not leak breaks: true into the global marked defaults (own Marked instance)", async () => {
