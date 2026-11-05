@@ -115,6 +115,30 @@ describe("EnrichmentReview product view", () => {
     expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ ordering: "subject_ref", page: 1 });
   });
 
+  it("Focus reads by product too, on entering it", async () => {
+    const w = await mountPage({});
+    mockGetProposals.mockClear();
+
+    w.vm.mode = "focus";
+    await flushPromises();
+
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ ordering: "subject_ref", page: 1 });
+  });
+
+  it("after a decision Focus reads the same page: the next rows slid up onto it", async () => {
+    const w = await mountPage({});
+    w.vm.totalCount = 100;
+    mockGetProposals.mockClear();
+
+    await w.vm.loadNextPage({ decided: true });
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ page: 1 });
+
+    mockGetProposals.mockClear();
+    w.vm.totalCount = 100;
+    await w.vm.loadNextPage({ decided: false });
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ page: 2 });
+  });
+
   it("goes back to the newest first on leaving it", async () => {
     const w = await mountPage({ mode: "product" });
     mockGetProposals.mockClear();

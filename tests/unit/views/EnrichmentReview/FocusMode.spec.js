@@ -225,3 +225,69 @@ describe("FocusMode navigation", () => {
     expect(w.emitted("exit")).toBeTruthy();
   });
 });
+
+describe("FocusMode product steps", () => {
+  const FocusProduct = {
+    name: "EnrichmentFocusProduct",
+    props: ["sku", "locked"],
+    emits: ["done", "reject-set"],
+    data: () => ({ canReject: true, setProposal: { id: 11 } }),
+    methods: { apply: vi.fn() },
+    template: "<div class='product' />",
+  };
+  const product = (id, sku, kind = "attribute_value") => ({
+    id,
+    status: "pending",
+    target_module: "pim",
+    target_kind: kind,
+    subject_ref: sku,
+    target_locator: { channel: "escootersclinic" },
+  });
+  const render = (props) =>
+    mount(FocusMode, {
+      props: { pageSize: 3, totalCount: 3, ...props },
+      global: { stubs: { ...stubs, FocusProduct }, mocks: { $icons: {} } },
+    });
+  const sku = (w) => w.findComponent(FocusProduct).props("sku");
+
+  it("shows a product once, whatever number of proposals it has", async () => {
+    const w = render({ rows: [product(11, "A", "feature_set"), product(12, "A"), product(13, "B")] });
+    expect(sku(w)).toBe("A");
+    w.findComponent(FocusProduct).vm.$emit("done", { decided: true });
+    await flushPromises();
+    expect(sku(w)).toBe("B");
+  });
+
+  it("after a decision the same page is read again, for the rows that slid up", async () => {
+    const w = render({ rows: [product(11, "A")], totalCount: 30, pageSize: 1 });
+    w.findComponent(FocusProduct).vm.$emit("done", { decided: true });
+    await flushPromises();
+    expect(w.emitted("need-more")).toEqual([[{ decided: true }]]);
+  });
+
+  it("a skip moves to the next page undecided", async () => {
+    const w = render({ rows: [product(11, "A")], totalCount: 30, pageSize: 1 });
+    w.vm.skip();
+    await flushPromises();
+    expect(w.emitted("need-more")).toEqual([[{ decided: false }]]);
+  });
+
+  it("rejects the product's set with the reason and moves on", async () => {
+    const w = render({ rows: [product(11, "A", "feature_set"), product(13, "B")] });
+    w.findComponent(FocusProduct).vm.$emit("reject-set");
+    await flushPromises();
+    w.vm.reason = "not a tyre";
+    await w.vm.reject();
+    await flushPromises();
+    expect(api.POST_RejectProposal).toHaveBeenCalledWith(11, { reason: "not a tyre" });
+    expect(sku(w)).toBe("B");
+  });
+
+  it("does not open the reject form when the product cannot be rejected", async () => {
+    const w = render({ rows: [product(11, "A", "feature_set")] });
+    w.findComponent(FocusProduct).vm.canReject = false;
+    w.vm.startReject();
+    expect(w.vm.rejecting).toBe(false);
+  });
+});
+
