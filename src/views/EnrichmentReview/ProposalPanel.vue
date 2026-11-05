@@ -138,8 +138,6 @@ export default {
   name: "ProposalPanel",
   components: { CostLabel, DiffRenderer, LengthCounter, ProposalCorrection, ProposalDetails, QaCheckStatus, QaWarnings },
   props: {
-    // Decided with its whole product (Focus): no Apply of its own, and a set is rejected on the product.
-    withProduct: { type: Boolean, default: false },
     proposal: { type: Object, required: true },
     task: { type: Object, default: null },
     busy: { type: Boolean, default: false },
@@ -238,15 +236,13 @@ export default {
         ];
       }
       if (!ACTIONABLE.includes(this.proposal.status)) return [];
-      const alone = !this.withProduct;
       return [
-        (alone || this.proposal.target_kind !== "feature_set") && { key: "reject", role: "danger",
-          label: this.$t("common.reject"), disabled: off, testid: "proposal-reject",
+        { key: "reject", role: "danger", label: this.$t("common.reject"), disabled: off, testid: "proposal-reject",
           onClick: () => this.$emit("reject", { proposal: this.proposal, reason: "" }) },
         this.canEdit && { key: "edit", role: "secondary", mutates: true, label: this.$t("common.edit"), disabled: off,
           testid: "proposal-edit", onClick: this.startEdit },
-        alone && { key: "accept", role: "primary", mutates: true, label: this.$t("enrichment.review.apply"),
-          disabled: off, testid: "proposal-accept", onClick: () => this.$emit("accept", this.proposal) },
+        { key: "accept", role: "primary", mutates: true, label: this.$t("enrichment.review.apply"), disabled: off,
+          testid: "proposal-accept", onClick: () => this.$emit("accept", this.proposal) },
       ].filter(Boolean);
     },
   },

@@ -2815,8 +2815,11 @@
       "reject_reason_placeholder": "Dlaczego odrzucasz tę propozycję?",
       "focus": {
         "keep_ai_set": "Zostaw zestaw AI",
-        "other_set": "Wybierz inny zestaw",
-        "other_set_placeholder": "Szukaj zestawu…",
+        "set_heading": "Zestaw cech · propozycja AI",
+        "other_set_placeholder": "Wybierz inny zestaw…",
+        "attributes_of": "Atrybuty zestawu {set}",
+        "attributes": "Atrybuty",
+        "was": "było {value}",
         "chosen_note": "Zapisze się tylko zestaw. AI odczyta dla niego atrybuty i produkt wróci do przeglądu.",
         "last_try": "AI miało trzy próby. Jeśli ten zestaw jest zły, wybierz właściwy z listy.",
         "reject_set": "Odrzuć zestaw, zapytaj AI ponownie",

@@ -31,7 +31,7 @@ enableAutoUnmount(afterEach);
 
 const set = { id: 1, task_id: 7, target_kind: "feature_set", proposed_value: { featureset_idx: "tyres" } };
 const attribute = { id: 2, task_id: 7, target_kind: "attribute_value", proposed_value: { value: "40" } };
-const Panel = { name: "ProposalPanel", props: { proposal: Object, withProduct: Boolean, busy: Boolean }, template: "<div class='panel' />" };
+const Row = { name: "EnrichmentFocusAttribute", props: { proposal: Object, busy: Boolean }, template: "<div class='row' />" };
 const Select = { name: "BasicSelect", props: { modelValue: String, options: Array, searchable: Boolean }, template: "<div />" };
 const Button = { emits: ["click"], template: "<button @click=\"$emit('click')\"><slot /></button>" };
 
@@ -45,7 +45,7 @@ async function render() {
   const wrapper = mount(FocusProduct, {
     props: { sku: "SKU-1" },
     global: {
-      stubs: { ProposalPanel: Panel, BasicSelect: Select, BasicButton: Button, FormField: { template: "<div><slot /></div>" }, Loader: true },
+      stubs: { FocusAttribute: Row, BasicSelect: Select, BasicButton: Button, Loader: true },
     },
   });
   await flushPromises();
@@ -57,11 +57,22 @@ const find = (wrapper, id) => wrapper.find(`[data-testid='${id}']`);
 describe("FocusProduct", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("shows the set first, then the attributes, decided with the product", async () => {
+  it("puts the set above the attributes and names it over them", async () => {
     serve([attribute, set]);
-    const panels = (await render()).findAllComponents(Panel);
-    expect(panels.map((panel) => panel.props("proposal").id)).toEqual([1, 2]);
-    expect(panels.every((panel) => panel.props("withProduct"))).toBe(true);
+    const wrapper = await render();
+    expect(find(wrapper, "enrichment-focus-set-name").text()).toBe("Tyres");
+    const html = wrapper.html();
+    expect(html.indexOf("enrichment-focus-set\"")).toBeLessThan(html.indexOf("enrichment-focus-attributes"));
+    expect(wrapper.findAllComponents(Row).map((row) => row.props("proposal").id)).toEqual([2]);
+  });
+
+  it("a chosen set takes over the heading and locks the attributes it will not apply", async () => {
+    serve([attribute, set]);
+    const wrapper = await render();
+    wrapper.findComponent(Select).vm.$emit("update:modelValue", "inner_tubes");
+    await flushPromises();
+    expect(find(wrapper, "enrichment-focus-set-name").text()).toBe("Inner Tubes");
+    expect(wrapper.findComponent(Row).props("busy")).toBe(true);
   });
 
   it("offers every set but Default and the AI's, searchable", async () => {
@@ -122,10 +133,10 @@ describe("FocusProduct", () => {
   it("a rejected attribute leaves the card and Apply product keeps the rest", async () => {
     serve([set, attribute]);
     const wrapper = await render();
-    wrapper.findAllComponents(Panel)[1].vm.$emit("reject", { proposal: attribute });
+    wrapper.findComponent(Row).vm.$emit("reject", { proposal: attribute });
     await flushPromises();
     expect(api.POST_RejectProposal).toHaveBeenCalledWith(2, {});
-    expect(wrapper.findAllComponents(Panel)).toHaveLength(1);
+    expect(wrapper.findAllComponents(Row)).toHaveLength(0);
   });
 
   it("a drifted proposal keeps the product on screen", async () => {
