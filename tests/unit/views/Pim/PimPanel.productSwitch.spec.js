@@ -42,15 +42,12 @@ describe("PIM panel — one product after another", () => {
 
   it("unsaved edits ask first before another product replaces this one", () => {
     const guardNavigation = vi.fn();
-    const next = vi.fn();
     const route = (sku) => ({ params: { sku } });
 
-    ProductDetail.beforeRouteUpdate.call({ guardNavigation }, route("A"), route("A"), next);
-    expect(next).toHaveBeenCalledTimes(1);
+    expect(ProductDetail.beforeRouteUpdate.call({ guardNavigation }, route("A"), route("A"))).toBe(true);
     expect(guardNavigation).not.toHaveBeenCalled();
 
-    ProductDetail.beforeRouteUpdate.call({ guardNavigation }, route("B"), route("A"), next);
-    expect(guardNavigation).toHaveBeenCalledWith(route("B"), route("A"), next);
-    expect(next).toHaveBeenCalledTimes(1);
+    ProductDetail.beforeRouteUpdate.call({ guardNavigation }, route("B"), route("A"));
+    expect(guardNavigation).toHaveBeenCalledWith(route("B"), route("A"));
   });
 });

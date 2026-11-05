@@ -1604,12 +1604,9 @@ function moduleFallback(panel, path) {
   return panel?.root || "/";
 }
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
   // Allow unauthenticated routes (password reset)
-  if (to.meta?.requiresAuth === false) {
-    next();
-    return;
-  }
+  if (to.meta?.requiresAuth === false) return true;
 
   const panel = to.meta?.panel;
   if (panel) {
@@ -1624,22 +1621,19 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (!munin.isPanelEnabled(panel)) {
-      next('/');
-      return;
+      return "/";
     }
     // Routes tied to an optional backend module (meta.module) stay dormant
     // when the module is absent, even if their panel is enabled.
     const module = to.meta?.module;
     if (module && !munin.isModuleEnabled(module)) {
-      next(moduleFallback(panels.find((p) => p.idx === panel), to.path));
-      return;
+      return moduleFallback(panels.find((p) => p.idx === panel), to.path);
     }
     if (signedIn && !(await canReadRoute(to, panel))) {
-      next(accessFallback(to, panel));
-      return;
+      return accessFallback(to, panel);
     }
   }
-  next();
+  return true;
 });
 
 // A refused panel root (the Home card, the sidebar leaf) opens the panel's first readable page; anything else goes

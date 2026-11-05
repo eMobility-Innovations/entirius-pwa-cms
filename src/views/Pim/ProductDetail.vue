@@ -454,14 +454,14 @@ export default {
     ProductAiResults: defineAsyncComponent(() => import("./components/enrichment/ProductAiResults.vue")),
     ProductLinks: defineAsyncComponent(() => import("./components/ProductLinks.vue")),
   },
-  beforeRouteLeave(to, from, next) {
-    this.guardNavigation(to, from, next);
+  beforeRouteLeave(to, from) {
+    return this.guardNavigation(to, from);
   },
   // Another product replaces this one (the panel remounts its view on a new SKU): unsaved edits ask first, as when
   // leaving; a hash or query change (a tab, the AI drawer) stays on the page.
-  beforeRouteUpdate(to, from, next) {
-    if (to.params.sku === from.params.sku) return next();
-    this.guardNavigation(to, from, next);
+  beforeRouteUpdate(to, from) {
+    if (to.params.sku === from.params.sku) return true;
+    return this.guardNavigation(to, from);
   },
   setup() {
     const loader = useLoaderStore();

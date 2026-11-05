@@ -157,13 +157,13 @@ export default {
       },
     },
   },
-  beforeRouteLeave(to, from, next) {
-    this.guardNavigation(to, from, next);
+  beforeRouteLeave(to, from) {
+    return this.guardNavigation(to, from);
   },
   // Another role: the same route record, remounted by the panel's router-view (keyed on the path, so a query change
   // never remounts a view).
-  beforeRouteUpdate(to, from, next) {
-    this.guardNavigation(to, from, next);
+  beforeRouteUpdate(to, from) {
+    return this.guardNavigation(to, from);
   },
   mounted() {
     this.load();
