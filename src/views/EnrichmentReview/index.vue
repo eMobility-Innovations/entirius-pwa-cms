@@ -421,8 +421,10 @@ export default {
         path: this.$route.path,
         query: { ...this.$route.query, mode: val },
       });
-      // Under "All" Focus reads the pending set only: entering or leaving it reloads from the first page.
-      if (this.filters.status === "__all" && (val === "focus") !== (old === "focus")) {
+      // Under "All" Focus reads the pending set only, and the product view reads by product: entering or leaving
+      // either reloads from the first page.
+      const focusChanged = this.filters.status === "__all" && (val === "focus") !== (old === "focus");
+      if (focusChanged || (val === "product") !== (old === "product")) {
         this.page = 1;
         this.fetchRows();
       }

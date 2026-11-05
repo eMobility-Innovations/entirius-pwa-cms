@@ -30,7 +30,7 @@ async function mountPage(query) {
     global: {
       stubs: { PageLayout: { template: "<div><slot name='toolbar' /><slot /></div>" }, PageHeader: true, ListMode,
         BatchCorrection, RunCorrections, BasicButton, DriftModal: true, ImportCsvDialog: true, ProductPreviewDrawer: true,
-        MobileFilterPanel: true, SideDrawer: true },
+        MobileFilterPanel: true, SideDrawer: true, ProductMode: true },
       mocks: { $route: { path: "/enrichment", query }, $router: { replace, push: vi.fn() } },
     },
   });
@@ -103,3 +103,26 @@ describe("EnrichmentReview filtered by task", () => {
     expect(w.vm.loading).toBe(false);
   });
 });
+
+describe("EnrichmentReview product view", () => {
+  it("reloads by product on entering it, so a product's proposals sit together", async () => {
+    const w = await mountPage({});
+    mockGetProposals.mockClear();
+
+    w.vm.mode = "product";
+    await flushPromises();
+
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ ordering: "subject_ref", page: 1 });
+  });
+
+  it("goes back to the newest first on leaving it", async () => {
+    const w = await mountPage({ mode: "product" });
+    mockGetProposals.mockClear();
+
+    w.vm.mode = "list";
+    await flushPromises();
+
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ ordering: "-created_at", page: 1 });
+  });
+});
+

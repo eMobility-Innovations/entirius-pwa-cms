@@ -217,3 +217,20 @@ describe("number proposals", () => {
     expect(editableText({ proposed_value: { value: true } })).toBeNull();
   });
 });
+
+describe("changeSummary of a measured value", () => {
+  const summary = (proposed_value) => changeSummary({ target_kind: "attribute_value", proposed_value, current_snapshot: {} });
+
+  it("shows the number with its unit", () => {
+    expect(summary({ unit: "inch", value: "6.5" }).excerpt).toBe("6.5 inch");
+  });
+
+  it("shows a number with no unit", () => {
+    expect(summary({ value: "24" }).excerpt).toBe("24");
+  });
+
+  it("leaves a text proposal as it was", () => {
+    expect(summary({ text: "13S4P" }).excerpt).toBe("13S4P");
+  });
+});
+
