@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.5.0] (2026-11-05)
+
 ### Added
 
 - Tests: characterization tests for every router guard (global `beforeEach` and the 19 leave/update hooks),
@@ -29,8 +31,11 @@ All notable changes to this project will be documented in this file.
   break turned into `<br>` there too, because Docs changed the global marked options. Docs now has its own instance.
 - Proposal editor preview: markdown that only mentions a tag (`` `<div>` `` in a code span, a code block with markup, an
   autolink `<https://…>`) was taken for stored HTML and shown as raw text; it is rendered as markdown now.
-- Docs renders its markdown through the same sanitiser as every other `v-html`; the v-html audit has no exemptions left.
 - Markdown tables keep their column alignment and numbered lists their start number in every sanitised preview.
+
+### Security
+
+- Docs renders its markdown through the same sanitiser as every other `v-html`; the v-html audit has no exemptions left.
 
 ## [3.4.0] (2026-11-04)
 
