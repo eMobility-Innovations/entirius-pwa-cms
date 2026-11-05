@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Tests: characterization tests for every router guard (global `beforeEach` and the 19 leave/update hooks),
+  markdown render tests on a shared corpus for the four marked call sites (including script, `onerror` and
+  `javascript:` cases), and Font Awesome registry, usage and render tests.
+
+### Changed
+
+- Major dependency upgrades: vue-router 5.4, pinia 4.1, marked 18.1 and Font Awesome 7.3 (`fontawesome-svg-core` and
+  `free-solid-svg-icons`; the unused `free-regular-svg-icons` is gone). Every route guard returns its verdict instead
+  of calling `next()`, which vue-router 5 deprecates. The marked 18 build needs
+  `@babel/plugin-transform-private-methods` (dev dependency, in `babel.config.js`). Icons keep the Font Awesome 6 width
+  (`--fa-width: auto`); the glyphs themselves are the Font Awesome 7 drawings.
+- Leaving a form with unsaved changes and choosing to stay now ends the navigation as aborted; before, the
+  navigation stayed pending.
+- Docs headings no longer carry generated `id`s (marked 18 dropped them; nothing linked to them).
+
+### Fixed
+
+- Product files: PDF, Word, image and video files showed an empty icon, because those four icons were never
+  registered.
+- Markdown previews (profile fields, proposal editor, studio text): after the Docs page was opened, a single line
+  break turned into `<br>` there too, because Docs changed the global marked options. Docs now has its own instance.
+
 ## [3.4.0] (2026-11-04)
 
 ### Added

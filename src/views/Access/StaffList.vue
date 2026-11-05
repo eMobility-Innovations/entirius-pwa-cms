@@ -104,9 +104,8 @@ export default {
       return Math.ceil(this.count / PAGE_SIZE);
     },
   },
-  beforeRouteLeave(to, from, next) {
-    if (this.reveal) return next(false);
-    next();
+  beforeRouteLeave(to, from) {
+    return !this.reveal;
   },
   mounted() {
     this.fetchStaff();

@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import { marked } from "marked";
+import { Marked } from "marked";
 import config_docs from "!!raw-loader!./config_docs.md";
 import props_docs from "!!raw-loader!./props_docs.md";
 
@@ -53,6 +53,9 @@ import optional_config from "@/../__client/configs/__optional_config";
 import core_properties from "@/../__client/props/__props";
 import props_handlers from "@/../__client/props/__props_handlers";
 import { ReadonlyOff } from "@/composables/useReadonly";
+
+// Own instance: the global `marked` defaults stay untouched for the other markdown views.
+const docsMarked = new Marked({ gfm: true, breaks: true });
 
 const docs_nav = [
   { label: "__[type]_config", value: "config_docs" },
@@ -98,11 +101,7 @@ export default {
       return this[this.doc_prev];
     },
     renderedMarkdown() {
-      marked.setOptions({
-        gfm: true,
-        breaks: true,
-      });
-      return marked(this.doc_preview || "");
+      return docsMarked.parse(this.doc_preview || "");
     },
   },
 };

@@ -263,9 +263,9 @@ export default {
     },
   },
   // A shown-once value open in SecretReveal closes only through its "I have stored it": the page does not leave under it.
-  beforeRouteLeave(to, from, next) {
-    if (this.reveal.open) return next(false);
-    this.guardNavigation(to, from, next);
+  beforeRouteLeave(to, from) {
+    if (this.reveal.open) return false;
+    return this.guardNavigation(to, from);
   },
   mounted() {
     this.load();
