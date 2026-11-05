@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
-import { createRouter, createMemoryHistory } from "vue-router";
+import { createRouter, createMemoryHistory, isNavigationFailure, NavigationFailureType } from "vue-router";
 import { defineComponent, h, reactive, nextTick } from "vue";
 
 // Characterization of every in-component guard (beforeRouteLeave / beforeRouteUpdate). Each view's own hook is lifted
@@ -269,5 +269,50 @@ describe("beforeRouteUpdate: Builder/Builds", () => {
     const [args] = initSpy.mock.calls[0];
     expect(args._content_type).toBeFalsy();
     expect(args.language).toBeNull();
+  });
+});
+
+// D1: the guards return their verdict (a promise that settles on the dialog's answer), so a push that is held by
+// the leave dialog finishes either way. Before, cancelling left that router.push pending for good.
+describe("a held navigation settles on the dialog's answer", () => {
+  const page = () => pageOf(RoleDetail, { reveal: { open: false } });
+
+  it("cancelling settles the held push as an aborted navigation", async () => {
+    const router = await openRouter(page());
+    await makeDirty();
+    const leaving = router.push("/other");
+    await settle();
+
+    unsaved.cancelLeave();
+    const result = await leaving;
+    expect(isNavigationFailure(result, NavigationFailureType.aborted)).toBe(true);
+    expect(router.currentRoute.value.path).toBe("/edit/A");
+  });
+
+  it("confirming settles the held push without a failure", async () => {
+    const router = await openRouter(page());
+    await makeDirty();
+    const leaving = router.push("/other");
+    await settle();
+
+    unsaved.confirmLeave();
+    expect(await leaving).toBeUndefined();
+    expect(router.currentRoute.value.path).toBe("/other");
+  });
+
+  it("a second navigation while asking replaces the question; the first push is settled, not left hanging", async () => {
+    const router = await openRouter(page());
+    await makeDirty();
+    const first = router.push("/other");
+    await settle();
+    const second = router.push("/other?again=1");
+    await settle();
+
+    expect(isNavigationFailure(await first)).toBe(true);
+    expect(unsaved.pendingNav.value.to.fullPath).toBe("/other?again=1");
+
+    unsaved.confirmLeave();
+    await second;
+    expect(router.currentRoute.value.fullPath).toBe("/other?again=1");
   });
 });

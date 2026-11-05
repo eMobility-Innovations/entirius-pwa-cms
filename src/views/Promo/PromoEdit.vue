@@ -918,8 +918,8 @@ export default {
       },
     },
   },
-  beforeRouteLeave(to, from, next) {
-    this.guardNavigation(to, from, next);
+  beforeRouteLeave(to, from) {
+    return this.guardNavigation(to, from);
   },
   async mounted() {
     this.checkoutChannel.fetchChannels();

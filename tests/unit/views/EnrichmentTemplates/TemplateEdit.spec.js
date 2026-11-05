@@ -139,24 +139,22 @@ describe("TemplateEdit", () => {
 
     it("an untouched template leaves without asking", async () => {
       const w = await mountEdit("meta");
-      const next = vi.fn();
-      TemplateEdit.beforeRouteLeave.call(w.vm, {}, {}, next);
-      expect(next).toHaveBeenCalledWith();
+      expect(TemplateEdit.beforeRouteLeave.call(w.vm, {}, {})).toBe(true);
     });
 
     it("an edited one asks first; Save and leave saves, then leaves (not to the list)", async () => {
       const w = await mountEdit("meta");
       w.vm.$.proxy.form.rules = "Brand first.";
       await w.vm.$nextTick();
-      const next = vi.fn();
-      TemplateEdit.beforeRouteLeave.call(w.vm, {}, {}, next);
-      await w.vm.$nextTick();
-      expect(next).not.toHaveBeenCalled();
+      const verdict = vi.fn();
+      Promise.resolve(TemplateEdit.beforeRouteLeave.call(w.vm, {}, {})).then(verdict);
+      await flushPromises();
+      expect(verdict).not.toHaveBeenCalled();
       expect(leaveDialog(w).props("open")).toBe(true);
       leaveDialog(w).vm.$emit("confirm");
       await flushPromises();
       expect(api.PATCH_Template).toHaveBeenCalledWith("meta", expect.objectContaining({ rules: ["Brand first."] }));
-      expect(next).toHaveBeenCalledWith();
+      expect(verdict).toHaveBeenCalledWith(true);
       expect(push).not.toHaveBeenCalled();
     });
 
@@ -166,9 +164,7 @@ describe("TemplateEdit", () => {
       await w.vm.$nextTick();
       await w.vm.$.proxy.save();
       expect(push).toHaveBeenCalledWith({ name: "EnrichmentTemplates" });
-      const next = vi.fn();
-      TemplateEdit.beforeRouteLeave.call(w.vm, {}, {}, next);
-      expect(next).toHaveBeenCalledWith();
+      expect(TemplateEdit.beforeRouteLeave.call(w.vm, {}, {})).toBe(true);
     });
   });
 });
