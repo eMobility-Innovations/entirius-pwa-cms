@@ -15,12 +15,13 @@
 // A feature-set proposal in plain words: the set the product is on now and the one the AI proposes, by name
 // (`{featureset_idx}` in proposed_value and current_snapshot). Names come from the global feature-set list,
 // fetched once per page load; an unknown idx shows as the idx itself.
+import { allPages } from "@/api/allPages";
 import { GET_FeatureSetsGlobal } from "@/api/pim/api";
 
 let namesPromise = null;
 export function loadFeatureSetNames() {
-  namesPromise ??= GET_FeatureSetsGlobal({ page_size: 500 })
-    .then(({ data }) => Object.fromEntries((data.results || data || []).map((fs) => [fs.idx, fs.name || fs.idx])))
+  namesPromise ??= allPages((params) => GET_FeatureSetsGlobal(params))
+    .then((sets) => Object.fromEntries(sets.map((fs) => [fs.idx, fs.name || fs.idx])))
     .catch(() => {
       namesPromise = null;
       return {};

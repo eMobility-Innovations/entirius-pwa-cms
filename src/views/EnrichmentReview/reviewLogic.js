@@ -1,4 +1,5 @@
 import { diffArrays, diffWords } from "diff";
+import { featureUnit } from "./featureUnits";
 
 // Review helpers: the word diff, HTML detection, grouping by product, the worker of a proposal and the source text
 // of a translation. Pure functions — the components render what these return.
@@ -213,9 +214,17 @@ export function subjectName(proposal) {
 }
 
 /** A number proposal as text, with its unit when it has one ("6.5 inch"); null for any other value. */
-function measured(value) {
+function measured(value, featureIdx) {
   if (value?.value === null || value?.value === undefined) return null;
-  return [value.value, value.unit].filter((part) => part !== undefined).join(" ");
+  return [value.value, value.unit ?? featureUnit(featureIdx)].filter((part) => part != null).join(" ");
+}
+
+/** True for a proposal that is a number, measured or plain; "72v" is words. */
+export function isNumberValue(value) {
+  if (value?.unit) return true;
+  const raw = value?.value;
+  if (typeof raw === "string") return raw.trim() !== "" && Number.isFinite(Number(raw));
+  return typeof raw === "number";
 }
 
 export function changeSummary(proposal) {
@@ -226,7 +235,7 @@ export function changeSummary(proposal) {
     return { tags: { added: added.length, removed: removed.length } };
   }
   const text = textOf(proposal.proposed_value);
-  const readable = measured(proposal.proposed_value) ?? (typeof text === "string" && text ? text : firstText(proposal.proposed_value));
+  const readable = measured(proposal.proposed_value, proposal.target_locator?.feature_idx) ?? (typeof text === "string" && text ? text : firstText(proposal.proposed_value));
   const after = plainText(readable).replace(/\s+/g, " ").trim();
   const before = textOf(proposal.current_snapshot);
   return { state: isBlank(before) ? "new" : "changed", excerpt: after.slice(0, EXCERPT), length: after.length };

@@ -2838,6 +2838,7 @@
       "edit_label": "Proponowany tekst",
       "apply": "Zastosuj",
       "new_text": "Nowy tekst",
+      "new_value": "Nowa wartość",
       "view_changes": "Zmiany",
       "view_before": "Przed",
       "view_after": "Po",
@@ -2849,7 +2850,8 @@
         "video": "Wideo produktu",
         "picture": "Zdjęcie produktu",
         "document": "Artykuł",
-        "artifact": "Krok Studia"
+        "artifact": "Krok Studia",
+        "feature_set": "Zestaw cech"
       },
       "search_preview": "W wynikach wyszukiwania",
       "change_new": "Nowe",
