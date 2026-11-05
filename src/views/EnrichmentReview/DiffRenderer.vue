@@ -100,6 +100,7 @@ export default {
       if (this.diffComponent === "JsonDiff") return value;
       if (value == null) return null;
       if (typeof value !== "object" || Array.isArray(value)) return value;
+      if (value.unit && value.value != null) return `${value.value} ${value.unit}`;
       const keys = Object.keys(value);
       if (keys.length === 1) return value[keys[0]];
       // Common PIM key wins when present, else hand the whole dict over.
