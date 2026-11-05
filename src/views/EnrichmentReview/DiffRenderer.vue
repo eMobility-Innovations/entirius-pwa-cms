@@ -8,7 +8,7 @@
   />
   <FeatureSetChange v-else-if="targetKind === 'feature_set'" :proposed="proposed" :current="current" />
   <TagChanges v-else-if="isOptions" :proposed="proposed" :current="current" :locator="locator" />
-  <TextDiff v-else-if="diffComponent === 'TextDiff'" :before="before" :after="after" :wide="wide" :rules="rules" :snippet="snippet" />
+  <TextDiff v-else-if="diffComponent === 'TextDiff'" :before="before" :after="after" :wide="wide" :rules="rules" :snippet="snippet" :number="isNumber" />
   <component :is="diffComponent" v-else :before="before" :after="after" />
 </template>
 
@@ -27,7 +27,8 @@ import JsonDiff from "@/views/Pim/components/supplier/diffs/JsonDiff.vue";
 import ImageDiff from "./ImageDiff.vue";
 import TagChanges from "./TagChanges.vue";
 import TextDiff from "./TextDiff.vue";
-import { isOptionValue } from "./reviewLogic";
+import { featureUnit } from "./featureUnits";
+import { isNumberValue, isOptionValue } from "./reviewLogic";
 import VideoPreview from "./VideoPreview.vue";
 import FeatureSetChange from "./FeatureSetChange.vue";
 
@@ -71,6 +72,9 @@ export default {
     isImage() {
       return IMAGE_KINDS.has(this.targetKind);
     },
+    isNumber() {
+      return isNumberValue(this.proposed);
+    },
     // The "before" picture URL lives in current_snapshot.url (a relative /media path from PIM).
     // Prefix the backend base so the <img> resolves; absolute URLs pass through untouched.
     imageBeforeUrl() {
@@ -100,7 +104,8 @@ export default {
       if (this.diffComponent === "JsonDiff") return value;
       if (value == null) return null;
       if (typeof value !== "object" || Array.isArray(value)) return value;
-      if (value.unit && value.value != null) return `${value.value} ${value.unit}`;
+      const unit = value.unit ?? featureUnit(this.locator?.feature_idx);
+      if (unit && value.value != null) return `${value.value} ${unit}`;
       const keys = Object.keys(value);
       if (keys.length === 1) return value[keys[0]];
       // Common PIM key wins when present, else hand the whole dict over.

@@ -2,8 +2,13 @@ import { describe, it, expect, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 
 vi.mock("@/api/pim/api", () => ({
-  GET_FeatureSetsGlobal: vi.fn(() =>
-    Promise.resolve({ data: { results: [{ idx: "default", name: "Default" }, { idx: "tyres", name: "Tyres" }] } }),
+  GET_FeatureSetsGlobal: vi.fn(({ page }) =>
+    Promise.resolve({
+      data:
+        page === 1
+          ? { results: [{ idx: "default", name: "Default" }], next: "page-2" }
+          : { results: [{ idx: "tyres", name: "Tyres" }], next: null },
+    }),
   ),
 }));
 

@@ -2925,6 +2925,7 @@
       "edit_label": "Proposed text",
       "apply": "Apply",
       "new_text": "New text",
+      "new_value": "New value",
       "view_changes": "Changes",
       "view_before": "Before",
       "view_after": "After",
@@ -2936,7 +2937,8 @@
         "video": "Product video",
         "picture": "Product picture",
         "document": "Article",
-        "artifact": "Studio step"
+        "artifact": "Studio step",
+        "feature_set": "Feature set"
       },
       "search_preview": "In search results",
       "change_new": "New",

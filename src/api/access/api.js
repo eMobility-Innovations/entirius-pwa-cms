@@ -1,3 +1,4 @@
+import { allPages } from '../allPages'
 import { accessApi } from './client'
 
 // django-access: who the logged-in user is and what they may do (`{ user, gate_mode, manages_access, roles,
@@ -6,17 +7,6 @@ export const GET_Me = () => accessApi.get('/api/access/v2/me/')
 
 // Admin API (`access.manage`): the area catalogue (`{ modules: [{ module, areas }], roles, scopes }`) and roles.
 const ADMIN = '/api/access/v2/admin'
-
-// Every row of a list, page after page (the API pages by 100 at most): roles, staff, applications, an application's
-// tokens (a rotation adds one each time).
-async function allPages(get) {
-  const rows = []
-  for (let page = 1; ; page += 1) {
-    const { data } = await get({ page, page_size: 100 })
-    rows.push(...(data.results || []))
-    if (!data.next) return rows
-  }
-}
 
 export const GET_AccessCatalogue = () => accessApi.get(`${ADMIN}/catalogue/`)
 export const GET_AccessRoles = (params = {}) => accessApi.get(`${ADMIN}/roles/`, { params })
