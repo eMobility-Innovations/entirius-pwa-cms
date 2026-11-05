@@ -421,10 +421,10 @@ export default {
         path: this.$route.path,
         query: { ...this.$route.query, mode: val },
       });
-      // Under "All" Focus reads the pending set only, and the product view reads by product: entering or leaving
+      // Under "All" Focus reads the pending set only, and Products and Focus read by product: entering or leaving
       // either reloads from the first page.
       const focusChanged = this.filters.status === "__all" && (val === "focus") !== (old === "focus");
-      if (focusChanged || (val === "product") !== (old === "product")) {
+      if (focusChanged || (val === "list") !== (old === "list")) {
         this.page = 1;
         this.fetchRows();
       }
@@ -461,7 +461,7 @@ export default {
         page: this.page,
         page_size: this.pageSize,
         // By product, a product's proposals stay together on one page.
-        ordering: this.mode === "product" ? "subject_ref" : "-created_at",
+        ordering: this.mode === "list" ? "-created_at" : "subject_ref",
       };
       // The "All" chip asks for every status (no status param would mean only pending); Focus walks what is to decide.
       if (this.filters.status)
@@ -553,10 +553,11 @@ export default {
       this.page = page;
       this.fetchRows();
     },
-    async loadNextPage() {
-      // Focus mode reached the end of the loaded page — pull the next one.
+    async loadNextPage({ decided = false } = {}) {
+      // Focus mode reached the end of the loaded page — pull the next one. What was decided left the set and the
+      // rest slid up, so after a decision the same page holds the next rows.
       if (this.page * this.pageSize >= this.totalCount) return;
-      this.page += 1;
+      if (!decided) this.page += 1;
       await this.fetchRows();
     },
     exitFocus() {

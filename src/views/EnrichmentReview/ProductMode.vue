@@ -61,12 +61,9 @@
 
 <script>
 import { GET_Task } from "@/api/enrichment/api";
-import { GET_Product } from "@/api/pim/api";
+import { loadSource } from "./productSource";
 import ProposalPanel from "./ProposalPanel.vue";
-import { groupBySubject, sourceText } from "./reviewLogic";
-
-const SOURCE_FEATURE = "idosell_hints"; // what the shop said about the product: what the AI read
-const SOURCE_LANGUAGE = "en";
+import { groupBySubject } from "./reviewLogic";
 
 // The product view of the review: the loaded proposals grouped by product (subject_ref), one card per field and
 // language, stacked. The tasks behind them are loaded once each — a translation task names its source language.
@@ -102,12 +99,7 @@ export default {
         this.sources[subjectRef] = null;
         return;
       }
-      try {
-        const { data } = await GET_Product(proposals[0].target_locator.channel, subjectRef);
-        this.sources[subjectRef] = sourceText(data, SOURCE_FEATURE, SOURCE_LANGUAGE);
-      } catch {
-        this.sources[subjectRef] = "";
-      }
+      this.sources[subjectRef] = await loadSource(proposals[0]);
     },
     async loadTask(id) {
       try {

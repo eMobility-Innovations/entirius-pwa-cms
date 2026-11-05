@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
+import { focusSteps,
   editableText,
   withEditedText,
   groupBySubject,
@@ -254,3 +254,32 @@ describe("changeSummary of a measured value", () => {
   });
 });
 
+
+describe("focusSteps", () => {
+  const product = (id, sku, kind = "attribute_value") => ({
+    id,
+    status: "pending",
+    target_module: "pim",
+    target_kind: kind,
+    subject_ref: sku,
+  });
+
+  it("makes a product one step", () => {
+    const rows = [product(1, "A", "feature_set"), product(2, "A"), product(3, "B")];
+    expect(focusSteps(rows).map((row) => row.id)).toEqual([1, 3]);
+  });
+
+  it("leaves out products already passed", () => {
+    expect(focusSteps([product(1, "A"), product(2, "B")], ["A"]).map((row) => row.id)).toEqual([2]);
+  });
+
+  it("keeps anything but a pending PIM set or attribute on its own", () => {
+    const rows = [
+      { ...product(1, "A"), status: "applied" },
+      { ...product(2, "A"), status: "applied" },
+      { ...product(3, "B"), target_module: "studio" },
+      { ...product(4, "B"), target_module: "studio" },
+    ];
+    expect(focusSteps(rows).map((row) => row.id)).toEqual([1, 2, 3, 4]);
+  });
+});
