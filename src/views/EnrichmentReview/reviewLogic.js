@@ -212,6 +212,12 @@ export function subjectName(proposal) {
   return ref ? `${label} · ${ref}` : label;
 }
 
+/** A number proposal as text, with its unit when it has one ("6.5 inch"); null for any other value. */
+function measured(value) {
+  if (value?.value === null || value?.value === undefined) return null;
+  return [value.value, value.unit].filter((part) => part !== undefined).join(" ");
+}
+
 export function changeSummary(proposal) {
   const icon = MEDIA_KINDS[proposal.target_kind];
   if (icon) return { media: icon, duration: proposal.proposed_value?.duration_s ?? null };
@@ -220,7 +226,7 @@ export function changeSummary(proposal) {
     return { tags: { added: added.length, removed: removed.length } };
   }
   const text = textOf(proposal.proposed_value);
-  const readable = typeof text === "string" && text ? text : firstText(proposal.proposed_value);
+  const readable = measured(proposal.proposed_value) ?? (typeof text === "string" && text ? text : firstText(proposal.proposed_value));
   const after = plainText(readable).replace(/\s+/g, " ").trim();
   const before = textOf(proposal.current_snapshot);
   return { state: isBlank(before) ? "new" : "changed", excerpt: after.slice(0, EXCERPT), length: after.length };
