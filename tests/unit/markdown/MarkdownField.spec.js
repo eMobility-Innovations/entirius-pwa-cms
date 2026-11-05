@@ -2,6 +2,7 @@
 // MarkdownField (enrichment profile): `marked.parse` with default options, then `sanitizeHtml`, then `v-html`.
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
+import Docs from "@/views/Docs/index.vue";
 import MarkdownField from "@/views/EnrichmentProfile/MarkdownField.vue";
 import { CASES, EMPTY, FULL, HOSTILE } from "../fixtures/markdown/corpus";
 import { expectRenderedCorpus, unsafeIn } from "./helpers";
@@ -60,5 +61,16 @@ describe("MarkdownField preview renders the markdown corpus", () => {
 
   it("keeps the rendered corpus free of unsafe markup as a whole", async () => {
     expect(unsafeIn((await preview(FULL)).element)).toEqual([]);
+  });
+
+  // Docs used to call the global marked.setOptions({ breaks: true }); T2 finding 2. Docs now has its own instance.
+  it("keeps default options after the Docs view was opened and rendered", async () => {
+    const docsStubs = { PageLayout: { template: "<div><slot name='header' /><slot /></div>" }, PageHeader: true, BasicTabs: true, BasicSelect: true, BasicCard: true, ReadonlyOff: { template: "<div><slot /></div>" } };
+    const docs = mount(Docs, { global: { stubs: docsStubs } });
+    await docs.setData({ config_docs: CASES.paragraphs, doc_prev: "config_docs" });
+    expect(docs.find(".markdown-renderer-wrapper > div").element.querySelectorAll("p")[0].innerHTML).toContain("<br>");
+
+    const el = (await preview(CASES.paragraphs)).element;
+    expect(el.querySelectorAll("p")[0].innerHTML).toBe("First paragraph\nsecond line of it");
   });
 });

@@ -39,9 +39,10 @@ describe("Docs renders markdown", () => {
     expect(el.querySelectorAll("p")[0].innerHTML).toBe("First paragraph<br>second line of it");
   });
 
-  it("keeps table alignment and heading ids (no sanitiser)", async () => {
+  // marked 18 no longer emits heading ids (headerIds was removed in v8; the Docs .md files link to no anchors).
+  it("keeps table alignment (no sanitiser); headings carry no id since marked 18", async () => {
     const el = (await rendered(`${CASES.headings}\n\n${CASES.table}`)).element;
-    expect(el.querySelector("h2").getAttribute("id")).toBe("section-two");
+    expect(el.querySelector("h2").getAttribute("id")).toBeNull();
     expect(el.querySelector("th").getAttribute("align")).toBe("left");
   });
 
@@ -66,8 +67,12 @@ describe("Docs renders markdown", () => {
     expect(el.querySelector("a[href^='javascript:']")).not.toBeNull();
   });
 
-  it("leaves breaks: true as the global marked default once the view rendered", async () => {
-    await rendered("x");
-    expect(marked.parse("a\nb")).toContain("<br>");
+  it("does not leak breaks: true into the global marked defaults (own Marked instance)", async () => {
+    const before = marked.parse("a\nb");
+    expect(before).not.toContain("<br>");
+    const el = (await rendered("a\nb")).element;
+    expect(el.querySelector("p").innerHTML).toBe("a<br>b");
+    expect(marked.parse("a\nb")).toBe(before);
+    expect(marked.getDefaults().breaks).toBe(false);
   });
 });
