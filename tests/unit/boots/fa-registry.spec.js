@@ -108,8 +108,10 @@ describe("FontAwesomeIcon renders the registered icons", () => {
   it.each([
     ["a meaning glyph", ICONS.edit, "pen"],
     ["a panel glyph", "boxes-stacked", "boxes-stacked"],
-    ["the alias faShoppingCart (shopping-cart)", "shopping-cart", "shopping-cart"],
-    ["the alias faCheckSquare (square-check)", ICONS.checkboxOn, "square-check"],
+    ["a renamed glyph (cart-shopping, was shopping-cart in FA 6)", "cart-shopping", "cart-shopping"],
+    ["a renamed glyph (square-check, was check-square in FA 6)", ICONS.checkboxOn, "square-check"],
+    ["the FA 6 name shopping-cart still resolves as an alias", "shopping-cart", "shopping-cart"],
+    ["the FA 6 name check-square still resolves as an alias", "check-square", "check-square"],
   ])("%s", (_label, icon, dataIcon) => {
     const wrapper = render(icon);
     const svg = wrapper.find("svg");

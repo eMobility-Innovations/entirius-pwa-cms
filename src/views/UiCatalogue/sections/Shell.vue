@@ -105,7 +105,7 @@ import CatalogueCell from "../CatalogueCell.vue";
 
 const entry = (route, labelKey, icon) => ({ route, labelKey, icon, query: {}, app: [] });
 const PAGES = { idx: "pages", icon: "file-code", root: "/pages/content", labelKey: "panels.pages", isEnabled: true };
-const ORDERS = { idx: "checkout", icon: "shopping-cart", root: "/checkout-orders/orders", labelKey: "panels.checkout_orders", isEnabled: true };
+const ORDERS = { idx: "checkout", icon: "cart-shopping", root: "/checkout-orders/orders", labelKey: "panels.checkout_orders", isEnabled: true };
 const PAGES_ENTRIES = [
   entry("/pages/content", "nav.content_list", "file-code"),
   entry("/pages/layout-extender", "nav.layout_extender", "diagram-next"),
@@ -113,7 +113,7 @@ const PAGES_ENTRIES = [
   entry("/pages/content-sets", "nav.content_sets", "object-group"),
   entry("/pages/authors", "authors.title", "user-pen"),
 ];
-const ORDERS_ENTRIES = [entry("/checkout-orders/orders", "nav.checkout_orders", "shopping-cart")];
+const ORDERS_ENTRIES = [entry("/checkout-orders/orders", "nav.checkout_orders", "cart-shopping")];
 const LEADS_ENTRIES = [entry("/leads/inbox", "nav.leads_inbox", "inbox"), entry("/leads/settings", "nav.leads_settings", "gear")];
 
 const L1 = { label: "Pages", icon: "file-code", to: "/pages/content" };
