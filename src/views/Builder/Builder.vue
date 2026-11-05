@@ -943,8 +943,8 @@ export default {
     draggable,
     HomeVariantSwitcher,
   },
-  beforeRouteLeave(to, from, next) {
-    this.guardNavigation(to, from, next);
+  beforeRouteLeave(to, from) {
+    return this.guardNavigation(to, from);
   },
   setup() {
     const notify = useNotifyStore();

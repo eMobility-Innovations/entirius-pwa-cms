@@ -481,12 +481,11 @@ export default {
     await this.contentDBChannel.fetchChannelsAndLanguages();
     await this.init({});
   },
-  beforeRouteUpdate(to, from, next) {
+  beforeRouteUpdate(to, from) {
     const { params = {}, query = {} } = to;
     const { content_type = null } = params;
     const { lg = null } = query;
     this.init({ _content_type: content_type, language: lg });
-    next();
   },
   components: {
     TranslateDialog,

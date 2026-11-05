@@ -4,7 +4,7 @@ import {
 
 
 
-export const routeGuard = (to, from, next) => {
+export const routeGuard = (to, from) => {
   console.log('()()()() - USER GUARD - ()()()()')
   console.log(to)
   console.log(to.matched)
@@ -12,5 +12,5 @@ export const routeGuard = (to, from, next) => {
   console.log(state)
   console.log('()()()()()()()()()()()()()()()()')
 
-  next();
+  return true
 }

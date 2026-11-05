@@ -175,23 +175,21 @@ describe("ProposalEditor", () => {
 
   it("leaving with no manual edit asks nothing", async () => {
     const w = await mountEditor();
-    const next = vi.fn();
-    ProposalEditor.beforeRouteLeave.call(w.vm, {}, {}, next);
-    expect(next).toHaveBeenCalledWith();
+    expect(ProposalEditor.beforeRouteLeave.call(w.vm, {}, {})).toBe(true);
   });
 
   it("leaving with a manual edit asks first; Save and leave keeps it as a version, then leaves", async () => {
     const w = await mountEditor();
     await w.find("textarea").setValue("<p>A blue sofa</p>");
-    const next = vi.fn();
-    ProposalEditor.beforeRouteLeave.call(w.vm, {}, {}, next);
-    await w.vm.$nextTick();
-    expect(next).not.toHaveBeenCalled();
+    const verdict = vi.fn();
+    Promise.resolve(ProposalEditor.beforeRouteLeave.call(w.vm, {}, {})).then(verdict);
+    await flushPromises();
+    expect(verdict).not.toHaveBeenCalled();
     expect(leaveDialog(w).props("open")).toBe(true);
     api.PATCH_Proposal.mockResolvedValue({ data: { ...PROPOSAL, proposed_value: { text: "<p>A blue sofa</p>" } } });
     leaveDialog(w).vm.$emit("confirm");
     await flushPromises();
     expect(api.PATCH_Proposal).toHaveBeenCalledWith(9, { proposed_value: { text: "<p>A blue sofa</p>" } });
-    expect(next).toHaveBeenCalledWith();
+    expect(verdict).toHaveBeenCalledWith(true);
   });
 });

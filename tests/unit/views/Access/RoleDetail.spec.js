@@ -133,13 +133,13 @@ describe("RoleDetail", () => {
   it("save and leave on a new role leaves to where the user was going", async () => {
     api.POST_AccessRole.mockResolvedValue({ data: { ...DETAILS[7], key: "ops" } });
     const { wrapper, push } = await open({});
-    const next = vi.fn();
+    const verdict = vi.fn();
     Object.assign(wrapper.vm.form, { key: "ops", name: "Ops" });
     wrapper.vm.isDirty = true; // the composable's deep watcher does not run under happy-dom; live it does
-    wrapper.vm.guardNavigation({ path: "/faq" }, {}, next);
+    wrapper.vm.guardNavigation({ path: "/faq" }, {}).then(verdict);
     await wrapper.vm.saveAndLeave();
     expect(push).not.toHaveBeenCalled();
-    expect(next).toHaveBeenCalled();
+    expect(verdict).toHaveBeenCalledWith(true);
   });
 
   it("a failed load shows an error state with no actions, never a blank editable form", async () => {
