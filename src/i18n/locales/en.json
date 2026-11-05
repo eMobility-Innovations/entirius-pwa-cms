@@ -2902,8 +2902,11 @@
       "reject_reason_placeholder": "Why is this being rejected?",
       "focus": {
         "keep_ai_set": "Keep the AI's set",
-        "other_set": "Pick another set",
-        "other_set_placeholder": "Search the sets…",
+        "set_heading": "Feature set · AI proposes",
+        "other_set_placeholder": "Pick another set…",
+        "attributes_of": "Attributes of {set}",
+        "attributes": "Attributes",
+        "was": "was {value}",
         "chosen_note": "Only the set is applied. The AI then reads the attributes for it, and the product comes back.",
         "last_try": "The AI has had three tries. If this set is wrong, pick the right one from the list.",
         "reject_set": "Reject set, ask the AI again",

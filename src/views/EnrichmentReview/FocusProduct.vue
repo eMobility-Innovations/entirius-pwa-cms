@@ -1,61 +1,87 @@
 <template>
-  <div class="flex-column gap-6" data-testid="enrichment-focus-product">
+  <div class="flex-column gap-4" data-testid="enrichment-focus-product">
     <Loader v-if="loading" block />
     <template v-else>
-      <div class="flex ai-ct jc-sb flex-wrap gap-3">
-        <BasicButton variant="ghost" size="sm" data-testid="enrichment-focus-source" @click="toggleSource">
-          {{ $t("enrichment.review.shop_data") }}
-        </BasicButton>
-      </div>
+      <section v-if="setProposal" class="focus-product__set flex-column gap-3" data-testid="enrichment-focus-set">
+        <div class="flex ai-ct jc-sb flex-wrap gap-3">
+          <div class="flex-column gap-1">
+            <span class="field-label">{{ $t("enrichment.review.focus.set_heading") }}</span>
+            <strong class="focus-product__set-name" data-testid="enrichment-focus-set-name">{{ setName }}</strong>
+          </div>
+          <BasicButton variant="ghost" size="sm" data-testid="enrichment-focus-source" @click="toggleSource">
+            {{ $t("enrichment.review.shop_data") }}
+          </BasicButton>
+        </div>
+        <div class="focus-product__choice">
+          <BasicSelect
+            v-model="chosen"
+            :options="setOptions"
+            :placeholder="$t('enrichment.review.focus.other_set_placeholder')"
+            :disabled="busy || locked"
+            searchable
+            data-testid="enrichment-focus-set-picker"
+          />
+          <BasicButton
+            v-if="chosen"
+            variant="ghost"
+            size="sm"
+            data-testid="enrichment-focus-keep-ai-set"
+            @click="chosen = null"
+          >
+            {{ $t("enrichment.review.focus.keep_ai_set") }}
+          </BasicButton>
+          <BasicButton
+            v-else-if="canReject"
+            variant="danger"
+            size="sm"
+            mutates
+            :disabled="busy || locked"
+            data-testid="enrichment-focus-reject-set"
+            @click="$emit('reject-set')"
+          >
+            {{ $t("enrichment.review.focus.reject_set") }}
+          </BasicButton>
+        </div>
+        <p v-if="chosen" class="m-0 fs-200 t-secondary" data-testid="enrichment-focus-chosen-note">
+          {{ $t("enrichment.review.focus.chosen_note") }}
+        </p>
+        <p v-else-if="lastTry" class="m-0 fs-200 t-warning" data-testid="enrichment-focus-last-try">
+          {{ $t("enrichment.review.focus.last_try") }}
+        </p>
+      </section>
+      <BasicButton
+        v-else
+        class="focus-product__source-alone"
+        variant="ghost"
+        size="sm"
+        data-testid="enrichment-focus-source"
+        @click="toggleSource"
+      >
+        {{ $t("enrichment.review.shop_data") }}
+      </BasicButton>
+
       <pre v-if="source != null" class="focus-product__source m-0 fs-200" data-testid="enrichment-focus-source-text">{{
         source || "—"
       }}</pre>
 
-      <ProposalPanel
-        v-for="proposal in proposals"
-        :key="proposal.id"
-        :proposal="proposal"
-        :task="tasks[proposal.task_id] || null"
-        :busy="busy || locked"
-        wide
-        with-product
-        @reject="rejectAttribute"
-        @updated="replace"
-      />
-
-      <FormField v-if="setProposal" :label="$t('enrichment.review.focus.other_set')">
-        <BasicSelect
-          v-model="chosen"
-          :options="setOptions"
-          :placeholder="$t('enrichment.review.focus.other_set_placeholder')"
-          :disabled="busy || locked"
-          searchable
-          data-testid="enrichment-focus-set-picker"
+      <section
+        v-if="attributes.length"
+        class="focus-product__attributes"
+        :class="{ 'focus-product__attributes--off': chosen }"
+        data-testid="enrichment-focus-attributes"
+      >
+        <span class="field-label">{{ attributesHeading }}</span>
+        <FocusAttribute
+          v-for="proposal in attributes"
+          :key="proposal.id"
+          :proposal="proposal"
+          :busy="busy || locked || !!chosen"
+          @reject="rejectAttribute"
+          @updated="replace"
         />
-      </FormField>
-      <div v-if="chosen" class="flex ai-ct jc-sb flex-wrap gap-3">
-        <p class="m-0 fs-300 t-secondary" data-testid="enrichment-focus-chosen-note">
-          {{ $t("enrichment.review.focus.chosen_note") }}
-        </p>
-        <BasicButton variant="ghost" size="sm" data-testid="enrichment-focus-keep-ai-set" @click="chosen = null">
-          {{ $t("enrichment.review.focus.keep_ai_set") }}
-        </BasicButton>
-      </div>
-      <p v-else-if="lastTry" class="m-0 fs-300 t-warning" data-testid="enrichment-focus-last-try">
-        {{ $t("enrichment.review.focus.last_try") }}
-      </p>
+      </section>
 
-      <div class="flex ai-ct jc-end flex-wrap gap-3">
-        <BasicButton
-          v-if="canReject && !chosen"
-          variant="danger"
-          mutates
-          :disabled="busy || locked"
-          data-testid="enrichment-focus-reject-set"
-          @click="$emit('reject-set')"
-        >
-          {{ $t("enrichment.review.focus.reject_set") }}
-        </BasicButton>
+      <div class="flex jc-end">
         <BasicButton
           mutates
           :loading="busy"
@@ -73,24 +99,25 @@
 <script>
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { useNotifyStore } from "@/stores/notify";
-import { GET_Proposals, GET_Task, PATCH_Proposal, POST_RejectProposal } from "@/api/enrichment/api";
+import { GET_Proposals, PATCH_Proposal, POST_RejectProposal } from "@/api/enrichment/api";
 import { acceptChosen } from "./applyMode";
 import { acceptProduct } from "./acceptProduct";
 import { loadFeatureSetNames } from "./FeatureSetChange.vue";
-import ProposalPanel from "./ProposalPanel.vue";
+import FocusAttribute from "./FocusAttribute.vue";
 import { loadSource } from "./productSource";
 import { acceptOrder } from "./reviewLogic";
 
 const MAX_PROPOSALS = 100; // the API's page limit; a product has far fewer pending proposals
 const MAX_REJECTIONS = 3; // CLASSIFY_MAX_REJECTIONS in esc-service-volkanos: the AI stops after the third
 
-// One product of Focus, all of it: the set and the attributes, read fresh because a product can sit on two pages.
+// One product of Focus, all of it: the set on top, its attributes under it, read fresh because a product can sit on
+// two pages.
 // Apply product takes the set first, then the attributes. Choosing another set applies that set alone: the
 // attributes belong to the AI's set, so they come back from the AI for the chosen one. A rejected attribute leaves
 // the card. The last AI try cannot be rejected, because nothing would bring the product back: a person picks.
 export default {
   name: "EnrichmentFocusProduct",
-  components: { ProposalPanel },
+  components: { FocusAttribute },
   props: {
     sku: { type: String, required: true },
     locked: { type: Boolean, default: false },
@@ -100,11 +127,22 @@ export default {
     return { notify: useNotifyStore() };
   },
   data() {
-    return { proposals: [], loading: true, busy: false, chosen: null, rejected: 0, names: {}, tasks: {}, source: null };
+    return { proposals: [], loading: true, busy: false, chosen: null, rejected: 0, names: {}, source: null };
   },
   computed: {
     setProposal() {
       return this.proposals.find((proposal) => proposal.target_kind === "feature_set") || null;
+    },
+    attributes() {
+      return this.proposals.filter((proposal) => proposal !== this.setProposal);
+    },
+    setName() {
+      const idx = this.chosen || this.setProposal?.proposed_value?.featureset_idx;
+      return this.names[idx] || idx || "";
+    },
+    attributesHeading() {
+      const key = "enrichment.review.focus.attributes";
+      return this.setProposal ? this.$t(`${key}_of`, { set: this.setName }) : this.$t(key);
     },
     lastTry() {
       return !!this.setProposal && this.rejected >= MAX_REJECTIONS - 1;
@@ -137,20 +175,10 @@ export default {
         this.rejected = rejected.data.count || 0;
         this.names = names;
         if (!this.proposals.length) this.$emit("done", { decided: false });
-        this.proposals.forEach((proposal) => this.loadTask(proposal.task_id));
       } catch (err) {
         this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
       } finally {
         this.loading = false;
-      }
-    },
-    async loadTask(id) {
-      if (id == null || id in this.tasks) return;
-      this.tasks[id] = null;
-      try {
-        this.tasks[id] = (await GET_Task(id)).data;
-      } catch {
-        // The card stands without its run.
       }
     },
     async toggleSource() {
@@ -207,8 +235,36 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+.focus-product__set {
+  padding: var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+}
+.focus-product__set-name {
+  font-size: var(--fs-500);
+  color: var(--text-strong);
+}
+.focus-product__choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+.focus-product__attributes {
+  margin-left: var(--space-4);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--border-strong);
+
+  &--off {
+    opacity: 0.5;
+  }
+}
 .focus-product__source {
   white-space: pre-wrap;
+}
+.focus-product__source-alone {
+  align-self: flex-start;
 }
 </style>
