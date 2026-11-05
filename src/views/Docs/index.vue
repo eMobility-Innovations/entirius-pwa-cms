@@ -17,7 +17,7 @@
       </div>
 
       <div class="markdown-renderer-wrapper">
-        <div v-html="renderedMarkdown"></div>
+        <div v-html="sanitizeHtml(renderedMarkdown)"></div>
       </div>
     </div>
     <div v-if="selected_view === 'eg'">
@@ -53,6 +53,7 @@ import optional_config from "@/../__client/configs/__optional_config";
 import core_properties from "@/../__client/props/__props";
 import props_handlers from "@/../__client/props/__props_handlers";
 import { ReadonlyOff } from "@/composables/useReadonly";
+import { sanitizeHtml } from "@/utils/sanitizeHtml";
 
 // Own instance: the global `marked` defaults stay untouched for the other markdown views.
 const docsMarked = new Marked({ gfm: true, breaks: true });
@@ -87,6 +88,7 @@ export default {
       doc_prev: "config_docs",
     };
   },
+  methods: { sanitizeHtml },
   computed: {
     nav() {
       return [

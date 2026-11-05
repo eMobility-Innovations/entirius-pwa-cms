@@ -55,6 +55,14 @@ describe("isHtml", () => {
     expect(isHtml("a < b and c > d")).toBe(false);
     expect(isHtml(null)).toBe(false);
   });
+
+  it("does not count a tag inside code or an autolink", () => {
+    expect(isHtml("Use `<div>` here")).toBe(false);
+    expect(isHtml("```\n<b>x</b>\n```")).toBe(false);
+    expect(isHtml("See <https://example.org>")).toBe(false);
+    expect(isHtml("`<b>` and <b>bold</b>")).toBe(true);
+    expect(isHtml("<br/>")).toBe(true);
+  });
 });
 
 describe("groupBySubject", () => {

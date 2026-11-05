@@ -26,7 +26,7 @@ describe("MarkdownField preview renders the markdown corpus", () => {
     await expect(html.join("\n\n")).toMatchFileSnapshot("./__snapshots__/MarkdownField.html");
   });
 
-  it("drops what the sanitiser does not allow: list start, heading ids, task checkboxes", async () => {
+  it("drops what the sanitiser does not allow (heading ids, task checkboxes), keeps the text", async () => {
     const el = (await preview(`${CASES.headings}\n\n${CASES.tasks}`)).element;
     expect(el.querySelector("h1").getAttribute("id")).toBeNull();
     expect(el.querySelector("input")).toBeNull();

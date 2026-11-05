@@ -65,7 +65,7 @@ async function preview(draft) {
 }
 describe("ProposalEditor preview renders the markdown corpus", () => {
   it("shows the whole corpus as the expected elements", async () => {
-    // A draft with any <tag> counts as stored HTML (isHtml), so the markdown-only part is rendered here.
+    // A draft with a tag outside code counts as stored HTML (isHtml), so the markdown part is rendered here.
     const markdownOnly = Object.values(CASES).filter((md) => !isHtml(md)).join("\n\n");
     expect(isHtml(markdownOnly)).toBe(false);
     const root = (await preview(markdownOnly)).element;
@@ -75,12 +75,16 @@ describe("ProposalEditor preview renders the markdown corpus", () => {
     expect(root.querySelector("a[href='https://example.com/ref']")).not.toBeNull();
   });
 
-  it("reads markdown containing a tag (inline code, autolink) as HTML, so it is not rendered as markdown", async () => {
+  it("renders markdown that only mentions a tag (code span, code block, autolink) as markdown", async () => {
     const hits = Object.entries(CASES).filter(([, md]) => isHtml(md)).map(([name]) => name);
-    expect(hits).toEqual(["code_inline", "code_block", "autolink", "html_script", "html_onerror", "html_other"]);
-    const root = (await preview(CASES.code_inline)).element;
-    expect(root.querySelector("code")).toBeNull();
-    expect(root.textContent).toContain("`npm run build`");
+    expect(hits).toEqual(["html_script", "html_onerror", "html_other"]);
+    const inline = (await preview(CASES.code_inline)).element;
+    expect([...inline.querySelectorAll("code")].map((c) => c.textContent)).toEqual(["npm run build", "<div>"]);
+    const block = (await preview(CASES.code_block)).element;
+    expect(block.querySelectorAll("pre code").length).toBe(3);
+    expect(block.querySelector("b")).toBeNull();
+    const auto = (await preview(CASES.autolink)).element;
+    expect(auto.querySelector("a[href='https://example.org']")).not.toBeNull();
   });
 
   it("keeps the HTML of every case in one file snapshot", async () => {
@@ -89,7 +93,7 @@ describe("ProposalEditor preview renders the markdown corpus", () => {
     await expect(html.join("\n\n")).toMatchFileSnapshot("./__snapshots__/ProposalEditor.html");
   });
 
-  it("drops what the sanitiser does not allow: list start, heading ids, task checkboxes", async () => {
+  it("drops what the sanitiser does not allow (heading ids, task checkboxes), keeps the text", async () => {
     const el = (await preview(`${CASES.headings}\n\n${CASES.tasks}`)).element;
     expect(el.querySelector("h1").getAttribute("id")).toBeNull();
     expect(el.querySelector("input")).toBeNull();
