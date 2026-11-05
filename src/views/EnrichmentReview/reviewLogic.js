@@ -73,6 +73,25 @@ export function acceptOrder(proposals) {
   return [...proposals.filter(isSet), ...proposals.filter((proposal) => !isSet(proposal))];
 }
 
+const PRODUCT_KINDS = ["feature_set", "attribute_value"];
+
+/** A proposal Focus decides with its whole product: a pending set or attribute of a PIM product. */
+export const isProductProposal = (proposal) =>
+  proposal?.status === "pending" &&
+  (proposal.target_module || "").includes("pim") &&
+  PRODUCT_KINDS.includes(proposal.target_kind);
+
+/** What Focus walks: one row per product (its first), every other proposal on its own; `skipped` SKUs left out. */
+export function focusSteps(rows, skipped = []) {
+  const seen = new Set(skipped);
+  return rows.filter((row) => {
+    if (!isProductProposal(row)) return true;
+    if (seen.has(row.subject_ref)) return false;
+    seen.add(row.subject_ref);
+    return true;
+  });
+}
+
 /** Nothing there yet: null, "", whitespace or an empty paragraph — a proposal for it is new text, not a change. */
 export function isBlank(value) {
   return !plainText(value).trim();

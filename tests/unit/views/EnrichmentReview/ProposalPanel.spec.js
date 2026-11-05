@@ -185,3 +185,19 @@ describe("ProposalPanel", () => {
     });
   });
 });
+
+describe("ProposalPanel decided with its product", () => {
+  const keys = (proposal) =>
+    mount(ProposalPanel, { props: { proposal, withProduct: true }, global: { stubs } }).vm.actions.map((a) => a.key);
+
+  it("an attribute can be rejected but has no Apply of its own", () => {
+    expect(keys({ ...meta, status: "pending", target_kind: "attribute_value" })).toContain("reject");
+    expect(keys({ ...meta, status: "pending", target_kind: "attribute_value" })).not.toContain("accept");
+  });
+
+  it("a set has neither: the product decides it", () => {
+    const actions = keys({ ...meta, status: "pending", target_kind: "feature_set" });
+    expect(actions).not.toContain("accept");
+    expect(actions).not.toContain("reject");
+  });
+});

@@ -58,6 +58,16 @@
             </div>
           </section>
 
+          <FocusProduct
+            v-else-if="productStep"
+            ref="product"
+            :key="current.subject_ref"
+            :sku="current.subject_ref"
+            :locked="acting || rejecting"
+            @done="productDone"
+            @reject-set="startReject"
+          />
+
           <ProposalPanel
             v-else
             :key="current.id"
@@ -135,9 +145,10 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { safeHref } from "@/utils/safeHref";
 import ProductPreviewCard from "./ProductPreviewCard.vue";
 import { acceptChosen } from "./applyMode";
+import FocusProduct from "./FocusProduct.vue";
 import ProposalPanel from "./ProposalPanel.vue";
 import StudioStepPreview from "./StudioStepPreview.vue";
-import { runUidOf, subjectName } from "./reviewLogic";
+import { focusSteps, isProductProposal, runUidOf, subjectName } from "./reviewLogic";
 import { useFieldLabels } from "./useFieldLabels";
 import { GET_Task, POST_RejectProposal } from "@/api/enrichment/api";
 
@@ -149,9 +160,10 @@ const REVIEW_FILTERS = ["pending", "drifted", "__all"];
 // card (ProposalPanel: the change by its shape, Apply / Edit / Reject) or, for a Studio step, the step as the Studio
 // shows it with the way there. Apply and Reject only on a pending proposal (a drifted one re-confirms); a Studio
 // step is decided in the Studio. Reject asks for its reason in place. Keys: A apply · R reject · S / → skip · ← back.
+// A PIM product is one step, all of it (FocusProduct): its proposals are decided together, the set first.
 export default {
   name: "EnrichmentFocusMode",
-  components: { ProductPreviewCard, ProposalPanel, StudioStepPreview },
+  components: { FocusProduct, ProductPreviewCard, ProposalPanel, StudioStepPreview },
   props: {
     rows: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false },
@@ -174,12 +186,20 @@ export default {
       // What this session learnt about a proposal (decided, re-confirm, edited) by id — the parent's rows stay as read.
       known: {},
       tasks: {},
+      skipped: [], // SKUs passed over this session: a reload of the page must not bring them straight back
+      decided: false, // something on this page left the set, so the next rows slid up onto it
     };
   },
   computed: {
+    steps() {
+      return focusSteps(this.rows, this.skipped);
+    },
     current() {
-      const row = this.rows[this.localIndex];
+      const row = this.steps[this.localIndex];
       return row ? this.known[row.id] || row : null;
+    },
+    productStep() {
+      return isProductProposal(this.current);
     },
     studioRun() {
       return runUidOf(this.current);
@@ -218,7 +238,7 @@ export default {
       return !!c && (c.target_module || "").includes("pim") && !!c.subject_ref;
     },
     globalIndex() {
-      return (this.page - 1) * this.pageSize + this.localIndex;
+      return (this.page - 1) * this.pageSize + this.rows.indexOf(this.steps[this.localIndex]);
     },
     hasMorePages() {
       return this.page * this.pageSize < this.totalCount;
@@ -228,7 +248,14 @@ export default {
     // A fresh page arrived (parent loaded next) — start at its top.
     rows() {
       this.localIndex = 0;
+      this.decided = false;
       this.cancelReject();
+    },
+    // A page of nothing but products already passed: on to the next one.
+    loading(now) {
+      if (now || !this.rows.length || this.steps.length) return;
+      if (this.hasMorePages) this.nextPage();
+      else this.$emit("exit");
     },
     "current.task_id": { immediate: true, handler: "loadTask" },
   },
@@ -271,13 +298,25 @@ export default {
     },
     advance() {
       this.cancelReject();
-      if (this.localIndex < this.rows.length - 1) {
+      if (this.localIndex < this.steps.length - 1) {
         this.localIndex += 1;
       } else if (this.hasMorePages) {
-        this.$emit("need-more"); // parent loads next page → rows watcher resets index
+        this.nextPage();
       } else {
         this.$emit("exit"); // end of the filtered set → back to List
       }
+    },
+    nextPage() {
+      this.$emit("need-more", { decided: this.decided }); // parent loads the rows → rows watcher resets index
+    },
+    productDone({ decided }) {
+      this.decided ||= decided;
+      if (decided) this.notePassed();
+      this.advance();
+    },
+    notePassed() {
+      this.skipped = [...this.skipped, this.current.subject_ref];
+      this.localIndex -= 1;
     },
     back() {
       if (this.localIndex === 0) return;
@@ -285,10 +324,12 @@ export default {
       this.cancelReject();
     },
     skip() {
+      if (this.productStep) this.notePassed();
       this.advance();
     },
     async accept() {
       if (this.acting || !this.decidable) return;
+      if (this.productStep) return this.$refs.product?.apply();
       const proposal = this.current;
       this.acting = true;
       try {
@@ -309,7 +350,7 @@ export default {
       }
     },
     startReject() {
-      if (this.decidable) this.rejecting = true;
+      if (this.decidable && (!this.productStep || this.$refs.product?.canReject)) this.rejecting = true;
     },
     cancelReject() {
       this.rejecting = false;
@@ -317,13 +358,15 @@ export default {
     },
     async reject() {
       if (this.acting || !this.decidable) return;
-      const proposal = this.current;
+      const product = this.productStep;
+      const proposal = product ? this.$refs.product.setProposal : this.current;
       const reason = this.reason.trim();
       this.acting = true;
       try {
         await POST_RejectProposal(proposal.id, reason ? { reason } : {});
-        this.remember({ ...proposal, status: "rejected" });
         this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.review.toast.rejected") });
+        if (product) return this.productDone({ decided: true });
+        this.remember({ ...proposal, status: "rejected" });
         this.advance();
       } catch (err) {
         this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });

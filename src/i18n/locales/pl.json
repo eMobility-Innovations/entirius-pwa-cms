@@ -2900,6 +2900,13 @@
       "reject_reason": "Powód (opcjonalnie)",
       "reject_reason_placeholder": "Dlaczego odrzucasz tę propozycję?",
       "focus": {
+        "keep_ai_set": "Zostaw zestaw AI",
+        "other_set": "Wybierz inny zestaw",
+        "other_set_placeholder": "Szukaj zestawu…",
+        "chosen_note": "Zapisze się tylko zestaw. AI odczyta dla niego atrybuty i produkt wróci do przeglądu.",
+        "last_try": "AI miało trzy próby. Jeśli ten zestaw jest zły, wybierz właściwy z listy.",
+        "reject_set": "Odrzuć zestaw, zapytaj AI ponownie",
+        "apply_set": "Zastosuj ten zestaw",
         "progress": "{index} z {total} do przejrzenia",
         "studio_title": "Artykuł: {topic} · {step}",
         "studio_untitled": "Artykuł ze Studia · {step}",
