@@ -8,6 +8,11 @@
           :model-value="row.value_bool || false"
           @update:model-value="(on) => $emit('update', 'value_bool', on)"
         />
+        <LengthInput
+          v-else-if="type === 13"
+          :model-value="row.value_decimal"
+          @update:model-value="(val) => $emit('update', 'value_decimal', val)"
+        />
         <div v-else-if="type in NUMBER_UNITS" class="flex ai-ct gap-3">
           <BasicInput
             :model-value="row.value_decimal"
@@ -110,9 +115,10 @@ import { computed } from "vue";
 import { withStoredOption } from "@/utils/options";
 import { t } from "@/i18n";
 import { jsonToString } from "../helpers/attributeValues";
+import LengthInput from "./LengthInput.vue";
 
 // Number types and their unit suffix (decimal has none).
-const NUMBER_UNITS = { 2: "", 12: "°C", 13: "cm", 14: "kg" };
+const NUMBER_UNITS = { 2: "", 12: "°C", 14: "kg" };
 const T9N_TYPES = [4, 6, 11];
 // Datetime attributes (feature_type 10) hold one date.
 const DATE_PICKER_CONFIG = { mode: "single", wrap: true, inline: true };

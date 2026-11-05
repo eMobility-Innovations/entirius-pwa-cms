@@ -109,3 +109,16 @@ describe("DiffRenderer dispatch", () => {
     expect(w.findComponent({ name: "JsonDiff" }).exists()).toBe(false);
   });
 });
+
+describe("DiffRenderer length", () => {
+  it("shows a proposed length with the unit the manufacturer stated", () => {
+    const wrapper = render({
+      targetKind: "attribute_value",
+      proposed: { value: "6.5", unit: "inch" },
+      current: { value: null },
+    });
+
+    expect(wrapper.text()).toContain("6.5 inch");
+  });
+});
+
