@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Visual baselines approved again on 3.5.0 (Font Awesome 7 glyphs, seed and BDD of platform 4.3): 226 screens, 8 of
+  them new. The leads inbox, conversation and new-company screens mask times, thread states and the waiting count,
+  which the send beat changes while a capture runs.
+
 ## [3.5.0] (2026-11-05)
 
 ### Added
