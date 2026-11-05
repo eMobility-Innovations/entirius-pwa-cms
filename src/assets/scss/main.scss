@@ -20,6 +20,9 @@
 }
 
 :root {
+  // Font Awesome 7 gives every svg a fixed 1.25em width (6: width from the glyph). Keep the 6 geometry.
+  --fa-width: auto;
+
   --elem-height: 32px;
   --header-height: 3.5rem;
 
