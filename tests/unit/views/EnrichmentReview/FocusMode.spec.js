@@ -7,6 +7,7 @@ const api = vi.hoisted(() => ({
   GET_Task: vi.fn(() => Promise.resolve({ data: { id: 4, params: { brief: { topic: "Securing a sofa" } } } })),
 }));
 vi.mock("@/api/enrichment/api", () => api);
+vi.mock("@/api/integrator/review", () => ({ getReviewProduct: vi.fn(), sendBack: vi.fn(), getMissing: vi.fn(), fillMissing: vi.fn() }));
 vi.mock("@/stores/notify", () => ({
   useNotifyStore: () => ({ spawnNotification: vi.fn() }),
 }));
@@ -126,7 +127,7 @@ describe("FocusMode — Studio steps are decided in the Studio", () => {
     key(w, "r");
     await flushPromises();
     expect(api.POST_AcceptProposal).not.toHaveBeenCalled();
-    expect(w.find("[data-testid='enrichment-focus-reject-form']").exists()).toBe(false);
+    expect(w.find("[data-testid='enrichment-focus-send-back-form']").exists()).toBe(false);
     key(w, "s");
     expect(w.vm.localIndex).toBe(1);
   });
@@ -166,28 +167,28 @@ describe("FocusMode — only pending proposals get decisions", () => {
   });
 });
 
-describe("FocusMode — reject asks for its reason in place", () => {
-  it("no reason box until Reject; Enter (submit) rejects with the reason and moves on", async () => {
+describe("FocusMode — send back asks for its reason in place", () => {
+  it("no reason box until send back; Enter submits the reason and moves on", async () => {
     const w = build();
-    expect(w.find("[data-testid='enrichment-focus-reject-form']").exists()).toBe(false);
+    expect(w.find("[data-testid='enrichment-focus-send-back-form']").exists()).toBe(false);
     panel(w).vm.$emit("reject", { proposal: w.vm.current, reason: "" });
     await flushPromises();
     expect(api.POST_RejectProposal).not.toHaveBeenCalled();
     w.vm.reason = " off-brand ";
-    await w.get("[data-testid='enrichment-focus-reject-form']").trigger("submit");
+    await w.get("[data-testid='enrichment-focus-send-back-form']").trigger("submit");
     await flushPromises();
     expect(api.POST_RejectProposal).toHaveBeenCalledWith(1, { reason: "off-brand" });
     expect(w.vm.localIndex).toBe(1);
-    expect(w.find("[data-testid='enrichment-focus-reject-form']").exists()).toBe(false);
+    expect(w.find("[data-testid='enrichment-focus-send-back-form']").exists()).toBe(false);
   });
 
-  it("R opens it, Esc closes it without rejecting", async () => {
+  it("R opens it, Esc closes it without sendingBack", async () => {
     const w = build();
     key(w, "r");
     await flushPromises();
-    const form = w.get("[data-testid='enrichment-focus-reject-form']");
+    const form = w.get("[data-testid='enrichment-focus-send-back-form']");
     await form.trigger("keydown", { key: "Escape" });
-    expect(w.find("[data-testid='enrichment-focus-reject-form']").exists()).toBe(false);
+    expect(w.find("[data-testid='enrichment-focus-send-back-form']").exists()).toBe(false);
     expect(api.POST_RejectProposal).not.toHaveBeenCalled();
     expect(w.vm.localIndex).toBe(0);
   });
@@ -197,7 +198,7 @@ describe("FocusMode — reject asks for its reason in place", () => {
     key(w, "a", { tagName: "TEXTAREA" });
     key(w, "a", { tagName: "INPUT" });
     expect(api.POST_AcceptProposal).not.toHaveBeenCalled();
-    w.vm.rejecting = true;
+    w.vm.sendingBack = true;
     key(w, "s");
     expect(w.vm.localIndex).toBe(0);
   });
@@ -230,9 +231,9 @@ describe("FocusMode product steps", () => {
   const FocusProduct = {
     name: "EnrichmentFocusProduct",
     props: ["sku", "locked"],
-    emits: ["done", "reject-set"],
-    data: () => ({ canReject: true, setProposal: { id: 11 } }),
-    methods: { apply: vi.fn() },
+    emits: ["done", "send-back"],
+    data: () => ({ canSendBack: true, setProposal: { id: 11 } }),
+    methods: { apply: vi.fn(), sendBack: vi.fn(function () { this.$emit("done", { decided: true }); }) },
     template: "<div class='product' />",
   };
   const product = (id, sku, kind = "attribute_value") => ({
@@ -272,22 +273,23 @@ describe("FocusMode product steps", () => {
     expect(w.emitted("need-more")).toEqual([[{ decided: false }]]);
   });
 
-  it("rejects the product's set with the reason and moves on", async () => {
+  it("sends the whole product back with the reason and moves on", async () => {
     const w = render({ rows: [product(11, "A", "feature_set"), product(13, "B")] });
-    w.findComponent(FocusProduct).vm.$emit("reject-set");
+    key(w, "r");
     await flushPromises();
     w.vm.reason = "not a tyre";
-    await w.vm.reject();
+    await w.vm.sendBack();
     await flushPromises();
-    expect(api.POST_RejectProposal).toHaveBeenCalledWith(11, { reason: "not a tyre" });
+    expect(FocusProduct.methods.sendBack).toHaveBeenCalledWith("not a tyre");
+    expect(api.POST_RejectProposal).not.toHaveBeenCalled();
     expect(sku(w)).toBe("B");
   });
 
-  it("does not open the reject form when the product cannot be rejected", async () => {
+  it("does not open the send-back form without product edits", async () => {
     const w = render({ rows: [product(11, "A", "feature_set")] });
-    w.findComponent(FocusProduct).vm.canReject = false;
-    w.vm.startReject();
-    expect(w.vm.rejecting).toBe(false);
+    w.findComponent(FocusProduct).vm.canSendBack = false;
+    w.vm.startSendBack();
+    expect(w.vm.sendingBack).toBe(false);
   });
 });
 

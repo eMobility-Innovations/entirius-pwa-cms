@@ -63,9 +63,9 @@
             ref="product"
             :key="current.subject_ref"
             :sku="current.subject_ref"
-            :locked="acting || rejecting"
+            :locked="acting || sendingBack"
             @done="productDone"
-            @reject-set="startReject"
+            @send-back="startSendBack"
           />
 
           <ProposalPanel
@@ -73,39 +73,39 @@
             :key="current.id"
             :proposal="current"
             :task="tasks[current.task_id] || null"
-            :busy="acting || rejecting"
+            :busy="acting || sendingBack"
             wide
             data-testid="enrichment-focus-card"
             @accept="accept"
-            @reject="startReject"
+            @reject="startSendBack"
             @updated="remember"
           />
 
-          <!-- Reject asks for its reason in place: Enter rejects, Esc keeps the proposal. -->
+          <!-- Send back asks for an optional reason in place; Escape keeps the card open. -->
           <form
-            v-if="rejecting"
-            class="focus-mode__reject flex-column gap-4 rounded"
-            data-testid="enrichment-focus-reject-form"
-            @submit.prevent="reject"
-            @keydown.esc.prevent="cancelReject"
+            v-if="sendingBack"
+            class="focus-mode__send-back flex-column gap-4 rounded"
+            data-testid="enrichment-focus-send-back-form"
+            @submit.prevent="sendBack"
+            @keydown.esc.prevent="cancelSendBack"
           >
-            <FormField :label="$t('enrichment.review.reject_reason')">
+            <FormField :label="$t('enrichment.review.focus.send_back_reason')">
               <BasicInput
                 v-model="reason"
                 :maxlength="512"
-                :placeholder="$t('enrichment.review.reject_reason_placeholder')"
+                :placeholder="$t('enrichment.review.focus.send_back_reason_placeholder')"
                 focus-on-create
                 data-testid="enrichment-focus-reason"
               />
             </FormField>
             <div class="flex ai-ct jc-sb flex-wrap gap-4">
-              <span class="focus-mode__keys fs-200 t-muted">{{ $t("enrichment.review.focus.reject_keys") }}</span>
+              <span class="focus-mode__keys fs-200 t-muted">{{ $t("enrichment.review.focus.send_back_keys") }}</span>
               <div class="flex ai-ct gap-3 ml-auto">
-                <BasicButton :disabled="acting" data-testid="enrichment-focus-reject-cancel" @click="cancelReject">
+                <BasicButton :disabled="acting" data-testid="enrichment-focus-send-back-cancel" @click="cancelSendBack">
                   {{ $t("common.cancel") }}
                 </BasicButton>
-                <BasicButton type="submit" variant="danger" mutates :loading="acting" data-testid="enrichment-focus-reject">
-                  {{ $t("common.reject") }}
+                <BasicButton type="submit" variant="danger" mutates :loading="acting" data-testid="enrichment-focus-send-back">
+                  {{ $t("enrichment.review.focus.send_back") }}
                 </BasicButton>
               </div>
             </div>
@@ -157,9 +157,8 @@ const ACTIONABLE = ["pending", "drifted"];
 const REVIEW_FILTERS = ["pending", "drifted", "__all"];
 
 // One proposal at a time: what it is about (a product by name and SKU, a Studio article by its topic and step), its
-// card (ProposalPanel: the change by its shape, Apply / Edit / Reject) or, for a Studio step, the step as the Studio
-// shows it with the way there. Apply and Reject only on a pending proposal (a drifted one re-confirms); a Studio
-// step is decided in the Studio. Reject asks for its reason in place. Keys: A apply · R reject · S / → skip · ← back.
+// card (ProposalPanel) or, for a Studio step, the step as the Studio shows it with the way there.
+// A Studio step is decided in the Studio. Keys: A apply · R send back · S / → skip · ← back.
 // A PIM product is one step, all of it (FocusProduct): its proposals are decided together, the set first.
 export default {
   name: "EnrichmentFocusMode",
@@ -181,7 +180,7 @@ export default {
     return {
       localIndex: 0,
       acting: false,
-      rejecting: false,
+      sendingBack: false,
       reason: "",
       // What this session learnt about a proposal (decided, re-confirm, edited) by id — the parent's rows stay as read.
       known: {},
@@ -249,7 +248,7 @@ export default {
     rows() {
       this.localIndex = 0;
       this.decided = false;
-      this.cancelReject();
+      this.cancelSendBack();
     },
     // A page of nothing but products already passed: on to the next one.
     loading(now) {
@@ -268,17 +267,17 @@ export default {
   methods: {
     safeHref,
     onKey(e) {
-      // Never hijack keys while the operator types (the reject reason, an edit).
+      // Never hijack keys while the operator types a reason or an edit.
       const tag = (e.target?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select" || e.target?.isContentEditable) return;
-      if (e.ctrlKey || e.metaKey || e.altKey || this.acting || this.rejecting || !this.current) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || this.acting || this.sendingBack || !this.current) return;
       const action = this.keyAction(e.key);
       if (!action) return;
       e.preventDefault();
       action();
     },
     keyAction(key) {
-      const decide = { a: this.accept, r: this.startReject };
+      const decide = { a: this.accept, r: this.startSendBack };
       const move = { s: this.skip, ArrowRight: this.skip, ArrowLeft: this.back };
       const lower = key.length === 1 ? key.toLowerCase() : key;
       return move[lower] || (this.decidable ? decide[lower] : null);
@@ -297,7 +296,7 @@ export default {
       this.known = { ...this.known, [proposal.id]: proposal };
     },
     advance() {
-      this.cancelReject();
+      this.cancelSendBack();
       if (this.localIndex < this.steps.length - 1) {
         this.localIndex += 1;
       } else if (this.hasMorePages) {
@@ -321,7 +320,7 @@ export default {
     back() {
       if (this.localIndex === 0) return;
       this.localIndex -= 1;
-      this.cancelReject();
+      this.cancelSendBack();
     },
     skip() {
       if (this.productStep) this.notePassed();
@@ -349,23 +348,26 @@ export default {
         this.acting = false;
       }
     },
-    startReject() {
-      if (this.decidable && (!this.productStep || this.$refs.product?.canReject)) this.rejecting = true;
+    startSendBack() {
+      if (this.decidable && (!this.productStep || this.$refs.product?.canSendBack)) this.sendingBack = true;
     },
-    cancelReject() {
-      this.rejecting = false;
+    cancelSendBack() {
+      this.sendingBack = false;
       this.reason = "";
     },
-    async reject() {
+    async sendBack() {
       if (this.acting || !this.decidable) return;
       const product = this.productStep;
-      const proposal = product ? this.$refs.product.setProposal : this.current;
+      const proposal = this.current;
       const reason = this.reason.trim();
       this.acting = true;
       try {
+        if (product) {
+          await this.$refs.product.sendBack(reason);
+          return;
+        }
         await POST_RejectProposal(proposal.id, reason ? { reason } : {});
-        this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.review.toast.rejected") });
-        if (product) return this.productDone({ decided: true });
+        this.notify.spawnNotification({ type: "positive", msg: this.$t("enrichment.review.focus.send_back_done") });
         this.remember({ ...proposal, status: "rejected" });
         this.advance();
       } catch (err) {
@@ -423,7 +425,7 @@ export default {
   font-size: var(--fs-200);
 }
 .focus-mode__studio,
-.focus-mode__reject {
+.focus-mode__send-back {
   padding: var(--space-5);
   background: var(--surface-raised);
 }

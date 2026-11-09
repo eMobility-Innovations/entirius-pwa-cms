@@ -1,7 +1,11 @@
 <template>
   <div class="flex-column gap-4" data-testid="enrichment-focus-product">
     <Loader v-if="loading" block />
-    <template v-else>
+    <template v-else-if="review">
+      <p v-if="review.rounds_used" class="m-0 fs-200 t-secondary" data-testid="enrichment-focus-rounds">
+        {{ $t("enrichment.review.focus.sent_back", { n: review.rounds_used }) }}
+        · {{ $t(review.waiting_ai ? "enrichment.review.focus.waiting_ai" : "enrichment.review.focus.ai_answered") }}
+      </p>
       <section v-if="setProposal" class="focus-product__set flex-column gap-3" data-testid="enrichment-focus-set">
         <div class="flex ai-ct jc-sb flex-wrap gap-3">
           <div class="flex-column gap-1">
@@ -14,10 +18,11 @@
         </div>
         <div class="focus-product__choice">
           <BasicSelect
-            v-model="chosen"
+            :model-value="chosen"
+            @update:model-value="chooseSet"
             :options="setOptions"
             :placeholder="$t('enrichment.review.focus.other_set_placeholder')"
-            :disabled="busy || locked"
+            :disabled="busy || locked || savingAttribute"
             searchable
             data-testid="enrichment-focus-set-picker"
           />
@@ -26,28 +31,13 @@
             variant="ghost"
             size="sm"
             data-testid="enrichment-focus-keep-ai-set"
-            @click="chosen = null"
+            mutates
+            :disabled="busy || locked || savingAttribute"
+            @click="chooseSet(null)"
           >
             {{ $t("enrichment.review.focus.keep_ai_set") }}
           </BasicButton>
-          <BasicButton
-            v-else-if="canReject"
-            variant="danger"
-            size="sm"
-            mutates
-            :disabled="busy || locked"
-            data-testid="enrichment-focus-reject-set"
-            @click="$emit('reject-set')"
-          >
-            {{ $t("enrichment.review.focus.reject_set") }}
-          </BasicButton>
         </div>
-        <p v-if="chosen" class="m-0 fs-200 t-secondary" data-testid="enrichment-focus-chosen-note">
-          {{ $t("enrichment.review.focus.chosen_note") }}
-        </p>
-        <p v-else-if="lastTry" class="m-0 fs-200 t-warning" data-testid="enrichment-focus-last-try">
-          {{ $t("enrichment.review.focus.last_try") }}
-        </p>
       </section>
       <BasicButton
         v-else
@@ -75,21 +65,30 @@
           v-for="proposal in attributes"
           :key="proposal.id"
           :proposal="proposal"
-          :busy="busy || locked || !!chosen"
-          @reject="rejectAttribute"
+          :busy="busy || locked || savingAttribute || !!chosen"
+          :review-item="reviewItem(proposal.id)"
           @updated="replace"
+          @saving="(value) => (attributeSaving[proposal.id] = value)"
         />
       </section>
 
+      <section v-if="missing.length" class="flex-column gap-3" data-testid="enrichment-focus-missing">
+        <span class="field-label">{{ $t("enrichment.review.focus.missing_attributes") }}</span>
+        <form v-for="row in missing" :key="row.feature_idx" class="flex ai-ct gap-3" @submit.prevent="fill(row)">
+          <FormField :label="row.unit ? `${row.name} (${row.unit})` : row.name">
+            <BasicInput v-model="missingValues[row.feature_idx]" :disabled="busy || locked || savingAttribute" :data-testid="`enrichment-focus-missing-${row.feature_idx}`" />
+          </FormField>
+          <BasicButton type="submit" size="sm" mutates :disabled="busy || locked || savingAttribute" :data-testid="`enrichment-focus-fill-${row.feature_idx}`">
+            {{ $t("common.save") }}
+          </BasicButton>
+        </form>
+      </section>
       <div class="flex jc-end">
-        <BasicButton
-          mutates
-          :loading="busy"
-          :disabled="locked || !proposals.length"
-          data-testid="enrichment-focus-apply"
-          @click="apply"
-        >
-          {{ $t(chosen ? "enrichment.review.focus.apply_set" : "enrichment.review.apply_product") }}
+        <BasicButton v-if="canSendBack" mutates :loading="busy" :disabled="locked || savingAttribute" data-testid="enrichment-focus-send-back" @click="$emit('send-back')">
+          {{ $t("enrichment.review.focus.send_back") }}
+        </BasicButton>
+        <BasicButton v-else mutates :loading="busy" :disabled="locked || savingAttribute || !proposals.length || review.waiting_ai" data-testid="enrichment-focus-apply" @click="apply">
+          {{ $t("enrichment.review.apply_product") }}
         </BasicButton>
       </div>
     </template>
@@ -99,8 +98,8 @@
 <script>
 import { extractApiMessage } from "@/composables/useFormErrors";
 import { useNotifyStore } from "@/stores/notify";
-import { GET_Proposals, PATCH_Proposal, POST_RejectProposal } from "@/api/enrichment/api";
-import { acceptChosen } from "./applyMode";
+import { GET_Proposals, GET_ProposalRevisions, PATCH_Proposal } from "@/api/enrichment/api";
+import { getReviewProduct, sendBack, getMissing, fillMissing } from "@/api/integrator/review";
 import { acceptProduct } from "./acceptProduct";
 import { loadFeatureSetNames } from "./FeatureSetChange.vue";
 import FocusAttribute from "./FocusAttribute.vue";
@@ -108,13 +107,6 @@ import { loadSource } from "./productSource";
 import { acceptOrder } from "./reviewLogic";
 
 const MAX_PROPOSALS = 100; // the API's page limit; a product has far fewer pending proposals
-const MAX_REJECTIONS = 3; // CLASSIFY_MAX_REJECTIONS in esc-service-volkanos: the AI stops after the third
-
-// One product of Focus, all of it: the set on top, its attributes under it, read fresh because a product can sit on
-// two pages.
-// Apply product takes the set first, then the attributes. Choosing another set applies that set alone: the
-// attributes belong to the AI's set, so they come back from the AI for the chosen one. A rejected attribute leaves
-// the card. The last AI try cannot be rejected, because nothing would bring the product back: a person picks.
 export default {
   name: "EnrichmentFocusProduct",
   components: { FocusAttribute },
@@ -122,12 +114,12 @@ export default {
     sku: { type: String, required: true },
     locked: { type: Boolean, default: false },
   },
-  emits: ["done", "reject-set"],
+  emits: ["done", "send-back"],
   setup() {
     return { notify: useNotifyStore() };
   },
   data() {
-    return { proposals: [], loading: true, busy: false, chosen: null, rejected: 0, names: {}, source: null };
+    return { proposals: [], loading: true, busy: false, chosen: null, names: {}, source: null, review: null, missing: [], missingValues: {}, originalValues: {}, filled: false, attributeSaving: {} };
   },
   computed: {
     setProposal() {
@@ -144,14 +136,17 @@ export default {
       const key = "enrichment.review.focus.attributes";
       return this.setProposal ? this.$t(`${key}_of`, { set: this.setName }) : this.$t(key);
     },
-    lastTry() {
-      return !!this.setProposal && this.rejected >= MAX_REJECTIONS - 1;
+    savingAttribute() {
+      return Object.values(this.attributeSaving).some(Boolean);
     },
-    canReject() {
-      return !!this.setProposal && !this.lastTry;
+    hasLocalEdits() {
+      return this.filled || this.proposals.some((row) => JSON.stringify(row.proposed_value) !== JSON.stringify(this.originalValues[row.id]));
+    },
+    canSendBack() {
+      return !!this.review && !this.review.waiting_ai && this.review.rounds_left > 0 && (this.review.has_unsent_edits || this.hasLocalEdits);
     },
     setOptions() {
-      const proposed = this.setProposal?.proposed_value?.featureset_idx;
+      const proposed = this.originalValues[this.setProposal?.id]?.featureset_idx;
       return Object.entries(this.names)
         .filter(([idx]) => idx !== "default" && idx !== proposed)
         .map(([value, label]) => ({ value, label }))
@@ -164,15 +159,22 @@ export default {
   methods: {
     async load() {
       this.loading = true;
+      this.review = null;
       const by = { subject_ref: this.sku };
       try {
-        const [pending, rejected, names] = await Promise.all([
+        const [pending, review, missing, names] = await Promise.all([
           GET_Proposals({ ...by, status: "pending", page_size: MAX_PROPOSALS }),
-          GET_Proposals({ ...by, status: "rejected", target_kind: "feature_set", page_size: 1 }),
+          getReviewProduct(this.sku),
+          getMissing(this.sku),
           loadFeatureSetNames(),
         ]);
         this.proposals = acceptOrder(pending.data.results || []);
-        this.rejected = rejected.data.count || 0;
+        this.review = review.data;
+        this.missing = missing.data;
+        this.originalValues = Object.fromEntries(this.proposals.map((row) => [row.id, JSON.parse(JSON.stringify(row.proposed_value))]));
+        this.chosen = null;
+        this.filled = false;
+        this.attributeSaving = {};
         this.names = names;
         if (!this.proposals.length) this.$emit("done", { decided: false });
       } catch (err) {
@@ -194,16 +196,75 @@ export default {
     say(type, msg) {
       this.notify.spawnNotification({ type, msg });
     },
-    async applyChosenSet() {
-      const value = { proposed_value: { featureset_idx: this.chosen } };
-      const { data } = await PATCH_Proposal(this.setProposal.id, value);
-      return (await acceptChosen(data)).data.status === "drifted";
+    reviewItem(id) {
+      return [...this.review.rounds].sort((a, b) => b.n - a.n).flatMap((round) => round.items).find((item) => item.proposal_id === id) || null;
     },
-    async apply() {
-      if (this.busy || this.locked || !this.proposals.length) return;
+    async chooseSet(value) {
+      if (this.busy || this.locked || this.savingAttribute) return;
+      const idx = value || this.originalValues[this.setProposal.id].featureset_idx;
       this.busy = true;
       try {
-        const drifted = this.chosen ? await this.applyChosenSet() : (await acceptProduct(this.sku)).drifted;
+        const { data } = await PATCH_Proposal(this.setProposal.id, { proposed_value: { ...this.setProposal.proposed_value, featureset_idx: idx } });
+        this.replace(data);
+        this.chosen = value;
+        this.missing = (await getMissing(this.sku)).data;
+      } catch (err) {
+        this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
+      } finally {
+        this.busy = false;
+      }
+    },
+    async fill(row) {
+      if (this.busy || this.locked || this.savingAttribute) return;
+      this.busy = true;
+      try {
+        const { data } = await fillMissing({ sku: this.sku, feature_idx: row.feature_idx, value: this.missingValues[row.feature_idx] ?? "" });
+        this.proposals.push(data);
+        this.missing = this.missing.filter((item) => item.feature_idx !== row.feature_idx);
+        this.filled = true;
+      } catch (err) {
+        this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
+      } finally {
+        this.busy = false;
+      }
+    },
+    async sendBack(reason = "") {
+      if (this.busy || this.savingAttribute || !this.canSendBack) return false;
+      this.busy = true;
+      try {
+        await sendBack({ sku: this.sku, ...(reason ? { reason } : {}) });
+        this.say("positive", this.$t("enrichment.review.focus.send_back_done"));
+        this.$emit("done", { decided: true });
+        return true;
+      } catch (err) {
+        this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
+        return false;
+      } finally {
+        this.busy = false;
+      }
+    },
+    async hasSavedPersonEdit(id) {
+      if (!this.review.has_unsent_edits) return false;
+      const { data } = await GET_ProposalRevisions(id);
+      return data.at(-1)?.author_kind !== "ai";
+    },
+    async retainPersonValues() {
+      if (this.review.rounds_left !== 0) return;
+      for (const proposal of this.proposals) {
+        const item = this.reviewItem(proposal.id);
+        const unchanged = JSON.stringify(proposal.proposed_value) === JSON.stringify(this.originalValues[proposal.id]);
+        if (!item || !unchanged || JSON.stringify(proposal.proposed_value) !== JSON.stringify(item.value)) continue;
+        if (await this.hasSavedPersonEdit(proposal.id)) continue;
+        const { data } = await PATCH_Proposal(proposal.id, { proposed_value: item.ecom_value });
+        this.replace(data);
+      }
+    },
+    async apply() {
+      if (this.busy || this.locked || this.savingAttribute || !this.review || this.review.waiting_ai || this.canSendBack || !this.proposals.length) return;
+      this.busy = true;
+      try {
+        await this.retainPersonValues();
+        const drifted = (await acceptProduct(this.sku)).drifted;
         if (drifted) {
           this.say("warning", this.$t("enrichment.drift.title"));
           await this.load();
@@ -212,21 +273,14 @@ export default {
         this.say("positive", this.$t("enrichment.review.toast.accepted"));
         this.$emit("done", { decided: true });
       } catch (err) {
-        this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
-      } finally {
-        this.busy = false;
-      }
-    },
-    async rejectAttribute({ proposal }) {
-      if (this.busy) return;
-      this.busy = true;
-      try {
-        await POST_RejectProposal(proposal.id, {});
-        this.proposals = this.proposals.filter((row) => row.id !== proposal.id);
-        this.say("positive", this.$t("enrichment.review.toast.rejected"));
-        if (!this.proposals.length) this.$emit("done", { decided: true });
-      } catch (err) {
-        this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
+        const message = extractApiMessage(err, this.$t("notifications.error"));
+        const status = err?.httpStatus ?? err?.response?.status;
+        if (status === 409 || (status === 400 && message.toLowerCase().includes("proposal changed meanwhile"))) {
+          this.say("warning", this.$t("enrichment.review.focus.decided_elsewhere"));
+          await this.load();
+        } else {
+          this.say("negative", message);
+        }
       } finally {
         this.busy = false;
       }
