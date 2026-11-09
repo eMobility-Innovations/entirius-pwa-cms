@@ -30,6 +30,7 @@ vi.mock("@/api/pim/api", () => ({
 }));
 
 import FocusProduct from "@/views/EnrichmentReview/FocusProduct.vue";
+import FocusMissingRow from "@/views/EnrichmentReview/FocusMissingRow.vue";
 
 enableAutoUnmount(afterEach);
 
@@ -168,12 +169,10 @@ describe("FocusProduct", () => {
 
   it("renders missing inputs and saving one counts as a correction", async () => {
     serve([set]);
-    review.getMissing.mockResolvedValue({ data: [{ feature_idx: "width", name: "Width", unit: "mm", kind: "text" }] });
+    review.getMissing.mockResolvedValue({ data: [{ feature_idx: "width", name: "Width", unit: "mm", kind: "text", options: [] }] });
     review.fillMissing.mockResolvedValue({ data: attribute });
     const wrapper = await render();
-    expect(find(wrapper, "enrichment-focus-missing-width").exists()).toBe(true);
-    wrapper.vm.missingValues.width = "40";
-    await wrapper.find("form").trigger("submit");
+    wrapper.findComponent(FocusMissingRow).vm.$emit("fill", "40");
     await flushPromises();
     expect(review.fillMissing).toHaveBeenCalledWith({ sku: "SKU-1", feature_idx: "width", value: "40" });
     expect(find(wrapper, "enrichment-focus-send-back").exists()).toBe(true);
