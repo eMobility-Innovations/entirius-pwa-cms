@@ -273,6 +273,11 @@ describe("focusSteps", () => {
     expect(focusSteps([product(1, "A"), product(2, "B")], ["A"]).map((row) => row.id)).toEqual([2]);
   });
 
+  it("lets the server queue own products without changing other steps", () => {
+    const studio = { ...product(2, "run:A"), target_module: "studio" };
+    expect(focusSteps([product(1, "A"), studio], [], { products: false })).toEqual([studio]);
+  });
+
   it("keeps anything but a pending PIM set or attribute on its own", () => {
     const rows = [
       { ...product(1, "A"), status: "applied" },

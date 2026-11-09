@@ -2,11 +2,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { flushPromises, mount, enableAutoUnmount } from "@vue/test-utils";
 
 const api = vi.hoisted(() => ({
-  PATCH_Proposal: vi.fn((id, body) => Promise.resolve({ data: { id, ...body } })),
+  GET_ProposalRevisions: vi.fn(() => Promise.resolve({ data: [] })),
+  PATCH_Proposal: vi.fn((id, body) =>
+    Promise.resolve({ data: { id, ...body } }),
+  ),
 }));
 vi.mock("@/api/enrichment/api", () => api);
-vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
-vi.mock("@/api/pim/api", () => ({ GET_Features: () => Promise.resolve({ data: { results: [], next: null } }) }));
+vi.mock("@/api/integrator/review", () => ({
+  getReviewProduct: vi.fn(),
+  sendBack: vi.fn(),
+  getMissing: vi.fn(),
+  fillMissing: vi.fn(),
+}));
+vi.mock("@/stores/notify", () => ({
+  useNotifyStore: () => ({ spawnNotification: vi.fn() }),
+}));
+vi.mock("@/api/pim/api", () => ({
+  GET_Features: () => Promise.resolve({ data: { results: [], next: null } }),
+}));
 
 import FocusAttribute from "@/views/EnrichmentReview/FocusAttribute.vue";
 
@@ -20,13 +33,28 @@ const proposal = (over = {}) => ({
   current_snapshot: { value: null },
   ...over,
 });
-const Button = { props: ["type"], emits: ["click"], template: "<button :type='type || \"button\"' @click=\"$emit('click')\"><slot /></button>" };
-const Input = { props: ["modelValue"], emits: ["update:modelValue"], template: "<input />" };
+const Button = {
+  props: ["type"],
+  emits: ["click"],
+  template:
+    "<button :type='type || \"button\"' @click=\"$emit('click')\"><slot /></button>",
+};
+const Input = {
+  props: ["modelValue"],
+  emits: ["update:modelValue"],
+  template: "<input />",
+};
 
-const render = (value) =>
+const render = (value, props = {}) =>
   mount(FocusAttribute, {
-    props: { proposal: value },
-    global: { stubs: { BasicButton: Button, BasicInput: Input, TagChanges: { name: "TagChanges", template: "<i />" } } },
+    props: { proposal: value, ...props },
+    global: {
+      stubs: {
+        BasicButton: Button,
+        BasicInput: Input,
+        TagChanges: { name: "TagChanges", template: "<i />" },
+      },
+    },
   });
 const find = (w, id) => w.find(`[data-testid='${id}']`);
 
@@ -57,13 +85,112 @@ describe("FocusAttribute", () => {
     w.vm.draft = "41";
     await w.find("form").trigger("submit");
     await flushPromises();
-    expect(api.PATCH_Proposal).toHaveBeenCalledWith(5, { proposed_value: { value: "41" } });
+    expect(api.PATCH_Proposal).toHaveBeenCalledWith(5, {
+      proposed_value: { value: "41" },
+    });
     expect(w.emitted("updated")).toHaveLength(1);
   });
 
-  it("asks the card to reject it", async () => {
+  it("has no Reject action", () => {
     const w = render(proposal());
-    await find(w, "focus-attribute-reject").trigger("click");
-    expect(w.emitted("reject")[0][0].proposal.id).toBe(5);
+    expect(find(w, "focus-attribute-reject").exists()).toBe(false);
+    expect(w.text()).not.toMatch(/reject/i);
+  });
+
+  it("labels different round values separately and shows the AI verdict and rationale", async () => {
+    const w = render(proposal(), {
+      reviewItem: {
+        ai_value: { value: "40" },
+        ecom_value: { value: "41" },
+        verdict: "ecom",
+        rationale: "The label confirms 41 Ah.",
+      },
+    });
+    await flushPromises();
+    expect(find(w, "focus-attribute-ai").text()).toContain("ai_label");
+    expect(find(w, "focus-attribute-ai").text()).toContain("40 Ah");
+    expect(find(w, "focus-attribute-ecom").text()).toContain("ecom_label");
+    expect(find(w, "focus-attribute-ecom").text()).toContain("41 Ah");
+    expect(find(w, "focus-attribute-verdict").text()).toContain("verdict_ecom");
+    expect(find(w, "focus-attribute-verdict").text()).toContain(
+      "The label confirms 41 Ah.",
+    );
+  });
+
+  it("does not split identical AI and Ecom values", async () => {
+    const w = render(proposal(), {
+      reviewItem: { ai_value: { value: "40" }, ecom_value: { value: "40" } },
+    });
+    await flushPromises();
+    expect(find(w, "focus-attribute-ai").exists()).toBe(false);
+    expect(find(w, "focus-attribute-ecom").exists()).toBe(false);
+    expect(find(w, "focus-attribute-value").text()).toBe("40 Ah");
+  });
+
+  it("uses revisions for unsent edits instead of an older round", async () => {
+    api.GET_ProposalRevisions.mockResolvedValueOnce({
+      data: [
+        { author_kind: "ai", value: { value: "42" } },
+        { author_kind: "user", value: { value: "43" } },
+      ],
+    });
+    const w = render(proposal({ proposed_value: { value: "43" } }), {
+      reviewItem: {
+        ai_value: { value: "40" },
+        ecom_value: { value: "41" },
+      },
+    });
+    await flushPromises();
+    expect(api.GET_ProposalRevisions).toHaveBeenCalledWith(5);
+    expect(find(w, "focus-attribute-ai").text()).toContain("42 Ah");
+    expect(find(w, "focus-attribute-ecom").text()).toContain("43 Ah");
+  });
+
+  it("shows both values immediately after saving an edit", async () => {
+    api.GET_ProposalRevisions.mockResolvedValueOnce({
+      data: [{ author_kind: "ai", value: { value: "40" } }],
+    });
+    const w = render(proposal());
+    await flushPromises();
+    await find(w, "focus-attribute-edit").trigger("click");
+    w.vm.draft = "41";
+    await w.find("form").trigger("submit");
+    await flushPromises();
+    expect(find(w, "focus-attribute-ai").text()).toContain("40 Ah");
+    expect(find(w, "focus-attribute-ecom").text()).toContain("41 Ah");
+  });
+
+  it("does not save an open edit form after the card becomes busy", async () => {
+    const w = render(proposal());
+    await find(w, "focus-attribute-edit").trigger("click");
+    await w.setProps({ busy: true });
+    expect(
+      find(w, "focus-attribute-input").attributes("disabled"),
+    ).toBeDefined();
+    expect(
+      find(w, "focus-attribute-save").attributes("disabled"),
+    ).toBeDefined();
+    await w.find("form").trigger("submit");
+    expect(api.PATCH_Proposal).not.toHaveBeenCalled();
+    expect(w.emitted("saving")).toBeUndefined();
+  });
+
+  it("prevents duplicate saves and tells the product when saving starts and ends", async () => {
+    let resolve;
+    api.PATCH_Proposal.mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+    const w = render(proposal());
+    await find(w, "focus-attribute-edit").trigger("click");
+    w.vm.draft = "41";
+    await w.find("form").trigger("submit");
+    expect(w.emitted("saving")).toEqual([[true]]);
+    await w.find("form").trigger("submit");
+    expect(api.PATCH_Proposal).toHaveBeenCalledTimes(1);
+    resolve({ data: { id: 5, proposed_value: { value: "41" } } });
+    await flushPromises();
+    expect(w.emitted("saving")).toEqual([[true], [false]]);
   });
 });

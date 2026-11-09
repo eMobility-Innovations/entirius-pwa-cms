@@ -30,10 +30,12 @@
               v-for="opt in statusOptions"
               :key="opt.value"
               :label="opt.label"
-              :active="filters.status === opt.value"
+              :active="!showSkipped && filters.status === opt.value"
               :data-testid="`enrichment-status-${opt.value}`"
               @click="onFilterChange('status', opt.value)"
             />
+            <FilterChip :label="$t('enrichment.review.skipped_chip')" :active="showSkipped"
+              data-testid="enrichment-status-skipped" @click="openSkipped" />
           </div>
           <span
             class="enrichment-review__count fs-200 t-muted ml-auto"
@@ -115,8 +117,9 @@
     </template>
 
     <div v-bind="tabPanel">
+      <SkippedList v-if="showSkipped" @open="openSkippedFocus" />
       <ListMode
-        v-if="mode === 'list'"
+        v-else-if="mode === 'list'"
         :rows="rows"
         :runs="runLabels"
         :loading="loading"
@@ -164,20 +167,23 @@
         @preview-product="openProductPreview"
       />
       <FocusMode
-        v-else
+        v-else-if="!focusScopeLoading"
         :rows="rows"
         :loading="loading"
         :page="page"
         :page-size="pageSize"
         :total-count="totalCount"
         :status-filter="filters.status"
+        :start-sku="focusStartSku"
+        :sku-rows="focusSkuRows"
+        @need-sku="loadFocusSku"
         @need-more="loadNextPage"
         @exit="exitFocus"
       />
     </div>
 
     <!-- Mounted while the list loads (no footer jump); a page change waits for the running fetch or action. -->
-    <template v-if="mode !== 'focus' && totalCount > pageSize" #footer>
+    <template v-if="!showSkipped && mode !== 'focus' && totalCount > pageSize" #footer>
       <Pagination
         :page="page"
         :pages="Math.ceil(totalCount / pageSize)"
@@ -251,6 +257,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import RouteTabs from "@/components/Navigation/RouteTabs.vue";
 import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import ListMode from "./ListMode.vue";
+import SkippedList from "./SkippedList.vue";
 import ProductMode from "./ProductMode.vue";
 import { acceptProduct } from "./acceptProduct";
 import DriftModal from "./DriftModal.vue";
@@ -291,7 +298,7 @@ const BULK_HOLD_SECONDS = 5;
 
 export default {
   name: "EnrichmentReview",
-  components: { ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection, RunCorrections, RouteTabs },
+  components: { SkippedList, ListMode, ProductMode, FocusMode, DriftModal, ImportCsvDialog, ProductPreviewDrawer, ProposalPanel, BatchCorrection, RunCorrections, RouteTabs },
   setup() {
     const { labels: runLabels, load: loadRuns } = useRunLabels();
     return {
@@ -311,6 +318,11 @@ export default {
         search: "",
         task: this.$route.query.task || "",
       },
+      showSkipped: false,
+      focusStartSku: "",
+      focusSkuRows: [],
+      focusSkuSeq: 0,
+      focusScopeLoading: false,
       rows: [],
       page: 1,
       pageSize: 25,
@@ -417,6 +429,12 @@ export default {
       this.onFilterChange("task", task || "");
     },
     mode(val, old) {
+      this.showSkipped = false;
+      if (val !== "focus") {
+        this.focusStartSku = "";
+        this.focusSkuRows = [];
+        this.focusSkuSeq += 1;
+      }
       this.$router.replace({
         path: this.$route.path,
         query: { ...this.$route.query, mode: val },
@@ -437,8 +455,35 @@ export default {
   },
   beforeUnmount() {
     this.fetchSeq += 1;
+    this.focusSkuSeq += 1;
   },
   methods: {
+    openSkipped() {
+      this.showSkipped = true;
+      this.focusScopeLoading = false;
+      this.fetchSeq += 1;
+      this.loading = false;
+    },
+    openSkippedFocus(sku) {
+      this.focusStartSku = sku;
+      this.focusSkuRows = [];
+      this.showSkipped = false;
+      this.mode = "focus";
+    },
+    async loadFocusSku(sku) {
+      const mine = ++this.focusSkuSeq;
+      this.focusSkuRows = [];
+      try {
+        const params = { subject_ref: sku, status: "all", page_size: this.pageSize };
+        const { data } = await GET_Proposals(params);
+        if (mine !== this.focusSkuSeq) return;
+        this.focusSkuRows = data.results || [];
+        noteProductNames(this.focusSkuRows);
+      } catch (err) {
+        if (mine !== this.focusSkuSeq) return;
+        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
+      }
+    },
     onImported() {
       // New tasks aren't proposals, so the review list won't change — but refresh so any freshly
       // resolved proposals show up, and keep the view live after the operator imports.
@@ -517,10 +562,16 @@ export default {
         this.rows = [];
         this.totalCount = 0;
       } finally {
-        if (mine === this.fetchSeq) this.loading = false;
+        if (mine === this.fetchSeq) {
+          this.loading = false;
+          this.focusScopeLoading = false;
+        }
       }
     },
     onFilterChange(field, value) {
+      this.showSkipped = false;
+      this.focusStartSku = "";
+      this.focusScopeLoading = this.mode === "focus";
       this.filters[field] = value;
       this.page = 1;
       if (field === "status") {
