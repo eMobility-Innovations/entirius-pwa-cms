@@ -72,16 +72,15 @@
         />
       </section>
 
-      <section v-if="missing.length" class="flex-column gap-3" data-testid="enrichment-focus-missing">
+      <section v-if="missing.length" class="flex-column" data-testid="enrichment-focus-missing">
         <span class="field-label">{{ $t("enrichment.review.focus.missing_attributes") }}</span>
-        <form v-for="row in missing" :key="row.feature_idx" class="flex ai-ct gap-3" @submit.prevent="fill(row)">
-          <FormField :label="row.unit ? `${row.name} (${row.unit})` : row.name">
-            <BasicInput v-model="missingValues[row.feature_idx]" :disabled="busy || locked || savingAttribute" :data-testid="`enrichment-focus-missing-${row.feature_idx}`" />
-          </FormField>
-          <BasicButton type="submit" size="sm" mutates :disabled="busy || locked || savingAttribute" :data-testid="`enrichment-focus-fill-${row.feature_idx}`">
-            {{ $t("common.save") }}
-          </BasicButton>
-        </form>
+        <FocusMissingRow
+          v-for="row in missing"
+          :key="row.feature_idx"
+          :row="row"
+          :disabled="busy || locked || savingAttribute"
+          @fill="(value) => fill(row, value)"
+        />
       </section>
       <div class="flex jc-end">
         <BasicButton v-if="canSendBack" mutates :loading="busy" :disabled="locked || savingAttribute" data-testid="enrichment-focus-send-back" @click="$emit('send-back')">
@@ -103,13 +102,14 @@ import { getReviewProduct, sendBack, getMissing, fillMissing } from "@/api/integ
 import { acceptProduct } from "./acceptProduct";
 import { loadFeatureSetNames } from "./FeatureSetChange.vue";
 import FocusAttribute from "./FocusAttribute.vue";
+import FocusMissingRow from "./FocusMissingRow.vue";
 import { loadSource } from "./productSource";
 import { acceptOrder } from "./reviewLogic";
 
 const MAX_PROPOSALS = 100; // the API's page limit; a product has far fewer pending proposals
 export default {
   name: "EnrichmentFocusProduct",
-  components: { FocusAttribute },
+  components: { FocusAttribute, FocusMissingRow },
   props: {
     sku: { type: String, required: true },
     locked: { type: Boolean, default: false },
@@ -119,7 +119,7 @@ export default {
     return { notify: useNotifyStore() };
   },
   data() {
-    return { proposals: [], loading: true, busy: false, chosen: null, names: {}, source: null, review: null, missing: [], missingValues: {}, originalValues: {}, filled: false, attributeSaving: {} };
+    return { proposals: [], loading: true, busy: false, chosen: null, names: {}, source: null, review: null, missing: [], originalValues: {}, filled: false, attributeSaving: {} };
   },
   computed: {
     setProposal() {
@@ -214,11 +214,11 @@ export default {
         this.busy = false;
       }
     },
-    async fill(row) {
+    async fill(row, value) {
       if (this.busy || this.locked || this.savingAttribute) return;
       this.busy = true;
       try {
-        const { data } = await fillMissing({ sku: this.sku, feature_idx: row.feature_idx, value: this.missingValues[row.feature_idx] ?? "" });
+        const { data } = await fillMissing({ sku: this.sku, feature_idx: row.feature_idx, value });
         this.proposals.push(data);
         this.missing = this.missing.filter((item) => item.feature_idx !== row.feature_idx);
         this.filled = true;
