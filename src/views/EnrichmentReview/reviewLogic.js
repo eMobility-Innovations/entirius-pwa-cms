@@ -82,10 +82,11 @@ export const isProductProposal = (proposal) =>
   PRODUCT_KINDS.includes(proposal.target_kind);
 
 /** What Focus walks: one row per product (its first), every other proposal on its own; `skipped` SKUs left out. */
-export function focusSteps(rows, skipped = []) {
+export function focusSteps(rows, skipped = [], { products = true } = {}) {
   const seen = new Set(skipped);
   return rows.filter((row) => {
     if (!isProductProposal(row)) return true;
+    if (!products) return false;
     if (seen.has(row.subject_ref)) return false;
     seen.add(row.subject_ref);
     return true;

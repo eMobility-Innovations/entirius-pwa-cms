@@ -1,9 +1,9 @@
 <template>
   <div class="focus-mode">
-    <Loader block v-show="loading" />
+    <Loader block v-show="loading || queueLoading" />
 
     <EmptyState
-      v-if="!loading && !current"
+      v-if="!loading && !queueLoading && !current"
       icon="enrich"
       :title="$t('enrichment.review.empty')"
       :message="$t('enrichment.review.empty_message')"
@@ -63,7 +63,7 @@
             ref="product"
             :key="current.subject_ref"
             :sku="current.subject_ref"
-            :locked="acting || sendingBack"
+            :locked="acting || sendingBack || skipping || queueLoading"
             @done="productDone"
             @send-back="startSendBack"
           />
@@ -111,16 +111,30 @@
             </div>
           </form>
 
+          <form v-if="skipping" class="focus-mode__skip flex-column gap-4 rounded"
+            data-testid="enrichment-focus-skip-form" @submit.prevent="confirmSkip" @keydown.esc.prevent="cancelSkip">
+            <FormField :label="$t('enrichment.review.skip')">
+              <BasicInput v-model="skipNote" :maxlength="512" :disabled="acting"
+                :placeholder="$t('enrichment.review.focus.skip_note_placeholder')"
+                data-testid="enrichment-focus-skip-note" />
+            </FormField>
+            <div class="flex gap-3 ml-auto">
+              <BasicButton :disabled="acting" @click="cancelSkip">{{ $t('enrichment.review.focus.skip_cancel') }}</BasicButton>
+              <BasicButton type="submit" mutates :loading="acting" :disabled="acting"
+                data-testid="enrichment-focus-skip-confirm">{{ $t('enrichment.review.focus.skip_confirm') }}</BasicButton>
+            </div>
+          </form>
+
           <nav class="flex ai-ct jc-sb flex-wrap gap-4" :aria-label="$t('enrichment.review.modes.focus')">
             <span class="focus-mode__keys fs-200 t-muted" data-testid="enrichment-focus-keys">
               {{ decidable ? $t("enrichment.review.focus.shortcuts") : $t("enrichment.review.focus.shortcuts_move") }}
             </span>
             <div class="flex ai-ct gap-3 ml-auto">
-              <BasicButton variant="ghost" :disabled="acting || localIndex === 0"
+              <BasicButton variant="ghost" :disabled="acting || queueLoading || skipping || !canGoBack"
                 data-testid="enrichment-focus-back" @click="back">
                 {{ $t("enrichment.review.focus.previous") }}
               </BasicButton>
-              <BasicButton :disabled="acting" data-testid="enrichment-focus-skip" @click="skip">
+              <BasicButton :disabled="acting || queueLoading || skipping" data-testid="enrichment-focus-skip" @click="skip">
                 {{ decidable ? $t("enrichment.review.skip") : $t("enrichment.review.focus.next") }}
               </BasicButton>
             </div>
@@ -151,6 +165,8 @@ import StudioStepPreview from "./StudioStepPreview.vue";
 import { focusSteps, isProductProposal, runUidOf, subjectName } from "./reviewLogic";
 import { useFieldLabels } from "./useFieldLabels";
 import { GET_Task, POST_RejectProposal } from "@/api/enrichment/api";
+import { POST_ReviewNext, POST_ReviewSkip, releaseOnLeave } from "@/api/integrator/review";
+import { createQueueState, applyNext, goBack, needsRefresh, productsCounterParams, rowsForSku } from "./focusQueue";
 
 const ACTIONABLE = ["pending", "drifted"];
 // The status chips that hold proposals to decide; "All" is narrowed to pending by the page while Focus is on.
@@ -165,6 +181,8 @@ export default {
   components: { FocusProduct, ProductPreviewCard, ProposalPanel, StudioStepPreview },
   props: {
     rows: { type: Array, default: () => [] },
+    skuRows: { type: Array, default: () => [] },
+    startSku: { type: String, default: "" },
     loading: { type: Boolean, default: false },
     page: { type: Number, default: 1 },
     pageSize: { type: Number, default: 25 },
@@ -172,7 +190,7 @@ export default {
     // The status chip in force: the counter says "to review" when the set holds proposals to decide.
     statusFilter: { type: String, default: "pending" },
   },
-  emits: ["need-more", "exit"],
+  emits: ["need-more", "need-sku", "exit"],
   setup() {
     return { notify: useNotifyStore(), pimChannel: usePimChannelStore(), ...useFieldLabels() };
   },
@@ -185,17 +203,38 @@ export default {
       // What this session learnt about a proposal (decided, re-confirm, edited) by id — the parent's rows stay as read.
       known: {},
       tasks: {},
-      skipped: [], // SKUs passed over this session: a reload of the page must not bring them straight back
+      queue: createQueueState(),
+      queueEnabled: !!this.startSku || this.rows.some(isProductProposal),
+      queueLoading: false,
+      queueRequest: null,
+      queueExhausted: false,
+      skipping: false,
+      skipNote: "",
+      openedAt: null,
+      refreshTimer: null,
+      reservedSku: null,
+      left: false,
       decided: false, // something on this page left the set, so the next rows slid up onto it
     };
   },
   computed: {
     steps() {
-      return focusSteps(this.rows, this.skipped);
+      return focusSteps(this.rows, [], { products: !this.queueEnabled });
     },
     current() {
+      if (this.queueEnabled && this.queue.current) return this.productRow;
+      if (this.queueLoading) return null;
       const row = this.steps[this.localIndex];
       return row ? this.known[row.id] || row : null;
+    },
+    productRow() {
+      return rowsForSku([...this.skuRows, ...this.rows], this.queue.current)[0] || {
+        id: `queue:${this.queue.current}`, subject_ref: this.queue.current,
+        target_module: "pim", target_kind: "attribute_value", status: "pending",
+      };
+    },
+    canGoBack() {
+      return this.queue.current ? this.queue.history.length > 0 : this.localIndex > 0;
     },
     productStep() {
       return isProductProposal(this.current);
@@ -227,6 +266,8 @@ export default {
       return label && label !== ref ? label : "";
     },
     progress() {
+      if (this.queue.current && this.queue.remaining == null) return "";
+      if (this.queue.current) return this.$t("enrichment.review.focus.products_remaining", productsCounterParams(this.queue.remaining));
       const params = { index: this.globalIndex + 1, total: this.totalCount };
       const toReview = REVIEW_FILTERS.includes(this.statusFilter);
       return this.$t(toReview ? "enrichment.review.focus.progress" : "enrichment.review.progress", params);
@@ -249,28 +290,126 @@ export default {
       this.localIndex = 0;
       this.decided = false;
       this.cancelSendBack();
+      if (!this.queueEnabled && this.rows.some(isProductProposal)) {
+        this.queueEnabled = true;
+        this.nextProduct();
+      }
     },
     // A page of nothing but products already passed: on to the next one.
     loading(now) {
-      if (now || !this.rows.length || this.steps.length) return;
+      if (now || this.queueLoading || this.queue.current || !this.rows.length || this.steps.length) return;
+      if (this.queueEnabled && !this.queueExhausted) return;
       if (this.hasMorePages) this.nextPage();
-      else this.$emit("exit");
+      else this.exit();
     },
     "current.task_id": { immediate: true, handler: "loadTask" },
   },
   mounted() {
     window.addEventListener("keydown", this.onKey);
+    window.addEventListener("pagehide", this.leave);
+    window.addEventListener("beforeunload", this.leave);
+    if (this.startSku) this.showSku(this.startSku);
+    else if (this.queueEnabled) this.nextProduct();
+  },
+  beforeUnmount() {
+    this.leave();
   },
   unmounted() {
     window.removeEventListener("keydown", this.onKey);
+    window.removeEventListener("pagehide", this.leave);
+    window.removeEventListener("beforeunload", this.leave);
   },
   methods: {
     safeHref,
+    showSku(sku, refreshClock = true) {
+      this.queue.current = sku;
+      if (refreshClock) this.openedAt = Date.now();
+      this.cancelSendBack();
+      this.cancelSkip();
+      this.$emit("need-sku", sku);
+      if (refreshClock) this.scheduleRefresh();
+    },
+    scheduleRefresh() {
+      clearTimeout(this.refreshTimer);
+      if (!this.reservedSku || this.left) return;
+      this.refreshTimer = setTimeout(this.refreshReservation, 12 * 60 * 1000);
+    },
+    refreshReservation() {
+      if (this.left || !this.reservedSku || !needsRefresh(this.openedAt, Date.now())) return;
+      return this.nextProduct(undefined, true);
+    },
+    async nextProduct(after, refresh = false) {
+      if (this.left) return;
+      if (this.queueLoading) {
+        if (refresh) return this.queueRequest;
+        await this.queueRequest;
+        return this.nextProduct(after);
+      }
+      this.queueRequest = this.loadNextProduct(after, refresh);
+      return this.queueRequest;
+    },
+    async loadNextProduct(after, refresh) {
+      this.queueLoading = true;
+      try {
+        const { data } = await POST_ReviewNext(after);
+        if (this.left) return releaseOnLeave(data.sku);
+        const preserveCard = refresh && this.reservedSku &&
+          (this.queue.current !== this.reservedSku || data.sku === this.reservedSku);
+        this.reservedSku = data.sku;
+        this.queueExhausted = data.sku === null;
+        if (preserveCard) return this.refreshHistory(data);
+        applyNext(this.queue, data);
+        if (this.queue.current) this.showSku(this.queue.current);
+        else clearTimeout(this.refreshTimer);
+      } catch (err) {
+        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
+      } finally {
+        this.queueLoading = false;
+        if (!this.left && this.queueExhausted && !this.queue.current && !this.steps.length && this.hasMorePages) this.nextPage();
+      }
+    },
+    refreshHistory(data) {
+      this.queue.remaining = data.remaining;
+      this.queue.reservedUntil = data.reserved_until;
+      this.openedAt = Date.now();
+      this.scheduleRefresh();
+    },
+    leave() {
+      if (this.left) return;
+      this.left = true;
+      clearTimeout(this.refreshTimer);
+      const sku = this.reservedSku || this.queue.current;
+      if (sku) releaseOnLeave(sku);
+    },
+    exit() {
+      this.leave();
+      this.$emit("exit");
+    },
+    cancelSkip() {
+      if (this.acting) return;
+      this.skipping = false;
+      this.skipNote = "";
+    },
+    async confirmSkip() {
+      if (this.acting || this.queueLoading || !this.queue.current) return;
+      const sku = this.queue.current;
+      this.acting = true;
+      try {
+        await POST_ReviewSkip(sku, this.skipNote.trim().slice(0, 512));
+        this.skipping = false;
+        this.skipNote = "";
+        await this.nextProduct(sku);
+      } catch (err) {
+        this.notify.spawnNotification({ type: "negative", msg: extractApiMessage(err, this.$t("notifications.error")) });
+      } finally {
+        this.acting = false;
+      }
+    },
     onKey(e) {
       // Never hijack keys while the operator types a reason or an edit.
       const tag = (e.target?.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select" || e.target?.isContentEditable) return;
-      if (e.ctrlKey || e.metaKey || e.altKey || this.acting || this.sendingBack || !this.current) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || this.acting || this.sendingBack || this.skipping || this.queueLoading || !this.current) return;
       const action = this.keyAction(e.key);
       if (!action) return;
       e.preventDefault();
@@ -302,7 +441,7 @@ export default {
       } else if (this.hasMorePages) {
         this.nextPage();
       } else {
-        this.$emit("exit"); // end of the filtered set → back to List
+        this.exit(); // end of the filtered set → back to List
       }
     },
     nextPage() {
@@ -310,24 +449,31 @@ export default {
     },
     productDone({ decided }) {
       this.decided ||= decided;
-      if (decided) this.notePassed();
-      this.advance();
-    },
-    notePassed() {
-      this.skipped = [...this.skipped, this.current.subject_ref];
-      this.localIndex -= 1;
+      this.cancelSendBack();
+      return this.nextProduct(this.queue.current);
     },
     back() {
+      if (this.acting || this.queueLoading || this.skipping) return;
+      if (this.queue.current) {
+        const sku = goBack(this.queue);
+        if (sku) this.showSku(sku, false);
+        return;
+      }
       if (this.localIndex === 0) return;
       this.localIndex -= 1;
       this.cancelSendBack();
     },
     skip() {
-      if (this.productStep) this.notePassed();
+      if (this.acting || this.queueLoading || this.skipping) return;
+      if (this.productStep) {
+        this.cancelSendBack();
+        this.skipping = true;
+        return;
+      }
       this.advance();
     },
     async accept() {
-      if (this.acting || !this.decidable) return;
+      if (this.acting || this.queueLoading || this.skipping || this.sendingBack || !this.decidable) return;
       if (this.productStep) return this.$refs.product?.apply();
       const proposal = this.current;
       this.acting = true;
@@ -349,6 +495,7 @@ export default {
       }
     },
     startSendBack() {
+      if (this.acting || this.queueLoading || this.skipping) return;
       if (this.decidable && (!this.productStep || this.$refs.product?.canSendBack)) this.sendingBack = true;
     },
     cancelSendBack() {
@@ -356,7 +503,7 @@ export default {
       this.reason = "";
     },
     async sendBack() {
-      if (this.acting || !this.decidable) return;
+      if (this.acting || this.queueLoading || this.skipping || !this.decidable) return;
       const product = this.productStep;
       const proposal = this.current;
       const reason = this.reason.trim();
@@ -425,7 +572,8 @@ export default {
   font-size: var(--fs-200);
 }
 .focus-mode__studio,
-.focus-mode__send-back {
+.focus-mode__send-back,
+.focus-mode__skip {
   padding: var(--space-5);
   background: var(--surface-raised);
 }
