@@ -34,3 +34,15 @@ coverage_floor = 80
 [runner]
 # Python selects the gate client's helper environment; the application runs on Node.
 toolchains = ["node@22.23.4", "python@3.12"]
+# `canvas` downloads a prebuilt binary at `npm ci` and, when that download fails, builds
+# from source. These are node-canvas's documented Debian/Ubuntu build dependencies, so a
+# failed download costs a compile instead of a red gate (2026-11-10, run 1071f20c on ct213:
+# "prebuild-install warn install aborted" then "Package pixman-1 was not found").
+system_packages = [
+  "build-essential",
+  "libcairo2-dev",
+  "libpango1.0-dev",
+  "libjpeg-dev",
+  "libgif-dev",
+  "librsvg2-dev",
+]
