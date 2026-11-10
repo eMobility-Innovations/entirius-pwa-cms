@@ -1,10 +1,12 @@
 <template>
-  <form class="focus-missing" :data-testid="`enrichment-focus-missing-row-${row.feature_idx}`" @submit.prevent="save">
+  <!-- No Save button: a list or Yes/No saves on choice; text, numbers and multi-choice save on Enter or when focus leaves the row. -->
+  <form class="focus-missing" :data-testid="`enrichment-focus-missing-row-${row.feature_idx}`" @submit.prevent="save" @focusout="onFocusout">
     <span class="focus-missing__name">{{ row.name }}</span>
     <div class="focus-missing__control">
       <BasicSelect
         v-if="choices"
-        v-model="draft"
+        :model-value="draft"
+        @update:model-value="choose"
         :options="choices"
         :multiple="row.kind === 'multiselect'"
         :placeholder="$t(row.kind === 'multiselect' ? 'enrichment.review.focus.missing_choose_many' : 'enrichment.review.focus.missing_choose')"
@@ -30,15 +32,6 @@
       />
       <span v-else-if="row.unit" class="focus-missing__unit" data-testid="enrichment-focus-missing-unit">{{ row.unit }}</span>
     </div>
-    <BasicButton
-      type="submit"
-      size="sm"
-      mutates
-      :disabled="disabled || empty"
-      :data-testid="`enrichment-focus-fill-${row.feature_idx}`"
-    >
-      {{ $t("common.save") }}
-    </BasicButton>
   </form>
 </template>
 
@@ -54,7 +47,14 @@ export default {
   },
   emits: ["fill"],
   data() {
-    return { draft: this.row.kind === "multiselect" ? [] : null, lengthUnit: LENGTH_UNITS[0] };
+    return { draft: this.row.kind === "multiselect" ? [] : null, lengthUnit: LENGTH_UNITS[0], sent: false };
+  },
+  watch: {
+    // A refused save (wrong value) is retried once the person changes it.
+    draft: { deep: true, handler() { this.sent = false; } },
+    lengthUnit() {
+      this.sent = false;
+    },
   },
   computed: {
     numeric() {
@@ -83,8 +83,17 @@ export default {
     },
   },
   methods: {
+    choose(value) {
+      this.draft = value;
+      if (this.row.kind !== "multiselect") this.save();
+    },
+    onFocusout(event) {
+      if (!this.$el.contains(event.relatedTarget)) this.save();
+    },
     save() {
-      if (!this.disabled && !this.empty) this.$emit("fill", this.value);
+      if (this.disabled || this.empty || this.sent) return;
+      this.sent = true;
+      this.$emit("fill", this.value);
     },
   },
 };
@@ -94,7 +103,7 @@ export default {
 // The same columns as FocusAttribute, so names and values line up with the rows above.
 .focus-missing {
   display: grid;
-  grid-template-columns: minmax(120px, 200px) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(120px, 200px) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2) var(--space-4);
   padding: var(--space-1) 0;

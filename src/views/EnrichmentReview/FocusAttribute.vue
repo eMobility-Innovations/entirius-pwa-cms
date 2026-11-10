@@ -2,31 +2,15 @@
   <div class="focus-attribute" :data-testid="`focus-attribute-${proposal.id}`">
     <span class="focus-attribute__name">{{ proposalField(proposal) }}</span>
 
-    <form v-if="editing" class="focus-attribute__edit" @submit.prevent="save">
+    <!-- Saves on Enter or when the field loses focus; Esc leaves it unchanged. -->
+    <form v-if="editing" class="focus-attribute__edit" @submit.prevent="save" @keydown.esc.prevent="cancelEdit">
       <BasicInput
         v-model="draft"
         :disabled="busy || saving"
         focus-on-create
         data-testid="focus-attribute-input"
+        @onFocusout="save"
       />
-      <BasicButton
-        type="submit"
-        size="sm"
-        mutates
-        :loading="saving"
-        :disabled="busy || saving"
-        data-testid="focus-attribute-save"
-      >
-        {{ $t("common.save") }}
-      </BasicButton>
-      <BasicButton
-        size="sm"
-        variant="ghost"
-        :disabled="saving"
-        @click="editing = false"
-      >
-        {{ $t("common.cancel") }}
-      </BasicButton>
     </form>
 
     <template v-else>
@@ -188,8 +172,15 @@ export default {
       this.draft = editableText(this.proposal);
       this.editing = true;
     },
+    cancelEdit() {
+      this.editing = false;
+    },
     async save() {
-      if (this.busy || this.saving) return;
+      if (!this.editing || this.busy || this.saving) return;
+      if (this.draft === editableText(this.proposal)) {
+        this.editing = false;
+        return;
+      }
       this.saving = true;
       this.$emit("saving", true);
       try {
