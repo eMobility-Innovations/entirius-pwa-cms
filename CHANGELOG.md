@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.1] (2026-11-11)
+
 ### Fixed
 
 - Deleting a route in the "Routes" window failed with a server error: the request went to an address without the
