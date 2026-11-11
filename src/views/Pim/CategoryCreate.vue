@@ -27,6 +27,10 @@
             v-model="form.parent_category_idx"
             :options="parentOptions"
             :placeholder="$t('pim.select_parent')"
+            searchable
+            :more-label="parentSource.moreLabel"
+            @search="parentSource.onSearch"
+            @more="parentSource.loadMore"
           />
         </FormField>
         <FormField :label="$t('pim.position')">
@@ -104,7 +108,8 @@ import { useLoaderStore } from "@/stores/loader";
 
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
-import { POST_Category, GET_Categories } from "@/api/pim/api";
+import { POST_Category } from "@/api/pim/api";
+import { useCategoryOptions } from "@/composables/useRemoteOptions";
 import { extractApiMessage, useFormErrors } from "@/composables/useFormErrors";
 import PimChannelSelect from "./components/PimChannelSelect.vue";
 
@@ -116,13 +121,14 @@ export default {
     const notify = useNotifyStore();
     const pimChannel = usePimChannelStore();
     const formErrors = useFormErrors();
-    return { loader, notify, pimChannel, formErrors };
+    const parentSource = useCategoryOptions(() => pimChannel.activeChannelIdx);
+    return { loader, notify, pimChannel, formErrors, parentSource };
   },
   data() {
     return {
       form: {
         idx: "",
-        parent_category_idx: null,
+        parent_category_idx: [this.$route?.query?.parent].flat()[0] || null,
         position: 0,
         is_active: true,
         is_in_menu: true,
@@ -131,7 +137,6 @@ export default {
         meta_title_t9n: {},
         meta_description_t9n: {},
       },
-      parentOptions: [],
     };
   },
   computed: {
@@ -143,35 +148,29 @@ export default {
         ? this.pimChannel.activeChannelLanguages
         : ["en"];
     },
+    parentOptions() {
+      return [{ label: this.$t("pim.root_category"), value: null }, ...this.parentSource.options];
+    },
     headerActions() {
       return [{ key: "save", role: "primary", label: this.$t("common.save"), onClick: this.createCategory }];
     },
   },
   watch: {
-    "pimChannel.activeChannelIdx"() {
-      this.fetchParentCategories();
+    "form.parent_category_idx": {
+      handler(value) {
+        this.parentSource.track(value);
+      },
+      immediate: true,
+    },
+    "pimChannel.activeChannelIdx"(now, before) {
+      if (before) this.form.parent_category_idx = null;
+      this.parentSource.reload();
     },
   },
   mounted() {
-    this.fetchParentCategories();
+    this.parentSource.reload();
   },
   methods: {
-    async fetchParentCategories() {
-      try {
-        const { data } = await GET_Categories(this.channelIdx, {
-          page_size: 100,
-        });
-        this.parentOptions = [
-          { label: this.$t("pim.root_category"), value: null },
-          ...(data.results || []).map((cat) => ({
-            label: `${cat.name} (${cat.idx})`,
-            value: cat.idx,
-          })),
-        ];
-      } catch {
-        // Categories may not exist yet
-      }
-    },
     langLabel(key, lang) {
       return `${this.$t(key)} (${lang.toUpperCase()})`;
     },
