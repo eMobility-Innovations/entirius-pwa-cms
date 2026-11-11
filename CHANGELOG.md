@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.7.0] (2026-11-11)
+
 ### Changed
 
 - The CMS builds and passes its unit suite on Node 22 and Node 26, and CI runs `build`, `test-unit` and
