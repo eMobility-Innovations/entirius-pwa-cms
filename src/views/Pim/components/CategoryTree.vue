@@ -47,7 +47,7 @@ function clearDragState() {
   dragState.position = null;
 }
 
-const indent = (depth) => ({ paddingLeft: `${depth * 24 + 12}px` });
+const indent = (depth) => ({ "--depth": depth });
 </script>
 
 <template>
@@ -97,18 +97,24 @@ const indent = (depth) => ({ paddingLeft: `${depth * 24 + 12}px` });
 </template>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .category-tree--busy {
   opacity: 0.6;
   pointer-events: none;
 }
 
 .category-tree__more {
+  --tree-indent: var(--space-6);
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding-top: var(--space-2);
-  padding-right: var(--space-3);
-  padding-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  padding-left: calc(var(--depth, 0) * var(--tree-indent) + var(--space-3));
   border-bottom: 1px solid var(--border-subtle);
+
+  @include max-tablet {
+    --tree-indent: var(--space-3);
+  }
 }
 </style>

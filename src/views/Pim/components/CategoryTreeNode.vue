@@ -103,8 +103,9 @@ function onDragEnd() {
         'tree-node__row--dragging':
           dragState && dragState.draggedIdx === node.idx,
         'tree-node__row--highlight': highlighted,
+        'tree-node__row--flat': flat,
       }"
-      :style="{ paddingLeft: `${depth * 24 + 12}px` }"
+      :style="{ '--depth': depth }"
       :draggable="isDraggable"
       @click="onRowClick"
       @dragstart="onDragStart"
@@ -190,10 +191,14 @@ function onDragEnd() {
 </template>
 
 <style lang="scss" scoped>
+@import "@/assets/scss/utils/media-query";
+
 .tree-node__row {
+  --tree-indent: var(--space-6);
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding-left: calc(var(--depth, 0) * var(--tree-indent) + var(--space-3));
   padding-top: var(--space-2);
   padding-right: var(--space-3);
   padding-bottom: var(--space-2);
@@ -203,6 +208,26 @@ function onDragEnd() {
 
   &:hover {
     background: var(--surface-base);
+  }
+}
+
+// On a phone a level indents by one step less and a search hit wraps: name on its own line, meta below.
+@include max-tablet {
+  .tree-node__row {
+    --tree-indent: var(--space-3);
+  }
+
+  .tree-node__row--flat {
+    flex-wrap: wrap;
+  }
+
+  .tree-node__row--flat .tree-node__idx {
+    flex: 1;
+    max-width: none;
+  }
+
+  .tree-node__row--flat .tree-node__name {
+    flex-basis: calc(100% - var(--space-10));
   }
 }
 
