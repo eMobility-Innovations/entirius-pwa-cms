@@ -21,7 +21,7 @@
     "url": "https://github.com/entirius/entirius-pwa-cms/issues"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22"
   },
   "scripts": {
     "preserve": "node scripts/init-client.js",
