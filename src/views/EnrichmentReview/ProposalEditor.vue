@@ -201,8 +201,8 @@ export default {
       this.isDirty = on;
     },
   },
-  beforeRouteLeave(to, from, next) {
-    this.guardNavigation(to, from, next);
+  beforeRouteLeave(to, from) {
+    return this.guardNavigation(to, from);
   },
   mounted() {
     this.load();

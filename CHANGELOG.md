@@ -2,6 +2,130 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [3.7.0] (2026-11-11)
+
+### Changed
+
+- The CMS builds and passes its unit suite on Node 22 and Node 26, and CI runs `build`, `test-unit` and
+  `test-e2e-mocked` on both. The minimum Node version (`engines.node`) is now 22 (Node 20 is past its end of life).
+  The unit setup provides in-memory `localStorage` and `sessionStorage` when the runtime has none (Node 26 ships an
+  undefined `localStorage` global, which stopped happy-dom from installing its own).
+### Added
+
+- Enrichment review decides a product as a whole: "Apply product" applies every pending proposal of one product,
+  the feature-set proposal first, and stops at a drifted one (the drift dialog opens). A feature-set proposal reads
+  "Now: X / AI proposes: Y" by name. Focus shows a PIM product as one step with Apply, Reject and Skip and a
+  feature-set choice. Numbers and lengths read with their unit; a length is entered in millimetres or inches.
+- Bulk apply and reject in the enrichment review are shown only to a user who may write the enrichment rules, and
+  their confirm button stays disabled for 5 seconds.
+- Client config `__client/configs/__enrichment_config.json` (default in `__client_default/`, copied by
+  `init:client`): `enrichment.featureUnits` maps a feature idx to the unit its numbers show when the proposal states
+  none (default `{}`), and `enrichment.sourceFeature` (`{ "idx": "...", "language": "en" }`, default `null`) names
+  the feature the "Shop data" toggle of the review reads; without it the toggle is not rendered. Existing
+  deployments get the file on the next `npm run serve`, `build` or `test:unit`.
+
+## [3.6.1] (2026-11-11)
+
+### Fixed
+
+- Deleting a route in the "Routes" window failed with a server error: the request went to an address without the
+  closing slash, which the API refuses for DELETE and PUT. Every contentdb request built by `_METHOD_content` now ends
+  in a slash (before the query string), which also covers deleting an attribute value, editing and deleting a
+  content set, and reading or deleting a contentdb category by uid.
+
+## [3.6.0] (2026-11-11)
+
+### Fixed
+
+- PIM category tree: it loads level by level instead of fetching every category first, so a channel with tens of
+  thousands of categories opens at once. Every level is paged with a "Show more" row; search and the status filter
+  list results from the API (name, idx, products, status) with "Show in tree"; a reorder loads the rest of its level
+  first and then reloads only the two levels it touched; expanded branches and the pages loaded are restored when you
+  come back from Edit. "Expand all" is gone (it cannot work on 50 000 nodes); each row has "Add subcategory"
+  (`/pim/categories/create?parent=<idx>`). On a phone a row drops the drag handle and folder icon, indents less,
+  wraps the name and keeps "Add subcategory" and "Edit" in one menu; reordering stays desktop only (no touch drag).
+- Category pickers no longer stop at the first 100 categories: the product list filter, the parent in "Create
+  category", the category of an AI task and the categories of a promo filter search the API (debounced) and page
+  with "Load more", and a chosen value keeps its name whichever page is loaded. The same goes for the attribute and
+  feature pickers of a promo filter and the value filters of the product list. "Create category" preselects
+  `?parent=<idx>`. The category options show the idx as a second line. `BasicSelect` has a `remoteSearch` prop (the
+  menu shows the options as given, so a server hit is never hidden by its label). The feature pickers of the quality
+  rule form, and the feature, feature-set and filterable-feature lists of the Atlas mappings, the feature set editor and
+  the product list, read every page instead of the first 50 to 200 rows.
+
+### Changed
+
+- Visual baselines approved again on 3.5.0 (Font Awesome 7 glyphs, seed and BDD of platform 4.3): 226 screens, 8 of
+  them new. The leads inbox, conversation and new-company screens mask times, thread states and the waiting count,
+  which the send beat changes while a capture runs.
+
+## [3.5.0] (2026-11-05)
+
+### Added
+
+- Tests: characterization tests for every router guard (global `beforeEach` and the 19 leave/update hooks),
+  markdown render tests on a shared corpus for the four marked call sites (including script, `onerror` and
+  `javascript:` cases), and Font Awesome registry, usage and render tests.
+
+### Changed
+
+- Major dependency upgrades: vue-router 5.4, pinia 4.1, marked 18.1 and Font Awesome 7.3 (`fontawesome-svg-core` and
+  `free-solid-svg-icons`; the unused `free-regular-svg-icons` is gone). Every route guard returns its verdict instead
+  of calling `next()`, which vue-router 5 deprecates. The marked 18 build needs
+  `@babel/plugin-transform-private-methods` (dev dependency, in `babel.config.js`). Icons keep the Font Awesome 6 width
+  (`--fa-width: auto`); the glyphs themselves are the Font Awesome 7 drawings.
+- Leaving a form with unsaved changes and choosing to stay now ends the navigation as aborted; before, the
+  navigation stayed pending.
+- Docs headings no longer carry generated `id`s (marked 18 dropped them; nothing linked to them).
+
+### Fixed
+
+- Product files: PDF, Word, image and video files showed an empty icon, because those four icons were never
+  registered.
+- Markdown previews (profile fields, proposal editor, studio text): after the Docs page was opened, a single line
+  break turned into `<br>` there too, because Docs changed the global marked options. Docs now has its own instance.
+- Proposal editor preview: markdown that only mentions a tag (`` `<div>` `` in a code span, a code block with markup, an
+  autolink `<https://…>`) was taken for stored HTML and shown as raw text; it is rendered as markdown now.
+- Markdown tables keep their column alignment and numbered lists their start number in every sanitised preview.
+
+### Security
+
+- Docs renders its markdown through the same sanitiser as every other `v-html`; the v-html audit has no exemptions left.
+
+## [3.4.0] (2026-11-04)
+
+### Added
+
+- Configuration health: EN and PL texts for three backend checks, which the panel showed as the backend's English
+  title: `agreements.storefront_url` (django-agreements: `STOREFRONT_BASE_URL` unset, so newsletter confirmation and
+  unsubscribe links point at the development address), `checkout.discount_codes` (django-checkout: stored discount
+  codes shared by rules of one channel and currency, one row per channel) and `django_checkout.W002` (PayPal payment
+  methods without `webhook_id`: their webhook notifications are refused, an order is confirmed only when the buyer
+  returns to the shop).
+
+### Changed
+
+- Minor and patch updates of 29 dependencies, among them TipTap 3.32.2, axios 1.21.0, swiper 14.4.0, core-js 3.51.0,
+  vue-fontawesome 3.3.3 and, for the tooling, Playwright 1.64.1, @vue/test-utils 2.5.1, sass 1.107.1 and ESLint 10.14.0.
+
+### Fixed
+
+- Discount rule: a code that repeats another rule's code in the same channel and currency (django-checkout's v2 admin
+  API answers 400 `VALIDATION_ERROR`, issue `UNIQUE`) shows on its field in the UI language: under Code in the new
+  code form and in the edit code dialog, which now stays open, and under Currencies or Channels when a rule's new
+  scope makes one of its codes clash. The toast carries the server's sentence, which names the other rule; before,
+  it said only "Request validation failed." and the edit dialog closed. Editing a code clears the code form's errors.
+
+### Security
+
+- Lock bumps for the open advisories of the dev tooling: undici 8.12.3 (five alerts, through jsdom), qs 6.16.2,
+  fast-uri 3.1.9, postcss-selector-parser 6.1.5, serialize-javascript 7.1.4, body-parser 1.20.9 and joi 17.13.9.
+  `npm audit --omit=dev` reports nothing.
+- happy-dom 21.0.4, the unit tests' DOM (three alerts, two high): CSS and iframe loading is now off by default; the
+  unit suite passes unchanged.
+
 ## [3.3.0] (2026-10-29)
 
 ### Added

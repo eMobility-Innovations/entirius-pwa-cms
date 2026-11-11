@@ -52,7 +52,7 @@ export const panels = [
   {
     name: "Orders",
     idx: "checkout",
-    icon: "shopping-cart",
+    icon: "cart-shopping",
     root: "/checkout-orders/orders",
     labelKey: "panels.checkout_orders",
     descriptionKey: "panels.checkout_orders_desc",

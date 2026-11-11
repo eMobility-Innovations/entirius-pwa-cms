@@ -1,21 +1,6 @@
-// The unit each DECIMAL feature is asked in. PIM stores none and the proposal carries none, so without this the
-// review shows a bare number. Mirrors `ATTRIBUTE_UNITS` in esc-service-volkanos: a feature missing here shows no unit.
-const FEATURE_UNITS = {
-  amperage: "A",
-  battery_capacity: "Ah",
-  cable_length_m: "m",
-  charge_time: "h",
-  engine_cc: "cc",
-  fuel_capacity: "litres",
-  height_mm: "mm",
-  load_capacity: "kg",
-  maximum_climbing_angle: "degrees",
-  maximum_load: "kg",
-  maximum_range: "km",
-  motor_power_rating: "W",
-  top_speed: "km/h",
-  tyre_height: "mm",
-  weight: "kg",
-};
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 
-export const featureUnit = (featureIdx) => FEATURE_UNITS[featureIdx] ?? null;
+// The unit each DECIMAL feature is asked in. PIM stores none and the proposal carries none, so the review reads it
+// from the client config map `enrichment.featureUnits` (`{ "<feature idx>": "<unit>" }`); a feature missing there
+// shows no unit.
+export const featureUnit = (featureIdx) => enrichmentConfig.enrichment?.featureUnits?.[featureIdx] ?? null;

@@ -349,13 +349,10 @@ describe("ApplicationDetail", () => {
 
   it("does not leave the page while a shown-once value is open", async () => {
     const wrapper = await openDetail();
-    const next = vi.fn();
     wrapper.vm.reveal = { open: true, title: "" };
-    ApplicationDetail.beforeRouteLeave.call(wrapper.vm, {}, {}, next);
-    expect(next).toHaveBeenCalledWith(false);
+    expect(ApplicationDetail.beforeRouteLeave.call(wrapper.vm, {}, {})).toBe(false);
     wrapper.vm.reveal = { open: false, title: "" };
-    ApplicationDetail.beforeRouteLeave.call(wrapper.vm, {}, {}, next);
-    expect(next).toHaveBeenLastCalledWith();
+    expect(ApplicationDetail.beforeRouteLeave.call(wrapper.vm, {}, {})).toBe(true);
   });
 
   it("a new application posts name and description and opens its page", async () => {

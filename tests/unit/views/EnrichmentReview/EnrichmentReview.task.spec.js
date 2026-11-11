@@ -3,6 +3,10 @@ import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetProposals = vi.fn(() => Promise.resolve({ data: { results: [{ id: 7, status: "pending" }], count: 3 } }));
 const run = (id) => ({ id, type: "pim.writer", params: { template: "desc" }, scope_spec: { mode: "list", refs: ["A", "B"] }, created_at: "2026-10-15T10:00:00Z" });
+// The page loads Focus lazily (defineAsyncComponent). Its real import pulls the whole Studio preview tree and can
+// outlive a test that switches to Focus, failing the run with an environment teardown error on a slow runner.
+vi.mock("@/views/EnrichmentReview/FocusMode.vue", () => ({ __esModule: true, default: { name: "EnrichmentFocusMode", render: () => null } }));
+
 vi.mock("@/api/enrichment/api", () => ({
   GET_Proposals: (...a) => mockGetProposals(...a),
   GET_Task: (id) => Promise.resolve({ data: run(Number(id)) }),

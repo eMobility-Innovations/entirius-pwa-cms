@@ -1,6 +1,9 @@
 import { config } from "@vue/test-utils";
 import { ICONS } from "@/boots/Icons/icons";
 import PageLayout from "@/boots/PageLayout/index.vue";
+import { installWebStorage } from "./support/webStorage";
+
+installWebStorage(globalThis);
 
 // WEB STORAGE, WHEN THE RUNTIME DOES NOT PROVIDE IT.
 //

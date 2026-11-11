@@ -12,7 +12,13 @@
             <span class="field-label">{{ $t("enrichment.review.focus.set_heading") }}</span>
             <strong class="focus-product__set-name" data-testid="enrichment-focus-set-name">{{ setName }}</strong>
           </div>
-          <BasicButton variant="ghost" size="sm" data-testid="enrichment-focus-source" @click="toggleSource">
+          <BasicButton
+            v-if="hasSource"
+            variant="ghost"
+            size="sm"
+            data-testid="enrichment-focus-source"
+            @click="toggleSource"
+          >
             {{ $t("enrichment.review.shop_data") }}
           </BasicButton>
         </div>
@@ -40,7 +46,7 @@
         </div>
       </section>
       <BasicButton
-        v-else
+        v-else-if="hasSource"
         class="focus-product__source-alone"
         variant="ghost"
         size="sm"
@@ -103,7 +109,7 @@ import { acceptProduct } from "./acceptProduct";
 import { loadFeatureSetNames } from "./FeatureSetChange.vue";
 import FocusAttribute from "./FocusAttribute.vue";
 import FocusMissingRow from "./FocusMissingRow.vue";
-import { loadSource } from "./productSource";
+import { hasSource, loadSource } from "./productSource";
 import { acceptOrder } from "./reviewLogic";
 
 const MAX_PROPOSALS = 100; // the API's page limit; a product has far fewer pending proposals
@@ -122,6 +128,7 @@ export default {
     return { proposals: [], loading: true, busy: false, chosen: null, names: {}, source: null, review: null, missing: [], originalValues: {}, filled: false, attributeSaving: {} };
   },
   computed: {
+    hasSource,
     setProposal() {
       return this.proposals.find((proposal) => proposal.target_kind === "feature_set") || null;
     },

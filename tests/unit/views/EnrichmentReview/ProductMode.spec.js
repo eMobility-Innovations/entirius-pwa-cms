@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetTask = vi.fn();
@@ -18,6 +18,7 @@ vi.mock("@/api/pim/api", () => ({
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 vi.mock("@/stores/pimChannel", () => ({ usePimChannelStore: () => ({ activeChannelIdx: "c1" }) }));
 
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 import ProductMode from "@/views/EnrichmentReview/ProductMode.vue";
 import ProposalPanel from "@/views/EnrichmentReview/ProposalPanel.vue";
 
@@ -139,6 +140,10 @@ describe("ProductMode: one product at a time", () => {
 
   beforeEach(() => {
     mockGetTask.mockResolvedValue({ data: {} });
+    enrichmentConfig.enrichment.sourceFeature = { idx: "shop_hints", language: "en" };
+  });
+  afterEach(() => {
+    enrichmentConfig.enrichment.sourceFeature = null;
   });
 
   it("offers the whole product in one click", async () => {
@@ -159,7 +164,7 @@ describe("ProductMode: one product at a time", () => {
 
   it("shows what the shop said about the product on demand, and hides it again", async () => {
     mockGetProduct.mockResolvedValue({
-      data: { attributes: [{ feature_idx: "idosell_hints", value_txt_t9n: { en: "param 10 Voltage: 36V" } }] },
+      data: { attributes: [{ feature_idx: "shop_hints", value_txt_t9n: { en: "param 10 Voltage: 36V" } }] },
     });
     const wrapper = mountMode();
     await flushPromises();
@@ -175,5 +180,13 @@ describe("ProductMode: one product at a time", () => {
 
     expect(wrapper.find('[data-testid="enrichment-product-source-text"]').exists()).toBe(false);
   });
-});
 
+  it("renders no source toggle without the client config key", async () => {
+    enrichmentConfig.enrichment.sourceFeature = null;
+    const wrapper = mountMode();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="enrichment-product-source"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="enrichment-accept-product"]').exists()).toBe(true);
+  });
+});

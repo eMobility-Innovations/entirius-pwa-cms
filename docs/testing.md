@@ -14,7 +14,8 @@ Config: `vitest.config.js` (environment `happy-dom`, globals on, spec glob
 `tests/unit/**/*.spec.{js,ts}`). Setup file: `tests/unit/setup.js` — provides
 global `$t`/`$tc` i18n mocks, `$route`/`$router` stubs, and global component
 stubs (`FontAwesomeIcon`, `Loader`, `EmptyState`, `StatusBadge`, `FilterChip`,
-`Dropdown`, `BasicButton`, `BasicInput`, `TextAreaBasic`, `FormField`).
+`Dropdown`, `BasicButton`, `BasicInput`, `TextAreaBasic`, `FormField`) and, when the runtime has none (Node 26),
+in-memory `localStorage` / `sessionStorage` (`tests/unit/support/webStorage.js`).
 A spec that needs a spec-faithful HTML parser opens with `// @vitest-environment jsdom`
 (`tests/unit/utils/sanitizeHtml.spec.js`: DOMPurify gives wrong answers under `happy-dom`).
 
@@ -94,6 +95,7 @@ Fixture data: `tests/fixtures/`.
 | `test:suppliers:live` | `11-suppliers-live.spec.js` (`--workers=1`) | Suppliers against live fixtures |
 | `test:pim-bridge` | `12-pim-suppliers-bridge.spec.js` | PIM <-> Suppliers bridge |
 | — | `12-pim-product-links.spec.js` | PIM product deep links |
+| — | `pim-category-tree.spec.js` | Category tree: flat search results, "Show in tree" |
 | — | `13-pim-quality.spec.js`, `14-pim-quality-rules.spec.js`, `15-pim-quality-rules-offcompat.spec.js` | PIM quality/gap rules, soft-compat with older backends |
 | — | `16-error-feedback.spec.js` | API error surface in the UI |
 | — | `18-ai-toolbox-state.spec.js` | The translate dialog's hint and Estimate, and the header warning, per AI toolbox state (health answer replaced, read-only) |

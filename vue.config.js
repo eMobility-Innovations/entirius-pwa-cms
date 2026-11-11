@@ -14,6 +14,7 @@ const CLIENT_CONFIG_FILES = [
   'configs/__hidden_config.json',
   'configs/__optional_config.json',
   'configs/__config_options.json',
+  'configs/__enrichment_config.json',
   'props/__props.json',
   'props/__props_handlers.json',
   'props/__props_options.json',

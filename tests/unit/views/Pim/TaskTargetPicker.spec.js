@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
-const api = vi.hoisted(() => ({ POST_ResolveSubjects: vi.fn(), GET_Categories: vi.fn(), GET_Products: vi.fn() }));
+const api = vi.hoisted(() => ({ POST_ResolveSubjects: vi.fn(), GET_Categories: vi.fn(), GET_Category: vi.fn(), GET_Products: vi.fn() }));
 const notify = vi.hoisted(() => vi.fn());
 vi.mock("@/api/enrichment/api", () => ({ POST_ResolveSubjects: api.POST_ResolveSubjects }));
-vi.mock("@/api/pim/api", () => ({ GET_Categories: api.GET_Categories, GET_Products: api.GET_Products }));
+vi.mock("@/api/pim/api", () => ({ GET_Categories: api.GET_Categories, GET_Category: api.GET_Category, GET_Products: api.GET_Products }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({
@@ -17,7 +17,7 @@ import { parseRefs } from "@/views/Pim/components/enrichment/taskTargets";
 
 const stubs = {
   FormField: { props: ["error"], template: "<div><slot /><p v-if='error' data-testid='field-error'>{{ error }}</p></div>" },
-  BasicSelect: true,
+  BasicSelect: { name: "BasicSelect", props: ["options", "moreLabel", "modelValue"], template: "<div />" },
   SegmentedControl: true,
   BasicTextarea: { name: "BasicTextarea", props: ["modelValue"], emits: ["update:modelValue"], template: "<textarea />" },
 };
@@ -131,6 +131,22 @@ describe("TaskTargetPicker", () => {
       await pickCategory(w, "sofas");
       expect(lastTarget(w)).toEqual({ skus: [], filters: { category_idx: "sofas" }, count: 640, pending: false });
       expect(w.find("[data-testid='task-targets-summary']").text()).toContain("enrichment.studio.task.first_only");
+    });
+
+    it("searches categories on the server and pages them, keeping the chosen one labelled", async () => {
+      api.GET_Categories.mockResolvedValue({ data: { results: [{ idx: "sofas", name: "Sofas" }], next: "p2" } });
+      api.GET_Category.mockResolvedValue({ data: { idx: "deep", name: "Deep one" } });
+      api.GET_Products.mockResolvedValue({ data: { count: 1, results: [{ sku: "A" }] } });
+      const w = await mountPicker();
+      await pickCategory(w, "deep");
+      const select = () => w.findComponent("[data-testid='task-targets-category']");
+      expect(select().props("moreLabel")).not.toBe("");
+      expect(select().props("options").map((o) => o.label)).toEqual(["Deep one", "Sofas"]);
+
+      select().vm.$emit("search", "sof");
+      vi.advanceTimersByTime(350);
+      await flushPromises();
+      expect(api.GET_Categories).toHaveBeenLastCalledWith("eu", { search: "sof", page: 1, page_size: 50 });
     });
   });
 });

@@ -252,8 +252,8 @@ export default {
     PimChannelSelect,
     ProductT9nField,
   },
-  beforeRouteLeave(to, from, next) {
-    this.guardNavigation(to, from, next);
+  beforeRouteLeave(to, from) {
+    return this.guardNavigation(to, from);
   },
   setup() {
     const loader = useLoaderStore();

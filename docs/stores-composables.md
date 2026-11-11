@@ -115,6 +115,21 @@ components keep using stores directly via the `setup()` return pattern.
 - **`useSearchDebounce(delay = 300)`** — debounced search input for list
   views. Returns `{ search, debouncedFetch(fetchFn) }`; timer auto-cleans on
   unmount.
+- **`useCategoryTree({ getChannel, api, onError })`** (`src/views/Pim/composables/`) — the lazy category tree of
+  `/pim/categories`. The tree never loads every category: the roots (`root_only`, page 1 of 100) first, a node's
+  children on expand (`parent_category=<pk>`), the next page of a level only on "Show more". `levels` is keyed by
+  the parent pk (`root` for the roots) and holds `{items, count, nextPage, pages, loading, error}`; `rows` is the
+  flat list the view renders (node, "more" and retry rows). A node with no known child count shows the toggle until
+  an expand returns nothing (`subcategory_count`, when the API sends it, wins). `applyFilter(query, isActive)`
+  switches to a flat, paginated API search (names only, the backend does not search the idx); `revealInTree(idx)`
+  walks `parent_category_idx` up with `GET_Category` and loads each level until the node is found (40 pages per
+  level at most). `move(draggedIdx, targetIdx, position)` completes the target level before a before/after drop
+  (positions are renumbered 0..n-1, the backend sets exactly what is sent), then reloads only the old and the new
+  parent level. Expanded nodes (`cms_pim_category_expanded_<channel>`) and pages per level
+  (`cms_pim_category_pages_<channel>`) live in `localStorage`; `load()` restores them lazily, four levels at a time.
+  On a phone (768 px and below) a tree row gives the name the width: no drag handle, no folder icon, a smaller
+  indent, the name wraps to two lines and "Add subcategory" + "Edit" sit behind one `BasicMenu` (sheet). Reordering by
+  drag and drop is desktop only: HTML5 drag and drop does not fire on touch, and there is no touch alternative yet.
 - **`useAtlasBulkActions`** — bulk operations on supplier rows:
   `forceRepushSps(rows)`, `acknowledgeSps(rows)`. Both run in parallel and
   return `{ succeeded, failed }`.

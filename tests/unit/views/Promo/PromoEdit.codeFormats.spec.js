@@ -55,6 +55,8 @@ describe("PromoEdit — edit code formats", () => {
   it("a changed invalid code blocks the save with a field error and no request", async () => {
     const wrapper = await openLegacyCode();
     wrapper.vm.editCode.code = "NEW CODE";
+    // The typing lands before the Save click, as in the browser: an edit clears the code form's errors.
+    await wrapper.vm.$nextTick();
     await wrapper.vm.saveEditCode();
     expect(api.PATCH_DiscountCode).not.toHaveBeenCalled();
     expect(wrapper.vm.codeFormErrors.errors.code).toBeTruthy();

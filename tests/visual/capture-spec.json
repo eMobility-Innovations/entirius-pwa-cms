@@ -1432,7 +1432,12 @@
         "dark",
         "light"
       ],
-      "file": "leads-inbox__{vp}__{theme}.png"
+      "file": "leads-inbox__{vp}__{theme}.png",
+      "masks": [
+        ".inbox-row__time",
+        "[data-testid=\"inbox-item-state\"]",
+        "[data-testid=\"inbox-filter-waiting\"]"
+      ]
     },
     {
       "id": "leads-conversation",
@@ -1452,7 +1457,13 @@
       ],
       "file": "leads-conversation__{vp}__{theme}.png",
       "needsData": true,
-      "note": "a fresh seed has no leads conversation (BDD creates them)"
+      "note": "a fresh seed has no leads conversation (BDD creates them)",
+      "masks": [
+        ".inbox-row__time",
+        "[data-testid=\"inbox-item-state\"]",
+        "[data-testid=\"inbox-filter-waiting\"]",
+        ".tl__meta"
+      ]
     },
     {
       "id": "leads-review",
@@ -1520,7 +1531,12 @@
         "dark",
         "light"
       ],
-      "file": "leads-company-new__{vp}__{theme}.png"
+      "file": "leads-company-new__{vp}__{theme}.png",
+      "masks": [
+        ".inbox-row__time",
+        "[data-testid=\"inbox-item-state\"]",
+        "[data-testid=\"inbox-filter-waiting\"]"
+      ]
     },
     {
       "id": "leads-board",
