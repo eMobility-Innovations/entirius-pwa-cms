@@ -2,12 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetProducts = vi.fn();
+const mockGetFeatures = vi.fn();
 
 vi.mock("@/api/pim/api", () => ({
   GET_Products: (...a) => mockGetProducts(...a),
   POST_BulkUpdateProducts: vi.fn(),
   GET_Categories: () => Promise.resolve({ data: { results: [] } }),
-  GET_Features: () => Promise.resolve({ data: { results: [] } }),
+  GET_Features: (...a) => mockGetFeatures(...a),
   GET_FeatureAttributes: () => Promise.resolve({ data: { results: [] } }),
   GET_BulkProductGaps: () => Promise.resolve({ data: { results: {} } }),
 }));
@@ -55,6 +56,7 @@ const mountList = () =>
 describe("ProductList — filter selects (P3)", () => {
   beforeEach(() => {
     mockGetProducts.mockReset();
+    mockGetFeatures.mockReset().mockResolvedValue({ data: { results: [], next: null } });
     mockGetProducts.mockResolvedValue({ data: { results: [], count: 0 } });
   });
 
@@ -93,5 +95,18 @@ describe("ProductList — filter selects (P3)", () => {
 
     await attr().vm.$emit("update:modelValue", null);
     expect(wrapper.vm.attributeFilters).toEqual({});
+  });
+});
+
+describe("ProductList — filterable features", () => {
+  it("reads every page of the filterable features and keeps the select-type ones", async () => {
+    mockGetProducts.mockResolvedValue({ data: { results: [], count: 0 } });
+    mockGetFeatures
+      .mockResolvedValueOnce({ data: { results: [{ idx: "color", feature_type: 7 }, { idx: "weight", feature_type: 1 }], next: "p2" } })
+      .mockResolvedValueOnce({ data: { results: [{ idx: "brand", name: "Brand", feature_type: 8 }], next: null } });
+    const wrapper = mountList();
+    await flushPromises();
+    expect(mockGetFeatures).toHaveBeenCalledWith({ is_filterable: true, page: 2, page_size: 100 }, "default-europe");
+    expect(wrapper.vm.filterableFeatures.map((f) => f.idx)).toEqual(["color", "brand"]);
   });
 });

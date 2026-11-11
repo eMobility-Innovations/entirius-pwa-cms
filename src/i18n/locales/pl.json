@@ -4633,6 +4633,7 @@
     "search": "Szukaj na liście",
     "no_results": "Brak wyników",
     "clear": "Wyczyść wybór",
+    "load_more": "Pokaż więcej",
     "selected_count": "Wybrano: {count}"
   },
   "entity_picker": {

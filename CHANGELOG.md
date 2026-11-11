@@ -13,6 +13,14 @@ All notable changes to this project will be documented in this file.
   come back from Edit. "Expand all" is gone (it cannot work on 50 000 nodes); each row has "Add subcategory"
   (`/pim/categories/create?parent=<idx>`). On a phone a row drops the drag handle and folder icon, indents less,
   wraps the name and keeps "Add subcategory" and "Edit" in one menu; reordering stays desktop only (no touch drag).
+- Category pickers no longer stop at the first 100 categories: the product list filter, the parent in "Create
+  category", the category of an AI task and the categories of a promo filter search the API (debounced) and page
+  with "Load more", and a chosen value keeps its name whichever page is loaded. The same goes for the attribute and
+  feature pickers of a promo filter and the value filters of the product list. "Create category" preselects
+  `?parent=<idx>`. The category options show the idx as a second line. `BasicSelect` has a `remoteSearch` prop (the
+  menu shows the options as given, so a server hit is never hidden by its label). The feature pickers of the quality
+  rule form, and the feature, feature-set and filterable-feature lists of the Atlas mappings, the feature set editor and
+  the product list, read every page instead of the first 50 to 200 rows.
 
 ### Changed
 

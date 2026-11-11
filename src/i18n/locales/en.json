@@ -4634,6 +4634,7 @@
     "search": "Search the list",
     "no_results": "No results",
     "clear": "Clear selection",
+    "load_more": "Load more",
     "selected_count": "{count} selected"
   },
   "entity_picker": {
