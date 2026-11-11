@@ -160,15 +160,37 @@ describe("FocusAttribute", () => {
     expect(find(w, "focus-attribute-ecom").text()).toContain("41 Ah");
   });
 
+  it("has no Save or Cancel button: it saves on Enter or when the field loses focus", async () => {
+    const w = render(proposal());
+    await find(w, "focus-attribute-edit").trigger("click");
+    expect(find(w, "focus-attribute-save").exists()).toBe(false);
+    expect(w.text()).not.toContain("common.cancel");
+    w.vm.draft = "41";
+    w.findComponent(Input).vm.$emit("onFocusout", "41");
+    await flushPromises();
+    expect(api.PATCH_Proposal).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes an unchanged edit without saving, and Esc cancels", async () => {
+    const w = render(proposal());
+    await find(w, "focus-attribute-edit").trigger("click");
+    w.findComponent(Input).vm.$emit("onFocusout", "");
+    await flushPromises();
+    expect(api.PATCH_Proposal).not.toHaveBeenCalled();
+    expect(find(w, "focus-attribute-input").exists()).toBe(false);
+    await find(w, "focus-attribute-edit").trigger("click");
+    w.vm.draft = "99";
+    await w.find("form").trigger("keydown", { key: "Escape" });
+    expect(find(w, "focus-attribute-input").exists()).toBe(false);
+    expect(api.PATCH_Proposal).not.toHaveBeenCalled();
+  });
+
   it("does not save an open edit form after the card becomes busy", async () => {
     const w = render(proposal());
     await find(w, "focus-attribute-edit").trigger("click");
     await w.setProps({ busy: true });
     expect(
       find(w, "focus-attribute-input").attributes("disabled"),
-    ).toBeDefined();
-    expect(
-      find(w, "focus-attribute-save").attributes("disabled"),
     ).toBeDefined();
     await w.find("form").trigger("submit");
     expect(api.PATCH_Proposal).not.toHaveBeenCalled();
