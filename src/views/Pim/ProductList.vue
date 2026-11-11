@@ -266,7 +266,7 @@ import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { useMuninStore } from "@/stores/munin";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
-import { useCategoryOptions } from "@/composables/useRemoteOptions";
+import { useCategoryOptions, fetchAllPages } from "@/composables/useRemoteOptions";
 import {
   GET_Products,
   POST_BulkUpdateProducts,
@@ -593,11 +593,11 @@ export default {
     },
     async fetchFilterableFeatures() {
       try {
-        const { data } = await GET_Features(
-          { is_filterable: true, page_size: 50 },
-          this.channelIdx
+        const rows = await fetchAllPages(
+          async (params) =>
+            (await GET_Features({ is_filterable: true, ...params }, this.channelIdx)).data
         );
-        const selectFeatures = (data.results || []).filter(
+        const selectFeatures = rows.filter(
           (f) => f.feature_type === 7 || f.feature_type === 8
         );
         const features = selectFeatures.map((feat) => ({ idx: feat.idx, name: feat.name || feat.idx }));

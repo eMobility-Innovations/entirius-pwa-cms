@@ -98,6 +98,20 @@ export function useRemoteOptions({ fetchPage, toOption, resolveOne, pageSize = O
   return reactive({ options, moreLabel, hasMore, loading, load: () => load(false), loadMore, onSearch, reload, track });
 }
 
+/**
+ * Every row of a paginated list, for a place that needs the whole list (a default-set check, labels for many saved
+ * rows). `fetchPage({ page, page_size })` -> { results, next }; stops at `maxPages` so a huge list cannot run away.
+ */
+export async function fetchAllPages(fetchPage, { pageSize = 100, maxPages = 50 } = {}) {
+  const rows = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const data = await fetchPage({ page, page_size: pageSize });
+    rows.push(...(data.results || []));
+    if (!data.next) break;
+  }
+  return rows;
+}
+
 const orUndefined = (value) => (value === "" ? undefined : value);
 const emptyPage = { results: [], next: null };
 
