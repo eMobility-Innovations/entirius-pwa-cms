@@ -1,28 +1,33 @@
 <script setup>
 import { computed } from "vue";
 
+// One row of the category tree (or of the flat search result list: `flat`). The tree is a flat list of rows,
+// so a row never renders its children; depth only indents it.
 const props = defineProps({
   node: { type: Object, required: true },
   depth: { type: Number, default: 0 },
-  expandedNodes: { type: Object, required: true },
+  expanded: { type: Boolean, default: false },
+  leaf: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false },
   isRoot: { type: Boolean, default: false },
+  flat: { type: Boolean, default: false },
+  highlighted: { type: Boolean, default: false },
   dragState: { type: Object, default: null },
 });
 
 const emit = defineEmits([
   "toggle",
   "select",
+  "add-child",
+  "show-in-tree",
   "dragstart",
   "dragover",
   "drop",
   "dragend",
 ]);
 
-const isExpanded = computed(() => props.expandedNodes.has(props.node.idx));
-const hasChildren = computed(
-  () => props.node.children && props.node.children.length > 0
-);
-const isDraggable = computed(() => !props.isRoot);
+const isDraggable = computed(() => !props.isRoot && !props.flat);
+const showToggle = computed(() => !props.flat && !props.leaf);
 const displayName = computed(
   () =>
     props.node.name ||
@@ -41,19 +46,18 @@ const dropIndicator = computed(() => {
 });
 
 function onRowClick() {
-  if (hasChildren.value) {
-    emit("toggle", props.node.idx);
-  }
+  if (showToggle.value) emit("toggle", props.node);
 }
 
 function onDragStart(e) {
-  if (props.isRoot) return;
+  if (!isDraggable.value) return;
   e.dataTransfer.effectAllowed = "move";
   e.dataTransfer.setData("text/plain", props.node.idx);
   emit("dragstart", props.node);
 }
 
 function onDragOver(e) {
+  if (props.flat) return;
   e.preventDefault();
   e.dataTransfer.dropEffect = "move";
   const rect = e.currentTarget.getBoundingClientRect();
@@ -78,6 +82,7 @@ function onDragOver(e) {
 }
 
 function onDrop(e) {
+  if (props.flat) return;
   e.preventDefault();
   emit("drop", { targetIdx: props.node.idx });
 }
@@ -88,7 +93,7 @@ function onDragEnd() {
 </script>
 
 <template>
-  <div class="tree-node">
+  <div class="tree-node" :data-idx="node.idx">
     <div
       class="tree-node__row"
       :class="{
@@ -97,6 +102,7 @@ function onDragEnd() {
         'tree-node__row--drop-after': dropIndicator === 'after',
         'tree-node__row--dragging':
           dragState && dragState.draggedIdx === node.idx,
+        'tree-node__row--highlight': highlighted,
       }"
       :style="{ paddingLeft: `${depth * 24 + 12}px` }"
       :draggable="isDraggable"
@@ -112,19 +118,24 @@ function onDragEnd() {
         class="tree-node__drag-handle t-muted"
         aria-hidden="true"
       />
+      <span v-if="loading" class="tree-node__toggle t-muted" role="status">
+        <font-awesome-icon :icon="$icons.running" spin />
+        <span class="visually-hidden">{{ $t("pim.category_loading_children") }}</span>
+      </span>
       <IconButton
-        v-if="hasChildren"
-        :icon="isExpanded ? 'collapse' : 'expand'"
-        :label="$t(isExpanded ? 'pim.collapse_group' : 'pim.expand_group', { name: displayName })"
-        :aria-expanded="String(isExpanded)"
+        v-else-if="showToggle"
+        :icon="expanded ? 'collapse' : 'expand'"
+        :label="$t(expanded ? 'pim.collapse_group' : 'pim.expand_group', { name: displayName })"
+        :aria-expanded="String(expanded)"
         size="sm"
-        @click="emit('toggle', node.idx)"
+        @click="emit('toggle', node)"
       />
       <span v-else class="tree-node__toggle" />
       <span class="tree-node__icon t-muted"
         ><font-awesome-icon :icon="$icons.category"
       /></span>
       <span class="tree-node__name" :title="displayName">{{ displayName }}</span>
+      <span v-if="flat" class="tree-node__idx t-muted fs-200">{{ node.idx }}</span>
       <StatusBadge
         v-if="isRoot"
         tone="accent"
@@ -134,7 +145,14 @@ function onDragEnd() {
         class="tree-node__root-badge"
       />
       <StatusBadge tone="neutral" :dot="false" :label="node.product_count || 0" class="tree-node__count" />
+      <StatusBadge
+        v-if="flat"
+        :tone="node.is_active ? 'positive' : 'negative'"
+        size="sm"
+        :label="node.is_active ? $t('pim.active') : $t('pim.inactive')"
+      />
       <span
+        v-else
         class="tree-node__status"
         :class="
           node.is_active
@@ -149,26 +167,25 @@ function onDragEnd() {
       >
         <font-awesome-icon v-if="!node.is_in_menu" :icon="$icons.hide" />
       </span>
+      <BasicButton
+        v-if="flat"
+        variant="secondary"
+        size="sm"
+        @click="emit('show-in-tree', node)"
+      >
+        {{ $t("pim.category_show_in_tree") }}
+      </BasicButton>
+      <IconButton
+        v-else
+        icon="add"
+        :label="$t('pim.add_subcategory_to', { name: displayName })"
+        size="sm"
+        @click="emit('add-child', node)"
+      />
       <BasicButton variant="ghost" size="sm" @click="emit('select', node)">
         {{ $t("common.edit") }}
       </BasicButton>
     </div>
-    <template v-if="isExpanded">
-      <CategoryTreeNode
-        v-for="child in node.children"
-        :key="child.idx"
-        :node="child"
-        :depth="depth + 1"
-        :expanded-nodes="expandedNodes"
-        :drag-state="dragState"
-        @toggle="(idx) => emit('toggle', idx)"
-        @select="(cat) => emit('select', cat)"
-        @dragstart="(node) => emit('dragstart', node)"
-        @dragover="(data) => emit('dragover', data)"
-        @drop="(data) => emit('drop', data)"
-        @dragend="emit('dragend')"
-      />
-    </template>
   </div>
 </template>
 
@@ -222,6 +239,20 @@ function onDragEnd() {
   }
 }
 
+.tree-node__row--highlight {
+  background: var(--accent-subtle);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.tree-node__idx {
+  flex-shrink: 0;
+  max-width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tree-node__row--drop-inside {
   background: var(--accent-subtle);
 }
@@ -232,6 +263,9 @@ function onDragEnd() {
 
 // The toggle's place in a row without children, so the names line up.
 .tree-node__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 24px;
   flex-shrink: 0;
 }
