@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { useRemoteOptions } from "@/composables/useRemoteOptions";
+import { fetchAllPages, useRemoteOptions } from "@/composables/useRemoteOptions";
 
 const row = (i) => ({ idx: `c${i}`, name: `Cat ${i}` });
 const toOption = (r) => ({ value: r.idx, label: r.name, description: r.idx });
@@ -88,5 +88,18 @@ describe("useRemoteOptions", () => {
     await src.reload();
     expect(resolveOne).toHaveBeenCalledTimes(2);
     expect(src.options[0].label).toBe("Resolved c5");
+  });
+});
+
+describe("fetchAllPages", () => {
+  it("follows next until the last page", async () => {
+    const fetchPage = vi.fn(async ({ page }) => ({ results: [page], next: page < 3 ? "n" : null }));
+    expect(await fetchAllPages(fetchPage)).toEqual([1, 2, 3]);
+    expect(fetchPage).toHaveBeenLastCalledWith({ page: 3, page_size: 100 });
+  });
+
+  it("stops at maxPages", async () => {
+    const fetchPage = vi.fn(async () => ({ results: [0], next: "n" }));
+    expect(await fetchAllPages(fetchPage, { maxPages: 4 })).toHaveLength(4);
   });
 });
