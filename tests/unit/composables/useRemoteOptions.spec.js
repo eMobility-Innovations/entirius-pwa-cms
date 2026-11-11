@@ -91,6 +91,35 @@ describe("useRemoteOptions", () => {
   });
 });
 
+describe("useRemoteOptions label lookups", () => {
+  it("waits for page 1 and looks up only the values it did not bring, four at a time", async () => {
+    let release;
+    const fetchPage = vi.fn(() => new Promise((r) => (release = r)));
+    let running = 0;
+    let peak = 0;
+    const resolveOne = vi.fn(async (value) => {
+      running++;
+      peak = Math.max(peak, running);
+      await Promise.resolve();
+      await Promise.resolve();
+      running--;
+      return { value, label: `L ${value}` };
+    });
+    const src = useRemoteOptions({ fetchPage, toOption, resolveOne });
+    const values = ["c1", ...Array.from({ length: 9 }, (_, i) => `x${i}`)];
+    const done = src.reload();
+    const tracked = src.track(values);
+    await Promise.resolve();
+    expect(resolveOne).not.toHaveBeenCalled();
+
+    release({ results: [row(1)], next: null });
+    await Promise.all([done, tracked]);
+    expect(resolveOne).toHaveBeenCalledTimes(9);
+    expect(resolveOne).not.toHaveBeenCalledWith("c1");
+    expect(peak).toBeLessThanOrEqual(4);
+  });
+});
+
 describe("fetchAllPages", () => {
   it("follows next until the last page", async () => {
     const fetchPage = vi.fn(async ({ page }) => ({ results: [page], next: page < 3 ? "n" : null }));

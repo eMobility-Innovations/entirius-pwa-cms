@@ -4,6 +4,7 @@ import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { t } from "@/i18n";
 
 export const OPTIONS_PAGE_SIZE = 50;
+const RESOLVE_CONCURRENCY = 4;
 
 const asList = (value) => (Array.isArray(value) ? value : [value]).filter((v) => v !== null && v !== undefined && v !== "");
 
@@ -28,6 +29,7 @@ export function useRemoteOptions({ fetchPage, toOption, resolveOne, pageSize = O
   let query = "";
   let page = 0;
   let seq = 0;
+  let firstPage = Promise.resolve();
 
   async function load(append = false) {
     const mine = ++seq;
@@ -51,19 +53,28 @@ export function useRemoteOptions({ fetchPage, toOption, resolveOne, pageSize = O
     }
   }
 
+  // Runs `task` over `items`, at most RESOLVE_CONCURRENCY at a time.
+  async function inPool(items, task) {
+    const queue = [...items];
+    const worker = async () => {
+      while (queue.length) await task(queue.shift());
+    };
+    await Promise.all(Array.from({ length: Math.min(RESOLVE_CONCURRENCY, queue.length) }, worker));
+  }
+
+  // Waits for the page in flight (it names most chosen values), then looks up only the ones still unknown.
   async function resolveMissing(values) {
+    await firstPage;
     const missing = values.filter((value) => !known.has(value));
     missing.forEach((value) => known.set(value, { value, label: String(value) }));
-    await Promise.all(
-      missing.map(async (value) => {
-        try {
-          const option = await resolveOne?.(value);
-          if (option) known.set(value, option);
-        } catch {
-          // the idx stays as the label
-        }
-      })
-    );
+    await inPool(missing, async (value) => {
+      try {
+        const option = await resolveOne?.(value);
+        if (option) known.set(value, option);
+      } catch {
+        // the idx stays as the label
+      }
+    });
   }
 
   const options = computed(() => {
@@ -84,18 +95,20 @@ export function useRemoteOptions({ fetchPage, toOption, resolveOne, pageSize = O
     debouncedFetch(() => load(false));
   }
 
-  function reload() {
+  async function reload() {
     query = "";
     known.clear();
     loaded.value = [];
     hasMore.value = false;
-    return Promise.all([load(false), resolveMissing(chosen.value)]);
+    firstPage = load(false);
+    await firstPage;
+    await resolveMissing(chosen.value);
   }
 
   const moreLabel = computed(() => (hasMore.value ? t("select.load_more") : ""));
   const loadMore = () => (loading.value ? undefined : load(true));
 
-  return reactive({ options, moreLabel, hasMore, loading, load: () => load(false), loadMore, onSearch, reload, track });
+  return reactive({ options, moreLabel, hasMore, loading, load: () => (firstPage = load(false)), loadMore, onSearch, reload, track });
 }
 
 /**
