@@ -32,6 +32,12 @@ Notable ones for list/form views:
   panel or button; `block` centres it in the content area it stands in for.
 - **`NumberInput`** — stepper field. A fractional `step` turns on decimal entry; typed text keeps one leading minus
   (only when `min` < 0), one decimal separator and digits. `disabled` locks the value and both steppers.
+- **Long lists (categories, attributes, features):** never load one page as static `options`. `useRemoteOptions`
+  (`src/composables/useRemoteOptions.js`; `useCategoryOptions`, `useAttributeOptions`, `useFeatureOptions`) feeds a
+  `searchable` BasicSelect: `:options="src.options"`, `:more-label="src.moreLabel"`, `@search="src.onSearch"`,
+  `@more="src.loadMore"`, and `src.track(value)` keeps the chosen values (resolved with the detail endpoint) in
+  the options. BasicSelect still filters the loaded options by label, so the label must contain what the server
+  matches (categories: the name; attributes and features: `idx — name`).
 - **`ChannelMultiSelect`** — multi-select for channel scoping (`v-model`
   array of channel idx). Props: `modelValue`, `channels`, `label`, `allLabel`, `floatingLabel`.
 - **`BasicSelect`** — an option may carry `description`, a muted line under its label. Never put a `?` tooltip
