@@ -1,7 +1,7 @@
 <template>
   <div class="text-diff flex-column gap-4" data-testid="text-diff">
     <span v-if="isNew" class="text-diff__label fs-200 t-secondary" data-testid="text-diff-new">
-      {{ $t("enrichment.review.new_text") }}
+      {{ $t(number ? "enrichment.review.new_value" : "enrichment.review.new_text") }}
     </span>
     <ReadonlyOff v-else-if="switchable">
       <SegmentedControl v-model="view" :options="viewOptions" class="text-diff__switch" />
@@ -62,6 +62,7 @@ export default {
     rules: { type: Object, default: null },
     snippet: { type: Object, default: null },
     switchable: { type: Boolean, default: true },
+    number: { type: Boolean, default: false },
   },
   data() {
     return { view: "changes", expanded: false };

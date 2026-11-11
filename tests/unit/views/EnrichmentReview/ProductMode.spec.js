@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetTask = vi.fn();
@@ -18,6 +18,7 @@ vi.mock("@/api/pim/api", () => ({
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: notify }) }));
 vi.mock("@/stores/pimChannel", () => ({ usePimChannelStore: () => ({ activeChannelIdx: "c1" }) }));
 
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 import ProductMode from "@/views/EnrichmentReview/ProductMode.vue";
 import ProposalPanel from "@/views/EnrichmentReview/ProposalPanel.vue";
 
@@ -130,5 +131,62 @@ describe("ProductMode", () => {
     const sources = w.findAll("[data-testid='proposal-source']").map((n) => n.text());
     expect(sources[0]).toContain("Oak chair");
     expect(sources[1]).toContain("Short text");
+  });
+});
+
+describe("ProductMode: one product at a time", () => {
+  const mountMode = (props = {}) =>
+    mount(ProductMode, { props: { rows: ROWS, ...props }, global: { stubs } });
+
+  beforeEach(() => {
+    mockGetTask.mockResolvedValue({ data: {} });
+    enrichmentConfig.enrichment.sourceFeature = { idx: "shop_hints", language: "en" };
+  });
+  afterEach(() => {
+    enrichmentConfig.enrichment.sourceFeature = null;
+  });
+
+  it("offers the whole product in one click", async () => {
+    const wrapper = mountMode();
+    await flushPromises();
+
+    await wrapper.find('[data-testid="enrichment-accept-product"]').trigger("click");
+
+    expect(wrapper.emitted("accept-product")[0][0].subjectRef).toBe("SKU-1");
+  });
+
+  it("disables it while another action runs", async () => {
+    const wrapper = mountMode({ busy: true });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="enrichment-accept-product"]').attributes("disabled")).toBeDefined();
+  });
+
+  it("shows what the shop said about the product on demand, and hides it again", async () => {
+    mockGetProduct.mockResolvedValue({
+      data: { attributes: [{ feature_idx: "shop_hints", value_txt_t9n: { en: "param 10 Voltage: 36V" } }] },
+    });
+    const wrapper = mountMode();
+    await flushPromises();
+    const toggle = wrapper.find('[data-testid="enrichment-product-source"]');
+
+    await toggle.trigger("click");
+    await flushPromises();
+
+    expect(mockGetProduct).toHaveBeenCalledWith("c1", "SKU-1");
+    expect(wrapper.find('[data-testid="enrichment-product-source-text"]').text()).toBe("param 10 Voltage: 36V");
+
+    await toggle.trigger("click");
+
+    expect(wrapper.find('[data-testid="enrichment-product-source-text"]').exists()).toBe(false);
+  });
+
+  it("renders no source toggle without the client config key", async () => {
+    enrichmentConfig.enrichment.sourceFeature = null;
+    const wrapper = mountMode();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="enrichment-product-source"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="enrichment-accept-product"]').exists()).toBe(true);
   });
 });

@@ -33,7 +33,7 @@ const pictures = (...results) => ({ data: { count: results.length, results } });
 
 const mountCard = (props = {}, routerMock = {}) =>
   mount(ProductPreviewCard, {
-    props: { sku: "00079331", channelIdx: "escootersclinic", ...props },
+    props: { sku: "00079331", channelIdx: "shop-channel", ...props },
     global: {
       mocks: { $router: { push: vi.fn(), ...routerMock } },
       stubs: { Loader: true, StatusBadge: true, EmptyState: true, FontAwesomeIcon: true },
@@ -52,7 +52,7 @@ describe("ProductPreviewCard", () => {
     const wrapper = mountCard();
     await flushPromises();
 
-    expect(mockGetProduct).toHaveBeenCalledWith("escootersclinic", "00079331");
+    expect(mockGetProduct).toHaveBeenCalledWith("shop-channel", "00079331");
     expect(wrapper.vm.product.name).toBe("Dualtron Spider 2");
   });
 
@@ -71,7 +71,7 @@ describe("ProductPreviewCard", () => {
     const wrapper = mountCard();
     await flushPromises();
 
-    expect(mockGetPictures).toHaveBeenCalledWith("escootersclinic", "00079331");
+    expect(mockGetPictures).toHaveBeenCalledWith("shop-channel", "00079331");
     expect(wrapper.get("img.product-preview__img").attributes("src")).toContain("/media/image/m.jpg");
   });
 
@@ -140,7 +140,7 @@ describe("ProductPreviewCard", () => {
     await wrapper.setProps({ sku: "00193089" });
     await flushPromises();
     expect(mockGetProduct).toHaveBeenCalledTimes(2);
-    expect(mockGetProduct.mock.calls.at(-1)).toEqual(["escootersclinic", "00193089"]);
+    expect(mockGetProduct.mock.calls.at(-1)).toEqual(["shop-channel", "00193089"]);
   });
 });
 
@@ -150,7 +150,7 @@ describe("ProductPreviewCard in the drawer", () => {
     const { default: BasicCard } = await import("@/boots/BasicCard/index.vue");
     mockGetProduct.mockResolvedValueOnce({ data: product() });
     const wrapper = mount(ProductPreviewCard, {
-      props: { sku: "00079331", channelIdx: "escootersclinic", flat: true },
+      props: { sku: "00079331", channelIdx: "shop-channel", flat: true },
       global: { components: { BasicCard }, stubs: { Loader: true, StatusBadge: true, EmptyState: true, FontAwesomeIcon: true } },
     });
     await flushPromises();

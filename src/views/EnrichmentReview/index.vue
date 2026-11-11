@@ -122,7 +122,7 @@
         :loading="loading"
         :total-count="totalCount"
         :busy="busy"
-        :bulk="!filters.task"
+        :bulk="!filters.task && canBulk"
         :status-filter="filters.status"
         @accept="acceptOne"
         @reject="rejectOne"
@@ -158,6 +158,7 @@
         :loading="loading"
         :busy="busy"
         @accept="acceptOne"
+        @accept-product="acceptWholeProduct"
         @reject="rejectOne"
         @updated="patchRow"
         @preview-product="openProductPreview"
@@ -207,6 +208,7 @@
       :message="bulkAsk ? $t(`enrichment.review.bulk.confirm_${bulkAsk}_message`) : ''"
       :confirm-label="bulkAsk ? $t(`enrichment.review.bulk.${bulkAsk}_all`, { count: totalCount }) : ''"
       confirm-testid="enrichment-bulk-confirm"
+      :hold-seconds="bulkAsk === 'undo' ? 0 : bulkHoldSeconds"
       @confirm="runBulk"
       @cancel="bulkAsk = null"
     />
@@ -243,11 +245,14 @@
 import { defineAsyncComponent } from "vue";
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
+import { useAccessStore } from "@/stores/access";
+import { AREAS } from "@/configs/areas";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import RouteTabs from "@/components/Navigation/RouteTabs.vue";
 import { ENRICHMENT_REVIEW_TABS, routeTabPanel } from "@/components/Navigation/nav-routes";
 import ListMode from "./ListMode.vue";
 import ProductMode from "./ProductMode.vue";
+import { acceptProduct } from "./acceptProduct";
 import DriftModal from "./DriftModal.vue";
 import ImportCsvDialog from "./ImportCsvDialog.vue";
 import ProductPreviewDrawer from "./ProductPreviewDrawer.vue";
@@ -280,6 +285,9 @@ const STATUS_VALUES = [
   "superseded",
   "reverted",
 ];
+
+// Seconds the bulk confirm stays disabled after it opens — time to read the count before an irreversible act.
+const BULK_HOLD_SECONDS = 5;
 
 export default {
   name: "EnrichmentReview",
@@ -323,6 +331,14 @@ export default {
     };
   },
   computed: {
+    // Apply all / Reject all write or close every proposal in the filter at once (Reject is terminal), so they are
+    // shown only to whoever may write the enrichment rules — reviewers with proposal rights work one by one.
+    canBulk() {
+      return useAccessStore().can(AREAS.ENRICHMENT_RULES, "write");
+    },
+    bulkHoldSeconds() {
+      return BULK_HOLD_SECONDS;
+    },
     // A Studio step's proposal has no product: the drawer names its article.
     detailTitle() {
       if (runUidOf(this.detail)) return this.detail.subject_label || this.$t("enrichment.review.studio_article");
@@ -405,8 +421,10 @@ export default {
         path: this.$route.path,
         query: { ...this.$route.query, mode: val },
       });
-      // Under "All" Focus reads the pending set only: entering or leaving it reloads from the first page.
-      if (this.filters.status === "__all" && (val === "focus") !== (old === "focus")) {
+      // Under "All" Focus reads the pending set only, and Products and Focus read by product: entering or leaving
+      // either reloads from the first page.
+      const focusChanged = this.filters.status === "__all" && (val === "focus") !== (old === "focus");
+      if (focusChanged || (val === "list") !== (old === "list")) {
         this.page = 1;
         this.fetchRows();
       }
@@ -442,7 +460,8 @@ export default {
       const params = {
         page: this.page,
         page_size: this.pageSize,
-        ordering: "-created_at",
+        // By product, a product's proposals stay together on one page.
+        ordering: this.mode === "list" ? "-created_at" : "subject_ref",
       };
       // The "All" chip asks for every status (no status param would mean only pending); Focus walks what is to decide.
       if (this.filters.status)
@@ -534,10 +553,11 @@ export default {
       this.page = page;
       this.fetchRows();
     },
-    async loadNextPage() {
-      // Focus mode reached the end of the loaded page — pull the next one.
+    async loadNextPage({ decided = false } = {}) {
+      // Focus mode reached the end of the loaded page — pull the next one. What was decided left the set and the
+      // rest slid up, so after a decision the same page holds the next rows.
       if (this.page * this.pageSize >= this.totalCount) return;
-      this.page += 1;
+      if (!decided) this.page += 1;
       await this.fetchRows();
     },
     exitFocus() {
@@ -606,6 +626,29 @@ export default {
       } finally {
         this.busy = false;
       }
+    },
+    async acceptWholeProduct({ subjectRef }) {
+      if (this.busy) return;
+      this.busy = true;
+      try {
+        const { accepted, drifted } = await acceptProduct(subjectRef);
+        if (drifted) {
+          this.driftProposal = drifted;
+          this.driftVisible = true;
+        }
+        this.notify.spawnNotification({
+          type: "positive",
+          msg: this.$t("enrichment.review.toast.bulk_accepted", { count: accepted }),
+        });
+      } catch (err) {
+        this.notify.spawnNotification({
+          type: "negative",
+          msg: extractApiMessage(err, this.$t("notifications.error")),
+        });
+      } finally {
+        this.busy = false;
+      }
+      await this.fetchRows();
     },
     async rejectOne({ proposal, reason }) {
       if (this.busy) return;

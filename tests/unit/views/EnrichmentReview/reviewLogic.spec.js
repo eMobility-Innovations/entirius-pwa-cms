@@ -1,6 +1,8 @@
-import { describe, it, expect } from "vitest";
-import {
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
+import { focusSteps,
   editableText,
+  withEditedText,
   groupBySubject,
   isHtml,
   changeSummary,
@@ -205,5 +207,106 @@ describe("subjectName", () => {
     expect(subjectName({ subject_label: "", subject_ref: "ENT-S001" })).toBe("ENT-S001");
     expect(subjectName({ subject_label: "ENT-S001", subject_ref: "ENT-S001" })).toBe("ENT-S001");
     expect(subjectName({ subject_label: "Orion lamp", subject_ref: "" })).toBe("Orion lamp");
+  });
+});
+
+describe("number proposals", () => {
+  it("edits a number as text and keeps it under value", () => {
+    const proposal = { proposed_value: { value: "12.5" } };
+
+    expect(editableText(proposal)).toBe("12.5");
+    expect(withEditedText(proposal, "13")).toEqual({ value: "13" });
+  });
+
+  it("keeps a text proposal under text", () => {
+    expect(withEditedText({ proposed_value: { text: "a", extra: 1 } }, "b")).toEqual({ text: "b", extra: 1 });
+  });
+
+  it("does not offer a yes/no value as text", () => {
+    expect(editableText({ proposed_value: { value: true } })).toBeNull();
+  });
+});
+
+describe("changeSummary of a measured value", () => {
+  beforeEach(() => {
+    enrichmentConfig.enrichment.featureUnits = { capacity: "Ah", speed: "km/h" };
+  });
+  afterEach(() => {
+    enrichmentConfig.enrichment.featureUnits = {};
+  });
+
+  it("adds the unit the decimal was asked in, which the proposal does not carry", () => {
+    const proposal = {
+      target_kind: "attribute_value",
+      target_locator: { feature_idx: "capacity" },
+      proposed_value: { value: "40" },
+      current_snapshot: { value: null },
+    };
+    expect(changeSummary(proposal).excerpt).toBe("40 Ah");
+  });
+
+  it("adds no unit when the client config names none for the feature", () => {
+    enrichmentConfig.enrichment.featureUnits = {};
+    const proposal = {
+      target_kind: "attribute_value",
+      target_locator: { feature_idx: "capacity" },
+      proposed_value: { value: "40" },
+      current_snapshot: { value: null },
+    };
+    expect(changeSummary(proposal).excerpt).toBe("40");
+  });
+
+  it("keeps the unit the proposal states over the feature's", () => {
+    const proposal = {
+      target_kind: "attribute_value",
+      target_locator: { feature_idx: "speed" },
+      proposed_value: { value: "20", unit: "mph" },
+      current_snapshot: { value: null },
+    };
+    expect(changeSummary(proposal).excerpt).toBe("20 mph");
+  });
+
+  const summary = (proposed_value) => changeSummary({ target_kind: "attribute_value", proposed_value, current_snapshot: {} });
+
+  it("shows the number with its unit", () => {
+    expect(summary({ unit: "inch", value: "6.5" }).excerpt).toBe("6.5 inch");
+  });
+
+  it("shows a number with no unit", () => {
+    expect(summary({ value: "24" }).excerpt).toBe("24");
+  });
+
+  it("leaves a text proposal as it was", () => {
+    expect(summary({ text: "13S4P" }).excerpt).toBe("13S4P");
+  });
+});
+
+
+describe("focusSteps", () => {
+  const product = (id, sku, kind = "attribute_value") => ({
+    id,
+    status: "pending",
+    target_module: "pim",
+    target_kind: kind,
+    subject_ref: sku,
+  });
+
+  it("makes a product one step", () => {
+    const rows = [product(1, "A", "feature_set"), product(2, "A"), product(3, "B")];
+    expect(focusSteps(rows).map((row) => row.id)).toEqual([1, 3]);
+  });
+
+  it("leaves out products already passed", () => {
+    expect(focusSteps([product(1, "A"), product(2, "B")], ["A"]).map((row) => row.id)).toEqual([2]);
+  });
+
+  it("keeps anything but a pending PIM set or attribute on its own", () => {
+    const rows = [
+      { ...product(1, "A"), status: "applied" },
+      { ...product(2, "A"), status: "applied" },
+      { ...product(3, "B"), target_module: "studio" },
+      { ...product(4, "B"), target_module: "studio" },
+    ];
+    expect(focusSteps(rows).map((row) => row.id)).toEqual([1, 2, 3, 4]);
   });
 });

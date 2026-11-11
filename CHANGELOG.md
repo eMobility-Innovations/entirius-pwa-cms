@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
   `test-e2e-mocked` on both. The minimum Node version (`engines.node`) is now 22 (Node 20 is past its end of life).
   The unit setup provides in-memory `localStorage` and `sessionStorage` when the runtime has none (Node 26 ships an
   undefined `localStorage` global, which stopped happy-dom from installing its own).
+### Added
+
+- Enrichment review decides a product as a whole: "Apply product" applies every pending proposal of one product,
+  the feature-set proposal first, and stops at a drifted one (the drift dialog opens). A feature-set proposal reads
+  "Now: X / AI proposes: Y" by name. Focus shows a PIM product as one step with Apply, Reject and Skip and a
+  feature-set choice. Numbers and lengths read with their unit; a length is entered in millimetres or inches.
+- Bulk apply and reject in the enrichment review are shown only to a user who may write the enrichment rules, and
+  their confirm button stays disabled for 5 seconds.
+- Client config `__client/configs/__enrichment_config.json` (default in `__client_default/`, copied by
+  `init:client`): `enrichment.featureUnits` maps a feature idx to the unit its numbers show when the proposal states
+  none (default `{}`), and `enrichment.sourceFeature` (`{ "idx": "...", "language": "en" }`, default `null`) names
+  the feature the "Shop data" toggle of the review reads; without it the toggle is not rendered. Existing
+  deployments get the file on the next `npm run serve`, `build` or `test:unit`.
 
 ## [3.6.1] (2026-11-11)
 

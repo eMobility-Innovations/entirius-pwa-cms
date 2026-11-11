@@ -1,4 +1,5 @@
 import { diffArrays, diffWords } from "diff";
+import { featureUnit } from "./featureUnits";
 
 // Review helpers: the word diff, HTML detection, grouping by product, the worker of a proposal and the source text
 // of a translation. Pure functions — the components render what these return.
@@ -59,10 +60,42 @@ export function sourceText(product, featureIdx, language) {
   return attribute?.value_txt_t9n?.[language] || "";
 }
 
-/** An editable proposal carries its value as `{ text }`. */
+/** An editable proposal carries its value as `{ text }`, or a number as `{ value: "12.5" }`. */
 export function editableText(proposal) {
-  const text = proposal?.proposed_value?.text;
-  return typeof text === "string" ? text : null;
+  const { text, value } = proposal?.proposed_value || {};
+  if (typeof text === "string") return text;
+  return typeof value === "string" ? value : null;
+}
+
+/** The proposal's value with `draft` in the key it came in. */
+export function withEditedText(proposal, draft) {
+  const key = typeof proposal?.proposed_value?.text === "string" ? "text" : "value";
+  return { ...proposal.proposed_value, [key]: draft };
+}
+
+/** A product's proposals in apply order: the feature set first, PIM refuses a feature outside the product's set. */
+export function acceptOrder(proposals) {
+  const isSet = (proposal) => proposal.target_kind === "feature_set";
+  return [...proposals.filter(isSet), ...proposals.filter((proposal) => !isSet(proposal))];
+}
+
+const PRODUCT_KINDS = ["feature_set", "attribute_value"];
+
+/** A proposal Focus decides with its whole product: a pending set or attribute of a PIM product. */
+export const isProductProposal = (proposal) =>
+  proposal?.status === "pending" &&
+  (proposal.target_module || "").includes("pim") &&
+  PRODUCT_KINDS.includes(proposal.target_kind);
+
+/** What Focus walks: one row per product (its first), every other proposal on its own; `skipped` SKUs left out. */
+export function focusSteps(rows, skipped = []) {
+  const seen = new Set(skipped);
+  return rows.filter((row) => {
+    if (!isProductProposal(row)) return true;
+    if (seen.has(row.subject_ref)) return false;
+    seen.add(row.subject_ref);
+    return true;
+  });
 }
 
 /** Nothing there yet: null, "", whitespace or an empty paragraph — a proposal for it is new text, not a change. */
@@ -199,6 +232,20 @@ export function subjectName(proposal) {
   return ref ? `${label} · ${ref}` : label;
 }
 
+/** A number proposal as text, with its unit when it has one ("6.5 inch"); null for any other value. */
+function measured(value, featureIdx) {
+  if (value?.value === null || value?.value === undefined) return null;
+  return [value.value, value.unit ?? featureUnit(featureIdx)].filter((part) => part != null).join(" ");
+}
+
+/** True for a proposal that is a number, measured or plain; "72v" is words. */
+export function isNumberValue(value) {
+  if (value?.unit) return true;
+  const raw = value?.value;
+  if (typeof raw === "string") return raw.trim() !== "" && Number.isFinite(Number(raw));
+  return typeof raw === "number";
+}
+
 export function changeSummary(proposal) {
   const icon = MEDIA_KINDS[proposal.target_kind];
   if (icon) return { media: icon, duration: proposal.proposed_value?.duration_s ?? null };
@@ -207,7 +254,7 @@ export function changeSummary(proposal) {
     return { tags: { added: added.length, removed: removed.length } };
   }
   const text = textOf(proposal.proposed_value);
-  const readable = typeof text === "string" && text ? text : firstText(proposal.proposed_value);
+  const readable = measured(proposal.proposed_value, proposal.target_locator?.feature_idx) ?? (typeof text === "string" && text ? text : firstText(proposal.proposed_value));
   const after = plainText(readable).replace(/\s+/g, " ").trim();
   const before = textOf(proposal.current_snapshot);
   return { state: isBlank(before) ? "new" : "changed", excerpt: after.slice(0, EXCERPT), length: after.length };

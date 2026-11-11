@@ -2,7 +2,7 @@
 
 /**
  * Client config initializer.
- * Ensures __client/ (or VUE_APP_CLIENT) directory has all 7 required JSON files.
+ * Ensures __client/ (or VUE_APP_CLIENT) directory has all required JSON files.
  * Copies missing files from __client_default/ template.
  */
 
@@ -17,6 +17,7 @@ const REQUIRED_FILES = [
   'configs/__hidden_config.json',
   'configs/__optional_config.json',
   'configs/__config_options.json',
+  'configs/__enrichment_config.json',
   'props/__props.json',
   'props/__props_handlers.json',
   'props/__props_options.json',

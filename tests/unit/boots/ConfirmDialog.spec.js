@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 
@@ -91,5 +91,51 @@ describe("ConfirmDialog", () => {
     expect(dialog.getAttribute("role")).toBe("dialog");
     expect(dialog.querySelector('[data-testid="confirm-ok"]')).not.toBeNull();
     expect(byTestId("confirm-dialog-confirm")).toBeNull();
+  });
+});
+
+describe("ConfirmDialog holdSeconds", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.innerHTML = "";
+  });
+
+  it("keeps the confirm disabled and counting down for holdSeconds after it opens", async () => {
+    vi.useFakeTimers();
+    const wrapper = mount(ConfirmDialog, {
+      props: { open: true, title: "Reject all 12 proposals?", confirmLabel: "Reject all", holdSeconds: 3 },
+      attachTo: document.body,
+      global,
+    });
+    await nextTick();
+    const confirm = () => byTestId("confirm-dialog-confirm");
+    expect(confirm().disabled).toBe(true);
+    expect(confirm().textContent).toContain("(3)");
+    vi.advanceTimersByTime(2000);
+    await nextTick();
+    expect(confirm().textContent).toContain("(1)");
+    expect(confirm().disabled).toBe(true);
+    vi.advanceTimersByTime(1000);
+    await nextTick();
+    expect(confirm().disabled).toBe(false);
+    expect(confirm().textContent).not.toContain("(");
+    confirm().click();
+    expect(wrapper.emitted("confirm")).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it("restarts the hold on every opening and never holds without holdSeconds", async () => {
+    vi.useFakeTimers();
+    const wrapper = mount(ConfirmDialog, { props: { open: true, title: "t", holdSeconds: 2 }, attachTo: document.body, global });
+    vi.advanceTimersByTime(2000);
+    await wrapper.setProps({ open: false });
+    await wrapper.setProps({ open: true });
+    await nextTick();
+    expect(byTestId("confirm-dialog-confirm").disabled).toBe(true);
+    await wrapper.setProps({ holdSeconds: 0, open: false });
+    await wrapper.setProps({ open: true });
+    await nextTick();
+    expect(byTestId("confirm-dialog-confirm").disabled).toBe(false);
+    wrapper.unmount();
   });
 });
