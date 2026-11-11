@@ -8,7 +8,13 @@
             <span class="field-label">{{ $t("enrichment.review.focus.set_heading") }}</span>
             <strong class="focus-product__set-name" data-testid="enrichment-focus-set-name">{{ setName }}</strong>
           </div>
-          <BasicButton variant="ghost" size="sm" data-testid="enrichment-focus-source" @click="toggleSource">
+          <BasicButton
+            v-if="hasSource"
+            variant="ghost"
+            size="sm"
+            data-testid="enrichment-focus-source"
+            @click="toggleSource"
+          >
             {{ $t("enrichment.review.shop_data") }}
           </BasicButton>
         </div>
@@ -50,7 +56,7 @@
         </p>
       </section>
       <BasicButton
-        v-else
+        v-else-if="hasSource"
         class="focus-product__source-alone"
         variant="ghost"
         size="sm"
@@ -104,11 +110,11 @@ import { acceptChosen } from "./applyMode";
 import { acceptProduct } from "./acceptProduct";
 import { loadFeatureSetNames } from "./FeatureSetChange.vue";
 import FocusAttribute from "./FocusAttribute.vue";
-import { loadSource } from "./productSource";
+import { hasSource, loadSource } from "./productSource";
 import { acceptOrder } from "./reviewLogic";
 
 const MAX_PROPOSALS = 100; // the API's page limit; a product has far fewer pending proposals
-const MAX_REJECTIONS = 3; // CLASSIFY_MAX_REJECTIONS in esc-service-volkanos: the AI stops after the third
+const MAX_REJECTIONS = 3; // the service stops the AI after the third
 
 // One product of Focus, all of it: the set on top, its attributes under it, read fresh because a product can sit on
 // two pages.
@@ -130,6 +136,7 @@ export default {
     return { proposals: [], loading: true, busy: false, chosen: null, rejected: 0, names: {}, source: null };
   },
   computed: {
+    hasSource,
     setProposal() {
       return this.proposals.find((proposal) => proposal.target_kind === "feature_set") || null;
     },

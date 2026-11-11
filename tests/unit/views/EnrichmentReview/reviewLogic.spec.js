@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 import { focusSteps,
   editableText,
   withEditedText,
@@ -227,20 +228,38 @@ describe("number proposals", () => {
 });
 
 describe("changeSummary of a measured value", () => {
+  beforeEach(() => {
+    enrichmentConfig.enrichment.featureUnits = { capacity: "Ah", speed: "km/h" };
+  });
+  afterEach(() => {
+    enrichmentConfig.enrichment.featureUnits = {};
+  });
+
   it("adds the unit the decimal was asked in, which the proposal does not carry", () => {
     const proposal = {
       target_kind: "attribute_value",
-      target_locator: { feature_idx: "battery_capacity" },
+      target_locator: { feature_idx: "capacity" },
       proposed_value: { value: "40" },
       current_snapshot: { value: null },
     };
     expect(changeSummary(proposal).excerpt).toBe("40 Ah");
   });
 
+  it("adds no unit when the client config names none for the feature", () => {
+    enrichmentConfig.enrichment.featureUnits = {};
+    const proposal = {
+      target_kind: "attribute_value",
+      target_locator: { feature_idx: "capacity" },
+      proposed_value: { value: "40" },
+      current_snapshot: { value: null },
+    };
+    expect(changeSummary(proposal).excerpt).toBe("40");
+  });
+
   it("keeps the unit the proposal states over the feature's", () => {
     const proposal = {
       target_kind: "attribute_value",
-      target_locator: { feature_idx: "top_speed" },
+      target_locator: { feature_idx: "speed" },
       proposed_value: { value: "20", unit: "mph" },
       current_snapshot: { value: null },
     };

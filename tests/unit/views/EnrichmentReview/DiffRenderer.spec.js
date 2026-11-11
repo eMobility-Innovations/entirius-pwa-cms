@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 import DiffRenderer from "@/views/EnrichmentReview/DiffRenderer.vue";
 
 function render(props) {
@@ -123,13 +124,25 @@ describe("DiffRenderer length", () => {
 });
 
 describe("DiffRenderer numbers", () => {
+  beforeEach(() => {
+    enrichmentConfig.enrichment.featureUnits = { capacity: "Ah", speed: "km/h" };
+  });
+  afterEach(() => {
+    enrichmentConfig.enrichment.featureUnits = {};
+  });
+
   const number = (feature_idx, proposed, current = { value: null }) =>
     render({ targetKind: "attribute_value", proposed, current, locator: { feature_idx } });
 
   it("shows a decimal with the unit of its feature", () => {
-    const w = number("battery_capacity", { value: "40" }, { value: "21" });
+    const w = number("capacity", { value: "40" }, { value: "21" });
     expect(w.findComponent({ name: "TextDiff" }).props("after")).toBe("40 Ah");
     expect(w.findComponent({ name: "TextDiff" }).props("before")).toBe("21 Ah");
+  });
+
+  it("shows no unit for a number when no unit is configured", () => {
+    enrichmentConfig.enrichment.featureUnits = {};
+    expect(number("capacity", { value: "40" }).findComponent({ name: "TextDiff" }).props("after")).toBe("40");
   });
 
   it("shows a number of an unknown feature without inventing a unit", () => {
@@ -138,8 +151,8 @@ describe("DiffRenderer numbers", () => {
 
   it("calls a new number a value and new words text", () => {
     const label = (w) => w.get("[data-testid='text-diff-new']").text();
-    expect(label(number("battery_capacity", { value: "40" }))).toBe("enrichment.review.new_value");
-    expect(label(number("rim_diameter", { value: "6.5", unit: "inch" }))).toBe("enrichment.review.new_value");
-    expect(label(number("battery_configuration", { value: "72v" }))).toBe("enrichment.review.new_text");
+    expect(label(number("capacity", { value: "40" }))).toBe("enrichment.review.new_value");
+    expect(label(number("diameter", { value: "6.5", unit: "inch" }))).toBe("enrichment.review.new_value");
+    expect(label(number("configuration", { value: "72v" }))).toBe("enrichment.review.new_text");
   });
 });

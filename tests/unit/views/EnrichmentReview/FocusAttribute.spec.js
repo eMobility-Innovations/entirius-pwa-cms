@@ -8,6 +8,7 @@ vi.mock("@/api/enrichment/api", () => api);
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/api/pim/api", () => ({ GET_Features: () => Promise.resolve({ data: { results: [], next: null } }) }));
 
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 import FocusAttribute from "@/views/EnrichmentReview/FocusAttribute.vue";
 
 enableAutoUnmount(afterEach);
@@ -15,7 +16,7 @@ enableAutoUnmount(afterEach);
 const proposal = (over = {}) => ({
   id: 5,
   target_kind: "attribute_value",
-  target_locator: { feature_idx: "battery_capacity" },
+  target_locator: { feature_idx: "capacity" },
   proposed_value: { value: "40" },
   current_snapshot: { value: null },
   ...over,
@@ -31,7 +32,13 @@ const render = (value) =>
 const find = (w, id) => w.find(`[data-testid='${id}']`);
 
 describe("FocusAttribute", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    enrichmentConfig.enrichment.featureUnits = { capacity: "Ah", speed: "km/h" };
+  });
+  afterEach(() => {
+    enrichmentConfig.enrichment.featureUnits = {};
+  });
 
   it("shows the value with its unit on one row, with no Apply of its own", () => {
     const w = render(proposal());

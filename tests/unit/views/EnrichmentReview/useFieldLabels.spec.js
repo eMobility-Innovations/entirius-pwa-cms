@@ -2,8 +2,8 @@ import { beforeEach, describe, it, expect, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
 
 const pages = {
-  1: { results: [{ idx: "top_speed", name: "Top Speed" }], next: "page-2" },
-  2: { results: [{ idx: "battery_capacity", name: "Battery capacity" }], next: null },
+  1: { results: [{ idx: "speed", name: "Speed" }], next: "page-2" },
+  2: { results: [{ idx: "capacity", name: "Capacity" }], next: null },
 };
 
 vi.mock("@/api/pim/api", () => ({
@@ -23,8 +23,8 @@ describe("useFieldLabels", () => {
 
   it("names a feature past the first page of the catalogue", async () => {
     const { fieldLabel } = await labels();
-    expect(fieldLabel("top_speed")).toBe("Top Speed");
-    expect(fieldLabel("battery_capacity")).toBe("Battery capacity");
+    expect(fieldLabel("speed")).toBe("Speed");
+    expect(fieldLabel("capacity")).toBe("Capacity");
   });
 
   it("heads a feature-set proposal in words", async () => {

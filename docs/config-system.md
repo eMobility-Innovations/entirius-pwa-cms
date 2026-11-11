@@ -17,6 +17,7 @@ JSON configs in `__client/` drive the builder UI dynamically. `__client/` is git
 | `__client/props/__props.json` | Property definitions |
 | `__client/props/__props_handlers.json` | Maps prop types to components |
 | `__client/props/__props_options.json` | Field config for complex props |
+| `__client/configs/__enrichment_config.json` | Enrichment review: `enrichment.featureUnits` (`{ "<feature idx>": "<unit>" }`, units a number shows when the proposal states none, default `{}`) and `enrichment.sourceFeature` (`{ "idx": "...", "language": "en" }`, the feature the "Shop data" toggle reads, default `null` = toggle not rendered) |
 
 ## Key Concepts
 
