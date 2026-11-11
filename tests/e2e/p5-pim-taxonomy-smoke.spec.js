@@ -62,7 +62,7 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await login(page);
     });
 
-    test('categories: the create form, the tree expands by its button, the first category', async ({ page }) => {
+    test('categories: the create form, the tree loads a level on expand, the first category', async ({ page }) => {
       const collector = createErrorCollector(page);
       await openPage(page, '/pim/categories/create');
       await expect(h1(page)).toHaveText(either((t) => t.pim.create_category));
@@ -72,13 +72,18 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
       await openPage(page, '/pim/categories');
       await expect(h1(page)).toHaveText(either((t) => t.pim.category_tree));
       await expectHeader(page);
-      // The toggle clicked is the one that reports expanded (its name changes with the state, the element stays).
-      const toggle = await page.locator('.tree-node__row').getByRole('button', { expanded: false }).first().elementHandle();
-      await toggle.click();
-      await expect.poll(() => toggle.getAttribute('aria-expanded')).toBe('true');
+      // The tree loads level by level: the toggle turns into a spinner while the children load, then reports expanded.
+      const rows = page.locator('.tree-node__row');
+      await rows.getByRole('button', { expanded: false }).first().click();
+      await expect(rows.getByRole('button', { expanded: true }).first()).toBeVisible();
       // Last: the category's products tab loads its own chunks, so nothing navigates away while they arrive.
-      const edit = page.locator('.tree-node__row').getByRole('button', { name: either((t) => t.common.edit) });
-      await edit.first().click();
+      // On a phone a row's actions (Add subcategory, Edit) sit behind one menu.
+      if ((page.viewportSize()?.width ?? 1280) <= 768) {
+        await rows.getByRole('button', { name: eitherWithName((t) => t.pim.category_actions) }).first().click();
+        await page.getByRole('menuitem', { name: either((t) => t.common.edit) }).click();
+      } else {
+        await rows.getByRole('button', { name: either((t) => t.common.edit) }).first().click();
+      }
       await page.waitForURL(/\/pim\/categories\/.+/);
       await page.waitForLoadState('networkidle');
       await expectHeader(page);
