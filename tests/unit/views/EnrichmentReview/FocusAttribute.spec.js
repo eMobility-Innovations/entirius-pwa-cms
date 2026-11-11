@@ -68,6 +68,16 @@ describe("FocusAttribute", () => {
     expect(w.emitted("updated")).toHaveLength(1);
   });
 
+  it("sends a length as entered, with its own unit, converting nothing", async () => {
+    const w = render(proposal({ proposed_value: { value: "6.5", unit: "inch" } }));
+    expect(find(w, "focus-attribute-value").text()).toBe("6.5 inch");
+    await find(w, "focus-attribute-edit").trigger("click");
+    w.vm.draft = "7";
+    await w.find("form").trigger("submit");
+    await flushPromises();
+    expect(api.PATCH_Proposal).toHaveBeenCalledWith(5, { proposed_value: { value: "7", unit: "inch" } });
+  });
+
   it("asks the card to reject it", async () => {
     const w = render(proposal());
     await find(w, "focus-attribute-reject").trigger("click");

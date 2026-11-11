@@ -14,7 +14,7 @@ vi.mock("@/api/pim/api", () => ({
   GET_Features: () => Promise.resolve({ data: { results: [{ idx: "description", name: "Description" }] } }),
 }));
 vi.mock("@/stores/pimChannel", () => ({
-  usePimChannelStore: () => ({ activeChannelIdx: "escootersclinic" }),
+  usePimChannelStore: () => ({ activeChannelIdx: "shop-channel" }),
 }));
 
 import FocusMode from "@/views/EnrichmentReview/FocusMode.vue";
@@ -241,7 +241,7 @@ describe("FocusMode product steps", () => {
     target_module: "pim",
     target_kind: kind,
     subject_ref: sku,
-    target_locator: { channel: "escootersclinic" },
+    target_locator: { channel: "shop-channel" },
   });
   const render = (props) =>
     mount(FocusMode, {
