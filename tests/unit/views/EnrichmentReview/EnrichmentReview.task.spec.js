@@ -30,7 +30,9 @@ async function mountPage(query) {
     global: {
       stubs: { PageLayout: { template: "<div><slot name='toolbar' /><slot /></div>" }, PageHeader: true, ListMode,
         BatchCorrection, RunCorrections, BasicButton, DriftModal: true, ImportCsvDialog: true, ProductPreviewDrawer: true,
-        MobileFilterPanel: true, SideDrawer: true, ProductMode: true },
+        MobileFilterPanel: true, SideDrawer: true, ProductMode: true,
+        // The page loads Focus lazily; a test that switches to it must not leave that import running past its end.
+        FocusMode: true },
       mocks: { $route: { path: "/enrichment", query }, $router: { replace, push: vi.fn() } },
     },
   });
