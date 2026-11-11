@@ -1,5 +1,6 @@
 import axios from "axios";
 import { api } from "./client";
+import { withTrailingSlash } from "./url";
 
 import { PWATrimmerNormalizer } from "../../utils/normalizers/content-normalizers";
 
@@ -681,7 +682,7 @@ export const _METHOD_content = ({
 
   ...options
 }) => {
-  const _url = `${contentDb}${url}`;
+  const _url = `${contentDb}${withTrailingSlash(url)}`;
   // -----------------------------------------
   // -----------------------------------------
 
