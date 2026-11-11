@@ -11,7 +11,8 @@ All notable changes to this project will be documented in this file.
   list results from the API (name, idx, products, status) with "Show in tree"; a reorder loads the rest of its level
   first and then reloads only the two levels it touched; expanded branches and the pages loaded are restored when you
   come back from Edit. "Expand all" is gone (it cannot work on 50 000 nodes); each row has "Add subcategory"
-  (`/pim/categories/create?parent=<idx>`).
+  (`/pim/categories/create?parent=<idx>`). On a phone a row drops the drag handle and folder icon, indents less,
+  wraps the name and keeps "Add subcategory" and "Edit" in one menu; reordering stays desktop only (no touch drag).
 
 ### Changed
 

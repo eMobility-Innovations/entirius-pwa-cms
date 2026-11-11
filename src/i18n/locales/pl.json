@@ -899,6 +899,8 @@
     "collapse_all": "Zwiń wszystkie",
     "category_show_in_tree": "Pokaż w drzewie",
     "add_subcategory_to": "Dodaj podkategorię do: {name}",
+    "add_subcategory": "Dodaj podkategorię",
+    "category_actions": "Akcje dla: {name}",
     "category_level_error": "Nie udało się wczytać kategorii.",
     "category_retry": "Spróbuj ponownie",
     "category_show_more": "Pokaż więcej ({loaded} z {count})",

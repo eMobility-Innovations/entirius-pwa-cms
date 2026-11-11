@@ -94,7 +94,8 @@ import { useCategoryTree } from "./composables/useCategoryTree";
 
 defineOptions({ name: "CategoryList" });
 
-const HIGHLIGHT_MS = 2500;
+const HIGHLIGHT_MS = 5000;
+const SETTLE_MS = 200;
 const router = useRouter();
 const notify = useNotifyStore();
 const pimChannel = usePimChannelStore();
@@ -199,9 +200,13 @@ watch(tree.highlightIdx, async (idx) => {
   clearTimeout(highlightTimer);
   if (!idx) return;
   await nextTick();
-  document
-    .querySelector(`[data-idx="${CSS.escape(idx)}"]`)
-    ?.scrollIntoView({ block: "center" });
+  const scrollTo = () =>
+    document
+      .querySelector(`[data-idx="${CSS.escape(idx)}"]`)
+      ?.scrollIntoView({ block: "center" });
+  scrollTo();
+  // Rows above may still settle (a restored level arrives); the target stays centred.
+  setTimeout(scrollTo, SETTLE_MS);
   highlightTimer = setTimeout(() => {
     tree.highlightIdx.value = null;
   }, HIGHLIGHT_MS);

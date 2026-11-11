@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from "vue";
+import { t } from "@/i18n";
 import { useReadonly } from "@/composables/useReadonly";
+import { useMediaQuery } from "@/composables/useMediaQuery";
+import { MAX_TABLET_QUERY } from "@/utils/breakpoints";
 
 // One row of the category tree (or of the flat search result list: `flat`). The tree is a flat list of rows,
 // so a row never renders its children; depth only indents it.
@@ -28,9 +31,19 @@ const emit = defineEmits([
 ]);
 
 const readonly = useReadonly();
+// On a phone a tree row gives the name the width: no drag handle (HTML5 drag and drop does not work on touch),
+// no folder icon, and "Add subcategory" + "Edit" behind one menu.
+const isPhone = useMediaQuery(MAX_TABLET_QUERY);
+const compact = computed(() => isPhone.value && !props.flat);
 const isDraggable = computed(
-  () => !props.isRoot && !props.flat && !readonly.value
+  () => !props.isRoot && !props.flat && !compact.value && !readonly.value
 );
+const rowMenu = computed(() => [
+  ...(readonly.value
+    ? []
+    : [{ key: "add", label: t("pim.add_subcategory"), run: () => emit("add-child", props.node) }]),
+  { key: "edit", label: t("common.edit"), run: () => emit("select", props.node) },
+]);
 const showToggle = computed(() => !props.flat && !props.leaf);
 const displayName = computed(
   () =>
@@ -135,10 +148,14 @@ function onDragEnd() {
         @click="emit('toggle', node)"
       />
       <span v-else class="tree-node__toggle" />
-      <span class="tree-node__icon t-muted"
+      <span v-if="!compact" class="tree-node__icon t-muted"
         ><font-awesome-icon :icon="$icons.category"
       /></span>
-      <span class="tree-node__name" :title="displayName">{{ displayName }}</span>
+      <span
+        class="tree-node__name"
+        :class="{ 'tree-node__name--wrap': compact }"
+        :title="displayName"
+      >{{ displayName }}</span>
       <span v-if="flat" class="tree-node__idx t-muted fs-200">{{ node.idx }}</span>
       <StatusBadge
         v-if="isRoot"
@@ -179,6 +196,22 @@ function onDragEnd() {
       >
         {{ $t("pim.category_show_in_tree") }}
       </BasicButton>
+      <BasicMenu
+        v-else-if="compact"
+        :items="rowMenu"
+        :label="$t('pim.category_actions', { name: displayName })"
+        placement="bottom-end"
+        sheet
+        @select="(item) => item.run()"
+      >
+        <template #trigger>
+          <IconButton
+            icon="more"
+            size="sm"
+            :label="$t('pim.category_actions', { name: displayName })"
+          />
+        </template>
+      </BasicMenu>
       <IconButton
         v-else
         icon="add"
@@ -187,7 +220,12 @@ function onDragEnd() {
         mutates
         @click="emit('add-child', node)"
       />
-      <BasicButton variant="ghost" size="sm" @click="emit('select', node)">
+      <BasicButton
+        v-if="!compact"
+        variant="ghost"
+        size="sm"
+        @click="emit('select', node)"
+      >
         {{ $t("common.edit") }}
       </BasicButton>
     </div>
@@ -321,6 +359,15 @@ function onDragEnd() {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
+}
+
+// Phone: the name wraps to two lines instead of collapsing to a few letters.
+.tree-node__name--wrap {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 // Fixed-width meta so the count, status dot and menu flag line up between rows.

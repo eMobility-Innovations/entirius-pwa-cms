@@ -127,6 +127,9 @@ components keep using stores directly via the `setup()` return pattern.
   (positions are renumbered 0..n-1, the backend sets exactly what is sent), then reloads only the old and the new
   parent level. Expanded nodes (`cms_pim_category_expanded_<channel>`) and pages per level
   (`cms_pim_category_pages_<channel>`) live in `localStorage`; `load()` restores them lazily, four levels at a time.
+  On a phone (768 px and below) a tree row gives the name the width: no drag handle, no folder icon, a smaller
+  indent, the name wraps to two lines and "Add subcategory" + "Edit" sit behind one `BasicMenu` (sheet). Reordering by
+  drag and drop is desktop only: HTML5 drag and drop does not fire on touch, and there is no touch alternative yet.
 - **`useAtlasBulkActions`** — bulk operations on supplier rows:
   `forceRepushSps(rows)`, `acknowledgeSps(rows)`. Both run in parallel and
   return `{ succeeded, failed }`.

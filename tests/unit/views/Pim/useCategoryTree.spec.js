@@ -518,4 +518,44 @@ describe("CategoryTreeNode", () => {
     await wrapper.find(".tree-node__row").trigger("drop");
     expect(wrapper.emitted("drop")).toBeUndefined();
   });
+
+  describe("on a phone", () => {
+    const menuStub = { props: ["items"], template: '<div class="menu"><slot name="trigger" /></div>' };
+    const mountPhone = (readonly = false) =>
+      mount(CategoryTreeNode, {
+        props: { node: { pk: 1, idx: "a", name: "A", is_active: true, is_in_menu: true }, depth: 2 },
+        global: {
+          stubs: { ...stubs, BasicMenu: menuStub },
+          mocks: { $t: (k) => k, $icons: {} },
+          provide: { [READONLY]: ref(readonly) },
+        },
+      });
+
+    beforeEach(() => {
+      window.matchMedia = vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    });
+
+    it("drops the drag handle, the folder icon and the Edit button; the actions go into one menu", () => {
+      const wrapper = mountPhone();
+      expect(wrapper.find(".tree-node__row").attributes("draggable")).toBe("false");
+      expect(wrapper.find(".tree-node__drag-handle").exists()).toBe(false);
+      expect(wrapper.find(".tree-node__icon").exists()).toBe(false);
+      expect(wrapper.find(".tree-node__name--wrap").exists()).toBe(true);
+      expect(wrapper.text()).not.toContain("common.edit");
+      expect(wrapper.findComponent(menuStub).props("items").map((i) => i.key)).toEqual(["add", "edit"]);
+    });
+
+    it("offers only Edit in the menu on a read-only page", () => {
+      expect(mountPhone(true).findComponent(menuStub).props("items").map((i) => i.key)).toEqual(["edit"]);
+    });
+
+    it("menu items emit add-child and select", () => {
+      const wrapper = mountPhone();
+      const [add, edit] = wrapper.findComponent(menuStub).props("items");
+      add.run();
+      edit.run();
+      expect(wrapper.emitted("add-child")).toHaveLength(1);
+      expect(wrapper.emitted("select")).toHaveLength(1);
+    });
+  });
 });

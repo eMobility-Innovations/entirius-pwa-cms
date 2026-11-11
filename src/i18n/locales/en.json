@@ -899,6 +899,8 @@
     "collapse_all": "Collapse All",
     "category_show_in_tree": "Show in tree",
     "add_subcategory_to": "Add subcategory to {name}",
+    "add_subcategory": "Add subcategory",
+    "category_actions": "Actions for {name}",
     "category_level_error": "Could not load categories.",
     "category_retry": "Retry",
     "category_show_more": "Show more ({loaded} of {count})",
