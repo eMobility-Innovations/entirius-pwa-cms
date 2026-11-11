@@ -1,5 +1,9 @@
 // The lazy category tree: levels keyed by parent pk, paged per level, restored from localStorage.
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { mount } from "@vue/test-utils";
+import { ref } from "vue";
+import CategoryTreeNode from "@/views/Pim/components/CategoryTreeNode.vue";
+import { READONLY } from "@/composables/useReadonly";
 import { useCategoryTree } from "@/views/Pim/composables/useCategoryTree";
 
 // A fake backend: cats = [{pk, idx, name, parent_category, position}], page size 100 like django-pim.
@@ -13,6 +17,8 @@ function makeBackend(cats, { withCount = false } = {}) {
     rows = [...rows].sort((a, b) => a.position - b.position);
     const size = params.page_size;
     const start = (params.page - 1) * size;
+    // DRF: a page past the end is "Invalid page" (404); page 1 of an empty list is fine.
+    if (params.page > 1 && start >= rows.length) throw Object.assign(new Error("Invalid page."), { response: { status: 404 } });
     const results = rows.slice(start, start + size).map(({ position, ...c }) => {
       const item = { is_active: true, product_count: 0, ...c };
       if (withCount) item.subcategory_count = cats.filter((x) => x.parent_category === c.pk).length;
@@ -143,7 +149,8 @@ describe("useCategoryTree", () => {
     expect(items.slice(0, 3).map((i) => i.idx)).toEqual(["c0", "c1", "c5"]);
     expect(items.every((i) => i.parent_category_idx === "r0")).toBe(true);
     expect(tree.levels[1].items.slice(0, 3).map((i) => i.idx)).toEqual(["c0", "c1", "c5"]);
-    expect(tree.levels[1].items).toHaveLength(250);
+    expect(tree.levels[1].items).toHaveLength(100);
+    expect(tree.levels[1].nextPage).toBe(2);
   });
 
   it("inside drop: position = child count from a page_size=1 request, refreshes both levels, expands target", async () => {
@@ -182,7 +189,7 @@ describe("useCategoryTree", () => {
     first.toggle(first.levels.root.items[0]);
     await vi.waitFor(() => expect(first.levels[1].loading).toBe(false));
     await first.loadMore(1);
-    expect(JSON.parse(localStorage.getItem("cms_pim_category_expanded_ch"))).toEqual(["r0"]);
+    expect(JSON.parse(localStorage.getItem("cms_pim_category_tree_v2_expanded_ch"))).toEqual(["r0"]);
     expect(JSON.parse(localStorage.getItem("cms_pim_category_pages_ch"))).toEqual({ r0: 2 });
 
     b.list.mockClear();
@@ -319,5 +326,196 @@ describe("useCategoryTree", () => {
       expect(errors.length).toBeGreaterThan(0);
       expect(tree.levels[1].items).toHaveLength(100);
     });
+  });
+
+  describe("review fixes", () => {
+    const deferred = () => {
+      let resolve;
+      const promise = new Promise((r) => (resolve = r));
+      return { promise, resolve };
+    };
+
+    function wide(n = 1000) {
+      const cats = [
+        { pk: 1, idx: "r", name: "r", parent_category: null, position: 0 },
+        { pk: 2, idx: "r2", name: "r2", parent_category: null, position: 1 },
+      ];
+      for (let i = 0; i < n; i++) cats.push({ pk: i + 3, idx: `k${i}`, name: `k${i}`, parent_category: 1, position: i });
+      cats.push({ pk: 5000, idx: "z0", name: "z0", parent_category: 2, position: 0 });
+      return cats;
+    }
+
+    async function openFirst(b, channel = () => "ch") {
+      const tree = useCategoryTree({ getChannel: channel, api: b.api, onError: () => {} });
+      await tree.load();
+      tree.toggle(tree.levels.root.items[0]);
+      await vi.waitFor(() => expect(tree.levels[1].loading).toBe(false));
+      return tree;
+    }
+
+    it("a channel switch during the level completion sends no PATCH and no request to the new channel", async () => {
+      let channel = "a";
+      const b = makeBackend(wide());
+      const base = b.api.GET_Categories.getMockImplementation();
+      const gate = deferred();
+      b.api.GET_Categories.mockImplementation(async (ch, params) => {
+        if (params.parent_category === 1 && params.page > 1) await gate.promise;
+        return base(ch, params);
+      });
+      const tree = await openFirst(b, () => channel);
+      const moving = tree.move("k50", "k1", "after");
+      await vi.waitFor(() => expect(tree.levels[1].loading).toBe(true));
+      channel = "b";
+      const loaded = tree.load();
+      gate.resolve();
+      expect(await moving).toBe(false);
+      await loaded;
+      expect(b.reorder).not.toHaveBeenCalled();
+      expect(b.list.mock.calls.filter(([ch, p]) => ch === "b" && p.parent_category === 1)).toHaveLength(0);
+    });
+
+    it("an inside drop counts the children on the channel it started on", async () => {
+      let channel = "a";
+      const b = makeBackend(wide());
+      const base = b.api.GET_Categories.getMockImplementation();
+      const gate = deferred();
+      b.api.GET_Categories.mockImplementation(async (ch, params) => {
+        if (params.page_size === 1) await gate.promise;
+        return base(ch, params);
+      });
+      const tree = await openFirst(b, () => channel);
+      const moving = tree.move("k5", "r2", "inside");
+      await vi.waitFor(() => expect(b.list.mock.calls.some(([, p]) => p.page_size === 1)).toBe(true));
+      channel = "b";
+      void tree.load();
+      gate.resolve();
+      await moving;
+      expect(b.reorder).not.toHaveBeenCalled();
+      expect(b.list.mock.calls.filter(([, p]) => p.page_size === 1).every(([ch]) => ch === "a")).toBe(true);
+    });
+
+    it("ignores the legacy expanded key and restores at most 50 branches, none known to be leaves", async () => {
+      const cats = [];
+      for (let i = 0; i < 80; i++) cats.push({ pk: i + 1, idx: `r${i}`, name: `r${i}`, parent_category: null, position: i });
+      cats.push({ pk: 500, idx: "child", name: "child", parent_category: 1, position: 0 });
+      localStorage.setItem("cms_pim_category_expanded_ch", JSON.stringify(cats.map((c) => c.idx)));
+      const legacy = makeBackend(cats);
+      const first = useCategoryTree({ getChannel: () => "ch", api: legacy.api });
+      await first.load();
+      expect(legacy.list).toHaveBeenCalledTimes(1);
+
+      localStorage.setItem("cms_pim_category_tree_v2_expanded_ch", JSON.stringify(cats.slice(0, 80).map((c) => c.idx)));
+      const b = makeBackend(cats, { withCount: true });
+      const tree = useCategoryTree({ getChannel: () => "ch", api: b.api });
+      await tree.load();
+      const childRequests = b.list.mock.calls.filter(([, p]) => p.parent_category !== undefined);
+      expect(childRequests).toHaveLength(1); // only r0 has a child; the other 79 are known leaves
+      const many = makeBackend(cats.map((c) => ({ ...c })), {});
+      const t2 = useCategoryTree({ getChannel: () => "ch", api: many.api });
+      await t2.load();
+      expect(many.list.mock.calls.filter(([, p]) => p.parent_category !== undefined)).toHaveLength(50);
+    });
+
+    it("refreshes a level that shrank below its loaded pages (no 404, no duplicate row)", async () => {
+      const b = makeBackend(wide(101));
+      const tree = await openFirst(b);
+      await tree.loadMore(1);
+      expect(tree.levels[1].items).toHaveLength(101);
+      expect(await tree.move("k100", "r2", "inside")).toBe(true);
+      const ids = tree.levels[1].items.map((i) => i.idx);
+      expect(ids).toHaveLength(100);
+      expect(new Set(ids).size).toBe(100);
+      expect(tree.levels[1].error).toBeNull();
+      expect(tree.levels[1].nextPage).toBeNull();
+    });
+
+    it("after a before/after reorder keeps the pages that were visible, extended to the moved row", async () => {
+      const b = makeBackend(wide());
+      const tree = await openFirst(b);
+      expect(await tree.move("k50", "k1", "after")).toBe(true);
+      expect(tree.levels[1].items).toHaveLength(100);
+      expect(tree.levels[1].nextPage).toBe(2);
+      tree.toggle(tree.levels.root.items[1]);
+      await vi.waitFor(() => expect(tree.levels[2].loading).toBe(false));
+      expect(await tree.move("z0", "k99", "after")).toBe(true);
+      expect(tree.levels[1].items).toHaveLength(200);
+      expect(tree.levels[1].items.some((i) => i.idx === "z0")).toBe(true);
+    });
+
+    it("a search answer of the old channel does not land in the new one", async () => {
+      let channel = "a";
+      const b = makeBackend(wide(5));
+      const base = b.api.GET_Categories.getMockImplementation();
+      const gate = deferred();
+      b.api.GET_Categories.mockImplementation(async (ch, params) => {
+        if (params.search) await gate.promise;
+        return base(ch, params);
+      });
+      const tree = useCategoryTree({ getChannel: () => channel, api: b.api });
+      await tree.load();
+      const searching = tree.applyFilter("k", null);
+      channel = "b";
+      await tree.load();
+      gate.resolve();
+      await searching;
+      expect(tree.search.items).toHaveLength(0);
+    });
+
+    it("an old channel's finished load does not unregister the new channel's in-flight load", async () => {
+      let channel = "a";
+      const gates = [];
+      const b = makeBackend(wide(5));
+      const base = b.api.GET_Categories.getMockImplementation();
+      b.api.GET_Categories.mockImplementation(async (ch, params) => {
+        const g = deferred();
+        gates.push({ ch, g });
+        await g.promise;
+        return base(ch, params);
+      });
+      const tree = useCategoryTree({ getChannel: () => channel, api: b.api });
+      const first = tree.load();
+      channel = "b";
+      const second = tree.load();
+      gates.find((x) => x.ch === "a").g.resolve();
+      await first;
+      const again = tree.loadMore("root");
+      expect(gates.filter((x) => x.ch === "b")).toHaveLength(1);
+      gates.find((x) => x.ch === "b").g.resolve();
+      await Promise.all([second, again]);
+    });
+  });
+});
+
+describe("CategoryTreeNode", () => {
+  const stubs = {
+    IconButton: { props: ["icon", "label", "mutates"], template: '<button class="ib" :data-icon="icon" :data-mutates="mutates" />' },
+    BasicButton: { template: "<button><slot /></button>" },
+    StatusBadge: { template: "<span />" },
+    "font-awesome-icon": { template: "<i />" },
+  };
+  const mountNode = (props = {}, readonly = false) =>
+    mount(CategoryTreeNode, {
+      props: { node: { pk: 1, idx: "a", name: "A", is_active: true, is_in_menu: true }, depth: 1, ...props },
+      global: { stubs, mocks: { $t: (k) => k, $icons: {} }, provide: { [READONLY]: ref(readonly) } },
+    });
+
+  it("keeps the expand button mounted while the children load", () => {
+    const wrapper = mountNode({ loading: true });
+    const toggle = wrapper.findAll(".ib").find((b) => b.attributes("data-icon") === "running");
+    expect(toggle).toBeTruthy();
+    expect(wrapper.find(".tree-node__row [role=status]").exists()).toBe(false);
+  });
+
+  it("is draggable, and add-subcategory is marked mutates", () => {
+    const wrapper = mountNode();
+    expect(wrapper.find(".tree-node__row").attributes("draggable")).toBe("true");
+    expect(wrapper.findAll(".ib").some((b) => b.attributes("data-icon") === "add" && b.attributes("data-mutates") !== undefined)).toBe(true);
+  });
+
+  it("is not draggable and ignores drops on a read-only page", async () => {
+    const wrapper = mountNode({}, true);
+    expect(wrapper.find(".tree-node__row").attributes("draggable")).toBe("false");
+    await wrapper.find(".tree-node__row").trigger("drop");
+    expect(wrapper.emitted("drop")).toBeUndefined();
   });
 });

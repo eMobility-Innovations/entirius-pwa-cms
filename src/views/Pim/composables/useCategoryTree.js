@@ -11,6 +11,7 @@ const ROOT_STORAGE_KEY = "__root__";
 const RESTORE_CONCURRENCY = 4;
 const PARALLEL_PAGES = RESTORE_CONCURRENCY;
 const MAX_RESTORED_PAGES = 10;
+const MAX_RESTORED_BRANCHES = 50;
 const REVEAL_PAGE_CAP = 40;
 const REVEAL_CHAIN_CAP = 20;
 
@@ -69,9 +70,12 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
   let running = 0;
   let idleResolvers = [];
   let inflight = new Map();
+  let restored = 0;
 
   const channel = () => getChannel();
-  const storageKey = (kind) => `cms_pim_category_${kind}_${channel()}`;
+  // The expanded set has its own key: the old tree wrote every idx into `cms_pim_category_expanded_<channel>` ("Expand
+// all"), and restoring that would load the whole tree.
+const storageKey = (kind) => `cms_pim_category_${kind}_${channel()}`;
   const isSearchMode = computed(
     () => !!search.query.trim() || search.isActive !== null
   );
@@ -79,7 +83,7 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
   // --- storage ---
 
   function saveExpanded() {
-    writeJson(storageKey("expanded"), [...expanded.value]);
+    writeJson(storageKey("tree_v2_expanded"), [...expanded.value]);
   }
 
   function savePages() {
@@ -104,11 +108,11 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
     });
   }
 
-  async function fetchPage(parentPk, page, extra = {}) {
-    const params = { page, page_size: PAGE_SIZE, ...extra };
+  async function fetchPage(parentPk, page, ch = channel()) {
+    const params = { page, page_size: PAGE_SIZE };
     if (parentPk == null) params.root_only = true;
     else params.parent_category = parentPk;
-    const { data } = await list(channel(), params);
+    const { data } = await list(ch, params);
     return data;
   }
 
@@ -125,13 +129,15 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
   // Loads `pages` more pages of a level (default 1). Errors stay on the level: loadMore() retries.
   function loadLevel(key, pages = 1) {
     if (inflight.has(key)) return inflight.get(key);
-    const promise = runLevel(key, pages).finally(() => inflight.delete(key));
-    inflight.set(key, promise);
+    const map = inflight; // a channel switch swaps the map: the old promise must not delete from the new one
+    const promise = runLevel(key, pages).finally(() => map.delete(key));
+    map.set(key, promise);
     return promise;
   }
 
   async function runLevel(key, pages) {
     const gen = generation;
+    const ch = channel();
     if (!levels[key]) levels[key] = newLevel();
     const level = levels[key];
     level.loading = true;
@@ -140,7 +146,8 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
       for (let i = 0; i < pages && level.nextPage; i++) {
         const data = await fetchPage(
           key === ROOT ? null : key,
-          level.nextPage
+          level.nextPage,
+          ch
         );
         if (gen !== generation) return;
         appendPage(level, data);
@@ -159,17 +166,21 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
 
   const loadMore = (key) => loadLevel(key, 1);
 
+  const isNotFound = (err) => err?.response?.status === 404;
+
   // Fetches the given pages with at most PARALLEL_PAGES requests at once; the result keeps the page order.
-  async function fetchPages(parentPk, pageNumbers) {
-    const out = new Array(pageNumbers.length);
+  // `tolerateEnd`: a 404 page ("Invalid page") is the end of the level, not an error; the result stops before it.
+  async function fetchPages(parentPk, pageNumbers, ch, tolerateEnd = false) {
+    const out = new Array(pageNumbers.length).fill(null);
     let next = 0;
     let failed = false;
     const worker = async () => {
       while (next < pageNumbers.length && !failed) {
         const i = next++;
         try {
-          out[i] = await fetchPage(parentPk, pageNumbers[i]);
+          out[i] = await fetchPage(parentPk, pageNumbers[i], ch);
         } catch (err) {
+          if (tolerateEnd && isNotFound(err)) continue;
           failed = true;
           throw err;
         }
@@ -177,12 +188,13 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
     };
     const workers = Math.min(PARALLEL_PAGES, pageNumbers.length);
     await Promise.all(Array.from({ length: workers }, worker));
-    return out;
+    const end = out.indexOf(null);
+    return end === -1 ? out : out.slice(0, end);
   }
 
   // Completes a level: the missing pages are known from `count`, so they load in parallel and append in page order.
   // A failed page leaves the level in its error state, with nothing of the failed batch appended.
-  async function loadRest(key) {
+  async function loadRest(key, ch = channel()) {
     await inflight.get(key);
     const level = levels[key];
     const gen = generation;
@@ -194,7 +206,7 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
       );
       level.loading = true;
       try {
-        const pages = await fetchPages(key === ROOT ? null : key, numbers);
+        const pages = await fetchPages(key === ROOT ? null : key, numbers, ch);
         if (gen !== generation) return;
         pages.forEach((data) => appendPage(level, data));
       } catch (err) {
@@ -208,25 +220,34 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
     if (gen === generation) savePages();
   }
 
-  // Replaces a loaded level in place, keeping how many pages it had.
-  async function refreshLevel(key) {
+  // Replaces a loaded level in place with `wanted` pages (default: as many as it had), never more than the level has
+  // now: page 1 tells the count, so a level that shrank does not ask for a page that is gone.
+  async function refreshLevel(key, ch = channel(), wanted = null) {
     const level = levels[key];
     if (!level) return;
     const gen = generation;
-    const total = Math.max(level.pages, 1);
+    const parentPk = key === ROOT ? null : key;
     try {
-      const parentPk = key === ROOT ? null : key;
-      const pages = await fetchPages(
+      const first = await fetchPage(parentPk, 1, ch).catch((err) => {
+        if (!isNotFound(err)) throw err;
+        return { results: [], count: 0, next: null };
+      });
+      const total = Math.max(Math.ceil((first.count ?? 0) / PAGE_SIZE), 1);
+      const n = Math.min(Math.max(wanted ?? level.pages, 1), total);
+      const rest = await fetchPages(
         parentPk,
-        Array.from({ length: total }, (_, i) => i + 1)
+        Array.from({ length: n - 1 }, (_, i) => i + 2),
+        ch,
+        true
       );
       if (gen !== generation) return;
       const fresh = newLevel();
-      pages.forEach((data) => appendPage(fresh, data));
-      fresh.nextPage = pages[pages.length - 1].next ? total + 1 : null;
+      [first, ...rest].forEach((data) => appendPage(fresh, data));
+      const last = rest.at(-1) ?? first;
+      fresh.nextPage = last.next || n < total ? fresh.pages + 1 : null;
       Object.assign(level, fresh);
     } catch (err) {
-      onError(err);
+      if (gen === generation) onError(err);
     }
   }
 
@@ -234,9 +255,10 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
 
   function scheduleRestore(level) {
     level.items.forEach((item) => {
-      if (expanded.value.has(item.idx) && !levels[item.pk]) {
-        queue.push(item);
-      }
+      if (!expanded.value.has(item.idx) || levels[item.pk]) return;
+      if (item.subcategory_count === 0 || restored >= MAX_RESTORED_BRANCHES) return;
+      restored++;
+      queue.push(item);
     });
     pump();
   }
@@ -272,6 +294,8 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
   async function load() {
     generation++;
     inflight = new Map();
+    restored = 0;
+    searchSeq++;
     queue = [];
     running = 0;
     byPk = new Map();
@@ -279,7 +303,7 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
     Object.keys(levels).forEach((k) => delete levels[k]);
     Object.assign(search, { query: "", isActive: null, ...newLevel() });
     highlightIdx.value = null;
-    expanded.value = new Set(readJson(storageKey("expanded"), []));
+    expanded.value = new Set(readJson(storageKey("tree_v2_expanded"), []));
     persistedPages = readJson(storageKey("pages"), {});
     const rootPages = Math.min(
       persistedPages[ROOT_STORAGE_KEY] || 1,
@@ -465,13 +489,13 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
       ? [...items].sort((a, b) => a.position - b.position)
       : items;
 
-  async function childCount(target, dragged) {
+  async function childCount(target, dragged, ch) {
     const level = levels[target.pk];
     const alreadyChild = dragged.parent_category === target.pk ? 1 : 0;
     if (level && !level.nextPage && !level.error) {
       return level.items.filter((i) => i.idx !== dragged.idx).length;
     }
-    const { data } = await list(channel(), {
+    const { data } = await list(ch, {
       parent_category: target.pk,
       page: 1,
       page_size: 1,
@@ -479,13 +503,13 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
     return data.count - alreadyChild;
   }
 
-  async function buildItems(dragged, target, position) {
+  async function buildItems(dragged, target, position, ch) {
     if (position === "inside" || target.parent_category == null) {
-      const pos = await childCount(target, dragged);
+      const pos = await childCount(target, dragged, ch);
       return [{ idx: dragged.idx, parent_category_idx: target.idx, position: pos }];
     }
     const key = levelKeyOf(target.parent_category);
-    await loadRest(key);
+    await loadRest(key, ch);
     const level = levels[key];
     if (level.nextPage) throw level.error || new Error("level incomplete");
     const parent = byPk.get(target.parent_category);
@@ -501,30 +525,45 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
     }));
   }
 
-  // Returns true when the move was saved. Errors go to onError and the affected levels are reloaded.
+  // Returns true when the move was saved. Errors go to onError and the affected levels are reloaded. The channel and
+  // the generation are captured here: a channel switch while the level completes aborts before the PATCH.
   async function move(draggedIdx, targetIdx, position) {
     if (!canDrop(draggedIdx, targetIdx)) return false;
+    const ch = channel();
+    const gen = generation;
     const dragged = byIdx.get(draggedIdx);
     const target = byIdx.get(targetIdx);
     const oldKey = levelKeyOf(dragged.parent_category);
     const inside = position === "inside" || target.parent_category == null;
     const newKey = inside ? target.pk : levelKeyOf(target.parent_category);
+    const seen = (key) => levels[key]?.pages ?? 1;
+    const visible = { [oldKey]: seen(oldKey), [newKey]: seen(newKey) };
     reordering.value = true;
     let ok = false;
+    let items = [];
     try {
-      const items = await buildItems(dragged, target, position);
-      await reorderApi(channel(), { items });
+      items = await buildItems(dragged, target, position, ch);
+      if (gen !== generation) return false;
+      await reorderApi(ch, { items });
       ok = true;
     } catch (err) {
-      onError(err);
+      if (gen === generation) onError(err);
     }
+    if (gen !== generation) return false;
     try {
+      // Keep the pages that were on screen; the new level reaches just far enough to show the moved row.
+      const movedAt = items.findIndex((i) => i.idx === dragged.idx);
+      if (ok && !inside) {
+        visible[newKey] = Math.max(visible[newKey], Math.floor(movedAt / PAGE_SIZE) + 1);
+      }
       await Promise.all(
-        [...new Set([oldKey, newKey])].map((key) => refreshLevel(key))
+        [...new Set([oldKey, newKey])].map((key) =>
+          refreshLevel(key, ch, visible[key])
+        )
       );
-      if (ok && inside) await expandItem(byPk.get(target.pk));
+      if (ok && inside && gen === generation) await expandItem(byPk.get(target.pk));
     } finally {
-      reordering.value = false;
+      if (gen === generation) reordering.value = false;
     }
     return ok;
   }
