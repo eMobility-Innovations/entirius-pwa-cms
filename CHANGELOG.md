@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.1] (2026-11-11)
+
+### Fixed
+
+- Deleting a route in the "Routes" window failed with a server error: the request went to an address without the
+  closing slash, which the API refuses for DELETE and PUT. Every contentdb request built by `_METHOD_content` now ends
+  in a slash (before the query string), which also covers deleting an attribute value, editing and deleting a
+  content set, and reading or deleting a contentdb category by uid.
+
 ## [3.6.0] (2026-11-11)
 
 ### Fixed
