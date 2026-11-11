@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.0] (2026-11-11)
+
 ### Fixed
 
 - PIM category tree: it loads level by level instead of fetching every category first, so a channel with tens of
