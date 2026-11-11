@@ -28,6 +28,7 @@
             :options="parentOptions"
             :placeholder="$t('pim.select_parent')"
             searchable
+            remote-search
             :more-label="parentSource.moreLabel"
             @search="parentSource.onSearch"
             @more="parentSource.loadMore"

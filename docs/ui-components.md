@@ -36,8 +36,7 @@ Notable ones for list/form views:
   (`src/composables/useRemoteOptions.js`; `useCategoryOptions`, `useAttributeOptions`, `useFeatureOptions`) feeds a
   `searchable` BasicSelect: `:options="src.options"`, `:more-label="src.moreLabel"`, `@search="src.onSearch"`,
   `@more="src.loadMore"`, and `src.track(value)` keeps the chosen values (resolved with the detail endpoint) in
-  the options. BasicSelect still filters the loaded options by label, so the label must contain what the server
-  matches (categories: the name; attributes and features: `idx — name`).
+  the options. These selects set `remoteSearch`, so a server hit stays visible whatever its label says.
 - **`ChannelMultiSelect`** — multi-select for channel scoping (`v-model`
   array of channel idx). Props: `modelValue`, `channels`, `label`, `allLabel`, `floatingLabel`.
 - **`BasicSelect`** — an option may carry `description`, a muted line under its label. Never put a `?` tooltip
@@ -354,7 +353,7 @@ Catalogue: `#page-frame` (`#page-header`, `#breadcrumbs`, `#page-layout`).
 
 - **`BasicSelect`** — one choice from a list: `v-model` (a value, or an array when `multiple`), `options`
   `[{ label, value, description?, disabled? }]`, `placeholder` (default „Wybierz”), `searchable` (filter input above
-  the list), `clearable` (a clear IconButton while something is chosen), `disabled`. Closed control: a
+  the list), `remoteSearch` (the caller filters on the server: the list shows `options` as given, `search` still emits), `clearable` (a clear IconButton while something is chosen), `disabled`. Closed control: a
   `role="combobox"` button, `--elem-height`, `--radius-base`, `border-control`, 12 px Inter 500, `expand` caret;
   `multiple` shows the one label or „Wybrano: N”. The list opens in BasicMenu's panel (position, flip = drop-up,
   outside click, Esc, focus return) as a `listbox` driven by `aria-activedescendant`: arrows (wrap), Home / End,

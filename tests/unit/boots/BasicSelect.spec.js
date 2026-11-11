@@ -189,6 +189,18 @@ describe("BasicSelect", () => {
     expect(control().getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("remoteSearch: the options show as given, no filtering by label, search still emits", async () => {
+    const wrapper = mountSelect({ searchable: true, remoteSearch: true });
+    await open();
+    const input = document.querySelector('input[type="search"]');
+    input.value = "zzz";
+    input.dispatchEvent(new Event("input"));
+    await settle();
+    expect(wrapper.emitted("search").at(-1)).toEqual(["zzz"]);
+    expect(options()).toHaveLength(OPTIONS.length);
+    expect(document.body.textContent).not.toContain("select.no_results");
+  });
+
   it("clearable: a clear button while a value is chosen emits null (an empty array when multiple)", async () => {
     const wrapper = mountSelect({ clearable: true, modelValue: "pl" });
     await settle();

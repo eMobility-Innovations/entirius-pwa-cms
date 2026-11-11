@@ -82,6 +82,8 @@
 // description); `aria-label` / `aria-labelledby` on the tag name it outside one. `placement` and `inline` go to BasicMenu (`inline`: open in the page flow, catalogue).
 // `moreLabel` adds an action row at the end of the list for options that are not loaded yet: never filtered out,
 // choosing it emits `more` and keeps the menu open. `search` carries the trimmed filter text on every change.
+// `remoteSearch`: the caller filters on the server (listen to `search`), so the list shows `options` as given and never
+// hides one by its label.
 // `floatingLabel` names a select that stands without a FormField (toolbars, card headers): the empty control shows it
 // as the placeholder, a chosen value puts it above the control as a 12 px muted line; it is the accessible name too.
 import { computed, ref, useAttrs, useId, watch } from "vue";
@@ -109,6 +111,7 @@ const props = defineProps({
   inline: { type: Boolean, default: false },
   floatingLabel: { type: String, default: "" },
   moreLabel: { type: String, default: "" },
+  remoteSearch: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "more", "search"]);
 
@@ -142,7 +145,7 @@ const showClear = computed(() => props.clearable && !isDisabled.value && selecte
 
 const matching = computed(() => {
   const needle = query.value.trim().toLowerCase();
-  if (!needle) return props.options;
+  if (!needle || props.remoteSearch) return props.options;
   return props.options.filter((option) => String(option.label).toLowerCase().includes(needle));
 });
 const moreRow = computed(() => (props.moreLabel ? [{ label: props.moreLabel, value: MORE, action: "more" }] : []));

@@ -4,6 +4,7 @@
     :options="withAll"
     :model-value="modelValue"
     searchable
+    remote-search
     :more-label="source.moreLabel"
     @search="source.onSearch"
     @more="source.loadMore"

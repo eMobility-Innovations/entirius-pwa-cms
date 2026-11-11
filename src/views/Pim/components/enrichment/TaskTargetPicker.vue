@@ -26,6 +26,7 @@
         :options="categoryOptions"
         :placeholder="$t('enrichment.studio.task.category_pick')"
         searchable
+        remote-search
         :more-label="categorySource.moreLabel"
         data-testid="task-targets-category"
         @search="categorySource.onSearch"

@@ -65,6 +65,7 @@
             multiple
             :options="categorySource.options"
             searchable
+            remote-search
             :more-label="categorySource.moreLabel"
             @search="categorySource.onSearch"
             @more="categorySource.loadMore"
@@ -79,6 +80,7 @@
             multiple
             :options="attributeSource.options"
             searchable
+            remote-search
             :more-label="attributeSource.moreLabel"
             @search="attributeSource.onSearch"
             @more="attributeSource.loadMore"
@@ -93,6 +95,7 @@
             multiple
             :options="featureSource.options"
             searchable
+            remote-search
             :more-label="featureSource.moreLabel"
             @search="featureSource.onSearch"
             @more="featureSource.loadMore"
@@ -107,6 +110,7 @@
             multiple
             :options="featureSource.options"
             searchable
+            remote-search
             :more-label="featureSource.moreLabel"
             @search="featureSource.onSearch"
             @more="featureSource.loadMore"

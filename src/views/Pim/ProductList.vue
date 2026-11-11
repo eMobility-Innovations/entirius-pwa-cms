@@ -47,6 +47,7 @@
               :options="categoryOptions"
               :model-value="categoryFilter"
               searchable
+              remote-search
               :more-label="categorySource.moreLabel"
               class="product-list__filter-dropdown"
               @search="categorySource.onSearch"
