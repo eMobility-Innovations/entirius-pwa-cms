@@ -2814,6 +2814,16 @@
       "reject_reason": "Powód (opcjonalnie)",
       "reject_reason_placeholder": "Dlaczego odrzucasz tę propozycję?",
       "focus": {
+        "keep_ai_set": "Zostaw zestaw AI",
+        "set_heading": "Zestaw cech · propozycja AI",
+        "other_set_placeholder": "Wybierz inny zestaw…",
+        "attributes_of": "Atrybuty zestawu {set}",
+        "attributes": "Atrybuty",
+        "was": "było {value}",
+        "chosen_note": "Zapisze się tylko zestaw. AI odczyta dla niego atrybuty i produkt wróci do przeglądu.",
+        "last_try": "AI miało trzy próby. Jeśli ten zestaw jest zły, wybierz właściwy z listy.",
+        "reject_set": "Odrzuć zestaw, zapytaj AI ponownie",
+        "apply_set": "Zastosuj ten zestaw",
         "progress": "{index} z {total} do przejrzenia",
         "studio_title": "Artykuł: {topic} · {step}",
         "studio_untitled": "Artykuł ze Studia · {step}",
@@ -2838,6 +2848,7 @@
       "edit_label": "Proponowany tekst",
       "apply": "Zastosuj",
       "new_text": "Nowy tekst",
+      "new_value": "Nowa wartość",
       "view_changes": "Zmiany",
       "view_before": "Przed",
       "view_after": "Po",
@@ -2849,7 +2860,8 @@
         "video": "Wideo produktu",
         "picture": "Zdjęcie produktu",
         "document": "Artykuł",
-        "artifact": "Krok Studia"
+        "artifact": "Krok Studia",
+        "feature_set": "Zestaw cech"
       },
       "search_preview": "W wynikach wyszukiwania",
       "change_new": "Nowe",
@@ -2880,12 +2892,21 @@
       "studio_article": "Artykuł ze Studia",
       "studio_note": "Ten tekst to krok artykułu ze Studia. Przeczytasz i zmienisz go w Studiu, razem z całym artykułem.",
       "open_in_studio": "Otwórz w Studiu",
+      "apply_product": "Zastosuj produkt",
+      "shop_data": "Dane ze sklepu",
       "full_editor": "Pełny edytor",
       "details": {
         "title": "Szczegóły",
         "model": "Model",
         "default_model": "Model domyślny",
         "source": "Wykonawca"
+      },
+      "page_of": "Strona {page} z {total}",
+      "prev": "Poprzednia",
+      "next": "Następna",
+      "feature_set": {
+        "now": "Teraz",
+        "proposed": "AI proponuje"
       }
     },
     "status": {

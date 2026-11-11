@@ -17,10 +17,33 @@
       data-testid="enrichment-product-group"
     >
       <template #actions>
+        <BasicButton
+          v-if="hasSource"
+          variant="ghost"
+          size="sm"
+          data-testid="enrichment-product-source"
+          @click="toggleSource(group)"
+        >
+          {{ $t("enrichment.review.shop_data") }}
+        </BasicButton>
         <BasicButton variant="ghost" size="sm" @click="$emit('preview-product', group.proposals[0])">
           {{ $t("enrichment.preview.title") }}
         </BasicButton>
+        <BasicButton
+          size="sm"
+          mutates
+          :disabled="busy"
+          data-testid="enrichment-accept-product"
+          @click="$emit('accept-product', group)"
+        >
+          {{ $t("enrichment.review.apply_product") }}
+        </BasicButton>
       </template>
+      <pre
+        v-if="sources[group.subjectRef] != null"
+        class="product-mode__source m-0 fs-200"
+        data-testid="enrichment-product-source-text"
+      >{{ sources[group.subjectRef] || "—" }}</pre>
       <div class="flex-column gap-5">
         <ProposalPanel
           v-for="proposal in group.proposals"
@@ -39,6 +62,7 @@
 
 <script>
 import { GET_Task } from "@/api/enrichment/api";
+import { hasSource, loadSource } from "./productSource";
 import ProposalPanel from "./ProposalPanel.vue";
 import { groupBySubject } from "./reviewLogic";
 
@@ -52,11 +76,12 @@ export default {
     loading: { type: Boolean, default: false },
     busy: { type: Boolean, default: false },
   },
-  emits: ["accept", "reject", "updated", "preview-product"],
+  emits: ["accept", "accept-product", "reject", "updated", "preview-product"],
   data() {
-    return { tasks: {} };
+    return { tasks: {}, sources: {} };
   },
   computed: {
+    hasSource,
     groups() {
       return groupBySubject(this.rows);
     },
@@ -69,6 +94,15 @@ export default {
       const ids = [...new Set(this.rows.map((r) => r.task_id))].filter((id) => id != null && !(id in this.tasks));
       await Promise.all(ids.map((id) => this.loadTask(id)));
     },
+    // Loaded on demand: a page of products must not cost a product read each.
+    async toggleSource(group) {
+      const { subjectRef, proposals } = group;
+      if (this.sources[subjectRef] != null) {
+        this.sources[subjectRef] = null;
+        return;
+      }
+      this.sources[subjectRef] = await loadSource(proposals[0]);
+    },
     async loadTask(id) {
       try {
         const { data } = await GET_Task(id);
@@ -80,3 +114,11 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.product-mode__source {
+  white-space: pre-wrap;
+  max-height: 16rem;
+  overflow: auto;
+}
+</style>

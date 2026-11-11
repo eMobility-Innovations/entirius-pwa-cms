@@ -2815,6 +2815,16 @@
       "reject_reason": "Reason (optional)",
       "reject_reason_placeholder": "Why is this being rejected?",
       "focus": {
+        "keep_ai_set": "Keep the AI's set",
+        "set_heading": "Feature set · AI proposes",
+        "other_set_placeholder": "Pick another set…",
+        "attributes_of": "Attributes of {set}",
+        "attributes": "Attributes",
+        "was": "was {value}",
+        "chosen_note": "Only the set is applied. The AI then reads the attributes for it, and the product comes back.",
+        "last_try": "The AI has had three tries. If this set is wrong, pick the right one from the list.",
+        "reject_set": "Reject set, ask the AI again",
+        "apply_set": "Apply this set",
         "progress": "{index} of {total} to review",
         "studio_title": "Article: {topic} · {step}",
         "studio_untitled": "Studio article · {step}",
@@ -2839,6 +2849,7 @@
       "edit_label": "Proposed text",
       "apply": "Apply",
       "new_text": "New text",
+      "new_value": "New value",
       "view_changes": "Changes",
       "view_before": "Before",
       "view_after": "After",
@@ -2850,7 +2861,8 @@
         "video": "Product video",
         "picture": "Product picture",
         "document": "Article",
-        "artifact": "Studio step"
+        "artifact": "Studio step",
+        "feature_set": "Feature set"
       },
       "search_preview": "In search results",
       "change_new": "New",
@@ -2881,12 +2893,21 @@
       "studio_article": "Studio article",
       "studio_note": "This text is a step of a Studio article. Read and change it in the Studio, where the whole article is.",
       "open_in_studio": "Open in the Studio",
+      "apply_product": "Apply product",
+      "shop_data": "Shop data",
       "full_editor": "Full editor",
       "details": {
         "title": "Details",
         "model": "Model",
         "default_model": "Default model",
         "source": "Made by"
+      },
+      "page_of": "Page {page} of {total}",
+      "prev": "Previous",
+      "next": "Next",
+      "feature_set": {
+        "now": "Now",
+        "proposed": "AI proposes"
       }
     },
     "status": {

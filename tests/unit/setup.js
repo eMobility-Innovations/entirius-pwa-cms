@@ -1,6 +1,9 @@
 import { config } from "@vue/test-utils";
 import { ICONS } from "@/boots/Icons/icons";
 import PageLayout from "@/boots/PageLayout/index.vue";
+import { installWebStorage } from "./support/webStorage";
+
+installWebStorage(globalThis);
 
 // Simple i18n stubs reused by every test
 const $t = (key, params = {}) => {

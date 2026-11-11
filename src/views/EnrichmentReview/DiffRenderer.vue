@@ -6,15 +6,16 @@
     :proposal-id="proposalId"
     :alt="subjectLabel"
   />
+  <FeatureSetChange v-else-if="targetKind === 'feature_set'" :proposed="proposed" :current="current" />
   <TagChanges v-else-if="isOptions" :proposed="proposed" :current="current" :locator="locator" />
-  <TextDiff v-else-if="diffComponent === 'TextDiff'" :before="before" :after="after" :wide="wide" :rules="rules" :snippet="snippet" />
+  <TextDiff v-else-if="diffComponent === 'TextDiff'" :before="before" :after="after" :wide="wide" :rules="rules" :snippet="snippet" :number="isNumber" />
   <component :is="diffComponent" v-else :before="before" :after="after" />
 </template>
 
 <script>
 // Universal before/after renderer. Dispatches to the existing supplier diff
 // components keyed by the proposal's `target_kind`: a select value is tag chips (TagChanges), text is a word diff (TextDiff), a
-// video plays the staged file, the rest reuses the suppliers diff widgets (etap-06).
+// video plays the staged file, a feature set reads "now → proposed" by name (FeatureSetChange), the rest reuses the suppliers diff widgets (etap-06).
 //
 // `proposed` = ContentProposal.proposed_value, `current` = current_snapshot.
 // Both are dicts. The PIM adapter convention wraps the value as {text: "..."},
@@ -26,8 +27,10 @@ import JsonDiff from "@/views/Pim/components/supplier/diffs/JsonDiff.vue";
 import ImageDiff from "./ImageDiff.vue";
 import TagChanges from "./TagChanges.vue";
 import TextDiff from "./TextDiff.vue";
-import { isOptionValue } from "./reviewLogic";
+import { featureUnit } from "./featureUnits";
+import { isNumberValue, isOptionValue } from "./reviewLogic";
 import VideoPreview from "./VideoPreview.vue";
+import FeatureSetChange from "./FeatureSetChange.vue";
 
 const KIND_TO_COMPONENT = {
   text: "TextDiff",
@@ -48,7 +51,7 @@ const IMAGE_KINDS = new Set(["image", "picture"]);
 
 export default {
   name: "DiffRenderer",
-  components: { NumericDiff, ArrayDiff, JsonDiff, ImageDiff, TagChanges, TextDiff, VideoPreview },
+  components: { NumericDiff, ArrayDiff, JsonDiff, ImageDiff, TagChanges, TextDiff, VideoPreview, FeatureSetChange },
   props: {
     targetKind: { type: String, default: "text" },
     proposed: { type: [Object, Array, String, Number], default: null },
@@ -68,6 +71,9 @@ export default {
     },
     isImage() {
       return IMAGE_KINDS.has(this.targetKind);
+    },
+    isNumber() {
+      return isNumberValue(this.proposed);
     },
     // The "before" picture URL lives in current_snapshot.url (a relative /media path from PIM).
     // Prefix the backend base so the <img> resolves; absolute URLs pass through untouched.
@@ -98,6 +104,8 @@ export default {
       if (this.diffComponent === "JsonDiff") return value;
       if (value == null) return null;
       if (typeof value !== "object" || Array.isArray(value)) return value;
+      const unit = value.unit ?? featureUnit(this.locator?.feature_idx);
+      if (unit && value.value != null) return `${value.value} ${unit}`;
       const keys = Object.keys(value);
       if (keys.length === 1) return value[keys[0]];
       // Common PIM key wins when present, else hand the whole dict over.

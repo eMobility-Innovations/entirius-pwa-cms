@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 import { t, getLang } from "@/i18n";
+import { allPages } from "@/api/allPages";
 import { GET_Features } from "@/api/pim/api";
 
 // Human names of PIM fields ("Meta opis", not "meta_description"): the PIM feature catalogue, loaded once per page
@@ -8,8 +9,8 @@ const state = reactive({ features: {}, loading: null });
 
 async function load() {
   try {
-    const { data } = await GET_Features({ page_size: 500 });
-    state.features = Object.fromEntries((data.results || []).map((f) => [f.idx, f]));
+    const features = await allPages((params) => GET_Features(params));
+    state.features = Object.fromEntries(features.map((f) => [f.idx, f]));
   } catch {
     state.features = {};
   }

@@ -3,12 +3,19 @@ import { mount, flushPromises } from "@vue/test-utils";
 
 const mockGetProposals = vi.fn(() => Promise.resolve({ data: { results: [{ id: 7, status: "pending" }], count: 3 } }));
 const run = (id) => ({ id, type: "pim.writer", params: { template: "desc" }, scope_spec: { mode: "list", refs: ["A", "B"] }, created_at: "2026-10-15T10:00:00Z" });
+// The page loads Focus lazily (defineAsyncComponent). Its real import pulls the whole Studio preview tree and can
+// outlive a test that switches to Focus, failing the run with an environment teardown error on a slow runner.
+vi.mock("@/views/EnrichmentReview/FocusMode.vue", () => ({ __esModule: true, default: { name: "EnrichmentFocusMode", render: () => null } }));
+
 vi.mock("@/api/enrichment/api", () => ({
   GET_Proposals: (...a) => mockGetProposals(...a),
   GET_Task: (id) => Promise.resolve({ data: run(Number(id)) }),
   GET_Workers: () => Promise.resolve({ data: [] }),
   GET_Templates: () => Promise.resolve({ data: [{ key: "desc", label: "Product description" }] }),
 }));
+// The bulk bar is gated on the access store; these suites run as a user who may write enrichment rules.
+const access = vi.hoisted(() => ({ allowed: true }));
+vi.mock("@/stores/access", () => ({ useAccessStore: () => ({ can: () => access.allowed }) }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
 vi.mock("@/stores/pimChannel", () => ({
   usePimChannelStore: () => ({ channels: [{}], fetchChannels: vi.fn(), activeChannelIdx: "c1" }),
@@ -27,7 +34,7 @@ async function mountPage(query) {
     global: {
       stubs: { PageLayout: { template: "<div><slot name='toolbar' /><slot /></div>" }, PageHeader: true, ListMode,
         BatchCorrection, RunCorrections, BasicButton, DriftModal: true, ImportCsvDialog: true, ProductPreviewDrawer: true,
-        MobileFilterPanel: true, SideDrawer: true },
+        MobileFilterPanel: true, SideDrawer: true, ProductMode: true },
       mocks: { $route: { path: "/enrichment", query }, $router: { replace, push: vi.fn() } },
     },
   });
@@ -100,3 +107,50 @@ describe("EnrichmentReview filtered by task", () => {
     expect(w.vm.loading).toBe(false);
   });
 });
+
+describe("EnrichmentReview product view", () => {
+  it("reloads by product on entering it, so a product's proposals sit together", async () => {
+    const w = await mountPage({});
+    mockGetProposals.mockClear();
+
+    w.vm.mode = "product";
+    await flushPromises();
+
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ ordering: "subject_ref", page: 1 });
+  });
+
+  it("Focus reads by product too, on entering it", async () => {
+    const w = await mountPage({});
+    mockGetProposals.mockClear();
+
+    w.vm.mode = "focus";
+    await flushPromises();
+
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ ordering: "subject_ref", page: 1 });
+  });
+
+  it("after a decision Focus reads the same page: the next rows slid up onto it", async () => {
+    const w = await mountPage({});
+    w.vm.totalCount = 100;
+    mockGetProposals.mockClear();
+
+    await w.vm.loadNextPage({ decided: true });
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ page: 1 });
+
+    mockGetProposals.mockClear();
+    w.vm.totalCount = 100;
+    await w.vm.loadNextPage({ decided: false });
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ page: 2 });
+  });
+
+  it("goes back to the newest first on leaving it", async () => {
+    const w = await mountPage({ mode: "product" });
+    mockGetProposals.mockClear();
+
+    w.vm.mode = "list";
+    await flushPromises();
+
+    expect(mockGetProposals.mock.calls[0][0]).toMatchObject({ ordering: "-created_at", page: 1 });
+  });
+});
+
