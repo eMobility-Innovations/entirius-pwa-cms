@@ -5,8 +5,6 @@ import path from "path";
 // Every `v-html` in `src/` renders through `sanitizeHtml`, on the same line, unless its content is fixed at build
 // time. A new sink of API data that skips the helper fails here.
 const SRC = path.resolve(__dirname, "../../../src");
-// Markdown files bundled with the app (`raw-loader`), rendered by `marked`.
-const BUILD_TIME = ["views/Docs/index.vue"];
 
 const vueFiles = (dir) =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -25,13 +23,8 @@ const sinks = () =>
   );
 
 describe("v-html audit", () => {
-  it("every v-html of API data goes through sanitizeHtml", () => {
-    const unsafe = sinks().filter(({ file, line }) => !BUILD_TIME.includes(file) && !line.includes('v-html="sanitizeHtml('));
+  it("every v-html goes through sanitizeHtml, bundled markdown included", () => {
+    const unsafe = sinks().filter(({ line }) => !line.includes('v-html="sanitizeHtml('));
     expect(unsafe).toEqual([]);
-  });
-
-  it("the build-time list names only files that still have a v-html", () => {
-    const files = sinks().map(({ file }) => file);
-    expect(BUILD_TIME.filter((file) => !files.includes(file))).toEqual([]);
   });
 });

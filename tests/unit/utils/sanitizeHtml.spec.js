@@ -45,6 +45,8 @@ describe("sanitizeHtml", () => {
       'style="min-width: 75px; width: 20%"'
     );
     expect(sanitizeHtml('<p style="text-align: center">a</p>')).toBe('<p style="text-align: center">a</p>');
+    expect(sanitizeHtml('<table><tr><th align="right">a</th></tr></table>')).toContain('<th align="right">a</th>');
+    expect(sanitizeHtml('<ol start="3"><li>a</li></ol>')).toBe('<ol start="3"><li>a</li></ol>');
     expect(sanitizeHtml('<span style="color: rgb(255, 0, 0)">a</span>')).toBe('<span style="color: rgb(255, 0, 0)">a</span>');
   });
 

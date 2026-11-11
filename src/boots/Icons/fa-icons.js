@@ -71,7 +71,6 @@ import {
   faWarehouse,
   faLanguage,
   faFileCsv,
-  faCheckSquare,
   faMoon,
   faSun,
   faLock,
@@ -108,7 +107,7 @@ import {
   faMagnifyingGlass,
   faMoneyBillWave,
   faCoins,
-  faShoppingCart,
+  faCartShopping,
   faCalendarDays,
   faBullseye,
   faSquareCheck,
@@ -120,6 +119,10 @@ import {
   faPaperclip,
   faCode,
   faCircleNotch,
+  faFilePdf,
+  faFileWord,
+  faFileImage,
+  faFileVideo,
 } from "@fortawesome/free-solid-svg-icons";
 
 /* import font awesome icon component */
@@ -197,7 +200,6 @@ export default function registerFontAwesome(app) {
     faWarehouse,
     faLanguage,
     faFileCsv,
-    faCheckSquare,
     faMoon,
     faSun,
     faLock,
@@ -234,7 +236,7 @@ export default function registerFontAwesome(app) {
     faMagnifyingGlass,
     faMoneyBillWave,
     faCoins,
-    faShoppingCart,
+    faCartShopping,
     faCalendarDays,
     faBullseye,
     faSquareCheck,
@@ -245,7 +247,11 @@ export default function registerFontAwesome(app) {
     faFile,
     faPaperclip,
     faCode,
-    faCircleNotch
+    faCircleNotch,
+    faFilePdf,
+    faFileWord,
+    faFileImage,
+    faFileVideo
   );
 
   /* add font awesome icon component */

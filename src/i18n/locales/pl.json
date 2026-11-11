@@ -928,8 +928,17 @@
     "base_language": "Język bazowy",
     "target_language": "Język docelowy",
     "category_tree": "Drzewo kategorii",
-    "expand_all": "Rozwiń wszystkie",
     "collapse_all": "Zwiń wszystkie",
+    "category_show_in_tree": "Pokaż w drzewie",
+    "add_subcategory_to": "Dodaj podkategorię do: {name}",
+    "add_subcategory": "Dodaj podkategorię",
+    "category_actions": "Akcje dla: {name}",
+    "category_level_error": "Nie udało się wczytać kategorii.",
+    "category_retry": "Spróbuj ponownie",
+    "category_show_more": "Pokaż więcej ({loaded} z {count})",
+    "category_reveal_loading": "Ładowanie ścieżki do kategorii…",
+    "category_reveal_not_found": "Nie znaleziono „{name}” w drzewie w granicach limitu stron. Otwórz jej kategorię nadrzędną ręcznie.",
+    "category_reorder_loading": "Ładowanie pozostałych kategorii tego poziomu…",
     "add_root_category": "Dodaj kategorię główną",
     "no_subcategories": "Brak podkategorii",
     "channel": "Kanał",
@@ -4036,6 +4045,8 @@
     "threshold_filters": "Filtry progowe",
     "edit_code_title": "Edytuj kod rabatowy",
     "code_updated": "Kod zaktualizowany",
+    "code_clash": "Inna reguła rabatowa używa już tego kodu w tym samym kanale i walucie. Wybierz inny kod.",
+    "code_clash_scope": "Przy tych kanałach i walutach kod tej reguły powtarza kod innej reguły rabatowej, a kod musi być unikalny w kanale i walucie. Zmień kod albo waluty.",
     "filter_drawer_title_product": "Edytuj filtr produktów",
     "filter_drawer_title_threshold": "Edytuj filtr progowy",
     "filter_drawer_title_customer": "Edytuj filtr klientów",
@@ -4720,7 +4731,10 @@
       "communicator_smtp": "Poczta outreach (SMTP)",
       "siteintel_sources": "Źródła audytów stron",
       "siteintel_keys": "Klucze API audytów stron",
-      "enrichment_profile": "Profil firmy"
+      "enrichment_profile": "Profil firmy",
+      "agreements_storefront_url": "Adres sklepu",
+      "checkout_discount_codes": "Kody rabatowe",
+      "django_checkout_W002": "Webhooki PayPal"
     },
     "checks": {
       "toolbox_status": {
@@ -4746,6 +4760,15 @@
       },
       "enrichment_profile": {
         "incomplete": "Profil firmy jest niepełny: {scope} — teksty AI będą tam ogólnikowe"
+      },
+      "agreements_storefront_url": {
+        "unconfigured": "Adres sklepu nie jest ustawiony — linki potwierdzenia i wypisania z newslettera prowadzą na adres deweloperski"
+      },
+      "checkout_discount_codes": {
+        "unconfigured": "W kanale {scope} kilka reguł z tą samą walutą ma ten sam kod rabatowy — limity użyć mogą liczyć się na złej regule"
+      },
+      "django_checkout_W002": {
+        "unconfigured": "Metody płatności PayPal bez webhook ID — powiadomienia PayPal są odrzucane, zamówienie potwierdza dopiero powrót kupującego do sklepu"
       }
     }
   },
@@ -4753,6 +4776,7 @@
     "search": "Szukaj na liście",
     "no_results": "Brak wyników",
     "clear": "Wyczyść wybór",
+    "load_more": "Pokaż więcej",
     "selected_count": "Wybrano: {count}"
   },
   "entity_picker": {

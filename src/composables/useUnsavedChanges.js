@@ -33,20 +33,27 @@ export function useUnsavedChanges() {
     window.removeEventListener('beforeunload', beforeUnloadHandler)
   })
 
-  function guardNavigation(to, from, next) {
-    if (!isDirty.value) return next()
-    pendingNav.value = { to, next }
+  // A dirty form holds the navigation: the guard's promise settles on the dialog's answer (true = leave,
+  // false = stay), so the original router.push finishes either way. A newer navigation replaces the held one.
+  function guardNavigation(to) {
+    if (!isDirty.value) return true
+    pendingNav.value?.settle(false)
+    return new Promise((settle) => {
+      pendingNav.value = { to, settle }
+    })
   }
 
   function confirmLeave() {
     const nav = pendingNav.value
     pendingNav.value = null
     isDirty.value = false
-    if (nav) nav.next()
+    nav?.settle(true)
   }
 
   function cancelLeave() {
+    const nav = pendingNav.value
     pendingNav.value = null
+    nav?.settle(false)
   }
 
   return { isDirty, pendingNav, snapshot, track, guardNavigation, confirmLeave, cancelLeave }

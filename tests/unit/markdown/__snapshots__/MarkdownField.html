@@ -1,0 +1,164 @@
+<!-- headings -->
+<h1>Title one</h1>
+<h2>Section two</h2>
+<h3>Sub three</h3>
+<h2>Setext heading</h2>
+<h2>Zażółć gęślą jaźń</h2>
+
+
+<!-- paragraphs -->
+<p>First paragraph
+second line of it</p>
+<p>Second paragraph with trailing spaces<br>and a hard break</p>
+
+
+<!-- emphasis -->
+<p><strong>bold</strong> and <em>italic</em> and <del>struck</del> and <em><strong>both</strong></em>, snake_case_word, 2 * 3 * 4</p>
+
+
+<!-- bullets -->
+<ul>
+<li>one</li>
+<li>two<ul>
+<li>nested a</li>
+<li>nested b<ul>
+<li>deeper</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>three</li>
+</ul>
+
+
+<!-- numbered -->
+<ol>
+<li>first</li>
+<li>second<ol>
+<li>inner one</li>
+<li>inner two</li>
+</ol>
+</li>
+<li>third</li>
+</ol>
+<p>between lists</p>
+<ol start="5">
+<li>starts at five</li>
+<li>six</li>
+</ol>
+
+
+<!-- tasks -->
+<ul>
+<li> done</li>
+<li> open</li>
+</ul>
+
+
+<!-- table -->
+<table>
+<thead>
+<tr>
+<th align="left">Name</th>
+<th align="right">Qty</th>
+<th align="center">Note</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Sofa</td>
+<td align="right">2</td>
+<td align="center"><strong>new</strong></td>
+</tr>
+<tr>
+<td align="left">Łódź</td>
+<td align="right">10</td>
+<td align="center">a | pipe</td>
+</tr>
+</tbody></table>
+
+
+<!-- code_inline -->
+<p>Use <code>npm run build</code> and <code>&lt;div&gt;</code> here.</p>
+
+
+<!-- code_block -->
+<pre><code>const a = 1 &lt; 2 &amp;&amp; "x";
+console.log(a);
+</code></pre>
+<pre><code>indented code
+second line
+</code></pre>
+<pre><code>no language &lt;b&gt;x&lt;/b&gt;
+</code></pre>
+
+
+<!-- links -->
+<p><a href="https://example.com/a?b=1&amp;c=2">plain</a> and <a href="https://example.com" title="The title">titled</a> and <a href="mailto:a@b.pl">mail</a> and <a href="/docs/page#anchor">rel</a></p>
+
+
+<!-- autolink -->
+<p>Bare <a href="https://example.com/path">https://example.com/path</a> and <a href="https://example.org">https://example.org</a> and <a href="http://www.example.net">www.example.net</a> and <a href="mailto:a@b.pl">a@b.pl</a></p>
+
+
+<!-- link_javascript -->
+<p><a>click</a> and <a>data</a> and <a>mixed</a></p>
+
+
+<!-- images -->
+<p><img src="https://example.com/i.png" alt="alt text" title="img title"> and <img src="/media/a.jpg" alt="local"> and <img alt="js"></p>
+
+
+<!-- blockquote -->
+<blockquote>
+<p>quoted line
+second</p>
+<blockquote>
+<p>nested quote</p>
+</blockquote>
+</blockquote>
+<p>after</p>
+
+
+<!-- rule -->
+<p>above</p>
+<hr>
+<p>below</p>
+<hr>
+
+
+<!-- html_script -->
+<p>before</p>
+<p>after</p>
+
+
+<!-- html_onerror -->
+<img src="x"><p>text <img src="y"> inline</p>
+
+
+<!-- html_other -->
+<p><a>raw link</a></p>
+<div>box</div><p><b>raw bold</b> and </p>sd<p></p>
+
+
+<!-- entities -->
+<p>AT&amp;T &amp; © &lt;tag&gt; 5 &lt; 6 &gt; 4 "quotes" 'apos' € *escaped*</p>
+
+
+<!-- polish -->
+<p>Zażółć gęślą jaźń: ąćęłńóśźż ĄĆĘŁŃÓŚŹŻ - <strong>pogrubienie</strong> i <code>kod</code></p>
+
+
+<!-- reference -->
+<p><a href="https://example.com/ref">ref link</a> and <img src="/media/ref.png" alt="ref img"></p>
+
+
+<!-- mixed_list_para -->
+<p>Intro:</p>
+<ul>
+<li><p>item with para</p>
+<p>second para in item</p>
+</li>
+<li><p>item two</p>
+</li>
+</ul>
+<p>Outro</p>

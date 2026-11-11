@@ -187,7 +187,7 @@ export function buildNavRoutes() {
     {
       route: "/checkout-orders/orders",
       labelKey: "nav.checkout_orders",
-      icon: "shopping-cart",
+      icon: "cart-shopping",
       query: {},
       app: ["checkout"],
     },

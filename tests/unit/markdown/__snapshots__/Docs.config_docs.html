@@ -1,0 +1,147 @@
+<p>##__<strong>[type]</strong>_config configuration</p>
+<table>
+<thead>
+<tr>
+<th align="left">prop</th>
+<th align="center">value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">__<strong>[type]</strong>_config</td>
+<td align="center">Array:[<strong>config</strong>]</td>
+</tr>
+</tbody></table>
+<p><strong>[config]</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">prop</th>
+<th align="center">value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">prop</td>
+<td align="center">String</td>
+</tr>
+<tr>
+<td align="left">label</td>
+<td align="center">String</td>
+</tr>
+<tr>
+<td align="left">type</td>
+<td align="center">String</td>
+</tr>
+<tr>
+<td align="left">__value</td>
+<td align="center">[null, String]</td>
+</tr>
+<tr>
+<td align="left">_for</td>
+<td align="center">JSON</td>
+</tr>
+<tr>
+<td align="left">hidden</td>
+<td align="center">Boolean</td>
+</tr>
+</tbody></table>
+<hr>
+<p>e.g.</p>
+<p><code>... { prop: core_type, label: Typ sekcji, type: dropdown, __value: null, _for: {     section_configs: [ ... ],     tile_configs: [ ... ] }, hidden: false } ...</code></p>
+<hr>
+<p><em><strong>prop:</strong></em></p>
+<blockquote>
+<p>Nazwa funkcyjna pod jaką rejestrujemy dany config (powinna być unikalna).</p>
+</blockquote>
+<p><em><strong>label:</strong></em></p>
+<blockquote>
+<p>Nazwa *<strong>*[prop]**</strong> zrozumiała dla użytkownika</p>
+</blockquote>
+<p><em><strong>type:</strong></em></p>
+<blockquote>
+<p>Każdy typ ma controller (podany w nawiasie), zawierający logike przypisywania wartości do ww. propki <strong>[ prop ]</strong>.</p>
+</blockquote>
+<ul>
+<li>dropdown - <strong>(Dropdown)</strong></li>
+</ul>
+<blockquote>
+<p>wartościami poszczególonych kontrolerów stają się skonfigurowane pola w propce <strong>_for</strong> (opis poniżej).</p>
+</blockquote>
+<p><strong>__value:</strong></p>
+<blockquote>
+<p>Domyślnie powinien być to null, można jednak wpisać inną domyślną wartość, o ile jest ona zawarta w configu <strong>_for</strong></p>
+</blockquote>
+<hr>
+<p><strong>_for:</strong></p>
+<blockquote>
+<p>Pozwala rozdzielić wartości dla poszczególnych typów. Dla wartości null oznacza pojawienie sie <strong>[config_name]</strong> dla wszystkich konfiguracji <em>(chyba...)</em>.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="left">prop</th>
+<th align="center">value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">section_configs</td>
+<td align="center">Array: [option]</td>
+</tr>
+<tr>
+<td align="left">tile_configs</td>
+<td align="center">Array: [option]</td>
+</tr>
+</tbody></table>
+<p><code>... "_for": {  section_configs: [ ... ],  tile_configs: [ ... ] } ...</code></p>
+<blockquote>
+<p>Nazwy section configs oraz tile configs są predefiniowane i to nimi należy sie posługiwać konfigurując odpowiednio sekcję lub kafelek <strong>[!!!]</strong></p>
+</blockquote>
+<hr>
+<p><strong>[ option ]</strong></p>
+<table>
+<thead>
+<tr>
+<th align="left">prop</th>
+<th align="center">value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">label</td>
+<td align="center">String</td>
+</tr>
+<tr>
+<td align="left">value</td>
+<td align="center">[String, Int, Boolean]</td>
+</tr>
+<tr>
+<td align="left">variants</td>
+<td align="center">[Array , null]</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>label</strong> - nazwa wyświetlana użytkownikowi<br><strong>value</strong> - wartość dla danej opcji<br><strong>variants</strong> - w przypadku konieczności pozwala doprecyzować dla których konfiguracji dana opcja jest dostępna</p>
+</blockquote>
+<p><em><strong>variants</strong></em></p>
+<blockquote>
+<p>Konfiguracja wariantów obywa sie za pomocą łaczenia par (klucz - wartość) poszczególnych <strong>[config]</strong> i wyłącznie __<strong>[type]</strong>_config.</p>
+</blockquote>
+<p>e.g.</p>
+<pre><code>...
+prop: variant,
+label: Wariant,
+...
+section_configs: [
+        {
+          label: variant 1,
+          value: 1,
+          variants: [
+            [doc_type:static-page, core_type:Universal],
+            [doc_type:static-page, core_type:section-slider]
+          ]
+        },
+        ...
+      ],
+...
+</code></pre>
+<blockquote>
+<p>zapis <code> [doc_type:static-page, core_type:Universal]</code> oznacza ze dana opcja dostępa jest w przypadku kiedy doc_type (<strong>[config]</strong>) posiada __value "static-page" oraz core_type (<strong>[config]</strong>) wartość Universal<br>variants z wartością null oznaczać bedzie opcje dostępną dla wszystkich możliwych konfiguracji</p>
+</blockquote>

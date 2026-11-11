@@ -928,8 +928,17 @@
     "base_language": "Base Language",
     "target_language": "Target Language",
     "category_tree": "Category Tree",
-    "expand_all": "Expand All",
     "collapse_all": "Collapse All",
+    "category_show_in_tree": "Show in tree",
+    "add_subcategory_to": "Add subcategory to {name}",
+    "add_subcategory": "Add subcategory",
+    "category_actions": "Actions for {name}",
+    "category_level_error": "Could not load categories.",
+    "category_retry": "Retry",
+    "category_show_more": "Show more ({loaded} of {count})",
+    "category_reveal_loading": "Loading the path to the category…",
+    "category_reveal_not_found": "Could not find \"{name}\" in the tree within the page limit. Open its parent manually.",
+    "category_reorder_loading": "Loading the remaining categories of this level…",
     "add_root_category": "Add Root Category",
     "no_subcategories": "No subcategories",
     "channel": "Channel",
@@ -4070,6 +4079,8 @@
     "threshold_filters": "Threshold filters",
     "edit_code_title": "Edit discount code",
     "code_updated": "Code updated",
+    "code_clash": "Another discount rule already uses this code in the same channel and currency. Pick a different code.",
+    "code_clash_scope": "With these channels and currencies a code of this rule repeats a code of another discount rule, and a code is unique per channel and currency. Change the code or the currencies.",
     "filter_drawer_title_product": "Edit Product Filter",
     "filter_drawer_title_threshold": "Edit Threshold Filter",
     "filter_drawer_title_customer": "Edit Customer Filter",
@@ -4754,7 +4765,10 @@
       "communicator_smtp": "Outreach mail (SMTP)",
       "siteintel_sources": "Site audit sources",
       "siteintel_keys": "Site audit API keys",
-      "enrichment_profile": "Company profile"
+      "enrichment_profile": "Company profile",
+      "agreements_storefront_url": "Storefront URL",
+      "checkout_discount_codes": "Discount codes",
+      "django_checkout_W002": "PayPal webhooks"
     },
     "checks": {
       "toolbox_status": {
@@ -4780,6 +4794,15 @@
       },
       "enrichment_profile": {
         "incomplete": "The company profile is incomplete: {scope} — AI texts stay generic there"
+      },
+      "agreements_storefront_url": {
+        "unconfigured": "The storefront URL is not set — newsletter confirmation and unsubscribe links point at the development address"
+      },
+      "checkout_discount_codes": {
+        "unconfigured": "Channel {scope} has discount codes shared by rules of one currency — usage limits may be counted on the wrong rule"
+      },
+      "django_checkout_W002": {
+        "unconfigured": "PayPal payment methods without a webhook ID — PayPal notifications are refused, an order is confirmed only when the buyer returns to the shop"
       }
     }
   },
@@ -4787,6 +4810,7 @@
     "search": "Search the list",
     "no_results": "No results",
     "clear": "Clear selection",
+    "load_more": "Load more",
     "selected_count": "{count} selected"
   },
   "entity_picker": {

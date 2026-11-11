@@ -18,6 +18,7 @@
     >
       <template #actions>
         <BasicButton
+          v-if="hasSource"
           variant="ghost"
           size="sm"
           data-testid="enrichment-product-source"
@@ -61,7 +62,7 @@
 
 <script>
 import { GET_Task } from "@/api/enrichment/api";
-import { loadSource } from "./productSource";
+import { hasSource, loadSource } from "./productSource";
 import ProposalPanel from "./ProposalPanel.vue";
 import { groupBySubject } from "./reviewLogic";
 
@@ -80,6 +81,7 @@ export default {
     return { tasks: {}, sources: {} };
   },
   computed: {
+    hasSource,
     groups() {
       return groupBySubject(this.rows);
     },

@@ -21,6 +21,7 @@ vi.mock("@/api/pim/api", () => ({
   GET_Features: () => Promise.resolve({ data: { results: [], next: null } }),
 }));
 
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 import FocusAttribute from "@/views/EnrichmentReview/FocusAttribute.vue";
 
 enableAutoUnmount(afterEach);
@@ -28,7 +29,7 @@ enableAutoUnmount(afterEach);
 const proposal = (over = {}) => ({
   id: 5,
   target_kind: "attribute_value",
-  target_locator: { feature_idx: "battery_capacity" },
+  target_locator: { feature_idx: "capacity" },
   proposed_value: { value: "40" },
   current_snapshot: { value: null },
   ...over,
@@ -59,7 +60,13 @@ const render = (value, props = {}) =>
 const find = (w, id) => w.find(`[data-testid='${id}']`);
 
 describe("FocusAttribute", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    enrichmentConfig.enrichment.featureUnits = { capacity: "Ah", speed: "km/h" };
+  });
+  afterEach(() => {
+    enrichmentConfig.enrichment.featureUnits = {};
+  });
 
   it("shows the value with its unit on one row, with no Apply of its own", () => {
     const w = render(proposal());
@@ -89,6 +96,16 @@ describe("FocusAttribute", () => {
       proposed_value: { value: "41" },
     });
     expect(w.emitted("updated")).toHaveLength(1);
+  });
+
+  it("sends a length as entered, with its own unit, converting nothing", async () => {
+    const w = render(proposal({ proposed_value: { value: "6.5", unit: "inch" } }));
+    expect(find(w, "focus-attribute-value").text()).toBe("6.5 inch");
+    await find(w, "focus-attribute-edit").trigger("click");
+    w.vm.draft = "7";
+    await w.find("form").trigger("submit");
+    await flushPromises();
+    expect(api.PATCH_Proposal).toHaveBeenCalledWith(5, { proposed_value: { value: "7", unit: "inch" } });
   });
 
   it("has no Reject action", () => {

@@ -190,21 +190,20 @@ describe("ProfilePage", () => {
     await flushPromises();
     section(w, "tone").vm.$emit("update:modelValue", { text: "Calm." });
     await w.vm.$nextTick();
-    const next = vi.fn();
-    ProfilePage.beforeRouteLeave.call(w.vm, {}, {}, next);
-    await w.vm.$nextTick();
-    expect(next).not.toHaveBeenCalled();
+    const verdict = vi.fn();
+    Promise.resolve(ProfilePage.beforeRouteLeave.call(w.vm, {}, {})).then(verdict);
+    await flushPromises();
+    expect(verdict).not.toHaveBeenCalled();
     expect(leaveDialog(w).props("open")).toBe(true);
     leaveDialog(w).vm.$emit("discard");
-    expect(next).toHaveBeenCalledWith();
+    await flushPromises();
+    expect(verdict).toHaveBeenCalledWith(true);
     expect(api.PUT_Profile).not.toHaveBeenCalled();
   });
 
   it("leaving without edits asks nothing", async () => {
     const w = mountPage();
     await flushPromises();
-    const next = vi.fn();
-    ProfilePage.beforeRouteLeave.call(w.vm, {}, {}, next);
-    expect(next).toHaveBeenCalledWith();
+    expect(ProfilePage.beforeRouteLeave.call(w.vm, {}, {})).toBe(true);
   });
 });

@@ -284,6 +284,7 @@
 import AttributeMappingRow from "../components/AttributeMappingRow.vue";
 import CategoryMappingRow from "../components/CategoryMappingRow.vue";
 import { useNotifyStore } from "@/stores/notify";
+import { fetchAllPages } from "@/composables/useRemoteOptions";
 import { useFormErrors, extractApiMessage } from "@/composables/useFormErrors";
 import {
   GET_MappingProfiles,
@@ -433,16 +434,17 @@ export default {
       // Channels + languages + feature sets + PIM features — needed once per drawer lifetime.
       // Soft-fail: if any picker source is unavailable, drawer still opens with empty list.
       try {
-        const [chRes, langRes, fsRes, featRes] = await Promise.all([
+        // Rows name saved mappings by idx, so the whole feature and feature-set lists are loaded, page by page.
+        const [chRes, langRes, featureSets, features] = await Promise.all([
           GET_Channels({ page_size: 100 }),
           GET_RegionalLanguages(),
-          GET_FeatureSetsGlobal({ page_size: 100 }),
-          GET_Features({ page_size: 200 }),
+          fetchAllPages(async (params) => (await GET_FeatureSetsGlobal(params)).data),
+          fetchAllPages(async (params) => (await GET_Features(params)).data),
         ]);
         this.channels = chRes.data?.results || chRes.data || [];
         this.languages = langRes.data?.results || langRes.data || [];
-        this.featureSets = fsRes.data?.results || fsRes.data || [];
-        this.features = featRes.data?.results || featRes.data || [];
+        this.featureSets = featureSets;
+        this.features = features;
       } catch {
         // Drawer still opens — operator can save and pick later.
       }

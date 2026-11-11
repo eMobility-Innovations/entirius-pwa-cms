@@ -29,6 +29,7 @@ vi.mock("@/api/pim/api", () => ({
   ),
 }));
 
+import enrichmentConfig from "@/../__client/configs/__enrichment_config";
 import FocusProduct from "@/views/EnrichmentReview/FocusProduct.vue";
 import FocusMissingRow from "@/views/EnrichmentReview/FocusMissingRow.vue";
 
@@ -64,6 +65,19 @@ const find = (wrapper, id) => wrapper.find(`[data-testid='${id}']`);
 
 describe("FocusProduct", () => {
   beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    enrichmentConfig.enrichment.sourceFeature = null;
+  });
+
+  it("renders the source toggle only when the client config names a source feature", async () => {
+    serve([attribute, set]);
+    expect(find(await render(), "enrichment-focus-source").exists()).toBe(false);
+
+    enrichmentConfig.enrichment.sourceFeature = { idx: "shop_hints", language: "en" };
+    expect(find(await render(), "enrichment-focus-source").exists()).toBe(true);
+    serve([attribute]);
+    expect(find(await render(), "enrichment-focus-source").exists()).toBe(true);
+  });
 
   it("puts the set above the attributes and names it over them", async () => {
     serve([attribute, set]);
