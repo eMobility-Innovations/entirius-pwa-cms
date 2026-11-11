@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- PIM category tree: it loads level by level instead of fetching every category first, so a channel with tens of
+  thousands of categories opens at once. Every level is paged with a "Show more" row; search and the status filter
+  list results from the API (name, idx, products, status) with "Show in tree"; a reorder loads the rest of its level
+  first and then reloads only the two levels it touched; expanded branches and the pages loaded are restored when you
+  come back from Edit. "Expand all" is gone (it cannot work on 50 000 nodes); each row has "Add subcategory"
+  (`/pim/categories/create?parent=<idx>`).
+
 ### Changed
 
 - Visual baselines approved again on 3.5.0 (Font Awesome 7 glyphs, seed and BDD of platform 4.3): 226 screens, 8 of
