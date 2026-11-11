@@ -84,6 +84,7 @@ import { useRouter } from "vue-router";
 import { t } from "@/i18n";
 import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
+import { usePageReadonly } from "@/composables/useReadonly";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { extractApiMessage } from "@/composables/useFormErrors";
 import CategoryTree from "./components/CategoryTree.vue";
@@ -99,6 +100,7 @@ const notify = useNotifyStore();
 const pimChannel = usePimChannelStore();
 const { search, debouncedFetch } = useSearchDebounce();
 const isActiveFilter = ref(null);
+const readonly = usePageReadonly();
 
 const channelIdx = computed(() => pimChannel.activeChannelIdx);
 const focusKey = () => `cms_pim_category_focus_${channelIdx.value}`;
@@ -183,6 +185,7 @@ async function onShowInTree(row) {
 }
 
 async function onReorder({ draggedIdx, targetIdx, position }) {
+  if (readonly.value) return;
   const ok = await tree.move(draggedIdx, targetIdx, position);
   if (!ok) return;
   notify.spawnNotification({

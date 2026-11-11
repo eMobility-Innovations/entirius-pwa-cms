@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import { useReadonly } from "@/composables/useReadonly";
 
 // One row of the category tree (or of the flat search result list: `flat`). The tree is a flat list of rows,
 // so a row never renders its children; depth only indents it.
@@ -26,7 +27,10 @@ const emit = defineEmits([
   "dragend",
 ]);
 
-const isDraggable = computed(() => !props.isRoot && !props.flat);
+const readonly = useReadonly();
+const isDraggable = computed(
+  () => !props.isRoot && !props.flat && !readonly.value
+);
 const showToggle = computed(() => !props.flat && !props.leaf);
 const displayName = computed(
   () =>
@@ -57,7 +61,7 @@ function onDragStart(e) {
 }
 
 function onDragOver(e) {
-  if (props.flat) return;
+  if (props.flat || readonly.value) return;
   e.preventDefault();
   e.dataTransfer.dropEffect = "move";
   const rect = e.currentTarget.getBoundingClientRect();
@@ -82,7 +86,7 @@ function onDragOver(e) {
 }
 
 function onDrop(e) {
-  if (props.flat) return;
+  if (props.flat || readonly.value) return;
   e.preventDefault();
   emit("drop", { targetIdx: props.node.idx });
 }
@@ -119,15 +123,14 @@ function onDragEnd() {
         class="tree-node__drag-handle t-muted"
         aria-hidden="true"
       />
-      <span v-if="loading" class="tree-node__toggle t-muted" role="status">
-        <font-awesome-icon :icon="$icons.running" spin />
-        <span class="visually-hidden">{{ $t("pim.category_loading_children") }}</span>
-      </span>
+      <!-- The button stays mounted while the children load (keyboard focus stays on it); only its glyph changes. -->
       <IconButton
-        v-else-if="showToggle"
-        :icon="expanded ? 'collapse' : 'expand'"
+        v-if="showToggle"
+        :icon="loading ? 'running' : expanded ? 'collapse' : 'expand'"
         :label="$t(expanded ? 'pim.collapse_group' : 'pim.expand_group', { name: displayName })"
         :aria-expanded="String(expanded)"
+        :aria-busy="loading ? 'true' : undefined"
+        :class="{ 'tree-node__toggle--loading': loading }"
         size="sm"
         @click="emit('toggle', node)"
       />
@@ -181,6 +184,7 @@ function onDragEnd() {
         icon="add"
         :label="$t('pim.add_subcategory_to', { name: displayName })"
         size="sm"
+        mutates
         @click="emit('add-child', node)"
       />
       <BasicButton variant="ghost" size="sm" @click="emit('select', node)">
@@ -293,6 +297,16 @@ function onDragEnd() {
   justify-content: center;
   width: 24px;
   flex-shrink: 0;
+}
+
+.tree-node__row :deep(.tree-node__toggle--loading) {
+  animation: tree-node-spin 1s linear infinite;
+}
+
+@keyframes tree-node-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tree-node__icon {

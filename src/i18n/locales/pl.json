@@ -897,7 +897,6 @@
     "target_language": "Język docelowy",
     "category_tree": "Drzewo kategorii",
     "collapse_all": "Zwiń wszystkie",
-    "category_loading_children": "Ładowanie podkategorii…",
     "category_show_in_tree": "Pokaż w drzewie",
     "add_subcategory_to": "Dodaj podkategorię do: {name}",
     "category_level_error": "Nie udało się wczytać kategorii.",
