@@ -64,14 +64,14 @@ export default {
 .feature-set-change {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 8px);
+  gap: var(--space-2);
 }
 .feature-set-change__row {
   display: flex;
-  gap: var(--space-3, 12px);
+  gap: var(--space-3);
   align-items: baseline;
 }
 .feature-set-change__value {
-  font-size: 1.05em;
+  font-size: var(--fs-300);
 }
 </style>
