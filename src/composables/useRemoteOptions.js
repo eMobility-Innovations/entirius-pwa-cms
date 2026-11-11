@@ -111,18 +111,23 @@ export function useCategoryOptions(channel) {
   });
 }
 
-const idName = (row) => ({ value: row.idx, label: row.name ? `${row.idx} — ${row.name}` : row.idx });
+// `lang` (a getter) picks the channel's language from `name_t9n`; the default-language `name` is the fallback.
+const idName = (row, lang) => {
+  const name = row.name_t9n?.[lang] || row.name;
+  return { value: row.idx, label: name ? `${row.idx} — ${name}` : row.idx };
+};
 
 /** Attributes (global list; `featureIdx` narrows it to one feature): label "idx — name", search over idx and name. */
-export function useAttributeOptions(featureIdx) {
+export function useAttributeOptions(featureIdx, lang) {
   const scope = () => ({ feature_idx: orUndefined(featureIdx?.()) });
+  const toOption = (row) => idName(row, lang?.());
   return useRemoteOptions({
     fetchPage: async (params) => (await GET_Attributes({ ...scope(), ...params })).data,
-    toOption: idName,
+    toOption,
     resolveOne: async (idx) => {
       const { data } = await GET_Attributes({ ...scope(), search: idx, page_size: 100 });
       const row = (data.results || []).find((r) => r.idx === idx);
-      return row ? idName(row) : undefined;
+      return row ? toOption(row) : undefined;
     },
   });
 }

@@ -17,6 +17,7 @@
 // (a feature such as a brand has thousands), the chosen one keeps its label.
 import { computed, watch } from "vue";
 import { useAttributeOptions } from "@/composables/useRemoteOptions";
+import { usePimChannelStore } from "@/stores/pimChannel";
 import { t } from "@/i18n";
 
 const props = defineProps({
@@ -26,7 +27,11 @@ const props = defineProps({
 });
 defineEmits(["update:modelValue"]);
 
-const source = useAttributeOptions(() => props.featureIdx);
+const pimChannel = usePimChannelStore();
+const source = useAttributeOptions(
+  () => props.featureIdx,
+  () => pimChannel.activeChannel?.default_language
+);
 const withAll = computed(() => [{ value: null, label: t("pim.filter_all") }, ...source.options]);
 
 watch(() => props.featureIdx, () => source.reload(), { immediate: true });

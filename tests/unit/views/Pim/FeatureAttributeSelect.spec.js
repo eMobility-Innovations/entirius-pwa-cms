@@ -4,6 +4,8 @@ import { mount, flushPromises } from "@vue/test-utils";
 const api = vi.hoisted(() => ({ GET_Attributes: vi.fn() }));
 vi.mock("@/api/pim/api", () => api);
 
+vi.mock("@/stores/pimChannel", () => ({ usePimChannelStore: () => ({ activeChannel: { default_language: "pl" } }) }));
+
 import FeatureAttributeSelect from "@/views/Pim/components/FeatureAttributeSelect.vue";
 
 const stubs = { BasicSelect: { name: "BasicSelect", props: ["options", "modelValue", "moreLabel"], template: "<div />" } };
@@ -32,5 +34,21 @@ describe("FeatureAttributeSelect", () => {
     await flushPromises();
     const labels = w.findComponent({ name: "BasicSelect" }).props("options").map((o) => o.label);
     expect(labels).toContain("zeta — Zeta");
+  });
+
+  it("labels a value in the channel language, the default name as the fallback", async () => {
+    api.GET_Attributes.mockResolvedValue({
+      data: {
+        results: [
+          { idx: "red", name: "Red", name_t9n: { en: "Red", pl: "Czerwony" } },
+          { idx: "blue", name: "Blue", name_t9n: { en: "Blue" } },
+        ],
+        next: null,
+      },
+    });
+    const w = mount(FeatureAttributeSelect, { props: { featureIdx: "color", name: "Color" }, global: { stubs } });
+    await flushPromises();
+    const labels = w.findComponent({ name: "BasicSelect" }).props("options").map((o) => o.label);
+    expect(labels.slice(1)).toEqual(["red — Czerwony", "blue — Blue"]);
   });
 });

@@ -29,6 +29,7 @@ vi.mock("@/api/promo/api", () => ({
   PATCH_CustomerFilter: vi.fn(),
 }));
 vi.mock("@/stores/notify", () => ({ useNotifyStore: () => ({ spawnNotification: vi.fn() }) }));
+vi.mock("@/stores/pimChannel", () => ({ usePimChannelStore: () => ({ channels: [{ idx: "default", default_language: "en" }] }) }));
 vi.mock("@/stores/loader", () => ({ useLoaderStore: () => ({ loaderStart() {}, loaderFinish() {} }) }));
 
 import FilterEditDrawer from "@/views/Promo/FilterEditDrawer.vue";

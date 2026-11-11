@@ -215,6 +215,7 @@ import {
   PATCH_CustomerFilter,
 } from "@/api/promo/api";
 import { useNotifyStore } from "@/stores/notify";
+import { usePimChannelStore } from "@/stores/pimChannel";
 import { useLoaderStore } from "@/stores/loader";
 import { INT_MAX } from "@/utils/formats";
 
@@ -239,7 +240,8 @@ const { search: customerSearch, debouncedFetch: debouncedFetchCustomer } = useSe
 const productResults = ref([]);
 // Paged and searched on the server; a value saved earlier keeps its label whatever page is loaded.
 const categorySource = useCategoryOptions(() => props.channel);
-const attributeSource = useAttributeOptions();
+const pimChannel = usePimChannelStore();
+const attributeSource = useAttributeOptions(null, () => pimChannel.channels.find((c) => c.idx === props.channel)?.default_language);
 const featureSource = useFeatureOptions(() => props.channel);
 const customerResults = ref([]);
 const groupOptions = ref([]);
