@@ -63,7 +63,11 @@
           <BasicSelect
             v-model="local.categories"
             multiple
-            :options="idOptions(categoryOptions, 'idx')"
+            :options="categorySource.options"
+            searchable
+            :more-label="categorySource.moreLabel"
+            @search="categorySource.onSearch"
+            @more="categorySource.loadMore"
             :placeholder="$t('promo.filter_field_categories')"
           />
         </FormField>
@@ -73,7 +77,11 @@
           <BasicSelect
             v-model="local.attributes"
             multiple
-            :options="idOptions(attributeOptions, 'idx')"
+            :options="attributeSource.options"
+            searchable
+            :more-label="attributeSource.moreLabel"
+            @search="attributeSource.onSearch"
+            @more="attributeSource.loadMore"
             :placeholder="$t('promo.filter_field_attributes')"
           />
         </FormField>
@@ -83,7 +91,11 @@
           <BasicSelect
             v-model="local.features_qty_greater_than_attr_value"
             multiple
-            :options="idOptions(featureOptions, 'idx')"
+            :options="featureSource.options"
+            searchable
+            :more-label="featureSource.moreLabel"
+            @search="featureSource.onSearch"
+            @more="featureSource.loadMore"
             :placeholder="$t('promo.filter_field_features_qty_gt')"
           />
         </FormField>
@@ -93,7 +105,11 @@
           <BasicSelect
             v-model="local.features_qty_is_multiple_of_attr_value"
             multiple
-            :options="idOptions(featureOptions, 'idx')"
+            :options="featureSource.options"
+            searchable
+            :more-label="featureSource.moreLabel"
+            @search="featureSource.onSearch"
+            @more="featureSource.loadMore"
             :placeholder="$t('promo.filter_field_features_qty_multiple')"
           />
         </FormField>
@@ -183,7 +199,8 @@ import { ref, computed, watch } from "vue";
 import { t } from "@/i18n";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
 import { extractApiMessage } from "@/composables/useFormErrors";
-import { GET_Products, GET_Categories, GET_Features, GET_Attributes } from "@/api/pim/api";
+import { GET_Products } from "@/api/pim/api";
+import { useCategoryOptions, useAttributeOptions, useFeatureOptions } from "@/composables/useRemoteOptions";
 import { GET_Customers, GET_AccountsGroups } from "@/api/accounts/api";
 import {
   POST_ProductFilter,
@@ -216,9 +233,10 @@ const { search: customerSearch, debouncedFetch: debouncedFetchCustomer } = useSe
 
 // ─── remote option lists ────────────────────────────────────────────────────
 const productResults = ref([]);
-const categoryOptions = ref([]);
-const attributeOptions = ref([]);
-const featureOptions = ref([]);
+// Paged and searched on the server; a value saved earlier keeps its label whatever page is loaded.
+const categorySource = useCategoryOptions(() => props.channel);
+const attributeSource = useAttributeOptions();
+const featureSource = useFeatureOptions(() => props.channel);
 const customerResults = ref([]);
 const groupOptions = ref([]);
 
@@ -293,38 +311,25 @@ watch(
 // ─── data loaders ────────────────────────────────────────────────────────────
 async function loadStaticOptions() {
   if (props.kind !== "customer") {
-    await Promise.all([loadCategories(), loadAttributes(), loadFeatures()]);
+    await loadSourceOptions();
   } else {
     await loadGroups();
   }
 }
 
-async function loadCategories() {
-  try {
-    const { data } = await GET_Categories(props.channel, { page_size: 200 });
-    categoryOptions.value = data.results || [];
-  } catch {
-    categoryOptions.value = [];
-  }
+function loadSourceOptions() {
+  return Promise.all([categorySource.reload(), attributeSource.reload(), featureSource.reload()]);
 }
 
-async function loadAttributes() {
-  try {
-    const { data } = await GET_Attributes({ page_size: 200 });
-    attributeOptions.value = data.results || [];
-  } catch {
-    attributeOptions.value = [];
-  }
-}
-
-async function loadFeatures() {
-  try {
-    const { data } = await GET_Features({ page_size: 200 }, props.channel);
-    featureOptions.value = data.results || [];
-  } catch {
-    featureOptions.value = [];
-  }
-}
+watch(() => local.value.categories, (ids) => categorySource.track(ids));
+watch(() => local.value.attributes, (ids) => attributeSource.track(ids));
+watch(
+  () => [
+    ...(local.value.features_qty_greater_than_attr_value ?? []),
+    ...(local.value.features_qty_is_multiple_of_attr_value ?? []),
+  ],
+  (ids) => featureSource.track(ids)
+);
 
 async function loadGroups() {
   try {

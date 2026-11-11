@@ -6,11 +6,15 @@ import { mount, flushPromises } from "@vue/test-utils";
 const mockPostProduct = vi.fn();
 const mockPostCustomer = vi.fn();
 
+const mockCategories = vi.fn();
+const mockCategory = vi.fn();
 vi.mock("@/api/pim/api", () => ({
   GET_Products: vi.fn(),
-  GET_Categories: () => Promise.resolve({ data: { results: [{ idx: "shoes", name: "Shoes" }, { idx: "hats" }] } }),
+  GET_Categories: (...a) => mockCategories(...a),
+  GET_Category: (...a) => mockCategory(...a),
   GET_Attributes: () => Promise.resolve({ data: { results: [] } }),
   GET_Features: () => Promise.resolve({ data: { results: [] } }),
+  GET_Feature: vi.fn(),
 }));
 vi.mock("@/api/accounts/api", () => ({
   GET_Customers: vi.fn(),
@@ -31,14 +35,14 @@ import FilterEditDrawer from "@/views/Promo/FilterEditDrawer.vue";
 
 const SelectProbe = {
   name: "BasicSelect",
-  props: ["options", "modelValue", "multiple", "placeholder"],
+  props: ["options", "modelValue", "multiple", "placeholder", "moreLabel"],
   emits: ["update:modelValue"],
   template: "<div class='select-probe' />",
 };
 
-async function openDrawer(kind) {
+async function openDrawer(kind, filter = null) {
   const wrapper = mount(FilterEditDrawer, {
-    props: { visible: false, kind, channel: "default", ruleId: 7 },
+    props: { visible: false, kind, channel: "default", ruleId: 7, filter },
     global: {
       stubs: {
         SideDrawer: { template: "<div><slot /></div>" },
@@ -64,23 +68,54 @@ const save = (wrapper) => wrapper.find("button[data-key='save']").trigger("click
 
 describe("FilterEditDrawer — multi selects", () => {
   beforeEach(() => {
+    mockCategories
+      .mockReset()
+      .mockResolvedValue({ data: { results: [{ idx: "shoes", name: "Shoes" }, { idx: "hats" }], next: null } });
+    mockCategory.mockReset();
     mockPostProduct.mockReset().mockResolvedValue({ data: {} });
     mockPostCustomer.mockReset().mockResolvedValue({ data: {} });
   });
 
-  it("labels categories as idx — name and posts the chosen ones", async () => {
+  it("shows categories by name with the idx as the second line and posts the chosen ones", async () => {
     const wrapper = await openDrawer("product");
     const categories = multiSelects(wrapper)[0];
 
     expect(categories.props("options")).toEqual([
-      { label: "shoes — Shoes", value: "shoes" },
-      { label: "hats", value: "hats" },
+      { label: "Shoes", description: "shoes", value: "shoes" },
+      { label: "hats", description: "hats", value: "hats" },
     ]);
     await categories.vm.$emit("update:modelValue", ["hats"]);
     await save(wrapper);
     await flushPromises();
 
     expect(mockPostProduct).toHaveBeenCalledWith("default", 7, expect.objectContaining({ categories: ["hats"] }));
+  });
+
+  it("labels a saved category that is not on the loaded page, from the detail endpoint", async () => {
+    mockCategory.mockResolvedValue({ data: { idx: "deep-1", name: "Deep one" } });
+    const wrapper = await openDrawer("product", { categories: ["deep-1"] });
+    const labels = multiSelects(wrapper)[0].props("options").map((o) => o.label);
+
+    expect(mockCategory).toHaveBeenCalledWith("default", "deep-1");
+    expect(labels).toEqual(["Deep one", "Shoes", "hats"]);
+  });
+
+  it("searches categories on the server and pages them with more", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    mockCategories.mockResolvedValueOnce({ data: { results: [{ idx: "a", name: "A" }], next: "page2" } });
+    const wrapper = await openDrawer("product");
+    const categories = multiSelects(wrapper)[0];
+    expect(categories.attributes("more-label") ?? categories.props("moreLabel")).toBeTruthy();
+
+    mockCategories.mockResolvedValue({ data: { results: [{ idx: "b", name: "B" }], next: null } });
+    await categories.vm.$emit("more");
+    await flushPromises();
+    expect(mockCategories).toHaveBeenLastCalledWith("default", { page: 2, page_size: 50 });
+
+    await categories.vm.$emit("search", "fl 10");
+    await vi.advanceTimersByTimeAsync(350);
+    expect(mockCategories).toHaveBeenLastCalledWith("default", { search: "fl 10", page: 1, page_size: 50 });
+    vi.useRealTimers();
   });
 
   it("posts the chosen customer groups", async () => {
