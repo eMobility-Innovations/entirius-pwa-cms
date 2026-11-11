@@ -46,14 +46,18 @@
               :floating-label="$t('pim.categories')"
               :options="categoryOptions"
               :model-value="categoryFilter"
+              searchable
+              :more-label="categorySource.moreLabel"
               class="product-list__filter-dropdown"
+              @search="categorySource.onSearch"
+              @more="categorySource.loadMore"
               @update:model-value="onCategorySelect"
             />
-            <BasicSelect
+            <FeatureAttributeSelect
               v-for="feat in filterableFeatures"
-              :key="feat.idx"
-              :floating-label="feat.name"
-              :options="featureFilterOptions(feat)"
+              :key="`${channelIdx}-${feat.idx}`"
+              :feature-idx="feat.idx"
+              :name="feat.name"
               :model-value="attributeFilters[feat.idx] ?? ''"
               class="product-list__filter-dropdown"
               @update:model-value="(val) => onAttributeFilter(feat.idx, val)"
@@ -261,12 +265,11 @@ import { useNotifyStore } from "@/stores/notify";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { useMuninStore } from "@/stores/munin";
 import { useSearchDebounce } from "@/composables/useSearchDebounce";
+import { useCategoryOptions } from "@/composables/useRemoteOptions";
 import {
   GET_Products,
   POST_BulkUpdateProducts,
-  GET_Categories,
   GET_Features,
-  GET_FeatureAttributes,
   GET_BulkProductGaps,
 } from "@/api/pim/api";
 import { GET_BulkHasChanges } from "@/api/atlas/api";
@@ -285,6 +288,7 @@ import AiToolboxHint from "@/components/ConfigHealth/AiToolboxHint.vue";
 import GapStatusAlert from "./components/GapStatusAlert.vue";
 import PimTranslateDialog from "./components/PimTranslateDialog.vue";
 import PimChannelSelect from "./components/PimChannelSelect.vue";
+import FeatureAttributeSelect from "./components/FeatureAttributeSelect.vue";
 import { extractApiMessage } from "@/composables/useFormErrors";
 
 const HIDE_QUALITY_KEY = "pim_hide_quality_sensor";
@@ -302,13 +306,14 @@ const CUSTOM_RUN = "__custom";
 
 export default {
   name: "ProductList",
-  components: { RunAiTaskDialog, AiToolboxHint, GapStatusAlert, PimTranslateDialog, PimChannelSelect },
+  components: { RunAiTaskDialog, AiToolboxHint, GapStatusAlert, PimTranslateDialog, PimChannelSelect, FeatureAttributeSelect },
   setup() {
     const loader = useLoaderStore();
     const notify = useNotifyStore();
     const pimChannel = usePimChannelStore();
     const munin = useMuninStore();
     const { search, debouncedFetch } = useSearchDebounce();
+    const categorySource = useCategoryOptions(() => pimChannel.activeChannelIdx);
     const {
       workers: aiWorkers,
       templates: aiTemplates,
@@ -317,7 +322,7 @@ export default {
       reloadTemplates: reloadAiTemplates,
     } = useAiWorkers();
     return {
-      loader, notify, pimChannel, munin, search, debouncedFetch,
+      loader, notify, pimChannel, munin, search, debouncedFetch, categorySource,
       aiWorkers, aiTemplates, aiWritable, aiUsable, reloadAiTemplates,
     };
   },
@@ -334,7 +339,6 @@ export default {
       visibilityFilter: null,
       productClassFilter: null,
       categoryFilter: null,
-      categories: [],
       filterableFeatures: [],
       attributeFilters: {},
       showTranslateDialog: false,
@@ -498,7 +502,7 @@ export default {
     categoryOptions() {
       return [
         { value: null, label: this.$t("pim.all_categories") },
-        ...this.categories.map((c) => ({ value: c.idx, label: c.name })),
+        ...this.categorySource.options,
       ];
     },
     dropdownFilterCount() {
@@ -519,9 +523,16 @@ export default {
     },
   },
   watch: {
+    categoryFilter: {
+      handler(value) {
+        this.categorySource.track(value);
+      },
+      immediate: true,
+    },
     "pimChannel.activeChannelIdx"() {
       this.attributeFilters = {};
-      this.fetchCategories();
+      this.categoryFilter = null;
+      this.categorySource.reload();
       this.fetchFilterableFeatures();
       this.fetchProducts();
     },
@@ -532,7 +543,7 @@ export default {
   },
   mounted() {
     this.currentPage = parseInt(this.$route.query.page) || 1;
-    this.fetchCategories();
+    this.categorySource.reload();
     this.fetchFilterableFeatures();
     this.fetchProducts();
   },
@@ -579,16 +590,6 @@ export default {
         this.loading = false;
       }
     },
-    async fetchCategories() {
-      try {
-        const { data } = await GET_Categories(this.channelIdx, {
-          page_size: 100,
-        });
-        this.categories = data.results || [];
-      } catch {
-        this.categories = [];
-      }
-    },
     async fetchFilterableFeatures() {
       try {
         const { data } = await GET_Features(
@@ -598,35 +599,11 @@ export default {
         const selectFeatures = (data.results || []).filter(
           (f) => f.feature_type === 7 || f.feature_type === 8
         );
-        const features = [];
-        for (const feat of selectFeatures) {
-          try {
-            const { data: attrData } = await GET_FeatureAttributes(
-              feat.idx,
-              this.channelIdx
-            );
-            features.push({
-              idx: feat.idx,
-              name: feat.name || feat.idx,
-              attributes: (attrData.results || attrData || []).map((a) => ({
-                idx: a.idx,
-                name: a.name || a.idx,
-              })),
-            });
-          } catch {
-            // skip features whose attributes can't be loaded
-          }
-        }
+        const features = selectFeatures.map((feat) => ({ idx: feat.idx, name: feat.name || feat.idx }));
         this.filterableFeatures = features;
       } catch {
         this.filterableFeatures = [];
       }
-    },
-    featureFilterOptions(feat) {
-      return [
-        { label: this.$t("pim.filter_all"), value: null },
-        ...feat.attributes.map((a) => ({ label: a.name, value: a.idx })),
-      ];
     },
     onVisibilitySelect(val) {
       this.visibilityFilter = val;
