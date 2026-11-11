@@ -42,8 +42,13 @@
             :error="fieldErr('params')"
           >
             <BasicSelect
-              :options="featureOptions"
+              :options="featureSource.options"
               v-model="paramFeatureIdx"
+              searchable
+              remote-search
+              :more-label="featureSource.moreLabel"
+              @search="featureSource.onSearch"
+              @more="featureSource.loadMore"
               :placeholder="$t('pim.gap_param_feature_ph')"
             />
           </FormField>
@@ -164,8 +169,8 @@ import {
   POST_GapDefinition,
   PATCH_GapDefinition,
   DELETE_GapDefinition,
-  GET_Features,
 } from "@/api/pim/api";
+import { useFeatureOptions } from "@/composables/useRemoteOptions";
 import PimChannelSelect from "./components/PimChannelSelect.vue";
 
 const FEATURE_CHECKS = ["feature_present", "feature_min_length"];
@@ -189,7 +194,8 @@ export default {
     const pimChannel = usePimChannelStore();
     const quality = useQualityStore();
     const formErrors = useFormErrors();
-    return { loader, notify, pimChannel, quality, ...formErrors };
+    const featureSource = useFeatureOptions();
+    return { loader, notify, pimChannel, quality, featureSource, ...formErrors };
   },
   data() {
     return {
@@ -210,7 +216,6 @@ export default {
       rawParamsMode: false,
       rawParamsText: "{}",
       rawParamsError: "",
-      featureOptions: [],
       original: null,
       loading: false,
       showDeleteConfirm: false,
@@ -270,6 +275,14 @@ export default {
       return Array.from(set);
     },
   },
+  watch: {
+    paramFeatureIdx: {
+      handler(value) {
+        this.featureSource.track(value);
+      },
+      immediate: true,
+    },
+  },
   async mounted() {
     // Soft-compat self-guard: no gaps API → leave quietly (no screen).
     if (this.quality.available === null) await this.quality.probe();
@@ -277,7 +290,7 @@ export default {
       this.$router.replace("/pim/products");
       return;
     }
-    this.fetchFeatures();
+    this.featureSource.load();
     if (!this.isCreate) this.fetchRule();
   },
   methods: {
@@ -299,18 +312,6 @@ export default {
       const i = this.form.languages.indexOf(lang);
       if (i > -1) this.form.languages.splice(i, 1);
       else this.form.languages.push(lang);
-    },
-    async fetchFeatures() {
-      try {
-        const { data } = await GET_Features({ page_size: 500 });
-        const results = data.results || data || [];
-        this.featureOptions = results.map((f) => ({
-          label: f.name || f.idx,
-          value: f.idx,
-        }));
-      } catch {
-        this.featureOptions = [];
-      }
     },
     async fetchRule() {
       this.loading = true;

@@ -363,6 +363,7 @@ import PimChannelSelect from "./components/PimChannelSelect.vue";
 import RequiredOverrideControl from "./components/RequiredOverrideControl.vue";
 import { usePimCapabilities, noteFeatureList } from "@/composables/usePimCapabilities";
 import { extractApiMessage } from "@/composables/useFormErrors";
+import { fetchAllPages } from "@/composables/useRemoteOptions";
 
 export default {
   name: "FeatureSetEdit",
@@ -609,8 +610,8 @@ export default {
     },
     async fetchAllSets() {
       try {
-        const { data } = await GET_FeatureSetsGlobal({ page_size: 100 });
-        this.allSets = data.results || data || [];
+        // The default-set check reads every set, so all pages are loaded.
+        this.allSets = await fetchAllPages(async (params) => (await GET_FeatureSetsGlobal(params)).data);
       } catch {
         // non-critical, silently ignore
       }

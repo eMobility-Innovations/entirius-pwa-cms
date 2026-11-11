@@ -26,7 +26,11 @@
         :options="categoryOptions"
         :placeholder="$t('enrichment.studio.task.category_pick')"
         searchable
+        remote-search
+        :more-label="categorySource.moreLabel"
         data-testid="task-targets-category"
+        @search="categorySource.onSearch"
+        @more="categorySource.loadMore"
       />
     </FormField>
 
@@ -43,7 +47,8 @@
 
 <script>
 import { POST_ResolveSubjects } from "@/api/enrichment/api";
-import { GET_Categories, GET_Products } from "@/api/pim/api";
+import { GET_Products } from "@/api/pim/api";
+import { useCategoryOptions } from "@/composables/useRemoteOptions";
 import { usePimChannelStore } from "@/stores/pimChannel";
 import { useNotifyStore } from "@/stores/notify";
 import { extractApiMessage } from "@/composables/useFormErrors";
@@ -66,10 +71,12 @@ export default {
   },
   emits: ["update:modelValue"],
   setup() {
-    return { pimChannel: usePimChannelStore(), notify: useNotifyStore() };
+    const pimChannel = usePimChannelStore();
+    const categorySource = useCategoryOptions(() => pimChannel.activeChannelIdx);
+    return { pimChannel, notify: useNotifyStore(), categorySource };
   },
   data() {
-    return { mode: "paste", text: "", known: [], unknown: [], categories: [], category: null, categoryCount: 0, seq: 0, timer: null };
+    return { mode: "paste", text: "", known: [], unknown: [], category: null, categoryCount: 0, seq: 0, timer: null };
   },
   computed: {
     channel() {
@@ -85,7 +92,7 @@ export default {
       ];
     },
     categoryOptions() {
-      return this.categories.map((c) => ({ value: c.idx, label: c.name || c.idx }));
+      return this.categorySource.options;
     },
     refs() {
       return parseRefs(this.text);
@@ -117,12 +124,13 @@ export default {
     mode() {
       this.refresh();
     },
-    category() {
+    category(value) {
+      this.categorySource.track(value);
       this.refresh();
     },
     channel() {
       this.category = null;
-      this.categories = [];
+      this.categorySource.reload();
       this.refresh();
     },
   },
@@ -172,7 +180,7 @@ export default {
       });
     },
     async loadCategory() {
-      if (!this.categories.length && this.channel) await this.loadCategories();
+      if (!this.categorySource.options.length && this.channel) await this.categorySource.load();
       const idx = this.category;
       if (!idx) return this.lookup(async () => ({}));
       this.emit({ pending: true });
@@ -183,14 +191,6 @@ export default {
         const skus = (data.results || []).map((product) => product.sku);
         return { skus, count: skus.length };
       });
-    },
-    async loadCategories() {
-      try {
-        const { data } = await GET_Categories(this.channel, { page_size: 100 });
-        this.categories = data.results || [];
-      } catch {
-        this.categories = [];
-      }
     },
     categorySummary() {
       const count = this.categoryCount;
