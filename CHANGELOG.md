@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Category pickers no longer stop at the first 100 categories: the product list filter, the parent in "Create
+  category", the category of an AI task and the categories of a promo filter search the API (debounced) and page
+  with "Load more", and a chosen value keeps its name whichever page is loaded. The same goes for the attribute and
+  feature pickers of a promo filter and the value filters of the product list. "Create category" preselects
+  `?parent=<idx>`. The category options show the idx as a second line.
+
 ### Changed
 
 - Visual baselines approved again on 3.5.0 (Font Awesome 7 glyphs, seed and BDD of platform 4.3): 226 screens, 8 of
