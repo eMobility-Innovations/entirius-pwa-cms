@@ -189,6 +189,12 @@ describe("BasicSelect", () => {
     expect(control().getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("open: emits when the list opens", async () => {
+    const wrapper = mountSelect({ searchable: true });
+    await open();
+    expect(wrapper.emitted("open")).toHaveLength(1);
+  });
+
   it("remoteSearch: the options show as given, no filtering by label, search still emits", async () => {
     const wrapper = mountSelect({ searchable: true, remoteSearch: true });
     await open();

@@ -353,7 +353,7 @@ Catalogue: `#page-frame` (`#page-header`, `#breadcrumbs`, `#page-layout`).
 
 - **`BasicSelect`** — one choice from a list: `v-model` (a value, or an array when `multiple`), `options`
   `[{ label, value, description?, disabled? }]`, `placeholder` (default „Wybierz”), `searchable` (filter input above
-  the list), `remoteSearch` (the caller filters on the server: the list shows `options` as given, `search` still emits), `clearable` (a clear IconButton while something is chosen), `disabled`. Closed control: a
+  the list), `remoteSearch` (the caller filters on the server: the list shows `options` as given, `search` still emits), `open` event (the list opened: load a long list lazily), `clearable` (a clear IconButton while something is chosen), `disabled`. Closed control: a
   `role="combobox"` button, `--elem-height`, `--radius-base`, `border-control`, 12 px Inter 500, `expand` caret;
   `multiple` shows the one label or „Wybrano: N”. The list opens in BasicMenu's panel (position, flip = drop-up,
   outside click, Esc, focus return) as a `listbox` driven by `aria-activedescendant`: arrows (wrap), Home / End,

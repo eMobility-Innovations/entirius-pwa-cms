@@ -81,7 +81,7 @@
 // control takes the field's id, description, invalid, required and disabled (a caller's `aria-describedby` joins the
 // description); `aria-label` / `aria-labelledby` on the tag name it outside one. `placement` and `inline` go to BasicMenu (`inline`: open in the page flow, catalogue).
 // `moreLabel` adds an action row at the end of the list for options that are not loaded yet: never filtered out,
-// choosing it emits `more` and keeps the menu open. `search` carries the trimmed filter text on every change.
+// choosing it emits `more` and keeps the menu open. `search` carries the trimmed filter text on every change; `open` fires when the list opens (load a long list lazily).
 // `remoteSearch`: the caller filters on the server (listen to `search`), so the list shows `options` as given and never
 // hides one by its label.
 // `floatingLabel` names a select that stands without a FormField (toolbars, card headers): the empty control shows it
@@ -113,7 +113,7 @@ const props = defineProps({
   moreLabel: { type: String, default: "" },
   remoteSearch: { type: Boolean, default: false },
 });
-const emit = defineEmits(["update:modelValue", "more", "search"]);
+const emit = defineEmits(["update:modelValue", "more", "search", "open"]);
 
 const MORE = "__basic_select_more__";
 
@@ -176,6 +176,7 @@ function onListKeydown(event) {
 }
 
 function onOpen() {
+  emit("open");
   query.value = "";
   width.value = control.value?.offsetWidth ?? 0;
   listbox.reset(visible.value.findIndex(isSelected));

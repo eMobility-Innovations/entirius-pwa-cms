@@ -17,8 +17,20 @@ describe("FeatureAttributeSelect", () => {
     });
   });
 
+  it("fetches nothing until the list is first opened, then once", async () => {
+    const w = mount(FeatureAttributeSelect, { props: { featureIdx: "brand", name: "Brand" }, global: { stubs } });
+    await flushPromises();
+    expect(api.GET_Attributes).not.toHaveBeenCalled();
+    const select = w.findComponent({ name: "BasicSelect" });
+    select.vm.$emit("open");
+    select.vm.$emit("open");
+    await flushPromises();
+    expect(api.GET_Attributes).toHaveBeenCalledTimes(1);
+  });
+
   it("pages the values of one feature, All first", async () => {
     const w = mount(FeatureAttributeSelect, { props: { featureIdx: "brand", name: "Brand" }, global: { stubs } });
+    w.findComponent({ name: "BasicSelect" }).vm.$emit("open");
     await flushPromises();
     expect(api.GET_Attributes).toHaveBeenCalledWith({ feature_idx: "brand", page: 1, page_size: 50 });
     const select = w.findComponent({ name: "BasicSelect" });
@@ -32,6 +44,8 @@ describe("FeatureAttributeSelect", () => {
     }));
     const w = mount(FeatureAttributeSelect, { props: { featureIdx: "brand", name: "Brand", modelValue: "zeta" }, global: { stubs } });
     await flushPromises();
+    expect(api.GET_Attributes).toHaveBeenCalledTimes(1);
+    expect(api.GET_Attributes).toHaveBeenCalledWith({ feature_idx: "brand", search: "zeta", page_size: 100 });
     const labels = w.findComponent({ name: "BasicSelect" }).props("options").map((o) => o.label);
     expect(labels).toContain("zeta — Zeta");
   });
@@ -47,6 +61,7 @@ describe("FeatureAttributeSelect", () => {
       },
     });
     const w = mount(FeatureAttributeSelect, { props: { featureIdx: "color", name: "Color" }, global: { stubs } });
+    w.findComponent({ name: "BasicSelect" }).vm.$emit("open");
     await flushPromises();
     const labels = w.findComponent({ name: "BasicSelect" }).props("options").map((o) => o.label);
     expect(labels.slice(1)).toEqual(["red — Czerwony", "blue — Blue"]);
