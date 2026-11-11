@@ -9,6 +9,7 @@ export const PAGE_SIZE = 100;
 const ROOT = "root";
 const ROOT_STORAGE_KEY = "__root__";
 const RESTORE_CONCURRENCY = 4;
+const PARALLEL_PAGES = RESTORE_CONCURRENCY;
 const MAX_RESTORED_PAGES = 10;
 const REVEAL_PAGE_CAP = 40;
 const REVEAL_CHAIN_CAP = 20;
@@ -158,12 +159,53 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
 
   const loadMore = (key) => loadLevel(key, 1);
 
-  async function loadRest(key, cap = Infinity) {
+  // Fetches the given pages with at most PARALLEL_PAGES requests at once; the result keeps the page order.
+  async function fetchPages(parentPk, pageNumbers) {
+    const out = new Array(pageNumbers.length);
+    let next = 0;
+    let failed = false;
+    const worker = async () => {
+      while (next < pageNumbers.length && !failed) {
+        const i = next++;
+        try {
+          out[i] = await fetchPage(parentPk, pageNumbers[i]);
+        } catch (err) {
+          failed = true;
+          throw err;
+        }
+      }
+    };
+    const workers = Math.min(PARALLEL_PAGES, pageNumbers.length);
+    await Promise.all(Array.from({ length: workers }, worker));
+    return out;
+  }
+
+  // Completes a level: the missing pages are known from `count`, so they load in parallel and append in page order.
+  // A failed page leaves the level in its error state, with nothing of the failed batch appended.
+  async function loadRest(key) {
+    await inflight.get(key);
     const level = levels[key];
-    let guard = 0;
-    while (level.nextPage && !level.error && guard++ < cap) {
-      await loadLevel(key, 1);
+    const gen = generation;
+    while (level.nextPage && !level.error) {
+      const last = Math.max(Math.ceil(level.count / PAGE_SIZE), level.nextPage);
+      const numbers = Array.from(
+        { length: last - level.nextPage + 1 },
+        (_, i) => level.nextPage + i
+      );
+      level.loading = true;
+      try {
+        const pages = await fetchPages(key === ROOT ? null : key, numbers);
+        if (gen !== generation) return;
+        pages.forEach((data) => appendPage(level, data));
+      } catch (err) {
+        if (gen !== generation) return;
+        level.error = err;
+        onError(err);
+      } finally {
+        if (gen === generation) level.loading = false;
+      }
     }
+    if (gen === generation) savePages();
   }
 
   // Replaces a loaded level in place, keeping how many pages it had.
@@ -174,8 +216,9 @@ export function useCategoryTree({ getChannel, api = {}, onError = () => {} }) {
     const total = Math.max(level.pages, 1);
     try {
       const parentPk = key === ROOT ? null : key;
-      const pages = await Promise.all(
-        Array.from({ length: total }, (_, i) => fetchPage(parentPk, i + 1))
+      const pages = await fetchPages(
+        parentPk,
+        Array.from({ length: total }, (_, i) => i + 1)
       );
       if (gen !== generation) return;
       const fresh = newLevel();

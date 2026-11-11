@@ -258,4 +258,66 @@ describe("useCategoryTree", () => {
     expect(await tree.revealInTree("c230")).toBe("ok");
     expect(tree.levels[1].pages).toBe(3);
   });
+
+  describe("completing a level before a reorder", () => {
+    // 1 root with 1000 children (10 pages); the backend answers each page after a tick and tracks concurrency.
+    function bigLevel() {
+      const cats = [{ pk: 1, idx: "r", name: "r", parent_category: null, position: 0 }];
+      for (let i = 0; i < 1000; i++) cats.push({ pk: i + 2, idx: `k${i}`, name: `k${i}`, parent_category: 1, position: i });
+      const b = makeBackend(cats);
+      const base = b.api.GET_Categories.getMockImplementation();
+      const state = { active: 0, max: 0, failPage: null };
+      b.api.GET_Categories.mockImplementation(async (ch, params) => {
+        if (params.parent_category !== 1 || params.page_size !== 100) return base(ch, params);
+        state.active++;
+        state.max = Math.max(state.max, state.active);
+        await new Promise((r) => setTimeout(r, 60 + (10 - params.page) * 5));
+        state.active--;
+        if (state.failPage === params.page) throw new Error("boom");
+        return base(ch, params);
+      });
+      return { cats, b, state };
+    }
+
+    async function opened(env) {
+      const { tree, errors } = make(env.b);
+      await tree.load();
+      tree.toggle(tree.levels.root.items[0]);
+      await vi.waitFor(() => expect(tree.levels[1].loading).toBe(false));
+      return { tree, errors };
+    }
+
+    it("fetches the missing pages concurrently (at most 4) and keeps the page order", async () => {
+      const env = bigLevel();
+      const { tree } = await opened(env);
+      env.state.max = 0;
+      expect(await tree.move("k50", "k1", "after")).toBe(true);
+      expect(env.state.max).toBeGreaterThan(1);
+      expect(env.state.max).toBeLessThanOrEqual(4);
+      const { items } = env.b.reorder.mock.calls[0][1];
+      expect(items).toHaveLength(1000);
+      expect(items.slice(0, 3).map((i) => i.idx)).toEqual(["k0", "k1", "k50"]);
+      expect(items.slice(3, 6).map((i) => i.idx)).toEqual(["k2", "k3", "k4"]);
+      expect(items.at(-1).idx).toBe("k999");
+    });
+
+    it("keeps the loading state on the level while it completes", async () => {
+      const env = bigLevel();
+      const { tree } = await opened(env);
+      const moving = tree.move("k50", "k1", "after");
+      await vi.waitFor(() => expect(tree.levels[1].loading).toBe(true));
+      await moving;
+      expect(tree.levels[1].loading).toBe(false);
+    });
+
+    it("a failed page sets the level error and sends no reorder", async () => {
+      const env = bigLevel();
+      const { tree, errors } = await opened(env);
+      env.state.failPage = 6;
+      expect(await tree.move("k50", "k1", "after")).toBe(false);
+      expect(env.b.reorder).not.toHaveBeenCalled();
+      expect(errors.length).toBeGreaterThan(0);
+      expect(tree.levels[1].items).toHaveLength(100);
+    });
+  });
 });
