@@ -38,7 +38,7 @@ generates the `__client/` configs from `__client_default/`; edit the JSON files 
 
 ## Requirements
 
-- Node.js 20.19 or newer and npm.
+- Node.js 22 or newer (CI runs 22 and 26) and npm.
 - A running Entirius backend with the module registry (django-munin); the entirius-zeno harness
   (https://github.com/entirius/entirius-zeno) starts one, seeded.
 - For the end-to-end tests: Playwright browsers and a running backend.

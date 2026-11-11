@@ -14,7 +14,8 @@ Config: `vitest.config.js` (environment `happy-dom`, globals on, spec glob
 `tests/unit/**/*.spec.{js,ts}`). Setup file: `tests/unit/setup.js` — provides
 global `$t`/`$tc` i18n mocks, `$route`/`$router` stubs, and global component
 stubs (`FontAwesomeIcon`, `Loader`, `EmptyState`, `StatusBadge`, `FilterChip`,
-`Dropdown`, `BasicButton`, `BasicInput`, `TextAreaBasic`, `FormField`).
+`Dropdown`, `BasicButton`, `BasicInput`, `TextAreaBasic`, `FormField`) and, when the runtime has none (Node 26),
+in-memory `localStorage` / `sessionStorage` (`tests/unit/support/webStorage.js`).
 A spec that needs a spec-faithful HTML parser opens with `// @vitest-environment jsdom`
 (`tests/unit/utils/sanitizeHtml.spec.js`: DOMPurify gives wrong answers under `happy-dom`).
 

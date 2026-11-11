@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- The CMS builds and passes its unit suite on Node 22 and Node 26, and CI runs `build`, `test-unit` and
+  `test-e2e-mocked` on both. The minimum Node version (`engines.node`) is now 22 (Node 20 is past its end of life).
+  The unit setup provides in-memory `localStorage` and `sessionStorage` when the runtime has none (Node 26 ships an
+  undefined `localStorage` global, which stopped happy-dom from installing its own).
+
 ## [3.6.1] (2026-11-11)
 
 ### Fixed
