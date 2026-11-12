@@ -85,7 +85,7 @@
           :key="row.feature_idx"
           :row="row"
           :disabled="busy || locked || savingAttribute"
-          @fill="(value) => fill(row, value)"
+          @fill="(value, done) => fill(row, value, done)"
         />
       </section>
       <div class="flex jc-end">
@@ -125,7 +125,7 @@ export default {
     return { notify: useNotifyStore() };
   },
   data() {
-    return { proposals: [], loading: true, busy: false, chosen: null, names: {}, source: null, review: null, missing: [], originalValues: {}, filled: false, attributeSaving: {} };
+    return { proposals: [], loading: true, busy: false, chosen: null, names: {}, source: null, review: null, missing: [], fillQueue: [], originalValues: {}, filled: false, attributeSaving: {} };
   },
   computed: {
     hasSource,
@@ -160,11 +160,21 @@ export default {
         .sort((a, b) => a.label.localeCompare(b.label));
     },
   },
+  watch: {
+    busy(value) {
+      if (!value) this.drainFills();
+    },
+    savingAttribute(value) {
+      if (!value) this.drainFills();
+    },
+  },
   async created() {
     await this.load();
   },
   methods: {
     async load() {
+      const queued = this.fillQueue.splice(0);
+      queued.forEach(({ done }) => done?.(false));
       this.loading = true;
       this.review = null;
       const by = { subject_ref: this.sku };
@@ -221,18 +231,41 @@ export default {
         this.busy = false;
       }
     },
-    async fill(row, value) {
-      if (this.busy || this.locked || this.savingAttribute) return;
+    drainFills() {
+      if (this.busy || this.savingAttribute || this.loading) return;
+      while (this.fillQueue.length) {
+        const { row, value, done } = this.fillQueue.shift();
+        if (!this.locked && this.missing.some((item) => item.feature_idx === row.feature_idx)) {
+          this.fill(row, value, done);
+          return;
+        }
+        done?.(false);
+      }
+    },
+    async fill(row, value, done) {
+      if (this.locked) {
+        done?.(false);
+        return;
+      }
+      if (this.busy || this.savingAttribute) {
+        const previous = this.fillQueue.findIndex((item) => item.row.feature_idx === row.feature_idx);
+        if (previous !== -1) this.fillQueue.splice(previous, 1)[0].done?.(false);
+        this.fillQueue.push({ row, value, done });
+        return;
+      }
+      let saved = false;
       this.busy = true;
       try {
         const { data } = await fillMissing({ sku: this.sku, feature_idx: row.feature_idx, value });
         this.proposals.push(data);
         this.missing = this.missing.filter((item) => item.feature_idx !== row.feature_idx);
         this.filled = true;
+        saved = true;
       } catch (err) {
         this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
       } finally {
         this.busy = false;
+        done?.(saved);
       }
     },
     async sendBack(reason = "") {
