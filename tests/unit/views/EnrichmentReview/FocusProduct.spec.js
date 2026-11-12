@@ -193,6 +193,99 @@ describe("FocusProduct", () => {
     expect(find(wrapper, "enrichment-focus-apply").exists()).toBe(false);
   });
 
+  it("queues a second missing value until the first save settles", async () => {
+    serve([set]);
+    review.getMissing.mockResolvedValue({ data: [
+      { feature_idx: "width", name: "Width", kind: "text" },
+      { feature_idx: "height", name: "Height", kind: "text" },
+    ] });
+    let resolveFirst;
+    review.fillMissing.mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }));
+    review.fillMissing.mockResolvedValue({ data: { ...attribute, id: 3 } });
+    const wrapper = await render();
+    const rows = wrapper.findAllComponents(FocusMissingRow);
+    const firstDone = vi.fn();
+    const secondDone = vi.fn();
+    rows[0].vm.$emit("fill", "40", firstDone);
+    rows[1].vm.$emit("fill", "50", secondDone);
+    expect(review.fillMissing).toHaveBeenCalledTimes(1);
+    expect(secondDone).not.toHaveBeenCalled();
+    resolveFirst({ data: attribute });
+    await flushPromises();
+    expect(review.fillMissing).toHaveBeenCalledTimes(2);
+    expect(review.fillMissing).toHaveBeenNthCalledWith(2, { sku: "SKU-1", feature_idx: "height", value: "50" });
+    expect(firstDone).toHaveBeenCalledWith(true);
+    expect(secondDone).toHaveBeenCalledWith(true);
+  });
+
+  it("reports a failed fill and permits the same value to be retried", async () => {
+    serve([set]);
+    review.getMissing.mockResolvedValue({ data: [{ feature_idx: "width", name: "Width", kind: "text" }] });
+    review.fillMissing.mockRejectedValueOnce(new Error("Save failed")).mockResolvedValue({ data: attribute });
+    const wrapper = await render();
+    const row = wrapper.findComponent(FocusMissingRow);
+    const done = vi.fn();
+    row.vm.$emit("fill", "40", done);
+    await flushPromises();
+    expect(done).toHaveBeenCalledWith(false);
+    expect(wrapper.findComponent(FocusMissingRow).exists()).toBe(true);
+    row.vm.$emit("fill", "40", done);
+    await flushPromises();
+    expect(review.fillMissing).toHaveBeenCalledTimes(2);
+    expect(review.fillMissing).toHaveBeenLastCalledWith({ sku: "SKU-1", feature_idx: "width", value: "40" });
+    expect(done).toHaveBeenLastCalledWith(true);
+  });
+
+  it("drains only the latest queued value when an attribute save finishes", async () => {
+    serve([attribute]);
+    review.getMissing.mockResolvedValue({ data: [{ feature_idx: "width", name: "Width", kind: "text" }] });
+    review.fillMissing.mockResolvedValue({ data: { ...attribute, id: 3 } });
+    const wrapper = await render();
+    const attributeRow = wrapper.findComponent(Row);
+    attributeRow.vm.$emit("saving", true);
+    await flushPromises();
+    const missingRow = wrapper.findComponent(FocusMissingRow);
+    const done = vi.fn();
+    missingRow.vm.$emit("fill", "40");
+    missingRow.vm.$emit("fill", "42", done);
+    expect(review.fillMissing).not.toHaveBeenCalled();
+    attributeRow.vm.$emit("saving", false);
+    await flushPromises();
+    expect(review.fillMissing).toHaveBeenCalledTimes(1);
+    expect(review.fillMissing).toHaveBeenCalledWith({ sku: "SKU-1", feature_idx: "width", value: "42" });
+    expect(done).toHaveBeenCalledWith(true);
+  });
+
+  it.each(["reload", "removed row"])("discards a queued fill after %s", async (change) => {
+    serve([attribute]);
+    review.getMissing.mockResolvedValue({ data: [{ feature_idx: "width", name: "Width", kind: "text" }] });
+    const wrapper = await render();
+    const attributeRow = wrapper.findComponent(Row);
+    attributeRow.vm.$emit("saving", true);
+    await flushPromises();
+    const done = vi.fn();
+    wrapper.findComponent(FocusMissingRow).vm.$emit("fill", "40", done);
+    expect(review.fillMissing).not.toHaveBeenCalled();
+    if (change === "reload") await wrapper.vm.load();
+    else await wrapper.setData({ missing: [] });
+    attributeRow.vm.$emit("saving", false);
+    await flushPromises();
+    expect(review.fillMissing).not.toHaveBeenCalled();
+    expect(done).toHaveBeenCalledWith(false);
+  });
+
+  it("reports a locked fill as unsaved without calling the API", async () => {
+    serve([set]);
+    review.getMissing.mockResolvedValue({ data: [{ feature_idx: "width", name: "Width", kind: "text" }] });
+    const wrapper = await render();
+    await wrapper.setProps({ locked: true });
+    const done = vi.fn();
+    wrapper.findComponent(FocusMissingRow).vm.$emit("fill", "40", done);
+    await flushPromises();
+    expect(done).toHaveBeenCalledWith(false);
+    expect(review.fillMissing).not.toHaveBeenCalled();
+  });
+
   it.each([409, 400])("reloads with a clear conflict message for HTTP %s", async (status) => {
     serve([set]);
     api.POST_AcceptProposal.mockRejectedValueOnce({ response: { status, data: status === 400 ? {
