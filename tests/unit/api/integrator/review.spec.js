@@ -51,28 +51,23 @@ describe("integrator review API", () => {
     expect(get).toHaveBeenLastCalledWith(`${REVIEW}/counts/`);
   });
 
-  it("releases on leave with the token cookie, configured base and fetch keepalive", async () => {
+  it("releases on leave through the enrichment client with the fetch adapter and keepalive", async () => {
     const fetch = vi.fn().mockResolvedValue({ status: 204 });
     vi.stubGlobal("fetch", fetch);
-    cookieGet.mockReturnValue("staff-jwt");
+    post.mockResolvedValue({});
     await releaseOnLeave("SKU-1");
-    expect(cookieGet).toHaveBeenCalledWith("token");
-    expect(fetch).toHaveBeenCalledWith(
-      `${(process.env.VUE_APP_API_URL || "").replace(/\/$/, "")}${REVIEW}/release/`,
-      { method: "POST", keepalive: true, headers: { Authorization: "Bearer staff-jwt", "Content-Type": "application/json" }, body: '{"sku":"SKU-1"}' },
-    );
+    expect(post).toHaveBeenCalledWith(`${REVIEW}/release/`, { sku: "SKU-1" }, { adapter: "fetch", fetchOptions: { keepalive: true } });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(cookieGet).not.toHaveBeenCalled();
   });
 
-  it("ignores navigation release failures and avoids unauthenticated or empty releases", async () => {
-    const fetch = vi.fn().mockRejectedValue(new Error("document closed"));
-    vi.stubGlobal("fetch", fetch);
-    cookieGet.mockReturnValue("staff-jwt");
+  it("ignores navigation release failures and avoids empty releases", async () => {
+    post.mockRejectedValue(new Error("document closed"));
     await expect(releaseOnLeave("SKU-1")).resolves.toBeUndefined();
-    fetch.mockClear();
-    cookieGet.mockReturnValue(undefined);
-    await releaseOnLeave("SKU-1");
+    post.mockClear();
     await releaseOnLeave(null);
-    expect(fetch).not.toHaveBeenCalled();
+    await releaseOnLeave("");
+    expect(post).not.toHaveBeenCalled();
   });
 
   it("gets the product review using the authenticated enrichment client", async () => {
