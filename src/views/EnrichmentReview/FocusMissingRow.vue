@@ -93,7 +93,10 @@ export default {
     save() {
       if (this.disabled || this.empty || this.sent) return;
       this.sent = true;
-      this.$emit("fill", this.value);
+      // A refused save (wrong value) reports back so the same value can be retried without editing it.
+      this.$emit("fill", this.value, (saved) => {
+        if (!saved) this.sent = false;
+      });
     },
   },
 };
