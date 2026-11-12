@@ -105,7 +105,7 @@ import { extractApiMessage } from "@/composables/useFormErrors";
 import { useNotifyStore } from "@/stores/notify";
 import { GET_Proposals, GET_ProposalRevisions, PATCH_Proposal } from "@/api/enrichment/api";
 import { getReviewProduct, sendBack, getMissing, fillMissing } from "@/api/integrator/review";
-import { acceptProduct } from "./acceptProduct";
+import { acceptProduct, isDecidedElsewhere } from "./acceptProduct";
 import { loadFeatureSetNames } from "./FeatureSetChange.vue";
 import FocusAttribute from "./FocusAttribute.vue";
 import FocusMissingRow from "./FocusMissingRow.vue";
@@ -280,13 +280,11 @@ export default {
         this.say("positive", this.$t("enrichment.review.toast.accepted"));
         this.$emit("done", { decided: true });
       } catch (err) {
-        const message = extractApiMessage(err, this.$t("notifications.error"));
-        const status = err?.httpStatus ?? err?.response?.status;
-        if (status === 409 || (status === 400 && message.toLowerCase().includes("proposal changed meanwhile"))) {
+        if (isDecidedElsewhere(err)) {
           this.say("warning", this.$t("enrichment.review.focus.decided_elsewhere"));
           await this.load();
         } else {
-          this.say("negative", message);
+          this.say("negative", extractApiMessage(err, this.$t("notifications.error")));
         }
       } finally {
         this.busy = false;

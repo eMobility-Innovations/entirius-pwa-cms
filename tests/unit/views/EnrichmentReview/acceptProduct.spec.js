@@ -7,7 +7,7 @@ vi.mock("@/api/enrichment/api", () => ({
   POST_AcceptProposal: (...a) => mockAccept(...a),
 }));
 
-import { acceptProduct } from "@/views/EnrichmentReview/acceptProduct";
+import { acceptProduct, isDecidedElsewhere } from "@/views/EnrichmentReview/acceptProduct";
 
 const attribute = (id) => ({ id, target_kind: "attribute_value" });
 const set = (id) => ({ id, target_kind: "feature_set" });
@@ -53,5 +53,31 @@ describe("acceptProduct", () => {
     await expect(acceptProduct("SKU-1")).rejects.toThrow("refused");
 
     expect(mockAccept).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe("isDecidedElsewhere", () => {
+  const validation = {
+    error: "VALIDATION_ERROR", message: "Request validation failed.", debug_id: "review-conflict",
+    details: [{ field: null, location: "body", issue: "INVALID", description: "proposal changed meanwhile: it is accepted now" }],
+  };
+  const cases = [
+    [409, { error: "CONFLICT", message: "Something else entirely" }, true],
+    [400, validation, true],
+    [400, { error: "INVALID_REQUEST", message: "proposal changed meanwhile" }, false],
+    [500, { error: "INTERNAL_ERROR", message: "proposal changed meanwhile" }, false],
+    [400, { ...validation, details: [{ description: "Something else entirely" }] }, false],
+    [400, { ...validation, details: undefined }, false],
+    [400, { ...validation, details: [null, { description: 42 }] }, false],
+    [400, { ...validation, details: [{ description: "prefix proposal changed meanwhile" }] }, false],
+  ];
+  it.each(cases)("classifies raw HTTP %s with body %j as %s", (status, data, expected) => {
+    expect(isDecidedElsewhere({ response: { status, data } })).toBe(expected);
+  });
+  it.each(cases)("classifies unwrapped HTTP %s with body %j as %s", (httpStatus, data, expected) => {
+    const error = { ...data };
+    Object.defineProperty(error, "httpStatus", { value: httpStatus });
+    expect(isDecidedElsewhere(error)).toBe(expected);
   });
 });

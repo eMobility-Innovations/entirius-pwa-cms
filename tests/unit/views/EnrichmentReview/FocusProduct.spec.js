@@ -195,7 +195,10 @@ describe("FocusProduct", () => {
 
   it.each([409, 400])("reloads with a clear conflict message for HTTP %s", async (status) => {
     serve([set]);
-    api.POST_AcceptProposal.mockRejectedValueOnce({ response: { status, data: { detail: "proposal changed meanwhile" } } });
+    api.POST_AcceptProposal.mockRejectedValueOnce({ response: { status, data: status === 400 ? {
+      error: "VALIDATION_ERROR", message: "Request validation failed.", debug_id: "review-conflict",
+      details: [{ field: null, location: "body", issue: "INVALID", description: "proposal changed meanwhile: it is accepted now" }],
+    } : { detail: "proposal changed meanwhile" } } });
     const wrapper = await render();
     await find(wrapper, "enrichment-focus-apply").trigger("click");
     await flushPromises();
@@ -206,7 +209,10 @@ describe("FocusProduct", () => {
 
   it.each([409, 400])("reloads for an unwrapped HTTP %s conflict", async (httpStatus) => {
     serve([set]);
-    const error = { detail: httpStatus === 400 ? "proposal changed meanwhile" : "Already decided" };
+    const error = httpStatus === 400 ? {
+      error: "VALIDATION_ERROR", message: "Request validation failed.", debug_id: "review-conflict",
+      details: [{ field: null, location: "body", issue: "INVALID", description: "proposal changed meanwhile: it is accepted now" }],
+    } : { detail: "Already decided" };
     Object.defineProperty(error, "httpStatus", { value: httpStatus });
     api.POST_AcceptProposal.mockRejectedValueOnce(error);
     const wrapper = await render();
@@ -214,6 +220,29 @@ describe("FocusProduct", () => {
     await flushPromises();
     expect(notify).toHaveBeenCalledWith({ type: "warning", msg: "enrichment.review.focus.decided_elsewhere" });
     expect(review.getReviewProduct).toHaveBeenCalledTimes(2);
+  });
+
+  it("reloads for a 409 with unrelated message text", async () => {
+    serve([set]);
+    api.POST_AcceptProposal.mockRejectedValueOnce({ response: { status: 409, data: { error: "CONFLICT", message: "Already applied by Anna" } } });
+    const wrapper = await render();
+    await find(wrapper, "enrichment-focus-apply").trigger("click");
+    await flushPromises();
+    expect(notify).toHaveBeenCalledWith({ type: "warning", msg: "enrichment.review.focus.decided_elsewhere" });
+    expect(review.getReviewProduct).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([400, 500])("shows the API message without reloading for unrelated HTTP %s", async (status) => {
+    serve([set]);
+    api.POST_AcceptProposal.mockRejectedValueOnce({ response: { status, data: { error: status === 400 ? "INVALID_REQUEST" : "INTERNAL_ERROR", message: "proposal changed meanwhile" } } });
+    const wrapper = await render();
+    const proposalReads = api.GET_Proposals.mock.calls.length;
+    await find(wrapper, "enrichment-focus-apply").trigger("click");
+    await flushPromises();
+    expect(notify).toHaveBeenCalledWith({ type: "negative", msg: "proposal changed meanwhile" });
+    expect(api.GET_Proposals).toHaveBeenCalledTimes(proposalReads + 1);
+    expect(review.getReviewProduct).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted("done")).toBeUndefined();
   });
 
   it("blocks decisions while an attribute save is running", async () => {
