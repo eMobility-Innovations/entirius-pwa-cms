@@ -62,7 +62,7 @@ describe("integrator review API", () => {
   });
 
   it("ignores navigation release failures and avoids empty releases", async () => {
-    post.mockRejectedValue(new Error("document closed"));
+    post.mockRejectedValueOnce(new Error("document closed"));
     await expect(releaseOnLeave("SKU-1")).resolves.toBeUndefined();
     post.mockClear();
     await releaseOnLeave(null);
